@@ -1,14 +1,14 @@
 //***********************************************************
-;
+//
 //               SARGON
-;
-//       Sargon is a computer chess playing program designed
+//
+// Sargon is a computer chess playing program designed
 // and coded by Dan and Kathe Spracklen.  Copyright 1978. All
 // rights reserved.  No part of this publication may be
 // reproduced without the prior written permission.
 //***********************************************************
 
-
+#include <stdint.h>
 //***********************************************************
 // EQUATES
 //***********************************************************
@@ -96,50 +96,54 @@
 //             ection of movement of each piece.
 //***********************************************************
 //DIRECT  EQU     $-TBASE
-uint8_t DIRECT[] = {
+struct tables  {
+int8_t DIRECT[24] = {
 	+9,+11,-11,-9,
 	+10,-10,+1,-1,
-	-21,-12,+08,+19,
-	+21,+12,-08,-19,
+	-21,-12,+8,+19,
+	+21,+12,-8,-19,
 	+10,+10,+11,+9,
 	-10,-10,-11,-9
 };
-
 //***********************************************************
 // DPOINT  --  Direction Table Pointer. Used to determine
 //             where to begin in the direction table for any
 //             given piece.
 //***********************************************************
 //DPOINT  EQU     $-TBASE
-uint8_t DPOINT[] = {
+uint8_t DPOINT[7] = {
 	20,16,8,0,4,0,0
 };
+
 
 //***********************************************************
 // DCOUNT  --  Direction Table Counter. Used to determine
 //             the number of directions of movement for any
 //             given piece.
 //***********************************************************
-DCOUNT  EQU     $-TBASE
-uint8_t DCOUNT[] = {
+//DCOUNT  EQU     $-TBASE
+uint8_t DCOUNT[7] = {
     4,4,8,4,4,8,8
 };
+
+
 //***********************************************************
 // PVALUE  --  Point Value. Gives the point value of each
 //             piece, or the worth of each piece.
 //***********************************************************
-PVALUE  EQU     $-TBASE-1
-uint8_t PVALUE[] = {
+//PVALUE  EQU     $-TBASE-1  //TODO what's this minus 1 about?
+uint8_t PVALUE[6] = {
 	1,3,3,5,9,10
 };
+
 
 //***********************************************************
 // PIECES  --  The initial arrangement of the first rank of
 //             pieces on the board. Use to set up the board
 //             for the start of the game.
 //***********************************************************
-PIECES  EQU     $-TBASE
-uint8_t PIECES[] = {
+//PIECES  EQU     $-TBASE
+uint8_t PIECES[8] = {
 	4,2,3,5,6,3,2,4
 };
 
@@ -181,8 +185,9 @@ uint8_t PIECES[] = {
 //                     7 -- Not used
 //                     0 -- Empty Square
 //***********************************************************
-BOARD   EQU     $-TBASE
+//BOARD   EQU     $-TBASE
 uint8_t BOARD[120];                     //
+
 
 //***********************************************************
 // ATKLIST -- Attack List. A two part array, the first
@@ -197,11 +202,17 @@ uint8_t BOARD[120];                     //
 // BACT   --  Black Attack Count. This is the eighth byte of
 //            the array and does the same for black.
 //***********************************************************
-WACT    EQU     ATKLST
-BACT    EQU     ATKLST+7
-ATKLST  DW      0,0,0,0,0,0,0
-uint8_t		WACT[7];                       //
-uint8_t		BACT[7];                       //
+//WACT    EQU     ATKLST
+//BACT    EQU     ATKLST+7
+union atklst
+{
+    uint16_t    ATKLST[7];
+    struct wact_bact
+    {
+        uint8_t		WACT[7];
+        uint8_t		BACT[7];
+    };
+};
 
 //***********************************************************
 // PLIST   --  Pinned Piece Array. This is a two part array.
@@ -209,11 +220,12 @@ uint8_t		BACT[7];                       //
 //             PLISTD contains the direction from the pinned
 //             piece to the attacker.
 //***********************************************************
-PLIST   EQU     $-TBASE-1
-PLISTD  EQU     PLIST+10
-PLISTA  DW      0,0,0,0,0,0,0,0,0,0
+//PLIST   EQU     $-TBASE-1
+//PLISTD  EQU     PLIST+10
+//PLISTA  DW      0,0,0,0,0,0,0,0,0,0
 uint8_t		PLISTA[10];		// pinned pieces
 uint8_t		PLISTD[10];		// corresponding directions
+
 
 //***********************************************************
 // POSK    --  Position of Kings. A two byte area, the first
@@ -223,25 +235,24 @@ uint8_t		PLISTD[10];		// corresponding directions
 ;
 // POSQ    --  Position of Queens. Like POSK,but for queens.
 //***********************************************************
-POSK
-uint8_t		POSK[] = {
+uint8_t		POSK[2] = {
 	24,95
 };
-POSQ
-uint8_t		POSQ[] = {
+int8_t		POSQ[3] = {
 	14,94,
 	-1
 };
+
 
 //***********************************************************
 // SCORE   --  Score Array. Used during Alpha-Beta pruning to
 //             hold the scores at each ply. It includes two
 //             "dummy" entries for ply -1 and ply 0.
 //***********************************************************
-SCORE
-uint16_t	SCORE[] = {
-	0,0,0,0,0,0;                           // Z80 max 6 ply
+uint16_t	SCORE[6] = {
+	0,0,0,0,0,0                         // Z80 max 6 ply
 };
+
 
 //***********************************************************
 // PLYIX   --  Ply Table. Contains pairs of pointers, a pair
@@ -250,11 +261,13 @@ uint16_t	SCORE[] = {
 //             The second pointer points to which move in the
 //             list is the one currently being considered.
 //***********************************************************
-PLYIX
-uint16_t	PLYIX[] = {
-	0,0,0,0,0,0,0,0,0,0
+uint16_t	PLYIX[20] = {
+	0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0
 };
+
+};
+#if NOT_YET
 
 //
 // 2) PTRS to TABLES
@@ -2427,3 +2440,4 @@ EX14:   POP     (af);                   //  Restore registers
 //	Omit some more Z80 user interface stuff, function
 //  MAKEMV
 //
+#endif NOT_YET
