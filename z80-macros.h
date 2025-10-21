@@ -50,7 +50,7 @@ struct z80_registers
 #define FUNC_BEGIN(func)    void func() {
 #define FUNC_END            }
 #define LD(dst,src)     (dst) = (src)
-#define addr(var)       offsetof(memory,var)
+#define addr(var)       offsetof(emulated_memory,var)
 #define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
 #define INC(var)        var++
 #define DJNZ(label)     r.b--; if(r.b != 0) goto label

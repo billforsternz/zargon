@@ -142,6 +142,9 @@
     <ClCompile Include="sargon-z80-modified.cpp" />
     <ClCompile Include="zargon.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="z80-macros.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

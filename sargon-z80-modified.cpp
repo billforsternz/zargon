@@ -8,8 +8,11 @@
 // reproduced without the prior written permission.
 //***********************************************************
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include "z80-macros.h"
+
 //***********************************************************
 // EQUATES
 //***********************************************************
@@ -96,8 +99,9 @@
 #define TBASE 0x200     // The following tables begin at this
                         //  low but non-zero page boundary in
                         //  in our 64K emulated memory
-struct tables  {
+struct emulated_memory {
 
+uint8_t padding[TBASE];
 //**********************************************************
 // DIRECT  --  Direction Table.  Used to determine the dir-
 //             ection of movement of each piece.
@@ -191,7 +195,7 @@ uint8_t PIECES[8] = {
 //                     0 -- Empty Square
 //***********************************************************
 //BOARD   EQU     $-TBASE
-uint8_t BOARD[120];
+uint8_t BOARDA[120];
 
 
 //***********************************************************
@@ -209,7 +213,7 @@ uint8_t BOARD[120];
 //***********************************************************
 //WACT    EQU     ATKLST
 //BACT    EQU     ATKLST+7
-union atklst
+union
 {
     uint16_t    ATKLST[7];
     struct wact_bact
@@ -246,7 +250,7 @@ uint8_t		POSK[2] = {
 int8_t		POSQ[2] = {
 	14,94
 };
-int8_t padding = -1;
+int8_t padding2 = -1;
 
 //***********************************************************
 // SCORE   --  Score Array. Used during Alpha-Beta pruning to
@@ -269,9 +273,6 @@ uint16_t	PLYIX[20] = {
 	0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0
 };
-
-};
-
 
 //
 // 2) PTRS to TABLES
@@ -312,8 +313,6 @@ uint16_t	PLYIX[20] = {
 //             list.
 //
 //***********************************************************
-struct table_ptrs
-{
 uint16_t M1      =      TBASE;
 uint16_t M2      =      TBASE;
 uint16_t M3      =      TBASE;
@@ -324,13 +323,12 @@ uint16_t T3      =      TBASE;
 uint16_t INDX1   =      TBASE;
 uint16_t INDX2   =      TBASE;
 uint16_t NPINS   =      TBASE;
-uint16_t MLPTRI  =      offsetof(tables,PLYIX);
+uint16_t MLPTRI  =      addr(PLYIX);
 uint16_t MLPTRJ  =      0;
 uint16_t SCRIX   =      0;
 uint16_t BESTM   =      0;
 uint16_t MLLST   =      0;
-uint16_t MLNXT   =      0; //TODO offsetof(?,MLIST);
-};
+uint16_t MLNXT   =      addr(MLIST);
 
 //
 // 3) MISC VARIABLES
@@ -397,8 +395,6 @@ uint16_t MLNXT   =      0; //TODO offsetof(?,MLIST);
 //             the first move for the computer.
 //
 //***********************************************************
-struct misc_variables
-{
 uint8_t	KOLOR   =      0;               //
 uint8_t	COLOR   =      0;               //
 uint8_t	P1      =      0;               //
@@ -424,7 +420,6 @@ uint8_t BMOVES[12] = {
 	34,54,0x10,
 	85,65,0x10,
 	84,64,0x10
-};
 };
 
 //
@@ -481,21 +476,14 @@ struct ML {
 	uint8_t		MLTOP;
 	uint8_t		MLFLG;
 	uint8_t		MLVAL;
-};
-
-struct emulated_memory
-{
-    uint8_t         low_memory[TBASE];
-    tables          t;
-    table_ptrs      t_ptrs;
-    misc_variables  v;
-    ML              MLIST[340];
+}  MLIST[340];
 };
 
 // Up to 64K of emulated memory
-emulated_memory m;
+emulated_memory mem;
 
-#if NOT_YET
+// Emulate Z80 machine
+Z80_REGISTERS;
 
 //***********************************************************
 
@@ -506,13 +494,11 @@ emulated_memory m;
 //
 // Miscellaneous stubs
 //
-FCDMAT:  RET
-TBCPMV:  RET
-MAKEMV:  RET
-PRTBLK   MACRO   name,len
-         ENDM
-CARRET   MACRO
-         ENDM
+void FCDMAT()  {}
+void TBCPMV()  {}
+void MAKEMV()  {}
+void PRTBLK( const char *name, int len ) {}
+void CARRET()  {}
 
 //**********************************************************
 // BOARD SETUP ROUTINE
@@ -527,32 +513,37 @@ CARRET   MACRO
 //
 // ARGUMENTS:  None
 //***********************************************************
-INITBD: LD      (b,120);                //  Pre-fill board with -1's
-        LD      (hl,addr(BOARDA));
-back01: LD      (ptr(hl),-1);
-        INC     (hl);
+FUNC_BEGIN(INITBD)
+        LD      (r.b,120);                //  Pre-fill board with -1's
+        LD      (r.hl,addr(BOARDA));
+back01: LD      (ptr(r.hl),-1);
+        INC     (r.hl);
         DJNZ    (back01);
-        LD      (b,8);
-        LD      (ix,addr(BOARDA));
-IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares
-        LD      (ptr(ix+21),a);         //  White pieces
-        SET     (7,a);                  //  Change to black
-        LD      (ptr(ix+91),a);         //  Black pieces
-        LD      (ptr(ix+31),PAWN);      //  White Pawns
-        LD      (ptr(ix+81),BPAWN);     //  Black Pawns
-        LD      (ptr(ix+41),0);         //  Empty squares
-        LD      (ptr(ix+51),0);
-        LD      (ptr(ix+61),0);
-        LD      (ptr(ix+71),0);
-        INC     (ix);
+        LD      (r.b,8);
+        LD      (r.ix,addr(BOARDA));
+IB2:    LD      (r.a,ptr(r.ix-8));          //  Fill non-border squares
+        LD      (ptr(r.ix+21),r.a);         //  White pieces
+        SET     (7,r.a);                  //  Change to black
+        LD      (ptr(r.ix+91),r.a);         //  Black pieces
+        LD      (ptr(r.ix+31),PAWN);      //  White Pawns
+        LD      (ptr(r.ix+81),BPAWN);     //  Black Pawns
+        LD      (ptr(r.ix+41),0);         //  Empty squares
+        LD      (ptr(r.ix+51),0);
+        LD      (ptr(r.ix+61),0);
+        LD      (ptr(r.ix+71),0);
+        INC     (r.ix);
         DJNZ    (IB2);
-        LD      (ix,addr(POSK));        //  Init King/Queen position list
-        LD      (ptr(ix+0),25);
-        LD      (ptr(ix+1),95);
-        LD      (ix,addr(POSQ));
-        LD      (ptr(ix+0),24);
-        LD      (ptr(ix+1),94);
-        RET
+        LD      (r.ix,addr(POSK));        //  Init King/Queen position list
+        LD      (ptr(r.ix+0),25);
+        LD      (ptr(r.ix+1),95);
+        LD      (r.ix,addr(POSQ));
+        LD      (ptr(r.ix+0),24);
+        LD      (ptr(r.ix+1),94);
+        RET;
+FUNC_END        
+
+#if NOT_YET
+
 
 //***********************************************************
 // PATH ROUTINE
