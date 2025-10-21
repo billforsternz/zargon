@@ -9,10 +9,11 @@
 //***********************************************************
 
 #include <stdint.h>
+#include <stddef.h>
 //***********************************************************
 // EQUATES
 //***********************************************************
-;
+//
 #define PAWN    1
 #define KNIGHT  2
 #define BISHOP  3
@@ -29,19 +30,19 @@
 //***********************************************************
 // TABLES SECTION
 //***********************************************************
-
+//
 //There are multiple tables used for fast table look ups
 //that are declared relative to TBASE. In each case there
 //is a table (say DIRECT) and one or more variables that
 //index into the table (say INDX2). The table is declared
 //as a relative offset from the TBASE like this;
-;
+//
 //DIRECT = .-TBASE  ;In this . is the current location
 //                  ;($ rather than . is used in most assemblers)
-;
+//
 //The index variable is declared as;
 //INDX2    .WORD TBASE
-;
+//
 //TBASE itself is page aligned, for example TBASE = 100h
 //Although 2 bytes are allocated for INDX2 the most significant
 //never changes (so in our example it's 01h). If we want
@@ -53,10 +54,10 @@
 //        LD      [INDX2],A
 //        LD      IY,INDX2
 //        LD      C,[IY+DIRECT]
-;
+//
 //It's a bit like the little known C trick where array[5]
 //can also be written as 5[array].
-;
+//
 //The Z80 indexed addressing mode uses a signed 8 bit
 //displacement offset (here DIRECT) in the range -128
 //to 127. Sargon needs most of this range, which explains
@@ -66,13 +67,13 @@
 //byte DIRECT table comes the DPOINT table. So the DPOINT
 //displacement is -128 + 24 = -104. The final tables have
 //positive displacements.
-;
+//
 //The negative displacements are not necessary in X86 where
 //the equivalent mov reg,[di+offset] indexed addressing
 //is not limited to 8 bit offsets, so in the X86 port we
 //put the first table DIRECT at the same address as TBASE,
 //a more natural arrangement I am sure you'll agree.
-;
+//
 //In general it seems Sargon doesn't want memory allocated
 //in the first page of memory, so we start TBASE at 100h not
 //at 0h. One reason is that Sargon extensively uses a trick
@@ -80,7 +81,7 @@
 //a pointer == 0 considers this as a equivalent to testing
 //whether the whole pointer == 0 (works as long as pointers
 //never point to page 0).
-;
+//
 //Also there is an apparent bug in Sargon, such that MLPTRJ
 //is left at 0 for the root node and the MLVAL for that root
 //node is therefore written to memory at offset 5 from 0 (so
@@ -90,13 +91,18 @@
 //In the X86 port we lock the uninitialised MLPTRJ bug down
 //so MLPTRJ is always set to zero and rendering the bug
 //harmless (search for MLPTRJ to find the relevant code).
+//
+
+#define TBASE 0x200     // The following tables begin at this
+                        //  low but non-zero page boundary in
+                        //  in our 64K emulated memory
+struct tables  {
 
 //**********************************************************
 // DIRECT  --  Direction Table.  Used to determine the dir-
 //             ection of movement of each piece.
 //***********************************************************
 //DIRECT  EQU     $-TBASE
-struct tables  {
 int8_t DIRECT[24] = {
 	+9,+11,-11,-9,
 	+10,-10,+1,-1,
@@ -114,7 +120,6 @@ int8_t DIRECT[24] = {
 uint8_t DPOINT[7] = {
 	20,16,8,0,4,0,0
 };
-
 
 //***********************************************************
 // DCOUNT  --  Direction Table Counter. Used to determine
@@ -186,7 +191,7 @@ uint8_t PIECES[8] = {
 //                     0 -- Empty Square
 //***********************************************************
 //BOARD   EQU     $-TBASE
-uint8_t BOARD[120];                     //
+uint8_t BOARD[120];
 
 
 //***********************************************************
@@ -194,11 +199,11 @@ uint8_t BOARD[120];                     //
 //            half for white and the second half for black.
 //            It is used to hold the attackers of any given
 //            square in the order of their value.
-;
+//
 // WACT   --  White Attack Count. This is the first
 //            byte of the array and tells how many pieces are
 //            in the white portion of the attack list.
-;
+//
 // BACT   --  Black Attack Count. This is the eighth byte of
 //            the array and does the same for black.
 //***********************************************************
@@ -232,17 +237,16 @@ uint8_t		PLISTD[10];		// corresponding directions
 //             byte of which hold the position of the white
 //             king and the second holding the position of
 //             the black king.
-;
+//
 // POSQ    --  Position of Queens. Like POSK,but for queens.
 //***********************************************************
 uint8_t		POSK[2] = {
 	24,95
 };
-int8_t		POSQ[3] = {
-	14,94,
-	-1
+int8_t		POSQ[2] = {
+	14,94
 };
-
+int8_t padding = -1;
 
 //***********************************************************
 // SCORE   --  Score Array. Used during Alpha-Beta pruning to
@@ -267,7 +271,7 @@ uint16_t	PLYIX[20] = {
 };
 
 };
-#if NOT_YET
+
 
 //
 // 2) PTRS to TABLES
@@ -275,55 +279,58 @@ uint16_t	PLYIX[20] = {
 
 //***********************************************************
 // 2) TABLE INDICES SECTION
-;
+//
 // M1-M4   --  Working indices used to index into
 //             the board array.
-;
+//
 // T1-T3   --  Working indices used to index into Direction
 //             Count, Direction Value, and Piece Value tables.
-;
+//
 // INDX1   --  General working indices. Used for various
 // INDX2       purposes.
-;
+//
 // NPINS   --  Number of Pins. Count and pointer into the
 //             pinned piece list.
-;
+//
 // MLPTRI  --  Pointer into the ply table which tells
 //             which pair of pointers are in current use.
-;
+//
 // MLPTRJ  --  Pointer into the move list to the move that is
 //             currently being processed.
-;
+//
 // SCRIX   --  Score Index. Pointer to the score table for
 //             the ply being examined.
-;
+//
 // BESTM   --  Pointer into the move list for the move that
 //             is currently considered the best by the
 //             Alpha-Beta pruning process.
-;
+//
 // MLLST   --  Pointer to the previous move placed in the move
 //             list. Used during generation of the move list.
-;
+//
 // MLNXT   --  Pointer to the next available space in the move
 //             list.
-;
+//
 //***********************************************************
-uint16_t M1      =      TBASE;          //
-uint16_t M2      =      TBASE;          //
-uint16_t M3      =      TBASE;          //
-uint16_t M4      =      TBASE;          //
-uint16_t T1      =      TBASE;          //
-uint16_t T2      =      TBASE;          //
-uint16_t T3      =      TBASE;          //
-uint16_t INDX1   =      TBASE;          //
-uint16_t INDX2   =      TBASE;          //
-uint16_t NPINS   =      TBASE;          //
-uint16_t MLPTRI  =      PLYIX;          //
-uint16_t MLPTRJ  =      0;              //
-uint16_t SCRIX   =      0;              //
-uint16_t BESTM   =      0;              //
-uint16_t MLLST   =      0;              //
-uint16_t MLNXT   =      MLIST;          //
+struct table_ptrs
+{
+uint16_t M1      =      TBASE;
+uint16_t M2      =      TBASE;
+uint16_t M3      =      TBASE;
+uint16_t M4      =      TBASE;
+uint16_t T1      =      TBASE;
+uint16_t T2      =      TBASE;
+uint16_t T3      =      TBASE;
+uint16_t INDX1   =      TBASE;
+uint16_t INDX2   =      TBASE;
+uint16_t NPINS   =      TBASE;
+uint16_t MLPTRI  =      offsetof(tables,PLYIX);
+uint16_t MLPTRJ  =      0;
+uint16_t SCRIX   =      0;
+uint16_t BESTM   =      0;
+uint16_t MLLST   =      0;
+uint16_t MLNXT   =      0; //TODO offsetof(?,MLIST);
+};
 
 //
 // 3) MISC VARIABLES
@@ -331,65 +338,67 @@ uint16_t MLNXT   =      MLIST;          //
 
 //***********************************************************
 // VARIABLES SECTION
-;
+//
 // KOLOR   --  Indicates computer's color. White is 0, and
 //             Black is 80H.
-;
+//
 // COLOR   --  Indicates color of the side with the move.
-;
+//
 // P1-P3   --  Working area to hold the contents of the board
 //             array for a given square.
-;
+//
 // PMATE   --  The move number at which a checkmate is
 //             discovered during look ahead.
-;
+//
 // MOVENO  --  Current move number.
-;
+//
 // PLYMAX  --  Maximum depth of search using Alpha-Beta
 //             pruning.
-;
+//
 // NPLY    --  Current ply number during Alpha-Beta
 //             pruning.
-;
+//
 // CKFLG   --  A non-zero value indicates the king is in check.
-;
+//
 // MATEF   --  A zero value indicates no legal moves.
-;
+//
 // VALM    --  The score of the current move being examined.
-;
+//
 // BRDC    --  A measure of mobility equal to the total number
 //             of squares white can move to minus the number
 //             black can move to.
-;
+//
 // PTSL    --  The maximum number of points which could be lost
 //             through an exchange by the player not on the
 //             move.
-;
+//
 // PTSW1   --  The maximum number of points which could be won
 //             through an exchange by the player not on the
 //             move.
-;
+//
 // PTSW2   --  The second highest number of points which could
 //             be won through a different exchange by the player
 //             not on the move.
-;
+//
 // MTRL    --  A measure of the difference in material
 //             currently on the board. It is the total value of
 //             the white pieces minus the total value of the
 //             black pieces.
-;
+//
 // BC0     --  The value of board control(BRDC) at ply 0.
-;
+//
 // MV0     --  The value of material(MTRL) at ply 0.
-;
+//
 // PTSCK   --  A non-zero value indicates that the piece has
 //             just moved itself into a losing exchange of
 //             material.
-;
+//
 // BMOVES  --  Our very tiny book of openings. Determines
 //             the first move for the computer.
-;
+//
 //***********************************************************
+struct misc_variables
+{
 uint8_t	KOLOR   =      0;               //
 uint8_t	COLOR   =      0;               //
 uint8_t	P1      =      0;               //
@@ -410,10 +419,12 @@ uint8_t	MTRL    =      0;               //
 uint8_t	BC0     =      0;               //
 uint8_t	MV0     =      0;               //
 uint8_t	PTSCK   =      0;               //
-uint8_t BMOVES[] = { 35,55,0x10,
+uint8_t BMOVES[12] = {
+    35,55,0x10,
 	34,54,0x10,
 	85,65,0x10,
-	84,64,0x10,
+	84,64,0x10
+};
 };
 
 //
@@ -422,25 +433,25 @@ uint8_t BMOVES[] = { 35,55,0x10,
 
 //***********************************************************
 // MOVE LIST SECTION
-;
+//
 // MLIST   --  A 2048 byte storage area for generated moves.
 //             This area must be large enough to hold all
 //             the moves for a single leg of the move tree.
-;
+//
 // MLEND   --  The address of the last available location
 //             in the move list.
-;
+//
 // MLPTR   --  The Move List is a linked list of individual
 //             moves each of which is 6 bytes in length. The
 //             move list pointer(MLPTR) is the link field
 //             within a move.
-;
+//
 // MLFRP   --  The field in the move entry which gives the
 //             board position from which the piece is moving.
-;
+//
 // MLTOP   --  The field in the move entry which gives the
 //             board position to which the piece is moving.
-;
+//
 // MLFLG   --  A field in the move entry which contains flag
 //             information. The meaning of each bit is as
 //             follows:
@@ -459,19 +470,32 @@ uint8_t BMOVES[] = { 35,55,0x10,
 //                        least once.
 //             Bits 2-0   Describe the captured piece.  A
 //                        zero value indicates no capture.
-;
+//
 // MLVAL   --  The field in the move entry which contains the
 //             score assigned to the move.
-;
+//
 //***********************************************************
 struct ML {
-	uint16_t	MLPTR;                        //
-	uint8_t		MLFRP;                        //
-	uint8_t		MLTOP;                        //
-	uint8_t		MLFLG;                        //
-	uint8_t		MLVAL;                        //
+	uint16_t	MLPTR;
+	uint8_t		MLFRP;
+	uint8_t		MLTOP;
+	uint8_t		MLFLG;
+	uint8_t		MLVAL;
 };
-ML MLIST[340];                          //
+
+struct emulated_memory
+{
+    uint8_t         low_memory[TBASE];
+    tables          t;
+    table_ptrs      t_ptrs;
+    misc_variables  v;
+    ML              MLIST[340];
+};
+
+// Up to 64K of emulated memory
+emulated_memory m;
+
+#if NOT_YET
 
 //***********************************************************
 
@@ -479,9 +503,9 @@ ML MLIST[340];                          //
 // PROGRAM CODE SECTION
 //**********************************************************
 
-;
+//
 // Miscellaneous stubs
-;
+//
 FCDMAT:  RET
 TBCPMV:  RET
 MAKEMV:  RET
@@ -496,11 +520,11 @@ CARRET   MACRO
 // FUNCTION:   To initialize the board array, setting the
 //             pieces in their initial positions for the
 //             start of the game.
-;
+//
 // CALLED BY:  DRIVER
-;
+//
 // CALLS:      None
-;
+//
 // ARGUMENTS:  None
 //***********************************************************
 INITBD: LD      (b,120);                //  Pre-fill board with -1's
@@ -546,13 +570,13 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares
 //                                 same color
 //                          3  --  New position is off the
 //                                 board
-;
+//
 // CALLED BY:  MPIECE
 //             ATTACK
 //             PINFND
-;
+//
 // CALLS:      None
-;
+//
 // ARGUMENTS:  Direction from the direction array giving the
 //             constant to be added for the new position.
 //***********************************************************
@@ -585,14 +609,14 @@ PA2:    LD      (a,3);                  //  Set off board flag
 //***********************************************************
 // FUNCTION:   To generate all the possible legal moves for a
 //             given piece.
-;
+//
 // CALLED BY:  GENMOV
-;
+//
 // CALLS:      PATH
 //             ADMOVE
 //             CASTLE
 //             ENPSNT
-;
+//
 // ARGUMENTS:  The piece to be moved.
 //***********************************************************
 MPIECE: XOR     (ptr(hl));              //  Piece to move
@@ -676,12 +700,12 @@ MP36:   CALL    (ENPSNT);               //  Try en passant capture
 // FUNCTION:   --  To test for en passant Pawn capture and
 //                 to add it to the move list if it is
 //                 legal.
-;
+//
 // CALLED BY:  --  MPIECE
-;
+//
 // CALLS:      --  ADMOVE
 //                 ADJPTR
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 ENPSNT: LD      (a,M1);                 //  Set position of Pawn
@@ -731,14 +755,14 @@ rel003: CP      (10);                   //  Is difference 10 ?
 //***********************************************************
 // FUNCTION:   --  To adjust move list pointer to link around
 //                 second move in double move.
-;
+//
 // CALLED BY:  --  ENPSNT
 //                 CASTLE
 //                 (This mini-routine is not really called,
 //                 but is jumped to to save time.)
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 ADJPTR: LD      (hl,chk(MLLST));        //  Get list pointer
@@ -756,13 +780,13 @@ ADJPTR: LD      (hl,chk(MLLST));        //  Get list pointer
 // FUNCTION:   --  To determine whether castling is legal
 //                 (Queen side, King side, or both) and add it
 //                 to the move list if it is.
-;
+//
 // CALLED BY:  --  MPIECE
-;
+//
 // CALLS:      --  ATTACK
 //                 ADMOVE
 //                 ADJPTR
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 CASTLE: LD      (a,P1);                 //  Get King
@@ -828,13 +852,13 @@ CA20:   LD      (a,b);                  //  Scan Index
 // ADMOVE ROUTINE
 //***********************************************************
 // FUNCTION:   --  To add a move to the move list
-;
+//
 // CALLED BY:  --  MPIECE
 //                 ENPSNT
 //                 CASTLE
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENT:  --  None
 //***********************************************************
 ADMOVE: LD      (de,chk(MLNXT));        //  Addr of next loc in move list
@@ -881,12 +905,12 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow
 //***********************************************************
 // FUNCTION:  --  To generate the move set for all of the
 //                pieces of a given color.
-;
+//
 // CALLED BY: --  FNDMOV
-;
+//
 // CALLS:     --  MPIECE
 //                INCHK
-;
+//
 // ARGUMENTS: --  None
 //***********************************************************
 GENMOV: CALL    (INCHK);                //  Test for King in check
@@ -925,13 +949,13 @@ GM10:   LD      (a,M1);                 //  Fetch current board position
 //***********************************************************
 // FUNCTION:   --  To determine whether or not the
 //                 King is in check.
-;
+//
 // CALLED BY:  --  GENMOV
 //                 FNDMOV
 //                 EVAL
-;
+//
 // CALLS:      --  ATTACK
-;
+//
 // ARGUMENTS:  --  Color of King
 //***********************************************************
 INCHK:  LD      (a,COLOR);              //  Get color
@@ -958,7 +982,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position
 //                 that square, or a piece is found that
 //                 doesn't attack that square, or the edge
 //                 of the board is reached.
-;
+//
 //                 In determining which pieces attack
 //                 a square, this routine also takes into
 //                 account the ability of certain pieces to
@@ -968,20 +992,20 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position
 //                 bishop is then said to be transparent to the
 //                 queen, since both participate in the
 //                 attack.
-;
+//
 //                 In the case where this routine is called
 //                 by CASTLE or INCHK, the routine is
 //                 terminated as soon as an attacker of the
 //                 opposite color is encountered.
-;
+//
 // CALLED BY:  --  POINTS
 //                 PINFND
 //                 CASTLE
 //                 INCHK
-;
+//
 // CALLS:      --  PATH
 //                 ATKSAV
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 ATTACK: PUSH    (bc);                   //  Save Register B
@@ -1017,7 +1041,7 @@ AT14B:  BIT     (5,d);                  //  Opposite color found already?
         JR      (NZ,AT12);              //  Yes - jump
         SET     (6,d);                  //  Set same color found flag
 
-;
+//
 // ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****
 AT14:   LD      (a,T2);                 //  Fetch piece type encountered
         LD      (e,a);                  //  Save
@@ -1087,15 +1111,15 @@ AT32:   LD      (a,T2);                 //  Attacking piece type
 // FUNCTION:   --  To save an attacking piece value in the
 //                 attack list, and to increment the attack
 //                 count for that color piece.
-;
+//
 //                 The pin piece list is checked for the
 //                 attacking piece, and if found there, the
 //                 piece is not included in the attack list.
-;
+//
 // CALLED BY:  --  ATTACK
-;
+//
 // CALLS:      --  PNCK
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 ATKSAV: PUSH    (bc);                   //  Save Regs BC
@@ -1148,11 +1172,11 @@ AS25:   POP     (de);                   //  Restore DE regs
 //                 found to be invalid as an attacker, the
 //                 return to the calling routine is aborted
 //                 and this routine returns directly to ATTACK.
-;
+//
 // CALLED BY:  --  ATKSAV
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  The direction of the attack. The
 //                 pinned piece counnt.
 //***********************************************************
@@ -1190,13 +1214,13 @@ PC5:    POP     (af);                   //  Abnormal exit
 // FUNCTION:   --  To produce a list of all pieces pinned
 //                 against the King or Queen, for both white
 //                 and black.
-;
+//
 // CALLED BY:  --  FNDMOV
 //                 EVAL
-;
+//
 // CALLS:      --  PATH
 //                 ATTACK
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 PINFND: XOR     (a);                    //  Zero pin count
@@ -1298,11 +1322,11 @@ PF27:   JP      (PF2);                  //  Jump
 // FUNCTION:   --  To determine the exchange value of a
 //                 piece on a given square by examining all
 //                 attackers and defenders of that piece.
-;
+//
 // CALLED BY:  --  POINTS
-;
+//
 // CALLS:      --  NEXTAD
-;
+//
 // ARGUMENTS:  --  None.
 //***********************************************************
 XCHNG:  EXX;                            //  Swap regs.
@@ -1358,11 +1382,11 @@ rel010: ADD     (a,e);                  //  Total points lost
 // FUNCTION:   --  To retrieve the next attacker or defender
 //                 piece value from the attack list, and delete
 //                 that piece from the list.
-;
+//
 // CALLED BY:  --  XCHNG
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  Attack list addresses.
 //                 Side flag
 //                 Attack list counts
@@ -1391,14 +1415,14 @@ NX6:    EXX;                            //  Restore regs.
 //***********************************************************
 //FUNCTION:   --  To perform a static board evaluation and
 //                derive a score for a given board position
-;
+//
 // CALLED BY:  --  FNDMOV
 //                 EVAL
-;
+//
 // CALLS:      --  ATTACK
 //                 XCHNG
 //                 LIMIT
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 POINTS: XOR     (a);                    //  Zero out variables
@@ -1570,11 +1594,11 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)
 //***********************************************************
 // FUNCTION:   --  To limit the magnitude of a given value
 //                 to another given value.
-;
+//
 // CALLED BY:  --  POINTS
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  Input  - Value, to be limited in the B
 //                          register.
 //                        - Value to limit to in the A register
@@ -1597,15 +1621,15 @@ LIM10:  CP      (b);                    //  Compare to limit
 //***********************************************************
 // FUNCTION:   --  To execute a move from the move list on the
 //                 board array.
-;
+//
 // CALLED BY:  --  CPTRMV
 //                 PLYRMV
 //                 EVAL
 //                 FNDMOV
 //                 VALMOV
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 MOVE:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
@@ -1670,14 +1694,14 @@ MV40:   LD      (hl,chk(MLPTRJ));       //  Get move list pointer
 // FUNCTION:   --  To reverse the process of the move routine,
 //                 thereby restoring the board array to its
 //                 previous position.
-;
+//
 // CALLED BY:  --  VALMOV
 //                 EVAL
 //                 FNDMOV
 //                 ASCEND
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 UNMOVE: LD      (hl,chk(MLPTRJ));       //  Load move list pointer
@@ -1746,11 +1770,11 @@ UM40:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
 //***********************************************************
 // FUNCTION:   --  To sort the move list in order of
 //                 increasing move value scores.
-;
+//
 // CALLED BY:  --  FNDMOV
-;
+//
 // CALLS:      --  EVAL
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 SORTM:  LD      (bc,chk(MLPTRI));       //  Move list begin pointer
@@ -1795,15 +1819,15 @@ SR30:   EX      (de,hl);                //  Swap pointers
 //                 It first makes the move on the board, then if
 //                 the move is legal, it evaluates it, and then
 //                 restores the board position.
-;
+//
 // CALLED BY:  --  SORT
-;
+//
 // CALLS:      --  MOVE
 //                 INCHK
 //                 PINFND
 //                 POINTS
 //                 UNMOVE
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 EVAL:   CALL    (MOVE);                 //  Make move on the board array
@@ -1824,16 +1848,16 @@ EV10:   CALL    (UNMOVE);               //  Restore board array
 // FUNCTION:   --  To determine the computer's best move by
 //                 performing a depth first tree search using
 //                 the techniques of alpha-beta pruning.
-;
+//
 // CALLED BY:  --  CPTRMV
-;
+//
 // CALLS:      --  PINFND
 //                 POINTS
 //                 GENMOV
 //                 SORTM
 //                 ASCEND
 //                 UNMOVE
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 FNDMOV: LD      (a,MOVENO);             //  Current move number
@@ -1994,11 +2018,11 @@ FM40:   CALL    (ASCEND);               //  Ascend one ply in tree
 //***********************************************************
 // FUNCTION:  --  To adjust all necessary parameters to
 //                ascend one ply in the tree.
-;
+//
 // CALLED BY: --  FNDMOV
-;
+//
 // CALLS:     --  UNMOVE
-;
+//
 // ARGUMENTS: --  None
 //***********************************************************
 ASCEND: LD      (hl,addr(COLOR));       //  Toggle color
@@ -2034,11 +2058,11 @@ rel019: LD      (hl,chk(SCRIX));        //  Load score table index
 // **********************************************************
 // FUNCTION:   --  To provide an opening book of a single
 //                 move.
-;
+//
 // CALLED BY:  --  FNDMOV
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 BOOK:   POP     (af);                   //  Abort return to FNDMOV
@@ -2095,19 +2119,19 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)
 // FUNCTION:   --  To control the search for the computers move
 //                 and the display of that move on the board
 //                 and in the move list.
-;
+//
 // CALLED BY:  --  DRIVER
-;
+//
 // CALLS:      --  FNDMOV
 //                 FCDMAT
 //                 MOVE
 //                 EXECMV
 //                 BITASN
 //                 INCHK
-;
+//
 // MACRO CALLS:    PRTBLK
 //                 CARRET
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 CPTRMV: CALL    (FNDMOV);               //  Select best move
@@ -2175,11 +2199,11 @@ CP24:   LD      (a,*(&SCORE+1));        //  Check again for mates
 // FUNCTION:   --  To translate a hexadecimal index in the
 //                 board array into an ascii description
 //                 of the square in algebraic chess notation.
-;
+//
 // CALLED BY:  --  CPTRMV
-;
+//
 // CALLS:      --  DIVIDE
-;
+//
 // ARGUMENTS:  --  Board index input in register D and the
 //                 Ascii square name is output in register
 //                 pair HL.
@@ -2207,11 +2231,11 @@ BITASN: SUB     (a);                    //  Get ready for division
 //                 Ascii to a hexadecimal board index.
 //                 This routine also checks the input for
 //                 validity.
-;
+//
 // CALLED BY:  --  PLYRMV
-;
+//
 // CALLS:      --  MLTPLY
-;
+//
 // ARGUMENTS:  --  Accepts the square name in register pair HL
 //                 and outputs the board index in register A.
 //                 Register B = 0 if ok. Register B = Register
@@ -2243,14 +2267,14 @@ AT04:   LD      (b,a);                  //  Invalid flag
 // VALIDATE MOVE SUBROUTINE
 //***********************************************************
 // FUNCTION:   --  To check a players move for validity.
-;
+//
 // CALLED BY:  --  PLYRMV
-;
+//
 // CALLS:      --  GENMOV
 //                 MOVE
 //                 INCHK
 //                 UNMOVE
-;
+//
 // ARGUMENTS:  --  Returns flag in register A, 0 for valid
 //                 and 1 for invalid move.
 //***********************************************************
@@ -2303,11 +2327,11 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move
 // FUNCTION:   --  To update the positions of the Kings
 //                 and Queen after a change of board position
 //                 in ANALYS.
-;
+//
 // CALLED BY:  --  ANALYS
-;
+//
 // CALLS:      --  None
-;
+//
 // ARGUMENTS:  --  None
 //***********************************************************
 ROYALT: LD      hl,POSK;                //  Start of Royalty array
@@ -2394,12 +2418,12 @@ rel025: SRA     (a);                    //
 //                       En Passant -- Bit 0
 //                       O-O        -- Bit 1
 //                       O-O-O      -- Bit 2
-;
+//
 // CALLED BY:   -- PLYRMV
 //                 CPTRMV
-;
+//
 // CALLS:       -- MAKEMV
-;
+//
 // ARGUMENTS:   -- Flags set in the B register as described
 //                 above.
 //***********************************************************
