@@ -194,7 +194,7 @@ uint8_t PIECES[8] = {
 //                     7 -- Not used
 //                     0 -- Empty Square
 //***********************************************************
-//BOARD   EQU     $-TBASE
+#define BOARD addr(BOARDA)
 uint8_t BOARDA[120];
 
 
@@ -513,37 +513,34 @@ void CARRET()  {}
 //
 // ARGUMENTS:  None
 //***********************************************************
-FUNC_BEGIN(INITBD)
-        LD      (r.b,120);                //  Pre-fill board with -1's
-        LD      (r.hl,addr(BOARDA));
-back01: LD      (ptr(r.hl),-1);
-        INC     (r.hl);
+void INITBD() {
+        LD      (b,120);                //  Pre-fill board with -1's
+        LD      (hl,addr(BOARDA));
+back01: LD      (ptr(hl),-1);
+        INC     (hl);
         DJNZ    (back01);
-        LD      (r.b,8);
-        LD      (r.ix,addr(BOARDA));
-IB2:    LD      (r.a,ptr(r.ix-8));          //  Fill non-border squares
-        LD      (ptr(r.ix+21),r.a);         //  White pieces
-        SET     (7,r.a);                  //  Change to black
-        LD      (ptr(r.ix+91),r.a);         //  Black pieces
-        LD      (ptr(r.ix+31),PAWN);      //  White Pawns
-        LD      (ptr(r.ix+81),BPAWN);     //  Black Pawns
-        LD      (ptr(r.ix+41),0);         //  Empty squares
-        LD      (ptr(r.ix+51),0);
-        LD      (ptr(r.ix+61),0);
-        LD      (ptr(r.ix+71),0);
-        INC     (r.ix);
+        LD      (b,8);
+        LD      (ix,addr(BOARDA));
+IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares
+        LD      (ptr(ix+21),a);         //  White pieces
+        SET     (7,a);                  //  Change to black
+        LD      (ptr(ix+91),a);         //  Black pieces
+        LD      (ptr(ix+31),PAWN);      //  White Pawns
+        LD      (ptr(ix+81),BPAWN);     //  Black Pawns
+        LD      (ptr(ix+41),0);         //  Empty squares
+        LD      (ptr(ix+51),0);
+        LD      (ptr(ix+61),0);
+        LD      (ptr(ix+71),0);
+        INC     (ix);
         DJNZ    (IB2);
-        LD      (r.ix,addr(POSK));        //  Init King/Queen position list
-        LD      (ptr(r.ix+0),25);
-        LD      (ptr(r.ix+1),95);
-        LD      (r.ix,addr(POSQ));
-        LD      (ptr(r.ix+0),24);
-        LD      (ptr(r.ix+1),94);
-        RET;
-FUNC_END        
-
-#if NOT_YET
-
+        LD      (ix,addr(POSK));        //  Init King/Queen position list
+        LD      (ptr(ix+0),25);
+        LD      (ptr(ix+1),95);
+        LD      (ix,addr(POSQ));
+        LD      (ptr(ix+0),24);
+        LD      (ptr(ix+1),94);
+        RETu;
+}
 
 //***********************************************************
 // PATH ROUTINE
@@ -571,7 +568,8 @@ FUNC_END
 // ARGUMENTS:  Direction from the direction array giving the
 //             constant to be added for the new position.
 //***********************************************************
-PATH:   LD      (hl,addr(M2));          //  Get previous position
+void PATH() {
+        LD      (hl,addr(M2));          //  Get previous position
         LD      (a,ptr(hl));            //
         ADD     (a,c);                  //  Add direction constant
         LD      (ptr(hl),a);            //  Save new position
@@ -579,21 +577,24 @@ PATH:   LD      (hl,addr(M2));          //  Get previous position
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
         CP      (-1);                   //  In border area ?
         JR      (Z,PA2);                //  Yes - jump
-        LD      (P2,a);                 //  Save piece
+        LD      (val(P2),a);                 //  Save piece
         AND     (7);                    //  Clear flags
-        LD      (T2,a);                 //  Save piece type
+        LD      (val(T2),a);                 //  Save piece type
         RET     (Z);                    //  Return if empty
-        LD      (a,P2);                 //  Get piece encountered
+        LD      (a,val(P2));                 //  Get piece encountered
         LD      (hl,addr(P1));          //  Get moving piece address
         XOR     (ptr(hl));              //  Compare
         BIT     (7,a);                  //  Do colors match ?
         JR      (Z,PA1);                //  Yes - jump
         LD      (a,1);                  //  Set different color flag
-        RET;                            //  Return
+        RETu;                           //  Return
 PA1:    LD      (a,2);                  //  Set same color flag
-        RET;                            //  Return
+        RETu;                           //  Return
 PA2:    LD      (a,3);                  //  Set off board flag
-        RET;                            //  Return
+        RETu;                           //  Return
+}
+
+
 
 //***********************************************************
 // PIECE MOVER ROUTINE
@@ -610,21 +611,27 @@ PA2:    LD      (a,3);                  //  Set off board flag
 //
 // ARGUMENTS:  The piece to be moved.
 //***********************************************************
-MPIECE: XOR     (ptr(hl));              //  Piece to move
+void MPIECE() {
+        XOR     (ptr(hl));              //  Piece to move
         AND     (0x87);                 //  Clear flag bit
         CP      (BPAWN);                //  Is it a black Pawn ?
         JR      (NZ,rel001);            //  No-Skip
         DEC     (a);                    //  Decrement for black Pawns
 rel001: AND     (7);                    //  Get piece type
-        LD      (T1,a);                 //  Save piece type
+        LD      (val(T1),a);                 //  Save piece type
         LD      (iy,chk(T1));           //  Load index to DCOUNT/DPOINT
-        LD      (b,ptr(iy+DCOUNT));     //  Get direction count
-        LD      (a,ptr(iy+DPOINT));     //  Get direction pointer
-        LD      (INDX2,a);              //  Save as index to direct
+        LD      (b,ptr(iy+addr(DCOUNT)));     //  Get direction count
+        LD      (a,ptr(iy+addr(DPOINT)));     //  Get direction pointer
+        LD      (val(INDX2),a);              //  Save as index to direct
         LD      (iy,chk(INDX2));        //  Load index
-MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction
-        LD      (a,M1);                 //  From position
-        LD      (M2,a);                 //  Initialize to position
+MP5:    LD      (c,ptr(iy+addr(DIRECT)));     //  Get move direction
+
+
+}
+#if NOT_YET
+
+        LD      (a,ptr(M1));                 //  From position
+        LD      (ptr(M2),a);                 //  Initialize to position
 MP10:   CALL    (PATH);                 //  Calculate next position
         CP      (2);                    //  Ready for new direction ?
         JR      (NC,MP15);              //  Yes - Jump
@@ -646,7 +653,7 @@ MP15:   INC     (iy);                   //  Increment direction index
         LD      (a,T1);                 //  Piece type
         CP      (KING);                 //  King ?
         CALL    (Z,CASTLE);             //  Yes - Try Castling
-        RET;                            //  Return
+        RETu;                           //  Return
 // ***** PAWN LOGIC *****
 MP20:   LD      (a,b);                  //  Counter for direction
         CP      (3);                    //  On diagonal moves ?
@@ -684,6 +691,8 @@ MP37:   LD      (hl,addr(P2));          //  Get flag address
         JR      (MP31);                 //  Jump
 MP36:   CALL    (ENPSNT);               //  Try en passant capture
         JP      (MP15);                 //  Jump
+}
+
 
 //***********************************************************
 // EN PASSANT ROUTINE
