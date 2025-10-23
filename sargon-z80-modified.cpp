@@ -177,7 +177,7 @@ uint8_t PIECES[8] = {
 //             moves off the board. The individual bits of
 //             the other bytes in the board array are as
 //             follows:
-//             Bit 7 -- Color of the piece
+//             Bit 7 -- val(COLOR) of the piece
 //                     1 -- Black
 //                     0 -- White
 //             Bit 6 -- Not used
@@ -337,10 +337,10 @@ uint16_t MLNXT   =      addr(MLIST);
 //***********************************************************
 // VARIABLES SECTION
 //
-// KOLOR   --  Indicates computer's color. White is 0, and
+// KOLOR   --  Indicates computer's val(COLOR). White is 0, and
 //             Black is 80H.
 //
-// COLOR   --  Indicates color of the side with the move.
+// COLOR   --  Indicates val(COLOR) of the side with the move.
 //
 // P1-P3   --  Working area to hold the contents of the board
 //             array for a given square.
@@ -383,9 +383,9 @@ uint16_t MLNXT   =      addr(MLIST);
 //             the white pieces minus the total value of the
 //             black pieces.
 //
-// BC0     --  The value of board control(BRDC) at ply 0.
+// BC0     --  The value of board control(val(BRDC)) at ply 0.
 //
-// MV0     --  The value of material(MTRL) at ply 0.
+// MV0     --  The value of material(val(MTRL)) at ply 0.
 //
 // PTSCK   --  A non-zero value indicates that the piece has
 //             just moved itself into a losing exchange of
@@ -450,7 +450,7 @@ uint8_t BMOVES[12] = {
 // MLFLG   --  A field in the move entry which contains flag
 //             information. The meaning of each bit is as
 //             follows:
-//             Bit 7  --  The color of any captured piece
+//             Bit 7  --  The val(COLOR) of any captured piece
 //                        0 -- White
 //                        1 -- Black
 //             Bit 6  --  Double move flag (set for castling and
@@ -471,13 +471,20 @@ uint8_t BMOVES[12] = {
 //
 //***********************************************************
 struct ML {
-	uint16_t	MLPTR;
-	uint8_t		MLFRP;
-	uint8_t		MLTOP;
-	uint8_t		MLFLG;
-	uint8_t		MLVAL;
+	uint16_t	MLPTR_;
+	uint8_t		MLFRP_;
+	uint8_t		MLTOP_;
+	uint8_t		MLFLG_;
+	uint8_t		MLVAL_;
 }  MLIST[340];
+uint8_t MLEND;
 };
+
+#define	MLPTR 0
+#define	MLFRP 2
+#define	MLTOP 3
+#define	MLFLG 4
+#define	MLVAL 5
 
 // Up to 64K of emulated memory
 emulated_memory mem;
@@ -547,15 +554,15 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares
 //***********************************************************
 // FUNCTION:   To generate a single possible move for a given
 //             piece along its current path of motion including:
-
+//
 //                Fetching the contents of the board at the new
 //                position, and setting a flag describing the
 //                contents:
 //                          0  --  New position is empty
 //                          1  --  Encountered a piece of the
-//                                 opposite color
+//                                 opposite val(COLOR)
 //                          2  --  Encountered a piece of the
-//                                 same color
+//                                 same val(COLOR)
 //                          3  --  New position is off the
 //                                 board
 //
@@ -586,9 +593,9 @@ void PATH() {
         XOR     (ptr(hl));              //  Compare
         BIT     (7,a);                  //  Do colors match ?
         JR      (Z,PA1);                //  Yes - jump
-        LD      (a,1);                  //  Set different color flag
+        LD      (a,1);                  //  Set different val(COLOR) flag
         RETu;                           //  Return
-PA1:    LD      (a,2);                  //  Set same color flag
+PA1:    LD      (a,2);                  //  Set same val(COLOR) flag
         RETu;                           //  Return
 PA2:    LD      (a,3);                  //  Set off board flag
         RETu;                           //  Return
@@ -625,32 +632,27 @@ rel001: AND     (7);                    //  Get piece type
         LD      (val(INDX2),a);              //  Save as index to direct
         LD      (iy,chk(INDX2));        //  Load index
 MP5:    LD      (c,ptr(iy+addr(DIRECT)));     //  Get move direction
-
-
-}
-#if NOT_YET
-
-        LD      (a,ptr(M1));                 //  From position
-        LD      (ptr(M2),a);                 //  Initialize to position
-MP10:   CALL    (PATH);                 //  Calculate next position
+        LD      (a,val(M1));                 //  From position
+        LD      (val(M2),a);                 //  Initialize to position
+MP10:   CALLu   (PATH);                 //  Calculate next position
         CP      (2);                    //  Ready for new direction ?
         JR      (NC,MP15);              //  Yes - Jump
         AND     (a);                    //  Test for empty square
         Z80_EXAF;                       //  Save result
-        LD      (a,T1);                 //  Get piece moved
+        LD      (a,val(T1));                 //  Get piece moved
         CP      (PAWN+1);               //  Is it a Pawn ?
         JR      (C,MP20);               //  Yes - Jump
-        CALL    (ADMOVE);               //  Add move to list
+        CALLu    (ADMOVE);               //  Add move to list
         Z80_EXAF;                       //  Empty square ?
         JR      (NZ,MP15);              //  No - Jump
-        LD      (a,T1);                 //  Piece type
+        LD      (a,val(T1));                 //  Piece type
         CP      (KING);                 //  King ?
         JR      (Z,MP15);               //  Yes - Jump
         CP      (BISHOP);               //  Bishop, Rook, or Queen ?
         JR      (NC,MP10);              //  Yes - Jump
 MP15:   INC     (iy);                   //  Increment direction index
         DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
-        LD      (a,T1);                 //  Piece type
+        LD      (a,val(T1));                 //  Piece type
         CP      (KING);                 //  King ?
         CALL    (Z,CASTLE);             //  Yes - Try Castling
         RETu;                           //  Return
@@ -661,36 +663,36 @@ MP20:   LD      (a,b);                  //  Counter for direction
         JR      (Z,MP30);               //  -or-jump if on 2 square move
         Z80_EXAF;                       //  Is forward square empty?
         JR      (NZ,MP15);              //  No - jump
-        LD      (a,M2);                 //  Get "to" position
+        LD      (a,val(M2));                 //  Get "to" position
         CP      (91);                   //  Promote white Pawn ?
         JR      (NC,MP25);              //  Yes - Jump
         CP      (29);                   //  Promote black Pawn ?
         JR      (NC,MP26);              //  No - Jump
 MP25:   LD      (hl,addr(P2));          //  Flag address
         SET     (5,ptr(hl));            //  Set promote flag
-MP26:   CALL    (ADMOVE);               //  Add to move list
+MP26:   CALLu   (ADMOVE);               //  Add to move list
         INC     (iy);                   //  Adjust to two square move
         DEC     (b);                    //
         LD      (hl,addr(P1));          //  Check Pawn moved flag
         BIT     (3,ptr(hl));            //  Has it moved before ?
         JR      (Z,MP10);               //  No - Jump
-        JP      (MP15);                 //  Jump
+        JPu     (MP15);                 //  Jump
 MP30:   Z80_EXAF;                       //  Is forward square empty ?
         JR      (NZ,MP15);              //  No - Jump
-MP31:   CALL    (ADMOVE);               //  Add to move list
-        JP      (MP15);                 //  Jump
+MP31:   CALLu   (ADMOVE);               //  Add to move list
+        JPu     (MP15);                 //  Jump
 MP35:   Z80_EXAF;                       //  Is diagonal square empty ?
         JR      (Z,MP36);               //  Yes - Jump
-        LD      (a,M2);                 //  Get "to" position
+        LD      (a,val(M2));                 //  Get "to" position
         CP      (91);                   //  Promote white Pawn ?
         JR      (NC,MP37);              //  Yes - Jump
         CP      (29);                   //  Black Pawn promotion ?
         JR      (NC,MP31);              //  No- Jump
 MP37:   LD      (hl,addr(P2));          //  Get flag address
         SET     (5,ptr(hl));            //  Set promote flag
-        JR      (MP31);                 //  Jump
-MP36:   CALL    (ENPSNT);               //  Try en passant capture
-        JP      (MP15);                 //  Jump
+        JRu     (MP31);                 //  Jump
+MP36:   CALLu   (ENPSNT);               //  Try en passant capture
+        JPu     (MP15);                 //  Jump
 }
 
 
@@ -708,8 +710,9 @@ MP36:   CALL    (ENPSNT);               //  Try en passant capture
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-ENPSNT: LD      (a,M1);                 //  Set position of Pawn
-        LD      (hl,addr(P1));          //  Check color
+void ENPSNT() {
+        LD      (a,val(M1));                 //  Set position of Pawn
+        LD      (hl,addr(P1));          //  Check val(COLOR)
         BIT     (7,ptr(hl));            //  Is it white ?
         JR      (Z,rel002);             //  Yes - skip
         ADD     (a,10);                 //  Add 10 for black
@@ -717,18 +720,18 @@ rel002: CP      (61);                   //  On en passant capture rank ?
         RET     (C);                    //  No - return
         CP      (69);                   //  On en passant capture rank ?
         RET     (NC);                   //  No - return
-        LD      (ix,chk(MLPTRJ)));      //  Get pointer to previous move
+        LD      (ix,chk(MLPTRJ));       //  Get pointer to previous move
         BIT     (4,ptr(ix+MLFLG));      //  First move for that piece ?
         RET     (Z);                    //  No - return
         LD      (a,ptr(ix+MLTOP));      //  Get "to" position
-        LD      (M4,a);                 //  Store as index to board
+        LD      (val(M4),a);                 //  Store as index to board
         LD      (ix,chk(M4));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get piece moved
-        LD      (P3,a);                 //  Save it
+        LD      (val(P3),a);                 //  Save it
         AND     (7);                    //  Get piece type
         CP      (PAWN);                 //  Is it a Pawn ?
         RET     (NZ);                   //  No - return
-        LD      (a,M4);                 //  Get "to" position
+        LD      (a,val(M4));                 //  Get "to" position
         LD      (hl,addr(M2));          //  Get present "to" position
         SUB     (ptr(hl));              //  Find difference
         JP      (P,rel003);             //  Positive ? Yes - Jump
@@ -737,18 +740,20 @@ rel003: CP      (10);                   //  Is difference 10 ?
         RET     (NZ);                   //  No - return
         LD      (hl,addr(P2));          //  Address of flags
         SET     (6,ptr(hl));            //  Set double move flag
-        CALL    (ADMOVE);               //  Add Pawn move to move list
-        LD      (a,M1);                 //  Save initial Pawn position
-        LD      (M3,a);                 //
-        LD      (a,M4);                 //  Set "from" and "to" positions
+        CALLu   (ADMOVE);               //  Add Pawn move to move list
+        LD      (a,val(M1));                 //  Save initial Pawn position
+        LD      (val(M3),a);                 //
+        LD      (a,val(M4));                 //  Set "from" and "to" positions
 // for dummy move
-        LD      (M1,a);                 //
-        LD      (M2,a);                 //
-        LD      (a,P3);                 //  Save captured Pawn
-        LD      (P2,a);                 //
-        CALL    (ADMOVE);               //  Add Pawn capture to move list
-        LD      (a,M3);                 //  Restore "from" position
-        LD      (M1,a);                 //
+        LD      (val(M1),a);                 //
+        LD      (val(M2),a);                 //
+        LD      (a,val(P3));                 //  Save captured Pawn
+        LD      (val(P2),a);                 //
+        CALLu   (ADMOVE);               //  Add Pawn capture to move list
+        LD      (a,val(M3));                 //  Restore "from" position
+        LD      (val(M1),a);                 //
+}
+
 
 //***********************************************************
 // ADJUST MOVE LIST POINTER FOR DOUBLE MOVE
@@ -765,14 +770,16 @@ rel003: CP      (10);                   //  Is difference 10 ?
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-ADJPTR: LD      (hl,chk(MLLST));        //  Get list pointer
+void ADJPTR() {
+        LD      (hl,chk(MLLST));        //  Get list pointer
         LD      (de,-6);                //  Size of a move entry
         ADD     (hl,de);                //  Back up list pointer
         LD      (chk(MLLST),hl);        //  Save list pointer
         LD      (ptr(hl),0);            //  Zero out link, first byte
         INC     (hl);                   //  Next byte
         LD      (ptr(hl),0);            //  Zero out link, second byte
-        RET;                            //  Return
+        RETu;                            //  Return
+}
 
 //***********************************************************
 // CASTLE ROUTINE
@@ -789,64 +796,66 @@ ADJPTR: LD      (hl,chk(MLLST));        //  Get list pointer
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-CASTLE: LD      (a,P1);                 //  Get King
+void CASTLE() {
+        LD      (a,val(P1));                 //  Get King
         BIT     (3,a);                  //  Has it moved ?
         RET     (NZ);                   //  Yes - return
-        LD      (a,CKFLG);              //  Fetch Check Flag
+        LD      (a,val(CKFLG));              //  Fetch Check Flag
         AND     (a);                    //  Is the King in check ?
         RET     (NZ);                   //  Yes - Return
         LD      (bc,0xFF03);            //  Initialize King-side values
-CA5:    LD      (a,M1);                 //  King position
+CA5:    LD      (a,val(M1));                 //  King position
         ADD     (a,c);                  //  Rook position
         LD      (c,a);                  //  Save
-        LD      (M3,a);                 //  Store as board index
+        LD      (val(M3),a);                 //  Store as board index
         LD      (ix,chk(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
-        AND     (0x7F);                 //  Clear color bit
+        AND     (0x7F);                 //  Clear val(COLOR) bit
         CP      (ROOK);                 //  Has Rook ever moved ?
         JR      (NZ,CA20);              //  Yes - Jump
         LD      (a,c);                  //  Restore Rook position
-        JR      (CA15);                 //  Jump
+        JRu     (CA15);                 //  Jump
 CA10:   LD      (ix,chk(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
         AND     (a);                    //  Empty ?
         JR      (NZ,CA20);              //  No - Jump
-        LD      (a,M3);                 //  Current position
+        LD      (a,val(M3));                 //  Current position
         CP      (22);                   //  White Queen Knight square ?
         JR      (Z,CA15);               //  Yes - Jump
         CP      (92);                   //  Black Queen Knight square ?
         JR      (Z,CA15);               //  Yes - Jump
-        CALL    (ATTACK);               //  Look for attack on square
+        CALLu   (ATTACK);               //  Look for attack on square
         AND     (a);                    //  Any attackers ?
         JR      (NZ,CA20);              //  Yes - Jump
-        LD      (a,M3);                 //  Current position
+        LD      (a,val(M3));                 //  Current position
 CA15:   ADD     (a,b);                  //  Next position
-        LD      (M3,a);                 //  Save as board index
+        LD      (val(M3),a);                 //  Save as board index
         LD      (hl,addr(M1));          //  King position
         CP      (ptr(hl));              //  Reached King ?
         JR      (NZ,CA10);              //  No - jump
         SUB     (b);                    //  Determine King's position
         SUB     (b);
-        LD      (M2,a);                 //  Save it
+        LD      (val(M2),a);                 //  Save it
         LD      (hl,addr(P2));          //  Address of flags
         LD      (ptr(hl),0x40);         //  Set double move flag
-        CALL    (ADMOVE);               //  Put king move in list
+        CALLu   (ADMOVE);               //  Put king move in list
         LD      (hl,addr(M1));          //  Addr of King "from" position
         LD      (a,ptr(hl));            //  Get King's "from" position
         LD      ((hl),c);               //  Store Rook "from" position
         SUB     (b);                    //  Get Rook "to" position
-        LD      (M2,a);                 //  Store Rook "to" position
+        LD      (val(M2),a);                 //  Store Rook "to" position
         XOR     (a);                    //  Zero
-        LD      (P2,a);                 //  Zero move flags
-        CALL    (ADMOVE);               //  Put Rook move in list
-        CALL    (ADJPTR);               //  Re-adjust move list pointer
-        LD      (a,M3);                 //  Restore King position
-        LD      (M1,a);                 //  Store
+        LD      (val(P2),a);                 //  Zero move flags
+        CALLu   (ADMOVE);               //  Put Rook move in list
+        CALLu   (ADJPTR);               //  Re-adjust move list pointer
+        LD      (a,val(M3));                 //  Restore King position
+        LD      (val(M1),a);                 //  Store
 CA20:   LD      (a,b);                  //  Scan Index
         CP      (1);                    //  Done ?
         RET     (Z);                    //  Yes - return
         LD      (bc,0x01FC);            //  Set Queen-side initial values
-        JP      (CA5);                  //  Jump
+        JPu     (CA5);                  //  Jump
+}
 
 //***********************************************************
 // ADMOVE ROUTINE
@@ -861,7 +870,8 @@ CA20:   LD      (a,b);                  //  Scan Index
 //
 // ARGUMENT:  --  None
 //***********************************************************
-ADMOVE: LD      (de,chk(MLNXT));        //  Addr of next loc in move list
+void ADMOVE() {
+        LD      (de,chk(MLNXT));        //  Addr of next loc in move list
         LD      (hl,addr(MLEND));       //  Address of list end
         AND     (a);                    //  Clear carry flag
         SBC     (hl,de);                //  Calculate difference
@@ -881,30 +891,31 @@ rel004: EX      (de,hl);                //  Address of move area
         INC     (hl);
         LD      (ptr(hl),0);
         INC     (hl);
-        LD      (a,M1);                 //  Store "from" move position
+        LD      (a,val(M1));                 //  Store "from" move position
         LD      (ptr(hl),a);
         INC     (hl);
-        LD      (a,M2);                 //  Store "to" move position
+        LD      (a,val(M2));                 //  Store "to" move position
         LD      (ptr(hl),a);
         INC     (hl);
-        LD      (a,P2);                 //  Store move flags/capt. piece
+        LD      (a,val(P2));                 //  Store move flags/capt. piece
         LD      (ptr(hl),a);
         INC     (hl);
         LD      (ptr(hl),0);            //  Store initial move value
         INC     (hl);
         LD      (chk(MLNXT),hl);        //  Save address for next move
-        RET;                            //  Return
+        RETu;                           //  Return
 AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow
         INC     (hl);
         LD      (ptr(hl),0);            //  TODO does this out of memory
         DEC     (hl);                   //       check actually work?
-        RET
+        RETu;
+}
 
 //***********************************************************
 // GENERATE MOVE ROUTINE
 //***********************************************************
 // FUNCTION:  --  To generate the move set for all of the
-//                pieces of a given color.
+//                pieces of a given val(COLOR).
 //
 // CALLED BY: --  FNDMOV
 //
@@ -913,8 +924,9 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow
 //
 // ARGUMENTS: --  None
 //***********************************************************
-GENMOV: CALL    (INCHK);                //  Test for King in check
-        LD      (CKFLG,a);              //  Save attack count as flag
+void GENMOVE() {
+        CALLu   (INCHK);                //  Test for King in check
+        LD      (val(CKFLG),a);              //  Save attack count as flag
         LD      (de,chk(MLNXT));        //  Addr of next avail list space
         LD      (hl,chk(MLPTRI));       //  Ply list pointer index
         INC     (hl);                   //  Increment to next ply
@@ -926,23 +938,24 @@ GENMOV: CALL    (INCHK);                //  Test for King in check
         LD      (chk(MLPTRI),hl);       //  Save new index
         LD      (chk(MLLST),hl);        //  Last pointer for chain init.
         LD      (a,21);                 //  First position on board
-GM5:    LD      (M1,a);                 //  Save as index
+GM5:    LD      (val(M1),a);                 //  Save as index
         LD      (ix,chk(M1));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Fetch board contents
         AND     (a);                    //  Is it empty ?
         JR      (Z,GM10);               //  Yes - Jump
         CP      (-1);                   //  Is it a border square ?
         JR      (Z,GM10);               //  Yes - Jump
-        LD      (P1,a);                 //  Save piece
-        LD      (hl,COLOR);             //  Address of color of piece
-        XOR     (ptr(hl));              //  Test color of piece
+        LD      (val(P1),a);                 //  Save piece
+        LD      (hl,val(COLOR));             //  Address of val(COLOR) of piece
+        XOR     (ptr(hl));              //  Test val(COLOR) of piece
         BIT     (7,a);                  //  Match ?
         CALL    (Z,MPIECE);             //  Yes - call Move Piece
-GM10:   LD      (a,M1);                 //  Fetch current board position
+GM10:   LD      (a,val(M1));                 //  Fetch current board position
         INC     (a);                    //  Incr to next board position
         CP      (99);                   //  End of board array ?
         JP      (NZ,GM5);               //  No - Jump
-        RET;                            //  Return
+        RETu;                           //  Return
+}
 
 //***********************************************************
 // CHECK ROUTINE
@@ -956,22 +969,27 @@ GM10:   LD      (a,M1);                 //  Fetch current board position
 //
 // CALLS:      --  ATTACK
 //
-// ARGUMENTS:  --  Color of King
+// ARGUMENTS:  --  val(COLOR) of King
 //***********************************************************
-INCHK:  LD      (a,COLOR);              //  Get color
+void INCHK() {
+        LD      (a,val(COLOR));              //  Get val(COLOR)
 INCHK1: LD      (hl,addr(POSK));        //  Addr of white King position
         AND     (a);                    //  White ?
         JR      (Z,rel005);             //  Yes - Skip
         INC     (hl);                   //  Addr of black King position
 rel005: LD      (a,ptr(hl));            //  Fetch King position
-        LD      (M3,a);                 //  Save
+        LD      (val(M3),a);                 //  Save
         LD      (ix,chk(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Fetch board contents
-        LD      (P1,a);                 //  Save
+        LD      (val(P1),a);                 //  Save
         AND     (7);                    //  Get piece type
-        LD      (T1,a);                 //  Save
-        CALL    (ATTACK);               //  Look for attackers on King
-        RET;                            //  Return
+        LD      (val(T1),a);                 //  Save
+        CALLu   (ATTACK);               //  Look for attackers on King
+        RETu;                           //  Return
+}
+
+#if NOT_YET
+
 
 //***********************************************************
 // ATTACK ROUTINE
@@ -988,7 +1006,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position
 //                 account the ability of certain pieces to
 //                 attack through another attacking piece. (For
 //                 example a queen lined up behind a bishop
-//                 of her same color along a diagonal.) The
+//                 of her same val(COLOR) along a diagonal.) The
 //                 bishop is then said to be transparent to the
 //                 queen, since both participate in the
 //                 attack.
@@ -996,7 +1014,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position
 //                 In the case where this routine is called
 //                 by CASTLE or INCHK, the routine is
 //                 terminated as soon as an attacker of the
-//                 opposite color is encountered.
+//                 opposite val(COLOR) is encountered.
 //
 // CALLED BY:  --  POINTS
 //                 PINFND
@@ -1015,13 +1033,13 @@ ATTACK: PUSH    (bc);                   //  Save Register B
         LD      (iy,chk(INDX2));        //  Load index
 AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction
         LD      (d,0);                  //  Init. scan count/flags
-        LD      (a,M3);                 //  Init. board start position
-        LD      (M2,a);                 //  Save
+        LD      (a,val(M3));                 //  Init. board start position
+        LD      (val(M2),a);                 //  Save
 AT10:   INC     (d);                    //  Increment scan count
         CALL    (PATH);                 //  Next position
-        CP      (1);                    //  Piece of a opposite color ?
+        CP      (1);                    //  Piece of a opposite val(COLOR) ?
         JR      (Z,AT14A);              //  Yes - jump
-        CP      (2);                    //  Piece of same color ?
+        CP      (2);                    //  Piece of same val(COLOR) ?
         JR      (Z,AT14B);              //  Yes - jump
         AND     (a);                    //  Empty position ?
         JR      (NZ,AT12);              //  No - jump
@@ -1033,17 +1051,17 @@ AT12:   INC     (iy);                   //  Increment direction index
         XOR     (a);                    //  No attackers
 AT13:   POP     (bc);                   //  Restore register B
         RET;                            //  Return
-AT14A:  BIT     (6,d);                  //  Same color found already ?
+AT14A:  BIT     (6,d);                  //  Same val(COLOR) found already ?
         JR      (NZ,AT12);              //  Yes - jump
-        SET     (5,d);                  //  Set opposite color found flag
+        SET     (5,d);                  //  Set opposite val(COLOR) found flag
         JP      (AT14);                 //  Jump
-AT14B:  BIT     (5,d);                  //  Opposite color found already?
+AT14B:  BIT     (5,d);                  //  Opposite val(COLOR) found already?
         JR      (NZ,AT12);              //  Yes - jump
-        SET     (6,d);                  //  Set same color found flag
+        SET     (6,d);                  //  Set same val(COLOR) found flag
 
 //
 // ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****
-AT14:   LD      (a,T2);                 //  Fetch piece type encountered
+AT14:   LD      (a,val(T2));                 //  Fetch piece type encountered
         LD      (e,a);                  //  Save
         LD      (a,b);                  //  Get direction-counter
         CP      (9);                    //  Look for Knights ?
@@ -1072,7 +1090,7 @@ AT16:   LD      (a,b);                  //  Get direction counter
         JR      (NZ,AT12);              //  No - jump
         CP      (e);                    //  Is it a Pawn ?
         JR      (NZ,AT12);              //  No - jump
-        LD      (a,P2);                 //  Fetch piece including color
+        LD      (a,val(P2));                 //  Fetch piece including val(COLOR)
         BIT     (7,a);                  //  Is it white ?
         JR      (Z,AT20);               //  Yes - jump
         LD      (a,b);                  //  Get direction counter
@@ -1090,15 +1108,15 @@ AT21:   LD      (a,e);                  //  Get piece type
 AT25:   LD      (a,e);                  //  Get piece type
         CP      (KNIGHT);               //  Is it a Knight ?
         JR      (NZ,AT12);              //  No - jump
-AT30:   LD      (a,T1);                 //  Attacked piece type/flag
+AT30:   LD      (a,val(T1));                 //  Attacked piece type/flag
         CP      (7);                    //  Call from POINTS ?
         JR      (Z,AT31);               //  Yes - jump
-        BIT     (5,d);                  //  Is attacker opposite color ?
+        BIT     (5,d);                  //  Is attacker opposite val(COLOR) ?
         JR      (Z,AT32);               //  No - jump
         LD      (a,1);                  //  Set attacker found flag
         JP      (AT13);                 //  Jump
 AT31:   CALL    (ATKSAV);               //  Save attacker in attack list
-AT32:   LD      (a,T2);                 //  Attacking piece type
+AT32:   LD      (a,val(T2));                 //  Attacking piece type
         CP      (KING);                 //  Is it a King,?
         JP      (Z,AT12);               //  Yes - jump
         CP      (KNIGHT);               //  Is it a Knight ?
@@ -1110,7 +1128,7 @@ AT32:   LD      (a,T2);                 //  Attacking piece type
 //***********************************************************
 // FUNCTION:   --  To save an attacking piece value in the
 //                 attack list, and to increment the attack
-//                 count for that color piece.
+//                 count for that val(COLOR) piece.
 //
 //                 The pin piece list is checked for the
 //                 attacking piece, and if found there, the
@@ -1130,7 +1148,7 @@ ATKSAV: PUSH    (bc);                   //  Save Regs BC
         LD      (ix,chk(T2));           //  Init index to value table
         LD      (hl,addr(ATKLST));      //  Init address of attack list
         LD      (bc,0);                 //  Init increment for white
-        LD      (a,P2);                 //  Attacking piece
+        LD      (a,val(P2));                 //  Attacking piece
         BIT     (7,a);                  //  Is it white ?
         JR      (Z,rel006);             //  Yes - jump
         LD      (c,7);                  //  Init increment for black
@@ -1184,7 +1202,7 @@ PNCK:   LD      (d,c);                  //  Save attack direction
         LD      (e,0);                  //  Clear flag
         LD      (c,a);                  //  Load pin count for search
         LD      (b,0);
-        LD      (a,M2);                 //  Position of piece
+        LD      (a,val(M2));                 //  Position of piece
         LD      (hl,addr(PLISTA));      //  Pin list address
 PC1:    Z80_CPIR;                       //  Search list for position
         RET     (NZ);                   //  Return if not found
@@ -1231,30 +1249,30 @@ PF1:    LD      (a,ptr(de));            //  Get position of royal piece
         JP      (Z,PF26);               //  No- jump
         CP      (-1);                   //  At end of list ?
         RET     (Z);                    //  Yes return
-        LD      (M3,a);                 //  Save position as board index
+        LD      (val(M3),a);                 //  Save position as board index
         LD      (ix,chk(M3));           //  Load index to board
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
-        LD      (P1,a);                 //  Save
+        LD      (val(P1),a);                 //  Save
         LD      (b,8);                  //  Init scan direction count
         XOR     (a);
         LD      (INDX2,a);              //  Init direction index
         LD      (iy,chk(INDX2));
-PF2:    LD      (a,M3);                 //  Get King/Queen position
-        LD      (M2,a);                 //  Save
+PF2:    LD      (a,val(M3));                 //  Get King/Queen position
+        LD      (val(M2),a);                 //  Save
         XOR     (a);
-        LD      (M4,a);                 //  Clear pinned piece saved pos
+        LD      (val(M4),a);                 //  Clear pinned piece saved pos
         LD      (c,ptr(iy+DIRECT));     //  Get direction of scan
 PF5:    CALL    (PATH);                 //  Compute next position
         AND     (a);                    //  Is it empty ?
         JR      (Z,PF5);                //  Yes - jump
         CP      (3);                    //  Off board ?
         JP      (Z,PF25);               //  Yes - jump
-        CP      (2);                    //  Piece of same color
-        LD      (a,M4);                 //  Load pinned piece position
+        CP      (2);                    //  Piece of same val(COLOR)
+        LD      (a,val(M4));                 //  Load pinned piece position
         JR      (Z,PF15);               //  Yes - jump
         AND     (a);                    //  Possible pin ?
         JP      (Z,PF25);               //  No - jump
-        LD      (a,T2);                 //  Piece type encountered
+        LD      (a,val(T2));                 //  Piece type encountered
         CP      (QUEEN);                //  Queen ?
         JP      (Z,PF19);               //  Yes - jump
         LD      (l,a);                  //  Save piece type
@@ -1271,10 +1289,10 @@ PF10:   LD      (a,l);                  //  Piece type
         JP      (PF20);                 //  Jump
 PF15:   AND     (a);                    //  Possible pin ?
         JP      (NZ,PF25);              //  No - jump
-        LD      (a,M2);                 //  Save possible pin position
-        LD      (M4,a);
+        LD      (a,val(M2));                 //  Save possible pin position
+        LD      (val(M4),a);
         JP      (PF5);                  //  Jump
-PF19:   LD      (a,P1);                 //  Load King or Queen
+PF19:   LD      (a,val(P1));                 //  Load King or Queen
         AND     (7);                    //  Clear flags
         CP      (QUEEN);                //  Queen ?
         JR      (NZ,PF20);              //  No - jump
@@ -1288,11 +1306,11 @@ back02: LD      (ptr(hl),a);
         INC     (hl);
         DJNZ    (back02);
         LD      (a,7);                  //  Set attack flag
-        LD      (T1,a);
+        LD      (val(T1),a);
         CALL    (ATTACK);               //  Find attackers/defenders
         LD      (hl,addr(WACT));        //  White queen attackers
         LD      (de,addr(BACT));        //  Black queen attackers
-        LD      (a,P1);                 //  Get queen
+        LD      (a,val(P1));                 //  Get queen
         BIT     (7,a);                  //  Is she white ?
         JR      (Z,rel008);             //  Yes - skip
         EX      (de,hl);                //  Reverse for black
@@ -1308,7 +1326,7 @@ PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         INC     (ptr(hl));              //  Increment
         LD      (ix,chk(NPINS));        //  Load pin list index
         LD      (ptr(ix+PLISTD),c);     //  Save direction of pin
-        LD      (a,M4);                 //  Position of pinned piece
+        LD      (a,val(M4));                 //  Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list
 PF25:   INC     (iy);                   //  Increment direction index
         DJNZ    (PF27);                 //  Done ? No - Jump
@@ -1330,7 +1348,7 @@ PF27:   JP      (PF2);                  //  Jump
 // ARGUMENTS:  --  None.
 //***********************************************************
 XCHNG:  EXX;                            //  Swap regs.
-        LD      (a,(P1));               //  Piece attacked
+        LD      (a,(val(P1)));               //  Piece attacked
         LD      (hl,addr(WACT));        //  Addr of white attkrs/dfndrs
         LD      (de,addr(BACT));        //  Addr of black attkrs/dfndrs
         BIT     (7,a);                  //  Is piece white ?
@@ -1426,16 +1444,16 @@ NX6:    EXX;                            //  Restore regs.
 // ARGUMENTS:  --  None
 //***********************************************************
 POINTS: XOR     (a);                    //  Zero out variables
-        LD      (MTRL,a);               //
-        LD      (BRDC,a);               //
-        LD      (PTSL,a);               //
-        LD      (PTSW1,a);              //
-        LD      (PTSW2,a);              //
-        LD      (PTSCK,a);              //
+        LD      (val(MTRL),a);               //
+        LD      (val(BRDC),a);               //
+        LD      (val(PTSL),a);               //
+        LD      (val(PTSW1),a);              //
+        LD      (val(PTSW2),a);              //
+        LD      (val(PTSCK),a);              //
         LD      (hl,addr(T1));          //  Set attacker flag
         LD      (ptr(hl),7);            //
         LD      (a,21);                 //  Init to first square on board
-PT5:    LD      (M3,a);                 //  Save as board index
+PT5:    LD      (val(M3),a);                 //  Save as board index
         LD      (ix,chk(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get piece from board
         CP      (-1);                   //  Off board edge ?
@@ -1443,21 +1461,21 @@ PT5:    LD      (M3,a);                 //  Save as board index
         LD      (hl,addr(P1));          //  Save piece, if any
         LD      (ptr(hl),a);            //
         AND     (7);                    //  Save piece type, if any
-        LD      (T3,a);                 //
+        LD      (T3,val(a));                 //
         CP      (KNIGHT);               //  Less than a Knight (Pawn) ?
         JR      (C,PT6X);               //  Yes - Jump
         CP      (ROOK);                 //  Rook, Queen or King ?
         JR      (C,PT6B);               //  No - jump
         CP      (KING);                 //  Is it a King ?
         JR      (Z,PT6AA);              //  Yes - jump
-        LD      (a,MOVENO);             //  Get move number
+        LD      (a,val(MOVENO));             //  Get move number
         CP      (7);                    //  Less than 7 ?
         JR      (C,PT6A);               //  Yes - Jump
         JP      (PT6X);                 //  Jump
 PT6AA:  BIT     (4,ptr(hl));            //  Castled yet ?
         JR      (Z,PT6A);               //  No - jump
         LD      (a,+6);                 //  Bonus for castling
-        BIT     (7,ptr(hl));            //  Check piece color
+        BIT     (7,ptr(hl));            //  Check piece val(COLOR)
         JR      (Z,PT6D);               //  Jump if white
         LD      (a,-6);                 //  Bonus for black castling
         JP      (PT6D);                 //  Jump
@@ -1467,7 +1485,7 @@ PT6A:   BIT     (3,ptr(hl));            //  Has piece moved yet ?
 PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?
         JR      (NZ,PT6X);              //  Yes - jump
 PT6C:   LD      (a,-2);                 //  Two point penalty for white
-        BIT     (7,ptr(hl));            //  Check piece color
+        BIT     (7,ptr(hl));            //  Check piece val(COLOR)
         JR      (Z,PT6D);               //  Jump if white
         LD      (a,+2);                 //  Two point penalty for black
 PT6D:   LD      (hl,addr(BRDC));        //  Get address of board control
@@ -1486,7 +1504,7 @@ back04: LD      (ptr(hl),a);            //
         LD      (hl,addr(BRDC));        //  Address of board control
         ADD     (a,ptr(hl));            //  Accum board control score
         LD      (ptr(hl),a);            //  Save
-        LD      (a,P1);                 //  Get piece on current square
+        LD      (a,val(P1));                 //  Get piece on current square
         AND     (a);                    //  Is it empty ?
         JP      (Z,PT25);               //  Yes - jump
         CALL    (XCHNG);                //  Evaluate exchange, if any
@@ -1494,21 +1512,21 @@ back04: LD      (ptr(hl),a);            //
         CP      (e);                    //  Points lost ?
         JR      (Z,PT23);               //  No - Jump
         DEC     (d);                    //  Deduct half a Pawn value
-        LD      (a,P1);                 //  Get piece under attack
-        LD      (hl,COLOR);             //  Color of side just moved
+        LD      (a,val(P1));                 //  Get piece under attack
+        LD      (hl,val(COLOR));             //  val(COLOR) of side just moved
         XOR     (ptr(hl));              //  Compare with piece
         BIT     (7,a);                  //  Do colors match ?
         LD      (a,e);                  //  Points lost
         JR      (NZ,PT20);              //  Jump if no match
-        LD      (hl,PTSL);              //  Previous max points lost
+        LD      (hl,val(PTSL));              //  Previous max points lost
         CP      (ptr(hl));              //  Compare to current value
         JR      (C,PT23);               //  Jump if greater than
         LD      (ptr(hl),e);            //  Store new value as max lost
         LD      (ix,chk(MLPTRJ));       //  Load pointer to this move
-        LD      (a,M3);                 //  Get position of lost piece
+        LD      (a,val(M3));                 //  Get position of lost piece
         CP      (ptr(ix+MLTOP));        //  Is it the one moving ?
         JR      (NZ,PT23);              //  No - jump
-        LD      (PTSCK,a);              //  Save position as a flag
+        LD      (val(PTSCK),a);              //  Save position as a flag
         JP      (PT23);                 //  Jump
 PT20:   LD      (hl,addr(PTSW1));       //  Previous maximum points won
         CP      (ptr(hl));              //  Compare to current value
@@ -1520,39 +1538,39 @@ rel011: LD      (hl,addr(PTSW2));       //  Previous 2nd max points won
         JR      (C,PT23);               //  Jump if greater than
         LD      (ptr(hl),a);            //  Store as new 2nd max lost
 PT23:   LD      (hl,addr(P1));          //  Get piece
-        BIT     (7,ptr(hl));            //  Test color
+        BIT     (7,ptr(hl));            //  Test val(COLOR)
         LD      (a,d);                  //  Value of piece
         JR      (Z,rel012);             //  Jump if white
         NEG     ();                     //  Negate for black
 rel012: LD      (hl,addr(MTRL));        //  Get addrs of material total
         ADD     (a,ptr(hl));            //  Add new value
         LD      (ptr(hl),a);            //  Store
-PT25:   LD      (a,M3);                 //  Get current board position
+PT25:   LD      (a,val(M3));                 //  Get current board position
         INC     (a);                    //  Increment
         CP      (99);                   //  At end of board ?
         JP      (NZ,PT5);               //  No - jump
-        LD      (a,PTSCK);              //  Moving piece lost flag
+        LD      (a,val(PTSCK));              //  Moving piece lost flag
         AND     (a);                    //  Was it lost ?
         JR      (Z,PT25A);              //  No - jump
-        LD      (a,PTSW2);              //  2nd max points won
-        LD      (PTSW1,a);              //  Store as max points won
+        LD      (a,val(PTSW2));              //  2nd max points won
+        LD      (val(PTSW1),a);              //  Store as max points won
         XOR     (a);                    //  Zero out 2nd max points won
-        LD      (PTSW2,a);              //
-PT25A:  LD      (a,PTSL);               //  Get max points lost
+        LD      (val(PTSW2),a);              //
+PT25A:  LD      (a,val(PTSL));               //  Get max points lost
         AND     (a);                    //  Is it zero ?
         JR      (Z,rel013);             //  Yes - jump
         DEC     (a);                    //  Decrement it
 rel013: LD      (b,a);                  //  Save it
-        LD      (a,PTSW1);              //  Max,points won
+        LD      (a,val(PTSW1));              //  Max,points won
         AND     (a);                    //  Is it zero ?
         JR      (Z,rel014);             //  Yes - jump
-        LD      (a,PTSW2);              //  2nd max points won
+        LD      (a,val(PTSW2));              //  2nd max points won
         AND     (a);                    //  Is it zero ?
         JR      (Z,rel014);             //  Yes - jump
         DEC     (a);                    //  Decrement it
         SRL     (a);                    //  Divide it by 2
 rel014: SUB     (b);                    //  Subtract points lost
-        LD      (hl,addr(COLOR));       //  Color of side just moved ???
+        LD      (hl,addr(COLOR));       //  val(COLOR) of side just moved ???
         BIT     (7,ptr(hl));            //  Is it white ?
         JR      (Z,rel015);             //  Yes - jump
         NEG;                            //  Negate for black
@@ -1564,11 +1582,11 @@ rel015: LD      (hl,addr(MTRL));        //  Net material on board
         LD      (a,30);                 //  Load material limit
         CALL    (LIMIT);                //  Limit to plus or minus value
         LD      (e,a);                  //  Save limited value
-        LD      (a,BRDC);               //  Get board control points
+        LD      (a,val(BRDC));               //  Get board control points
         LD      (hl,addr(BC0));         //  Board control at ply zero
         SUB     (ptr(hl));              //  Get difference
         LD      (b,a);                  //  Save
-        LD      (a,PTSCK);              //  Moving piece lost flag
+        LD      (a,val(PTSCK));              //  Moving piece lost flag
         AND     (a);                    //  Is it zero ?
         JR      (Z,rel026);             //  Yes - jump
         LD      (b,0);                  //  Zero board control points
@@ -1579,12 +1597,12 @@ rel026: LD      (a,6);                  //  Load board control limit
         ADD     (a,a);                  //  Multiply by 4
         ADD     (a,a);                  //
         ADD     (a,d);                  //  Add board control
-        LD      (hl,addr(COLOR));       //  Color of side just moved
+        LD      (hl,addr(COLOR));       //  val(COLOR) of side just moved
         BIT     (7,ptr(hl));            //  Is it white ?
         JR      (NZ,rel016);            //  No - jump
         NEG;                            //  Negate for white
 rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)
-        LD      (VALM,a);               //  Save score
+        LD      (val(VALM),a);               //  Save score
         LD      (ix,chk(MLPTRJ));       //  Load move list pointer
         LD      (ptr(ix+MLVAL),a);      //  Save score in move list
         RET;                            //  Return
@@ -1636,10 +1654,10 @@ MOVE:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
         INC     (hl);                   //  Increment past link bytes
         INC     (hl);
 MV1:    LD      (a,ptr(hl));            //  "From" position
-        LD      (M1,a);                 //  Save
+        LD      (val(M1),a);                 //  Save
         INC     (hl);                   //  Increment pointer
         LD      (a,ptr(hl));            //  "To" position
-        LD      (M2,a);                 //  Save
+        LD      (val(M2),a);                 //  Save
         INC     (hl);                   //  Increment pointer
         LD      (d,ptr(hl));            //  Get captured piece/flags
         LD      (ix,chk(M1));           //  Load "from" pos board index
@@ -1675,7 +1693,7 @@ MV20:   LD      (hl,POSQ);              //  Addr of saved Queen position
 MV21:   BIT     (7,e);                  //  Is Queen white ?
         JR      (Z,MV22);               //  Yes - jump
         INC     (hl);                   //  Increment to black Queen pos
-MV22:   LD      (a,M2);                 //  Get new Queen position
+MV22:   LD      (a,val(M2));                 //  Get new Queen position
         LD      (ptr(hl),a);            //  Save
         JP      (MV5);                  //  Jump
 MV30:   LD      (hl,addr(POSK));        //  Get saved King position
@@ -1708,10 +1726,10 @@ UNMOVE: LD      (hl,chk(MLPTRJ));       //  Load move list pointer
         INC     (hl);                   //  Increment past link bytes
         INC     (hl);
 UM1:    LD      (a,ptr(hl));            //  Get "from" position
-        LD      (M1,a);                 //  Save
+        LD      (val(M1),a);                 //  Save
         INC     (hl);                   //  Increment pointer
         LD      (a,ptr(hl));            //  Get "to" position
-        LD      (M2,a);                 //  Save
+        LD      (val(M2),a);                 //  Save
         INC     (hl);                   //  Increment pointer
         LD      (d,ptr(hl));            //  Get captured piece/flags
         LD      (ix,chk(M2));           //  Load "to" pos board index
@@ -1741,7 +1759,7 @@ UM6:    LD      (iy,chk(M1));           //  Load "from" pos board index
         BIT     (7,d);                  //  Is Queen white ?
         JR      (Z,UM10);               //  Yes - jump
         INC     (hl);                   //  Increment to black Queen pos
-UM10:   LD      (a,M2);                 //  Queen's previous position
+UM10:   LD      (a,val(M2));                 //  Queen's previous position
         LD      (ptr(hl),a);            //  Save
         RET;                            //  Return
 UM15:   RES     (2,e);                  //  Restore Queen to Pawn
@@ -1752,7 +1770,7 @@ UM20:   LD      (hl,addr(POSQ));        //  Addr of saved Queen position
 UM21:   BIT     (7,e);                  //  Is Queen white ?
         JR      (Z,UM22);               //  Yes - jump
         INC     (hl);                   //  Increment to black Queen pos
-UM22:   LD      (a,M1);                 //  Get previous position
+UM22:   LD      (a,val(M1));                 //  Get previous position
         LD      (ptr(hl),a);            //  Save
         JP      (UM5);                  //  Jump
 UM30:   LD      (hl,addr(POSK));        //  Address of saved King pos
@@ -1802,7 +1820,7 @@ SR15:   LD      (e,ptr(hl));            //  Next move for compare
         JR      (Z,SR25);               //  Yes - jump
         PUSH    (de);                   //  Transfer move pointer
         POP     (ix);                   //
-        LD      (a,VALM);               //  Get new move value
+        LD      (a,val(VALM));               //  Get new move value
         CP      (ptr(ix+MLVAL));        //  Less than list value ?
         JR      (NC,SR30);              //  No - jump
 SR25:   LD      (ptr(hl),b);            //  Link new move into list
@@ -1835,7 +1853,7 @@ EVAL:   CALL    (MOVE);                 //  Make move on the board array
         AND     (a);                    //  Legal move ?
         JR      (Z,EV5);                //  Yes - jump
         XOR     (a);                    //  Score of zero
-        LD      (VALM,a);               //  For illegal move
+        LD      (val(VALM),a);               //  For illegal move
         JP      (EV10);                 //  Jump
 EV5:    CALL    (PINFND);               //  Compile pinned list
         CALL    (POINTS);               //  Assign points to move
@@ -1860,42 +1878,42 @@ EV10:   CALL    (UNMOVE);               //  Restore board array
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-FNDMOV: LD      (a,MOVENO);             //  Current move number
+FNDMOV: LD      (a,val(MOVENO));             //  Current move number
         CP      (1);                    //  First move ?
         CALL    (Z,BOOK);               //  Yes - execute book opening
         XOR     (a);                    //  Initialize ply number to zero
-        LD      (NPLY,a);
+        LD      (val(NPLY),a);
         LD      (hl,0);                 //  Initialize best move to zero
         LD      (chk(BESTM),hl);
         LD      (hl,addr(MLIST));       //  Initialize ply list pointers
         LD      (chk(MLNXT),hl);
         LD      (hl,addr(PLYIX)-2);
         LD      (chk(MLPTRI),hl);
-        LD      (a,KOLOR);              //  Initialize color
-        LD      (COLOR,a);
+        LD      (a,val(KOLOR));              //  Initialize val(COLOR)
+        LD      (val(COLOR),a);
         LD      (hl,addr(SCORE));       //  Initialize score index
         LD      (chk(SCRIX),hl);
-        LD      (a,PLYMAX);             //  Get max ply number
+        LD      (a,val(PLYMAX));             //  Get max ply number
         ADD     (a,2);                  //  Add 2
         LD      (b,a);                  //  Save as counter
         XOR     (a);                    //  Zero out score table
 back05: LD      (ptr(hl),a);
         INC     (hl);
         DJNZ    (back05);
-        LD      (BC0,a);                //  Zero ply 0 board control
-        LD      (MV0,a);                //  Zero ply 0 material
+        LD      (val(BC0),a);                //  Zero ply 0 board control
+        LD      (val(MV0),a);                //  Zero ply 0 material
         CALL    (PINFND);               //  Compile pin list
         CALL    (POINTS);               //  Evaluate board at ply 0
-        LD      (a,BRDC);               //  Get board control points
-        LD      (BC0,a);                //  Save
-        LD      (a,MTRL);               //  Get material count
-        LD      (MV0,a);                //  Save
+        LD      (a,val(BRDC));               //  Get board control points
+        LD      (val(BC0),a);                //  Save
+        LD      (a,val(MTRL));               //  Get material count
+        LD      (val(MV0),a);                //  Save
 FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter
         INC     (ptr(hl));              //  Increment ply count
         XOR     (a);                    //  Initialize mate flag
-        LD      (MATEF,a);
+        LD      (val(MATEF),a);
         CALL    (GENMOV);               //  Generate list of moves
-        LD      (a,NPLY);               //  Current ply counter
+        LD      (a,val(NPLY));               //  Current ply counter
         LD      (hl,addr(PLYMAX));      //  Address of maximum ply number
         CP      (ptr(hl));              //  At max ply ?
         CALL    (C,SORTM);              //  No - call sort
@@ -1913,7 +1931,7 @@ FM15:   LD      (hl,chk(MLPTRJ));       //  Load last move pointer
         LD      (ptr(hl),e);
         INC     (hl);
         LD      (ptr(hl),d);
-        LD      (a,NPLY);               //  Current ply counter
+        LD      (a,val(NPLY));               //  Current ply counter
         LD      (hl,addr(PLYMAX));      //  Maximum ply number ?
         CP      (ptr(hl));              //  Compare
         JR      (C,FM18);               //  Jump if not max
@@ -1923,12 +1941,12 @@ FM15:   LD      (hl,chk(MLPTRJ));       //  Load last move pointer
         JR      (Z,rel017);             //  Yes - jump
         CALL    (UNMOVE);               //  Restore board position
         JP      (FM15);                 //  Jump
-rel017: LD      (a,NPLY);               //  Get ply counter
+rel017: LD      (a,val(NPLY));               //  Get ply counter
         LD      (hl,addr(PLYMAX));      //  Max ply number
         CP      (ptr(hl));              //  Beyond max ply ?
         JR      (NZ,FM35);              //  Yes - jump
-        LD      (a,COLOR);              //  Get current color
-        XOR     (0x80);                 //  Get opposite color
+        LD      (a,val(COLOR));              //  Get current val(COLOR)
+        XOR     (0x80);                 //  Get opposite val(COLOR)
         CALL    (INCHK1);               //  Determine if King is in check
         AND     (a);                    //  In check ?
         JR      (Z,FM35);               //  No - jump
@@ -1938,10 +1956,10 @@ FM18:   LD      (ix,chk(MLPTRJ));       //  Load move pointer
         AND     (a);                    //  Is it zero (illegal move) ?
         JR      (Z,FM15);               //  Yes - jump
         CALL    (MOVE);                 //  Execute move on board array
-FM19:   LD      (hl,addr(COLOR));       //  Toggle color
+FM19:   LD      (hl,addr(COLOR));       //  Toggle val(COLOR)
         LD      (a,0x80);
         XOR     (ptr(hl));
-        LD      (ptr(hl),a);            //  Save new color
+        LD      (ptr(hl),a);            //  Save new val(COLOR)
         BIT     (7,a);                  //  Is it white ?
         JR      (NZ,rel018);            //  No - jump
         LD      (hl,addr(MOVENO));      //  Increment move number
@@ -1954,18 +1972,18 @@ rel018: LD      (hl,chk(SCRIX));        //  Load score table pointer
         DEC     (hl);                   //  Decrement pointer
         LD      (chk(SCRIX),hl);        //  Save it
         JP      (FM5);                  //  Jump
-FM25:   LD      (MATEF);                //  Get mate flag
+FM25:   LD      (val(MATEF));                //  Get mate flag
         AND     (a);                    //  Checkmate or stalemate ?
         JR      (NZ,FM30);              //  No - jump
-        LD      (a,CKFLG);              //  Get check flag
+        LD      (a,val(CKFLG));              //  Get check flag
         AND     (a);                    //  Was King in check ?
         LD      (a,0x80);               //  Pre-set stalemate score
         JR      (Z,FM36);               //  No - jump (stalemate)
-        LD      (a,MOVENO);             //  Get move number
-        LD      (PMATE,a);              //  Save
+        LD      (a,val(MOVENO));             //  Get move number
+        LD      (val(PMATE),a);              //  Save
         LD      (a,0xFF);               //  Pre-set checkmate score
         JP      (FM36);                 //  Jump
-FM30:   LD      (a,NPLY);               //  Get ply counter
+FM30:   LD      (a,val(NPLY));               //  Get ply counter
         CP      (1);                    //  At top of tree ?
         RET     (Z);                    //  Yes - return
         CALL    (ASCEND);               //  Ascend one ply in tree
@@ -1979,7 +1997,7 @@ FM30:   LD      (a,NPLY);               //  Get ply counter
 FM35:   CALL    (PINFND);               //  Compile pin list
         CALL    (POINTS);               //  Evaluate move
         CALL    (UNMOVE);               //  Restore board position
-        LD      (a,VALM);               //  Get value of move
+        LD      (a,val(VALM));               //  Get value of move
 FM36:   LD      (hl,addr(MATEF));       //  Set mate flag
         SET     (0,ptr(hl));            //
         LD      (hl,chk(SCRIX));        //  Load score table pointer
@@ -1993,7 +2011,7 @@ FM37:
         JP      (C,FM15);               //  Jump if less than
         JP      (Z,FM15);               //  Jump if equal
         LD      (ptr(hl),a);            //  Save as new score 1 ply above
-        LD      (a,NPLY);               //  Get current ply counter
+        LD      (a,val(NPLY));               //  Get current ply counter
         CP      (1);                    //  At top of tree ?
         JP      (NZ,FM15);              //  No - jump
         LD      (hl,chk(MLPTRJ));       //  Load current move pointer
@@ -2004,7 +2022,7 @@ FM37:
         LD      (hl,addr(PLYMAX));      //  Get maximum ply number
         DEC     (ptr(hl));              //  Subtract 2
         DEC     (ptr(hl));
-        LD      (a,KOLOR);              //  Get computer's color
+        LD      (a,val(KOLOR));              //  Get computer's val(COLOR)
         BIT     (7,a);                  //  Is it white ?
         RET     (Z);                    //  Yes - return
         LD      (hl,addr(PMATE));       //  Checkmate move number
@@ -2025,10 +2043,10 @@ FM40:   CALL    (ASCEND);               //  Ascend one ply in tree
 //
 // ARGUMENTS: --  None
 //***********************************************************
-ASCEND: LD      (hl,addr(COLOR));       //  Toggle color
+ASCEND: LD      (hl,addr(COLOR));       //  Toggle val(COLOR)
         LD      (a,0x80);               //
         XOR     (ptr(hl));              //
-        LD      (ptr(hl),a);            //  Save new color
+        LD      (ptr(hl),a);            //  Save new val(COLOR)
         BIT     (7,a);                  //  Is it white ?
         JR      (Z,rel019);             //  Yes - jump
         LD      (hl,addr(MOVENO));      //  Decrement move number
@@ -2071,7 +2089,7 @@ BOOK:   POP     (af);                   //  Abort return to FNDMOV
         LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book
         LD      (chk(BESTM),hl);        //
         LD      (hl,addr(BESTM));       //  Initialize address of pointer
-        LD      (a,KOLOR);              //  Get computer's color
+        LD      (a,val(KOLOR));              //  Get computer's val(COLOR)
         AND     (a);                    //  Is it white ?
         JR      (NZ,BM5);               //  No - jump
         LD      (a,rand());             //  Load refresh reg (random no)
@@ -2147,7 +2165,7 @@ CP0C:   CALL    (MOVE);                 //  Produce move on board array
 // and return info about it
         LD      (a,b);                  //  Special move flags
         AND     (a);                    //  Special ?
-        JR      (NZ,CP10);              //  Yes - jump
+        JR      (NZ,Cval(P1)0);              //  Yes - jump
         LD      (d,e);                  //  "To" position of the move
         CALL    (BITASN);               //  Convert to Ascii
         LD      (chk(MVEMSG+3),hl);     //  Put in move message
@@ -2155,24 +2173,24 @@ CP0C:   CALL    (MOVE);                 //  Produce move on board array
         CALL    (BITASN);               //  Convert to Ascii
         LD      (chk(MVEMSG),hl);       //  Put in move message
         PRTBLK  (MVEMSG,5);             //  Output text of move
-        JR      (CP1C);                 //  Jump
-CP10:   BIT     (1,b);                  //  King side castle ?
+        JR      (Cval(P1)C);                 //  Jump
+Cval(P1)0:   BIT     (1,b);                  //  King side castle ?
         JR      (Z,rel020);             //  No - jump
         PRTBLK  (O_O,5);                //  Output "O-O"
-        JR      (CP1C);                 //  Jump
+        JR      (Cval(P1)C);                 //  Jump
 rel020: BIT     (2,b);                  //  Queen side castle ?
         JR      (Z,rel021);             //  No - jump
         PRTBLK  (O_O_O,5);              //  Output "O-O-O"
-        JR      (CP1C);                 //  Jump
+        JR      (Cval(P1)C);                 //  Jump
 rel021: PRTBLK  (P_PEP,5);              //  Output "PxPep" - En passant
-CP1C:   LD      (a,COLOR);              //  Should computer call check ?
+Cval(P1)C:   LD      (a,val(COLOR));              //  Should computer call check ?
         LD      (b,a);
-        XOR     (80H);                  //  Toggle color
-        LD      (COLOR,a);
+        XOR     (80H);                  //  Toggle val(COLOR)
+        LD      (val(COLOR),a);
         CALL    (INCHK);                //  Check for check
         AND     (a);                    //  Is enemy in check ?
-        LD      (a,b);                  //  Restore color
-        LD      (COLOR,a);
+        LD      (a,b);                  //  Restore val(COLOR)
+        LD      (val(COLOR),a);
         JR      (Z,CP24);               //  No - return
         CARRET;                         //  New line
         LD      (a,*(&SCORE+1));        //  Check for player mated
@@ -2280,9 +2298,9 @@ AT04:   LD      (b,a);                  //  Invalid flag
 //***********************************************************
 VALMOV: LD      (hl,chk(MLPTRJ));       //  Save last move pointer
         PUSH    (hl);                   //  Save register
-        LD      (a,KOLOR);              //  Computers color
-        XOR     (0x80);                 //  Toggle color
-        LD      (COLOR,a);              //  Store
+        LD      (a,val(KOLOR));              //  Computers val(COLOR)
+        XOR     (0x80);                 //  Toggle val(COLOR)
+        LD      (val(COLOR),a);              //  Store
         LD      (hl,addr(PLYIX)-2);     //  Load move list index
         LD      (chk(MLPTRI),hl);       //
         LD      (hl,addr(MLIST)+1024);  //  Next available list pointer
@@ -2344,7 +2362,7 @@ RY04:   LD      (M1),a;                 //  Set up board index
         LD      hl,POSK;                //  Address of King position
         LD      ix,(M1);                //
         LD      a,(ix+BOARD);           //  Fetch board contents
-        BIT     7,a;                    //  Test color bit
+        BIT     7,a;                    //  Test val(COLOR) bit
         JR      Z,rel023;               //  Jump if white
         INC     hl;                     //  Offset for black
 rel023: AND     7;                      //  Delete flags, leave piece
