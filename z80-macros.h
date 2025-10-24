@@ -71,10 +71,11 @@ struct z80_registers
 #define chk(var)        *((uint16_t *)(&mem.var))
 #define val(var)        *((uint8_t *)(&mem.var))
 #define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
-#define INC(x)          Z=(x+1==0), C==((uint16_t)(x)+1>=0x100), M=((int8_t)((int8_t)(x)+1) < 0), x++
-#define DEC(x)          Z=(x-1==0), C==((uint16_t)(x)-1>=0x100), M=((int8_t)((int8_t)(x)-1) < 0), x--
+#define INC(x)          Z=(x+1==0), C==((uint16_t)(x)+1>=0x100), M=((int8_t)((int8_t)(x)+1) < 0), (x) = (x)+1
+#define DEC(x)          Z=(x-1==0), C==((uint16_t)(x)-1>=0x100), M=((int8_t)((int8_t)(x)-1) < 0), (x) = (x)-1
 #define DJNZ(label)     if(--r.B != 0) goto label
-#define ADD(x,y)        Z=((x)+(y)==0), C==((uint16_t)(x)+(uint16_t)(y)>=0x100), M=((int8_t)((int8_t)(x)+(int8_t)(y)) < 0), (x)+=(y)
+#define ADD(x,y)        Z=((x)+(y)==(uint8_t)0), C==((uint16_t)(x)+(uint16_t)(y)>=0x100), M=((int8_t)((int8_t)(x)+(int8_t)(y)) < 0), (x)+=(y)
+#define ADD16(x,y)      Z=((x)+(y)==(uint16_t)0), C==((uint32_t)(x)+(uint32_t)(y)>=0x10000), M=((int16_t)((int16_t)(x)+(int16_t)(y)) < 0), (x)+=(y)
 #define SBC(x,y)        Z=((x)==(y+C?1:0)), C==((y+C?1:0)>(x)), M=((int16_t)((int16_t)(x)-(int16_t)(y+C?1:0)) < 0), (x)-=(y+C?1:0)
 #define SUB(y)          Z=(a==(y)),   C==((y)>a), M=((int8_t)((int8_t)(a)-(int8_t)(y)) < 0), a-=(y)
 #define CP(y)           Z=(a==(y)),   C==((y)>a), M=((int8_t)((int8_t)(a)-(int8_t)(y)) < 0)
@@ -90,7 +91,12 @@ struct z80_registers
 #define JRu(label)      goto label
 #define JPu(label)      goto label
 #define CALLu(func)     (func)()
+#define PUSH(x)
+#define POP(x)
 #define Z80_EXAF        
+#define Z80_CPIR
+#define RLD        
+#define RRD        
 
 // Emulate OPCODES with functions
 void SET( uint8_t bit_nbr, uint8_t &reg );

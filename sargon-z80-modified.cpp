@@ -211,15 +211,15 @@ uint8_t BOARDA[120];
 // BACT   --  Black Attack Count. This is the eighth byte of
 //            the array and does the same for black.
 //***********************************************************
-//WACT    EQU     ATKLST
-//BACT    EQU     ATKLST+7
+#define WACT addr(ATKLST)
+#define BACT addr(ATKLST)+7
 union
 {
     uint16_t    ATKLST[7];
     struct wact_bact
     {
-        uint8_t		WACT[7];
-        uint8_t		BACT[7];
+        uint8_t		WACT_[7];
+        uint8_t		BACT_[7];
     };
 };
 
@@ -773,7 +773,7 @@ rel003: CP      (10);                   //  Is difference 10 ?
 void ADJPTR() {
         LD      (hl,chk(MLLST));        //  Get list pointer
         LD      (de,-6);                //  Size of a move entry
-        ADD     (hl,de);                //  Back up list pointer
+        ADD16   (hl,de);                //  Back up list pointer
         LD      (chk(MLLST),hl);        //  Save list pointer
         LD      (ptr(hl),0);            //  Zero out link, first byte
         INC     (hl);                   //  Next byte
@@ -988,9 +988,6 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position
         RETu;                           //  Return
 }
 
-#if NOT_YET
-
-
 //***********************************************************
 // ATTACK ROUTINE
 //***********************************************************
@@ -1026,7 +1023,8 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-ATTACK: PUSH    (bc);                   //  Save Register B
+void ATTACK() {
+        PUSH    (bc);                   //  Save Register B
         XOR     (a);                    //  Clear
         LD      (b,16);                 //  Initial direction count
         LD      (INDX2,a);              //  Initial direction index
@@ -1036,7 +1034,7 @@ AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction
         LD      (a,val(M3));                 //  Init. board start position
         LD      (val(M2),a);                 //  Save
 AT10:   INC     (d);                    //  Increment scan count
-        CALL    (PATH);                 //  Next position
+        CALLu   (PATH);                 //  Next position
         CP      (1);                    //  Piece of a opposite val(COLOR) ?
         JR      (Z,AT14A);              //  Yes - jump
         CP      (2);                    //  Piece of same val(COLOR) ?
@@ -1050,11 +1048,11 @@ AT12:   INC     (iy);                   //  Increment direction index
         DJNZ    (AT5);                  //  Done ? No - jump
         XOR     (a);                    //  No attackers
 AT13:   POP     (bc);                   //  Restore register B
-        RET;                            //  Return
+        RETu;                           //  Return
 AT14A:  BIT     (6,d);                  //  Same val(COLOR) found already ?
         JR      (NZ,AT12);              //  Yes - jump
         SET     (5,d);                  //  Set opposite val(COLOR) found flag
-        JP      (AT14);                 //  Jump
+        JPu     (AT14);                 //  Jump
 AT14B:  BIT     (5,d);                  //  Opposite val(COLOR) found already?
         JR      (NZ,AT12);              //  Yes - jump
         SET     (6,d);                  //  Set same val(COLOR) found flag
@@ -1070,7 +1068,7 @@ AT14:   LD      (a,val(T2));                 //  Fetch piece type encountered
         CP      (QUEEN);                //  Is is a Queen ?
         JR      (NZ,AT15);              //  No - Jump
         SET     (7,d);                  //  Set Queen found flag
-        JR      (AT30);                 //  Jump
+        JRu     (AT30);                 //  Jump
 AT15:   LD      (a,d);                  //  Get flag/scan count
         AND     (0x0F);                 //  Isolate count
         CP      (1);                    //  On first position ?
@@ -1096,15 +1094,15 @@ AT16:   LD      (a,b);                  //  Get direction counter
         LD      (a,b);                  //  Get direction counter
         CP      (15);                   //  On a non-attacking diagonal ?
         JR      (C,AT12);               //  Yes - jump
-        JR      (AT30);                 //  Jump
+        JRu     (AT30);                 //  Jump
 AT20:   LD      (a,b);                  //  Get direction counter
         CP      (15);                   //  On a non-attacking diagonal ?
         JR      (NC,AT12);              //  Yes - jump
-        JR      (AT30);                 //  Jump
+        JRu     (AT30);                 //  Jump
 AT21:   LD      (a,e);                  //  Get piece type
         CP      (ROOK);                 //  Is is a Rook ?
         JR      (NZ,AT12);              //  No - jump
-        JR      (AT30);                 //  Jump
+        JRu     (AT30);                 //  Jump
 AT25:   LD      (a,e);                  //  Get piece type
         CP      (KNIGHT);               //  Is it a Knight ?
         JR      (NZ,AT12);              //  No - jump
@@ -1114,14 +1112,15 @@ AT30:   LD      (a,val(T1));                 //  Attacked piece type/flag
         BIT     (5,d);                  //  Is attacker opposite val(COLOR) ?
         JR      (Z,AT32);               //  No - jump
         LD      (a,1);                  //  Set attacker found flag
-        JP      (AT13);                 //  Jump
-AT31:   CALL    (ATKSAV);               //  Save attacker in attack list
+        JPu     (AT13);                 //  Jump
+AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
 AT32:   LD      (a,val(T2));                 //  Attacking piece type
         CP      (KING);                 //  Is it a King,?
         JP      (Z,AT12);               //  Yes - jump
         CP      (KNIGHT);               //  Is it a Knight ?
         JP      (Z,AT12);               //  Yes - jump
-        JP      (AT10);                 //  Jump
+        JPu     (AT10);                 //  Jump
+ }
 
 //***********************************************************
 // ATTACK SAVE ROUTINE
@@ -1140,9 +1139,10 @@ AT32:   LD      (a,val(T2));                 //  Attacking piece type
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-ATKSAV: PUSH    (bc);                   //  Save Regs BC
+void ATKSAV() {
+        PUSH    (bc);                   //  Save Regs BC
         PUSH    (de);                   //  Save Regs DE
-        LD      (a,NPINS);              //  Number of pinned pieces
+        LD      (a,val(NPINS));         //  Number of pinned pieces
         AND     (a);                    //  Any ?
         CALL    (NZ,PNCK);              //  yes - check pin list
         LD      (ix,chk(T2));           //  Init index to value table
@@ -1157,10 +1157,10 @@ rel006: AND     (7);                    //  Attacking piece type
         BIT     (7,d);                  //  Queen found this scan ?
         JR      (Z,rel007);             //  No - jump
         LD      (e,QUEEN);              //  Use Queen slot in attack list
-rel007: ADD     (hl,bc);                //  Attack list address
+rel007: ADD16   (hl,bc);                //  Attack list address
         INC     (ptr(hl));              //  Increment list count
         LD      (d,0);
-        ADD     (hl,de);                //  Attack list slot address
+        ADD16   (hl,de);                //  Attack list slot address
         LD      (a,ptr(hl));            //  Get data already there
         AND     (0x0f);                 //  Is first slot empty ?
         JR      (Z,AS20);               //  Yes - jump
@@ -1168,16 +1168,17 @@ rel007: ADD     (hl,bc);                //  Attack list address
         AND     (0xf0);                 //  Is second slot empty ?
         JR      (Z,AS19);               //  Yes - jump
         INC     (hl);                   //  Increment to King slot
-        JR      (AS20);                 //  Jump
+        JRu     (AS20);                 //  Jump
 AS19:   RLD;                            //  Temp save lower in upper
         LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
         RRD;                            //  Put in 2nd attack list slot
-        JR      (AS25);                 //  Jump
+        JRu     (AS25);                 //  Jump
 AS20:   LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
         RLD;                            //  Put in 1st attack list slot
 AS25:   POP     (de);                   //  Restore DE regs
         POP     (bc);                   //  Restore BC regs
-        RET;                            //  Return
+        RETu;                           //  Return
+ }
 
 //***********************************************************
 // PIN CHECK ROUTINE
@@ -1198,7 +1199,8 @@ AS25:   POP     (de);                   //  Restore DE regs
 // ARGUMENTS:  --  The direction of the attack. The
 //                 pinned piece counnt.
 //***********************************************************
-PNCK:   LD      (d,c);                  //  Save attack direction
+void PNCK() {
+        LD      (d,c);                  //  Save attack direction
         LD      (e,0);                  //  Clear flag
         LD      (c,a);                  //  Load pin count for search
         LD      (b,0);
@@ -1215,16 +1217,17 @@ PC1:    Z80_CPIR;                       //  Search list for position
         LD      (a,ptr(ix+9));          //  Get direction
         CP      (d);                    //  Same as attacking direction ?
         JR      (Z,PC3);                //  Yes - jump
-        NEG     ();                     //  Opposite direction ?
+        NEG;                            //  Opposite direction ?
         CP      (d);                    //  Same as attacking direction ?
         JR      (NZ,PC5);               //  No - jump
 PC3:    Z80_EXAF;                       //  Restore search parameters
         JP      (PE,PC1);               //  Jump if search not complete
-        RET;                            //  Return
+        RETu;                           //  Return
 PC5:    POP     (af);                   //  Abnormal exit
         POP     (de);                   //  Restore regs.
         POP     (bc);
-        RET;                            //  Return to ATTACK
+        RETu;                           //  Return to ATTACK
+}
 
 //***********************************************************
 // PIN FIND ROUTINE
@@ -1241,8 +1244,9 @@ PC5:    POP     (af);                   //  Abnormal exit
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-PINFND: XOR     (a);                    //  Zero pin count
-        LD      (NPINS,a);
+void PINFND() {
+        XOR     (a);                    //  Zero pin count
+        LD      (val(NPINS),a);
         LD      (de,addr(POSK));        //  Addr of King/Queen pos list
 PF1:    LD      (a,ptr(de));            //  Get position of royal piece
         AND     (a);                    //  Is it on board ?
@@ -1255,14 +1259,14 @@ PF1:    LD      (a,ptr(de));            //  Get position of royal piece
         LD      (val(P1),a);                 //  Save
         LD      (b,8);                  //  Init scan direction count
         XOR     (a);
-        LD      (INDX2,a);              //  Init direction index
+        LD      (val(INDX2),a);         //  Init direction index
         LD      (iy,chk(INDX2));
 PF2:    LD      (a,val(M3));                 //  Get King/Queen position
         LD      (val(M2),a);                 //  Save
         XOR     (a);
         LD      (val(M4),a);                 //  Clear pinned piece saved pos
         LD      (c,ptr(iy+DIRECT));     //  Get direction of scan
-PF5:    CALL    (PATH);                 //  Compute next position
+PF5:    CALLu   (PATH);                 //  Compute next position
         AND     (a);                    //  Is it empty ?
         JR      (Z,PF5);                //  Yes - jump
         CP      (3);                    //  Off board ?
@@ -1282,16 +1286,16 @@ PF5:    CALL    (PATH);                 //  Compute next position
         LD      (a,l);                  //  Piece type
         CP      (BISHOP);               //  Bishop ?
         JP      (NZ,PF25);              //  No - jump
-        JP      (PF20);                 //  Jump
+        JPu     (PF20);                 //  Jump
 PF10:   LD      (a,l);                  //  Piece type
         CP      (ROOK);                 //  Rook ?
         JP      (NZ,PF25);              //  No - jump
-        JP      (PF20);                 //  Jump
+        JPu     (PF20);                 //  Jump
 PF15:   AND     (a);                    //  Possible pin ?
         JP      (NZ,PF25);              //  No - jump
         LD      (a,val(M2));                 //  Save possible pin position
         LD      (val(M4),a);
-        JP      (PF5);                  //  Jump
+        JPu     (PF5);                  //  Jump
 PF19:   LD      (a,val(P1));                 //  Load King or Queen
         AND     (7);                    //  Clear flags
         CP      (QUEEN);                //  Queen ?
@@ -1307,9 +1311,9 @@ back02: LD      (ptr(hl),a);
         DJNZ    (back02);
         LD      (a,7);                  //  Set attack flag
         LD      (val(T1),a);
-        CALL    (ATTACK);               //  Find attackers/defenders
-        LD      (hl,addr(WACT));        //  White queen attackers
-        LD      (de,addr(BACT));        //  Black queen attackers
+        CALLu   (ATTACK);               //  Find attackers/defenders
+        LD      (hl,WACT);              //  White queen attackers
+        LD      (de,BACT);              //  Black queen attackers
         LD      (a,val(P1));                 //  Get queen
         BIT     (7,a);                  //  Is she white ?
         JR      (Z,rel008);             //  Yes - skip
@@ -1331,8 +1335,11 @@ PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
 PF25:   INC     (iy);                   //  Increment direction index
         DJNZ    (PF27);                 //  Done ? No - Jump
 PF26:   INC     (de);                   //  Incr King/Queen pos index
-        JP      (PF1);                  //  Jump
-PF27:   JP      (PF2);                  //  Jump
+        JPu     (PF1);                  //  Jump
+PF27:   JPu     (PF2);                  //  Jump
+}
+
+#if NOT_YET
 
 //***********************************************************
 // EXCHANGE ROUTINE
