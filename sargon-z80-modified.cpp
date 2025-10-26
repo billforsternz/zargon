@@ -421,6 +421,10 @@ uint8_t BMOVES[12] = {
 	84,64,0x10
 };
 
+char MVEMSG[5] = {'a','1','-','a','1'};
+char O_O[3]    = { '0', '-', '0' };
+char O_O_O[5]  = { '0', '-', '0', '-', '0' };
+uint8_t LINECT = 0;
 //
 // 4) MOVE ARRAY
 //
@@ -2053,8 +2057,6 @@ FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree
         JPu     (FM15);                 //  Jump
 }
 
-#if NOT_YET
-
 //***********************************************************
 // ASCEND TREE ROUTINE
 //***********************************************************
@@ -2067,7 +2069,8 @@ FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree
 //
 // ARGUMENTS: --  None
 //***********************************************************
-ASCEND: LD      (hl,addr(COLOR));       //  Toggle val(COLOR)
+void ASCEND() {
+        LD      (hl,addr(COLOR));       //  Toggle val(COLOR)
         LD      (a,0x80);               //
         XOR     (ptr(hl));              //
         LD      (ptr(hl),a);            //  Save new val(COLOR)
@@ -2094,6 +2097,7 @@ rel019: LD      (hl,chk(SCRIX));        //  Load score table index
         LD      (chk(MLPTRJ),de);       //  Save next move pointer
         CALLu   (UNMOVE);               //  Restore board to previous ply
         RETu;                           //  Return
+}
 
 //***********************************************************
 // ONE MOVE BOOK OPENING
@@ -2107,7 +2111,8 @@ rel019: LD      (hl,chk(SCRIX));        //  Load score table index
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-BOOK:   POP     (af);                   //  Abort return to FNDMOV
+void BOOK() {
+        POP     (af);                   //  Abort return to FNDMOV
         LD      (hl,addr(SCORE)+1);     //  Zero out score
         LD      (ptr(hl),0);            //  Zero out score table
         LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book
@@ -2145,6 +2150,7 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)
         INC     (ptr(hl));              //
         INC     (ptr(hl));              //
         RETu;                           //  Return to CPTRMV
+}
 
 //
 //  Omit some Z80 User Interface code, eg
@@ -2176,10 +2182,11 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-CPTRMV: CALLu   (FNDMOV);               //  Select best move
+void CPTRMV() {
+        CALLu   (FNDMOV);               //  Select best move
         LD      (hl,chk(BESTM));        //  Move list pointer variable
         LD      (chk(MLPTRJ),hl);       //  Pointer to move data
-        LD      (a,*(&SCORE+1));        //  To check for mates
+        LD      (a,(val(SCORE+1)));     //  To check for mates
         CP      (1);                    //  Mate against computer ?
         JR      (NZ,CP0C);              //  No - jump
         LD      (c,1);                  //  Computer mate flag
@@ -2196,39 +2203,40 @@ CP0C:   CALLu   (MOVE);                 //  Produce move on board array
         LD      (d,c);                  //  "From" position of the move
         CALLu   (BITASN);               //  Convert to Ascii
         LD      (chk(MVEMSG),hl);       //  Put in move message
-        PRTBLK  (MVEMSG,5);             //  Output text of move
-        JR      (CP1C);                 //  Jump
+        //PRTBLK  (MVEMSG,5);             //  Output text of move
+        JRu     (CP1C);                 //  Jump
 CP10:   BIT     (1,b);                  //  King side castle ?
         JR      (Z,rel020);             //  No - jump
-        PRTBLK  (O_O,5);                //  Output "O-O"
-        JR      (CP1C);                 //  Jump
+        //PRTBLK  (addr(O_O),5);                //  Output "O-O"
+        JRu     (CP1C);                 //  Jump
 rel020: BIT     (2,b);                  //  Queen side castle ?
         JR      (Z,rel021);             //  No - jump
-        PRTBLK  (O_O_O,5);              //  Output "O-O-O"
-        JR      (CP1C);                 //  Jump
-rel021: PRTBLK  (P_PEP,5);              //  Output "PxPep" - En passant
+        //PRTBLK  (addr(O_O_O),5);              //  Output "O-O-O"
+        JRu     (CP1C);                 //  Jump
+rel021: //PRTBLK  (P_PEP,5);              //  Output "PxPep" - En passant
 CP1C:   LD      (a,val(COLOR));              //  Should computer call check ?
         LD      (b,a);
-        XOR     (80H);                  //  Toggle val(COLOR)
+        XOR     (0x80);                  //  Toggle val(COLOR)
         LD      (val(COLOR),a);
         CALLu   (INCHK);                //  Check for check
         AND     (a);                    //  Is enemy in check ?
         LD      (a,b);                  //  Restore val(COLOR)
         LD      (val(COLOR),a);
         JR      (Z,CP24);               //  No - return
-        CARRET;                         //  New line
-        LD      (a,*(&SCORE+1));        //  Check for player mated
+        CARRET();                         //  New line
+        LD      (a,val(SCORE+1));        //  Check for player mated
         CP      (0xFF);                 //  Forced mate ?
         CALL    (NZ,TBCPMV);            //  No - Tab to computer column
-        PRTBLK  (CKMSG,5);              //  Output "check"
+        //PRTBLK  (CKMSG,5);              //  Output "check"
         LD      (hl,addr(LINECT));      //  Address of screen line count
         INC     (ptr(hl));              //  Increment for message
-CP24:   LD      (a,*(&SCORE+1));        //  Check again for mates
+CP24:   LD      (a,val(SCORE+1));        //  Check again for mates
         CP      (0xFF);                 //  Player mated ?
         RET     (NZ);                   //  No - return
         LD      (c,0);                  //  Set player mate flag
         CALLu   (FCDMAT);               //  Full checkmate ?
         RETu;                           //  Return
+}
 
 //
 //	Omit some more Z80 user interface stuff, functions
@@ -2250,16 +2258,18 @@ CP24:   LD      (a,*(&SCORE+1));        //  Check again for mates
 //                 Ascii square name is output in register
 //                 pair HL.
 //***********************************************************
-BITASN: SUB     (a);                    //  Get ready for division
+void BITASN() {
+        SUB     (a);                    //  Get ready for division
         LD      (e,10);                 //
         CALLu   (DIVIDE);               //  Divide
         DEC     (d);                    //  Get rank on 1-8 basis
-        ADD     (a,60H);                //  Convert file to Ascii (a-h)
+        ADD     (a,0x60);                //  Convert file to Ascii (a-h)
         LD      (l,a);                  //  Save
         LD      (a,d);                  //  Rank
-        ADD     (a,30H);                //  Convert rank to Ascii (1-8)
+        ADD     (a,0x30);                //  Convert rank to Ascii (1-8)
         LD      (h,a);                  //  Save
         RETu;                           //  Return
+}
 
 //
 //	Omit some more Z80 user interface stuff, function
@@ -2283,8 +2293,9 @@ BITASN: SUB     (a);                    //  Get ready for division
 //                 Register B = 0 if ok. Register B = Register
 //                 A if invalid.
 //***********************************************************
-ASNTBI: LD      (a,l);                  //  Ascii rank (1 - 8)
-        SUB     (30H);                  //  Rank 1 - 8
+void ASNTBI() {
+        LD      (a,l);                  //  Ascii rank (1 - 8)
+        SUB     (0x30);                  //  Rank 1 - 8
         CP      (1);                    //  Check lower bound
         JP      (M,AT04);               //  Jump if invalid
         CP      (9);                    //  Check upper bound
@@ -2294,7 +2305,7 @@ ASNTBI: LD      (a,l);                  //  Ascii rank (1 - 8)
         LD      (e,10);
         CALLu   (MLTPLY);               //  Multiply
         LD      (a,h);                  //  Ascii file letter (a - h)
-        SUB     (40H);                  //  File 1 - 8
+        SUB     (0x40);                  //  File 1 - 8
         CP      (1);                    //  Check lower bound
         JP      (M,AT04);               //  Jump if invalid
         CP      (9);                    //  Check upper bound
@@ -2304,6 +2315,9 @@ ASNTBI: LD      (a,l);                  //  Ascii rank (1 - 8)
         RETu;                           //  Return
 AT04:   LD      (b,a);                  //  Invalid flag
         RETu;                           //  Return
+}
+
+#if NOT_YET
 
 //***********************************************************
 // VALIDATE MOVE SUBROUTINE
