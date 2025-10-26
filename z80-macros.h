@@ -97,9 +97,13 @@ struct z80_registers
 #define Z80_CPIR
 #define RLD        
 #define RRD        
+#define EXX        
+#define SLA(x)        Z=(((x)<<1)==0), C=( ((x)&0x80) != 0 ), (x)=(x<<1)
+#define SRL(x)        Z=(((x)>>1)==0), C=( ((x)&0x01) != 0 ), (x)=(x>>1)
 
 // Emulate OPCODES with functions
 void SET( uint8_t bit_nbr, uint8_t &reg );
+void RES( uint8_t bit_nbr, uint8_t &reg );
 void BIT( uint8_t bit_nbr, uint8_t &reg );
 
 #endif // Z80_MACROS_H_INCLUDED

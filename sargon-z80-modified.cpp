@@ -55,7 +55,7 @@
 //the 5th byte of the DIRECT table (Z80 mnemonics)
 //        LD      A,5
 //        LD      [INDX2],A
-//        LD      IY,INDX2
+//        LD      IY,[INDX2]
 //        LD      C,[IY+DIRECT]
 //
 //It's a bit like the little known C trick where array[5]
@@ -96,7 +96,7 @@
 //harmless (search for MLPTRJ to find the relevant code).
 //
 
-#define TBASE 0x200     // The following tables begin at this
+#define TBASE 0x100     // The following tables begin at this
                         //  low but non-zero page boundary in
                         //  in our 64K emulated memory
 struct emulated_memory {
@@ -106,8 +106,8 @@ uint8_t padding[TBASE];
 // DIRECT  --  Direction Table.  Used to determine the dir-
 //             ection of movement of each piece.
 //***********************************************************
-//DIRECT  EQU     $-TBASE
-int8_t DIRECT[24] = {
+#define DIRECT (addr(direct)-TBASE)
+int8_t direct[24] = {
 	+9,+11,-11,-9,
 	+10,-10,+1,-1,
 	-21,-12,+8,+19,
@@ -120,8 +120,8 @@ int8_t DIRECT[24] = {
 //             where to begin in the direction table for any
 //             given piece.
 //***********************************************************
-//DPOINT  EQU     $-TBASE
-uint8_t DPOINT[7] = {
+#define DPOINT (addr(dpoint)-TBASE)
+uint8_t dpoint[7] = {
 	20,16,8,0,4,0,0
 };
 
@@ -130,8 +130,8 @@ uint8_t DPOINT[7] = {
 //             the number of directions of movement for any
 //             given piece.
 //***********************************************************
-//DCOUNT  EQU     $-TBASE
-uint8_t DCOUNT[7] = {
+#define DCOUNT (addr(dcount)-TBASE)
+uint8_t dcount[7] = {
     4,4,8,4,4,8,8
 };
 
@@ -140,8 +140,8 @@ uint8_t DCOUNT[7] = {
 // PVALUE  --  Point Value. Gives the point value of each
 //             piece, or the worth of each piece.
 //***********************************************************
-//PVALUE  EQU     $-TBASE-1  //TODO what's this minus 1 about?
-uint8_t PVALUE[6] = {
+#define PVALUE (addr(pvalue)-TBASE-1)  //TODO what's this minus 1 about?
+uint8_t pvalue[6] = {
 	1,3,3,5,9,10
 };
 
@@ -151,8 +151,8 @@ uint8_t PVALUE[6] = {
 //             pieces on the board. Use to set up the board
 //             for the start of the game.
 //***********************************************************
-//PIECES  EQU     $-TBASE
-uint8_t PIECES[8] = {
+#define PIECES  (addr(pieces)-TBASE)
+uint8_t pieces[8] = {
 	4,2,3,5,6,3,2,4
 };
 
@@ -212,15 +212,16 @@ uint8_t BOARDA[120];
 //            the array and does the same for black.
 //***********************************************************
 #define WACT addr(ATKLST)
-#define BACT addr(ATKLST)+7
+#define BACT (addr(ATKLST)+7)
 union
 {
     uint16_t    ATKLST[7];
-    struct wact_bact
+        uint8_t		wact[7];
+/*    struct wact_bact
     {
-        uint8_t		WACT_[7];
-        uint8_t		BACT_[7];
-    };
+        uint8_t		wact[7];
+        uint8_t		bact[7];
+    }; */
 };
 
 //***********************************************************
@@ -229,12 +230,10 @@ union
 //             PLISTD contains the direction from the pinned
 //             piece to the attacker.
 //***********************************************************
-//PLIST   EQU     $-TBASE-1
-//PLISTD  EQU     PLIST+10
-//PLISTA  DW      0,0,0,0,0,0,0,0,0,0
+#define PLIST (addr(PLISTA)-TBASE-1)     ///TODO -1 why?
+#define PLISTD (PLIST+10)
 uint8_t		PLISTA[10];		// pinned pieces
-uint8_t		PLISTD[10];		// corresponding directions
-
+uint8_t		plistd[10];		// corresponding directions
 
 //***********************************************************
 // POSK    --  Position of Kings. A two byte area, the first
@@ -627,11 +626,11 @@ void MPIECE() {
 rel001: AND     (7);                    //  Get piece type
         LD      (val(T1),a);                 //  Save piece type
         LD      (iy,chk(T1));           //  Load index to DCOUNT/DPOINT
-        LD      (b,ptr(iy+addr(DCOUNT)));     //  Get direction count
-        LD      (a,ptr(iy+addr(DPOINT)));     //  Get direction pointer
+        LD      (b,ptr(iy+DCOUNT));     //  Get direction count
+        LD      (a,ptr(iy+DPOINT));     //  Get direction pointer
         LD      (val(INDX2),a);              //  Save as index to direct
         LD      (iy,chk(INDX2));        //  Load index
-MP5:    LD      (c,ptr(iy+addr(DIRECT)));     //  Get move direction
+MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction
         LD      (a,val(M1));                 //  From position
         LD      (val(M2),a);                 //  Initialize to position
 MP10:   CALLu   (PATH);                 //  Calculate next position
@@ -1027,7 +1026,7 @@ void ATTACK() {
         PUSH    (bc);                   //  Save Register B
         XOR     (a);                    //  Clear
         LD      (b,16);                 //  Initial direction count
-        LD      (INDX2,a);              //  Initial direction index
+        LD      (val(INDX2),a);              //  Initial direction index
         LD      (iy,chk(INDX2));        //  Load index
 AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction
         LD      (d,0);                  //  Init. scan count/flags
@@ -1339,8 +1338,6 @@ PF26:   INC     (de);                   //  Incr King/Queen pos index
 PF27:   JPu     (PF2);                  //  Jump
 }
 
-#if NOT_YET
-
 //***********************************************************
 // EXCHANGE ROUTINE
 //***********************************************************
@@ -1354,10 +1351,11 @@ PF27:   JPu     (PF2);                  //  Jump
 //
 // ARGUMENTS:  --  None.
 //***********************************************************
-XCHNG:  EXX;                            //  Swap regs.
+void XCHNG() {
+        EXX;                            //  Swap regs.
         LD      (a,(val(P1)));               //  Piece attacked
-        LD      (hl,addr(WACT));        //  Addr of white attkrs/dfndrs
-        LD      (de,addr(BACT));        //  Addr of black attkrs/dfndrs
+        LD      (hl,WACT);        //  Addr of white attkrs/dfndrs
+        LD      (de,BACT);        //  Addr of black attkrs/dfndrs
         BIT     (7,a);                  //  Is piece white ?
         JR      (Z,rel009);             //  Yes - jump
         EX      (de,hl);                //  Swap list pointers
@@ -1372,10 +1370,10 @@ rel009: LD      (b,ptr(hl));            //  Init list counts
         LD      (d,ptr(ix+PVALUE));     //  Get attacked piece value
         SLA     (d);                    //  Double it
         LD      (b,d);                  //  Save
-        CALL    (NEXTAD);               //  Retrieve first attacker
+        CALLu   (NEXTAD);               //  Retrieve first attacker
         RET     (Z);                    //  Return if none
 XC10:   LD      (l,a);                  //  Save attacker value
-        CALL    (NEXTAD);               //  Get next defender
+        CALLu   (NEXTAD);               //  Get next defender
         JR      (Z,XC18);               //  Jump if none
         Z80_EXAF;                       //  Save defender value
         LD      (a,b);                  //  Get attacked value
@@ -1384,22 +1382,23 @@ XC10:   LD      (l,a);                  //  Save attacker value
         Z80_EXAF;                       //  -Restore defender
 XC15:   CP      (l);                    //  Defender less than attacker ?
         RET     (C);                    //  Yes - return
-        CALL    (NEXTAD);               //  Retrieve next attacker value
+        CALLu   (NEXTAD);               //  Retrieve next attacker value
         RET     (Z);                    //  Return if none
         LD      (l,a);                  //  Save attacker value
-        CALL    (NEXTAD);               //  Retrieve next defender value
+        CALLu   (NEXTAD);               //  Retrieve next defender value
         JR      (NZ,XC15);              //  Jump if none
 XC18:   Z80_EXAF;                       //  Save Defender
         LD      (a,b);                  //  Get value of attacked piece
 XC19:   BIT     (0,c);                  //  Attacker or defender ?
         JR      (Z,rel010);             //  Jump if defender
-        NEG     ();                     //  Negate value for attacker
+        NEG;                     //  Negate value for attacker
 rel010: ADD     (a,e);                  //  Total points lost
         LD      (e,a);                  //  Save total
         Z80_EXAF;                       //  Restore previous defender
         RET     (Z);                    //  Return if none
         LD      (b,l);                  //  Prev attckr becomes defender
-        JP      (XC10);                 //  Jump
+        JPu     (XC10);                 //  Jump
+}
 
 //***********************************************************
 // NEXT ATTACKER/DEFENDER ROUTINE
@@ -1416,7 +1415,8 @@ rel010: ADD     (a,e);                  //  Total points lost
 //                 Side flag
 //                 Attack list counts
 //***********************************************************
-NEXTAD: INC     (c);                    //  Increment side flag
+void NEXTAD() {
+        INC     (c);                    //  Increment side flag
         EXX;                            //  Swap registers
         LD      (a,b);                  //  Swap list counts
         LD      (b,c);                  //
@@ -1433,7 +1433,8 @@ back03: INC     (hl);                   //  Increment list pointer
         ADD     (a,a);                  //  Double it
         DEC     (hl);                   //  Decrement list pointer
 NX6:    EXX;                            //  Restore regs.
-        RET;                            //  Return
+        RETu;                           //  Return
+}
 
 //***********************************************************
 // POINT EVALUATION ROUTINE
@@ -1450,7 +1451,8 @@ NX6:    EXX;                            //  Restore regs.
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-POINTS: XOR     (a);                    //  Zero out variables
+void POINTS() {
+        XOR     (a);                    //  Zero out variables
         LD      (val(MTRL),a);               //
         LD      (val(BRDC),a);               //
         LD      (val(PTSL),a);               //
@@ -1468,7 +1470,7 @@ PT5:    LD      (val(M3),a);                 //  Save as board index
         LD      (hl,addr(P1));          //  Save piece, if any
         LD      (ptr(hl),a);            //
         AND     (7);                    //  Save piece type, if any
-        LD      (T3,val(a));                 //
+        LD      (val(T3),a);            //
         CP      (KNIGHT);               //  Less than a Knight (Pawn) ?
         JR      (C,PT6X);               //  Yes - Jump
         CP      (ROOK);                 //  Rook, Queen or King ?
@@ -1478,17 +1480,17 @@ PT5:    LD      (val(M3),a);                 //  Save as board index
         LD      (a,val(MOVENO));             //  Get move number
         CP      (7);                    //  Less than 7 ?
         JR      (C,PT6A);               //  Yes - Jump
-        JP      (PT6X);                 //  Jump
+        JPu     (PT6X);                 //  Jump
 PT6AA:  BIT     (4,ptr(hl));            //  Castled yet ?
         JR      (Z,PT6A);               //  No - jump
         LD      (a,+6);                 //  Bonus for castling
         BIT     (7,ptr(hl));            //  Check piece val(COLOR)
         JR      (Z,PT6D);               //  Jump if white
         LD      (a,-6);                 //  Bonus for black castling
-        JP      (PT6D);                 //  Jump
+        JPu     (PT6D);                 //  Jump
 PT6A:   BIT     (3,ptr(hl));            //  Has piece moved yet ?
         JR      (Z,PT6X);               //  No - jump
-        JP      (PT6C);                 //  Jump
+        JPu     (PT6C);                 //  Jump
 PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?
         JR      (NZ,PT6X);              //  Yes - jump
 PT6C:   LD      (a,-2);                 //  Two point penalty for white
@@ -1504,9 +1506,9 @@ PT6X:   XOR     (a);                    //  Zero out attack list
 back04: LD      (ptr(hl),a);            //
         INC     (hl);                   //
         DJNZ    (back04);               //
-        CALL    (ATTACK);               //  Build attack list for square
-        LD      (hl,addr(BACT));        //  Get black attacker count addr
-        LD      (a,WACT);               //  Get white attacker count
+        CALLu   (ATTACK);               //  Build attack list for square
+        LD      (hl,BACT);        //  Get black attacker count addr
+        LD      (a,val(wact));               //  Get white attacker count
         SUB     (ptr(hl));              //  Compute count difference
         LD      (hl,addr(BRDC));        //  Address of board control
         ADD     (a,ptr(hl));            //  Accum board control score
@@ -1514,7 +1516,7 @@ back04: LD      (ptr(hl),a);            //
         LD      (a,val(P1));                 //  Get piece on current square
         AND     (a);                    //  Is it empty ?
         JP      (Z,PT25);               //  Yes - jump
-        CALL    (XCHNG);                //  Evaluate exchange, if any
+        CALLu   (XCHNG);                //  Evaluate exchange, if any
         XOR     (a);                    //  Check for a loss
         CP      (e);                    //  Points lost ?
         JR      (Z,PT23);               //  No - Jump
@@ -1534,7 +1536,7 @@ back04: LD      (ptr(hl),a);            //
         CP      (ptr(ix+MLTOP));        //  Is it the one moving ?
         JR      (NZ,PT23);              //  No - jump
         LD      (val(PTSCK),a);              //  Save position as a flag
-        JP      (PT23);                 //  Jump
+        JPu     (PT23);                 //  Jump
 PT20:   LD      (hl,addr(PTSW1));       //  Previous maximum points won
         CP      (ptr(hl));              //  Compare to current value
         JR      (C,rel011);             //  Jump if greater than
@@ -1548,7 +1550,7 @@ PT23:   LD      (hl,addr(P1));          //  Get piece
         BIT     (7,ptr(hl));            //  Test val(COLOR)
         LD      (a,d);                  //  Value of piece
         JR      (Z,rel012);             //  Jump if white
-        NEG     ();                     //  Negate for black
+        NEG;                            //  Negate for black
 rel012: LD      (hl,addr(MTRL));        //  Get addrs of material total
         ADD     (a,ptr(hl));            //  Add new value
         LD      (ptr(hl),a);            //  Store
@@ -1587,7 +1589,7 @@ rel015: LD      (hl,addr(MTRL));        //  Net material on board
         SUB     (ptr(hl));              //  Subtract from current
         LD      (b,a);                  //  Save
         LD      (a,30);                 //  Load material limit
-        CALL    (LIMIT);                //  Limit to plus or minus value
+        CALLu   (LIMIT);                //  Limit to plus or minus value
         LD      (e,a);                  //  Save limited value
         LD      (a,val(BRDC));               //  Get board control points
         LD      (hl,addr(BC0));         //  Board control at ply zero
@@ -1598,7 +1600,7 @@ rel015: LD      (hl,addr(MTRL));        //  Net material on board
         JR      (Z,rel026);             //  Yes - jump
         LD      (b,0);                  //  Zero board control points
 rel026: LD      (a,6);                  //  Load board control limit
-        CALL    (LIMIT);                //  Limit to plus or minus value
+        CALLu   (LIMIT);                //  Limit to plus or minus value
         LD      (d,a);                  //  Save limited value
         LD      (a,e);                  //  Get material points
         ADD     (a,a);                  //  Multiply by 4
@@ -1612,7 +1614,8 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)
         LD      (val(VALM),a);               //  Save score
         LD      (ix,chk(MLPTRJ));       //  Load move list pointer
         LD      (ptr(ix+MLVAL),a);      //  Save score in move list
-        RET;                            //  Return
+        RETu;                           //  Return
+}
 
 //***********************************************************
 // LIMIT ROUTINE
@@ -1629,17 +1632,19 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)
 //                        - Value to limit to in the A register
 //                 Output - Limited value in the A register.
 //***********************************************************
-LIMIT:  BIT     (7,b);                  //  Is value negative ?
+void LIMIT() {
+        BIT     (7,b);                  //  Is value negative ?
         JP      (Z,LIM10);              //  No - jump
         NEG;                            //  Make positive
         CP      (b);                    //  Compare to limit
         RET     (NC);                   //  Return if outside limit
         LD      (a,b);                  //  Output value as is
-        RET;                            //  Return
+        RETu;                           //  Return
 LIM10:  CP      (b);                    //  Compare to limit
         RET     (C);                    //  Return if outside limit
         LD      (a,b);                  //  Output value as is
-        RET;                            //  Return
+        RETu;                           //  Return
+}
 
 //***********************************************************
 // MOVE ROUTINE
@@ -1657,7 +1662,8 @@ LIM10:  CP      (b);                    //  Compare to limit
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-MOVE:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
+void MOVE() {
+        LD      (hl,chk(MLPTRJ));       //  Load move list pointer
         INC     (hl);                   //  Increment past link bytes
         INC     (hl);
 MV1:    LD      (a,ptr(hl));            //  "From" position
@@ -1693,25 +1699,26 @@ MV5:    LD      (iy,chk(M2));           //  Load "to" pos board index
         INC     (hl);                   //  Increment to black Queen pos
 MV10:   XOR     (a);                    //  Set saved position to zero
         LD      (ptr(hl),a);
-        RET;                            //  Return
+        RETu;                           //  Return
 MV15:   SET     (2,e);                  //  Change Pawn to a Queen
-        JP      (MV5);                  //  Jump
+        JPu     (MV5);                  //  Jump
 MV20:   LD      (hl,POSQ);              //  Addr of saved Queen position
 MV21:   BIT     (7,e);                  //  Is Queen white ?
         JR      (Z,MV22);               //  Yes - jump
         INC     (hl);                   //  Increment to black Queen pos
 MV22:   LD      (a,val(M2));                 //  Get new Queen position
         LD      (ptr(hl),a);            //  Save
-        JP      (MV5);                  //  Jump
+        JPu     (MV5);                  //  Jump
 MV30:   LD      (hl,addr(POSK));        //  Get saved King position
         BIT     (6,d);                  //  Castling ?
         JR      (Z,MV21);               //  No - jump
         SET     (4,e);                  //  Set King castled flag
-        JP      (MV21);                 //  Jump
+        JPu     (MV21);                 //  Jump
 MV40:   LD      (hl,chk(MLPTRJ));       //  Get move list pointer
         LD      (de,8);                 //  Increment to next move
         ADD     (hl,de);                //
-        JP      (MV1);                  //  Jump (2nd part of dbl move)
+        JPu     (MV1);                  //  Jump (2nd part of dbl move)
+}
 
 //***********************************************************
 // UN-MOVE ROUTINE
@@ -1729,7 +1736,8 @@ MV40:   LD      (hl,chk(MLPTRJ));       //  Get move list pointer
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-UNMOVE: LD      (hl,chk(MLPTRJ));       //  Load move list pointer
+void UNMOVE() {
+        LD      (hl,chk(MLPTRJ));       //  Load move list pointer
         INC     (hl);                   //  Increment past link bytes
         INC     (hl);
 UM1:    LD      (a,ptr(hl));            //  Get "from" position
@@ -1768,27 +1776,28 @@ UM6:    LD      (iy,chk(M1));           //  Load "from" pos board index
         INC     (hl);                   //  Increment to black Queen pos
 UM10:   LD      (a,val(M2));                 //  Queen's previous position
         LD      (ptr(hl),a);            //  Save
-        RET;                            //  Return
+        RETu;                           //  Return
 UM15:   RES     (2,e);                  //  Restore Queen to Pawn
-        JP      (UM5);                  //  Jump
+        JPu     (UM5);                  //  Jump
 UM16:   RES     (3,e);                  //  Clear piece moved flag
-        JP      (UM6);                  //  Jump
+        JPu     (UM6);                  //  Jump
 UM20:   LD      (hl,addr(POSQ));        //  Addr of saved Queen position
 UM21:   BIT     (7,e);                  //  Is Queen white ?
         JR      (Z,UM22);               //  Yes - jump
         INC     (hl);                   //  Increment to black Queen pos
 UM22:   LD      (a,val(M1));                 //  Get previous position
         LD      (ptr(hl),a);            //  Save
-        JP      (UM5);                  //  Jump
+        JPu     (UM5);                  //  Jump
 UM30:   LD      (hl,addr(POSK));        //  Address of saved King pos
         BIT     (6,d);                  //  Was it a castle ?
         JR      (Z,UM21);               //  No - jump
         RES     (4,e);                  //  Clear castled flag
-        JP      (UM21);                 //  Jump
+        JPu     (UM21);                 //  Jump
 UM40:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
         LD      (de,8);                 //  Increment to next move
         ADD     (hl,de);
-        JP      (UM1);                  //  Jump (2nd part of dbl move)
+        JPu     (UM1);                  //  Jump (2nd part of dbl move)
+}
 
 //***********************************************************
 // SORT ROUTINE
@@ -1802,7 +1811,8 @@ UM40:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-SORTM:  LD      (bc,chk(MLPTRI));       //  Move list begin pointer
+void SORTM() {
+        LD      (bc,chk(MLPTRI));       //  Move list begin pointer
         LD      (de,0);                 //  Initialize working pointers
 SR5:    LD      (h,b);                  //
         LD      (l,c);                  //
@@ -1816,7 +1826,7 @@ SR5:    LD      (h,b);                  //
         CP      (b);                    //
         RET     (Z);                    //  Yes - return
 SR10:   LD      (chk(MLPTRJ),bc);       //  Save list pointer
-        CALL    (EVAL);                 //  Evaluate move
+        CALLu   (EVAL);                 //  Evaluate move
         LD      (hl,chk(MLPTRI));       //  Begining of move list
         LD      (bc,chk(MLPTRJ));       //  Restore list pointer
 SR15:   LD      (e,ptr(hl));            //  Next move for compare
@@ -1833,9 +1843,10 @@ SR15:   LD      (e,ptr(hl));            //  Next move for compare
 SR25:   LD      (ptr(hl),b);            //  Link new move into list
         DEC     (hl);                   //
         LD      (ptr(hl),c);            //
-        JP      (SR5);                  //  Jump
+        JPu     (SR5);                  //  Jump
 SR30:   EX      (de,hl);                //  Swap pointers
-        JP      (SR15);                 //  Jump
+        JPu     (SR15);                 //  Jump
+}
 
 //***********************************************************
 // EVALUATION ROUTINE
@@ -1855,17 +1866,19 @@ SR30:   EX      (de,hl);                //  Swap pointers
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-EVAL:   CALL    (MOVE);                 //  Make move on the board array
-        CALL    (INCHK);                //  Determine if move is legal
+void EVAL() {
+        CALLu   (MOVE);                 //  Make move on the board array
+        CALLu   (INCHK);                //  Determine if move is legal
         AND     (a);                    //  Legal move ?
         JR      (Z,EV5);                //  Yes - jump
         XOR     (a);                    //  Score of zero
         LD      (val(VALM),a);               //  For illegal move
-        JP      (EV10);                 //  Jump
-EV5:    CALL    (PINFND);               //  Compile pinned list
-        CALL    (POINTS);               //  Assign points to move
-EV10:   CALL    (UNMOVE);               //  Restore board array
-        RET;                            //  Return
+        JPu     (EV10);                 //  Jump
+EV5:    CALLu   (PINFND);               //  Compile pinned list
+        CALLu   (POINTS);               //  Assign points to move
+EV10:   CALLu   (UNMOVE);               //  Restore board array
+        RETu;                           //  Return
+}
 
 //***********************************************************
 // FIND MOVE ROUTINE
@@ -1885,7 +1898,8 @@ EV10:   CALL    (UNMOVE);               //  Restore board array
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-FNDMOV: LD      (a,val(MOVENO));             //  Current move number
+void FNDMOV() {
+        LD      (a,val(MOVENO));             //  Current move number
         CP      (1);                    //  First move ?
         CALL    (Z,BOOK);               //  Yes - execute book opening
         XOR     (a);                    //  Initialize ply number to zero
@@ -1909,8 +1923,8 @@ back05: LD      (ptr(hl),a);
         DJNZ    (back05);
         LD      (val(BC0),a);                //  Zero ply 0 board control
         LD      (val(MV0),a);                //  Zero ply 0 material
-        CALL    (PINFND);               //  Compile pin list
-        CALL    (POINTS);               //  Evaluate board at ply 0
+        CALLu   (PINFND);               //  Compile pin list
+        CALLu   (POINTS);               //  Evaluate board at ply 0
         LD      (a,val(BRDC));               //  Get board control points
         LD      (val(BC0),a);                //  Save
         LD      (a,val(MTRL));               //  Get material count
@@ -1919,7 +1933,7 @@ FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter
         INC     (ptr(hl));              //  Increment ply count
         XOR     (a);                    //  Initialize mate flag
         LD      (val(MATEF),a);
-        CALL    (GENMOV);               //  Generate list of moves
+        CALLu   (GENMOV);               //  Generate list of moves
         LD      (a,val(NPLY));               //  Current ply counter
         LD      (hl,addr(PLYMAX));      //  Address of maximum ply number
         CP      (ptr(hl));              //  At max ply ?
@@ -1942,27 +1956,27 @@ FM15:   LD      (hl,chk(MLPTRJ));       //  Load last move pointer
         LD      (hl,addr(PLYMAX));      //  Maximum ply number ?
         CP      (ptr(hl));              //  Compare
         JR      (C,FM18);               //  Jump if not max
-        CALL    (MOVE);                 //  Execute move on board array
-        CALL    (INCHK);                //  Check for legal move
+        CALLu   (MOVE);                 //  Execute move on board array
+        CALLu   (INCHK);                //  Check for legal move
         AND     (a);                    //  Is move legal
         JR      (Z,rel017);             //  Yes - jump
-        CALL    (UNMOVE);               //  Restore board position
-        JP      (FM15);                 //  Jump
+        CALLu   (UNMOVE);               //  Restore board position
+        JPu     (FM15);                 //  Jump
 rel017: LD      (a,val(NPLY));               //  Get ply counter
         LD      (hl,addr(PLYMAX));      //  Max ply number
         CP      (ptr(hl));              //  Beyond max ply ?
         JR      (NZ,FM35);              //  Yes - jump
         LD      (a,val(COLOR));              //  Get current val(COLOR)
         XOR     (0x80);                 //  Get opposite val(COLOR)
-        CALL    (INCHK1);               //  Determine if King is in check
+        CALLu   (INCHK1);               //  Determine if King is in check
         AND     (a);                    //  In check ?
         JR      (Z,FM35);               //  No - jump
-        JP      (FM19);                 //  Jump (One more ply for check)
+        JPu     (FM19);                 //  Jump (One more ply for check)
 FM18:   LD      (ix,chk(MLPTRJ));       //  Load move pointer
         LD      (a,ptr(ix+MLVAL));      //  Get move score
         AND     (a);                    //  Is it zero (illegal move) ?
         JR      (Z,FM15);               //  Yes - jump
-        CALL    (MOVE);                 //  Execute move on board array
+        CALLu   (MOVE);                 //  Execute move on board array
 FM19:   LD      (hl,addr(COLOR));       //  Toggle val(COLOR)
         LD      (a,0x80);
         XOR     (ptr(hl));
@@ -1978,8 +1992,8 @@ rel018: LD      (hl,chk(SCRIX));        //  Load score table pointer
         LD      (ptr(hl),a);            //  Save score as initial value
         DEC     (hl);                   //  Decrement pointer
         LD      (chk(SCRIX),hl);        //  Save it
-        JP      (FM5);                  //  Jump
-FM25:   LD      (val(MATEF));                //  Get mate flag
+        JPu     (FM5);                  //  Jump
+FM25:   LD      (a,val(MATEF));                //  Get mate flag
         AND     (a);                    //  Checkmate or stalemate ?
         JR      (NZ,FM30);              //  No - jump
         LD      (a,val(CKFLG));              //  Get check flag
@@ -1989,21 +2003,21 @@ FM25:   LD      (val(MATEF));                //  Get mate flag
         LD      (a,val(MOVENO));             //  Get move number
         LD      (val(PMATE),a);              //  Save
         LD      (a,0xFF);               //  Pre-set checkmate score
-        JP      (FM36);                 //  Jump
+        JPu     (FM36);                 //  Jump
 FM30:   LD      (a,val(NPLY));               //  Get ply counter
         CP      (1);                    //  At top of tree ?
         RET     (Z);                    //  Yes - return
-        CALL    (ASCEND);               //  Ascend one ply in tree
+        CALLu   (ASCEND);               //  Ascend one ply in tree
         LD      (hl,chk(SCRIX));        //  Load score table pointer
         INC     (hl);                   //  Increment to current ply
         INC     (hl);                   //
         LD      (a,ptr(hl));            //  Get score
         DEC     (hl);                   //  Restore pointer
         DEC     (hl);                   //
-        JP      (FM37);                 //  Jump
-FM35:   CALL    (PINFND);               //  Compile pin list
-        CALL    (POINTS);               //  Evaluate move
-        CALL    (UNMOVE);               //  Restore board position
+        JPu     (FM37);                 //  Jump
+FM35:   CALLu   (PINFND);               //  Compile pin list
+        CALLu   (POINTS);               //  Evaluate move
+        CALLu   (UNMOVE);               //  Restore board position
         LD      (a,val(VALM));               //  Get value of move
 FM36:   LD      (hl,addr(MATEF));       //  Set mate flag
         SET     (0,ptr(hl));            //
@@ -2034,9 +2048,12 @@ FM37:
         RET     (Z);                    //  Yes - return
         LD      (hl,addr(PMATE));       //  Checkmate move number
         DEC     (ptr(hl));              //  Decrement
-        RET     ();                     //  Return
-FM40:   CALL    (ASCEND);               //  Ascend one ply in tree
-        JP      (FM15);                 //  Jump
+        RETu;                           //  Return
+FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree
+        JPu     (FM15);                 //  Jump
+}
+
+#if NOT_YET
 
 //***********************************************************
 // ASCEND TREE ROUTINE
@@ -2075,8 +2092,8 @@ rel019: LD      (hl,chk(SCRIX));        //  Load score table index
         LD      (e,ptr(hl));            //
         LD      (chk(MLPTRI),hl);       //  Save new ply list pointer
         LD      (chk(MLPTRJ),de);       //  Save next move pointer
-        CALL    (UNMOVE);               //  Restore board to previous ply
-        RET;                            //  Return
+        CALLu   (UNMOVE);               //  Restore board to previous ply
+        RETu;                           //  Return
 
 //***********************************************************
 // ONE MOVE BOOK OPENING
@@ -2105,7 +2122,7 @@ BOOK:   POP     (af);                   //  Abort return to FNDMOV
         INC     (ptr(hl));              //  P-Q4
         INC     (ptr(hl));              //
         INC     (ptr(hl));              //
-        RET;                            //  Return
+        RETu;                           //  Return
 BM5:    INC     (ptr(hl));              //  Increment to black moves
         INC     (ptr(hl));              //
         INC     (ptr(hl));              //
@@ -2127,7 +2144,7 @@ BM5:    INC     (ptr(hl));              //  Increment to black moves
 BM9:    INC     (ptr(hl));              //  (P-Q4)
         INC     (ptr(hl));              //
         INC     (ptr(hl));              //
-        RET;                            //  Return to CPTRMV
+        RETu;                           //  Return to CPTRMV
 
 //
 //  Omit some Z80 User Interface code, eg
@@ -2159,42 +2176,42 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-CPTRMV: CALL    (FNDMOV);               //  Select best move
+CPTRMV: CALLu   (FNDMOV);               //  Select best move
         LD      (hl,chk(BESTM));        //  Move list pointer variable
         LD      (chk(MLPTRJ),hl);       //  Pointer to move data
         LD      (a,*(&SCORE+1));        //  To check for mates
         CP      (1);                    //  Mate against computer ?
         JR      (NZ,CP0C);              //  No - jump
         LD      (c,1);                  //  Computer mate flag
-        CALL    (FCDMAT);               //  Full checkmate ?
-CP0C:   CALL    (MOVE);                 //  Produce move on board array
-        CALL    (EXECMV);               //  Make move on graphics board
+        CALLu   (FCDMAT);               //  Full checkmate ?
+CP0C:   CALLu   (MOVE);                 //  Produce move on board array
+        CALLu   (EXECMV);               //  Make move on graphics board
 // and return info about it
         LD      (a,b);                  //  Special move flags
         AND     (a);                    //  Special ?
-        JR      (NZ,Cval(P1)0);              //  Yes - jump
+        JR      (NZ,CP10);              //  Yes - jump
         LD      (d,e);                  //  "To" position of the move
-        CALL    (BITASN);               //  Convert to Ascii
+        CALLu   (BITASN);               //  Convert to Ascii
         LD      (chk(MVEMSG+3),hl);     //  Put in move message
         LD      (d,c);                  //  "From" position of the move
-        CALL    (BITASN);               //  Convert to Ascii
+        CALLu   (BITASN);               //  Convert to Ascii
         LD      (chk(MVEMSG),hl);       //  Put in move message
         PRTBLK  (MVEMSG,5);             //  Output text of move
-        JR      (Cval(P1)C);                 //  Jump
-Cval(P1)0:   BIT     (1,b);                  //  King side castle ?
+        JR      (CP1C);                 //  Jump
+CP10:   BIT     (1,b);                  //  King side castle ?
         JR      (Z,rel020);             //  No - jump
         PRTBLK  (O_O,5);                //  Output "O-O"
-        JR      (Cval(P1)C);                 //  Jump
+        JR      (CP1C);                 //  Jump
 rel020: BIT     (2,b);                  //  Queen side castle ?
         JR      (Z,rel021);             //  No - jump
         PRTBLK  (O_O_O,5);              //  Output "O-O-O"
-        JR      (Cval(P1)C);                 //  Jump
+        JR      (CP1C);                 //  Jump
 rel021: PRTBLK  (P_PEP,5);              //  Output "PxPep" - En passant
-Cval(P1)C:   LD      (a,val(COLOR));              //  Should computer call check ?
+CP1C:   LD      (a,val(COLOR));              //  Should computer call check ?
         LD      (b,a);
         XOR     (80H);                  //  Toggle val(COLOR)
         LD      (val(COLOR),a);
-        CALL    (INCHK);                //  Check for check
+        CALLu   (INCHK);                //  Check for check
         AND     (a);                    //  Is enemy in check ?
         LD      (a,b);                  //  Restore val(COLOR)
         LD      (val(COLOR),a);
@@ -2210,8 +2227,8 @@ CP24:   LD      (a,*(&SCORE+1));        //  Check again for mates
         CP      (0xFF);                 //  Player mated ?
         RET     (NZ);                   //  No - return
         LD      (c,0);                  //  Set player mate flag
-        CALL    (FCDMAT);               //  Full checkmate ?
-        RET;                            //  Return
+        CALLu   (FCDMAT);               //  Full checkmate ?
+        RETu;                           //  Return
 
 //
 //	Omit some more Z80 user interface stuff, functions
@@ -2235,14 +2252,14 @@ CP24:   LD      (a,*(&SCORE+1));        //  Check again for mates
 //***********************************************************
 BITASN: SUB     (a);                    //  Get ready for division
         LD      (e,10);                 //
-        CALL    (DIVIDE);               //  Divide
+        CALLu   (DIVIDE);               //  Divide
         DEC     (d);                    //  Get rank on 1-8 basis
         ADD     (a,60H);                //  Convert file to Ascii (a-h)
         LD      (l,a);                  //  Save
         LD      (a,d);                  //  Rank
         ADD     (a,30H);                //  Convert rank to Ascii (1-8)
         LD      (h,a);                  //  Save
-        RET;                            //  Return
+        RETu;                           //  Return
 
 //
 //	Omit some more Z80 user interface stuff, function
@@ -2275,7 +2292,7 @@ ASNTBI: LD      (a,l);                  //  Ascii rank (1 - 8)
         INC     (a);                    //  Rank 2 - 9
         LD      (d,a);                  //  Ready for multiplication
         LD      (e,10);
-        CALL    (MLTPLY);               //  Multiply
+        CALLu   (MLTPLY);               //  Multiply
         LD      (a,h);                  //  Ascii file letter (a - h)
         SUB     (40H);                  //  File 1 - 8
         CP      (1);                    //  Check lower bound
@@ -2284,9 +2301,9 @@ ASNTBI: LD      (a,l);                  //  Ascii rank (1 - 8)
         JR      (NC,AT04);              //  Jump if invalid
         ADD     (a,d);                  //  File+Rank(20-90)=Board index
         LD      (b,0);                  //  Ok flag
-        RET;                            //  Return
+        RETu;                           //  Return
 AT04:   LD      (b,a);                  //  Invalid flag
-        RET;                            //  Return
+        RETu;                           //  Return
 
 //***********************************************************
 // VALIDATE MOVE SUBROUTINE
@@ -2312,7 +2329,7 @@ VALMOV: LD      (hl,chk(MLPTRJ));       //  Save last move pointer
         LD      (chk(MLPTRI),hl);       //
         LD      (hl,addr(MLIST)+1024);  //  Next available list pointer
         LD      (chk(MLNXT),hl);        //
-        CALL    (GENMOV);               //  Generate opponents moves
+        CALLu   (GENMOV);               //  Generate opponents moves
         LD      (ix,addr(MLIST)+1024);  //  Index to start of moves
 VA5:    LD      (a,MVEMSG);             //  "From" position
         CP      (ptr(ix+MLFRP));        //  Is it in list ?
@@ -2327,19 +2344,19 @@ VA6:    LD      (e,ptr(ix+MLPTR));      //  Pointer to next list move
         JR      (Z,VA10);               //  Yes - jump
         PUSH    (de);                   //  Move to X register
         POP     (ix);                   //
-        JR      (VA5);                  //  Jump
+        JRu     (VA5);                  //  Jump
 VA7:    LD      (chk(MLPTRJ),ix);       //  Save opponents move pointer
-        CALL    (MOVE);                 //  Make move on board array
-        CALL    (INCHK);                //  Was it a legal move ?
+        CALLu   (MOVE);                 //  Make move on board array
+        CALLu   (INCHK);                //  Was it a legal move ?
         AND     (a);                    //
         JR      (NZ,VA9);               //  No - jump
 VA8:    POP     (hl);                   //  Restore saved register
-        RET;                            //  Return
-VA9:    CALL    (UNMOVE);               //  Un-do move on board array
+        RETu;                           //  Return
+VA9:    CALLu   (UNMOVE);               //  Un-do move on board array
 VA10:   LD      (a,1);                  //  Set flag for invalid move
         POP     (hl);                   //  Restore saved register
         LD      (chk(MLPTRJ),hl);       //  Save move pointer
-        RET;                            //  Return
+        RETu;                           //  Return
 
 //
 //	Omit some more Z80 user interface stuff, functions
@@ -2385,7 +2402,7 @@ RY0C:   LD      a,(M1);                 //  Current position
         INC     a;                      //  Next position
         CP      99;                     //  Done.?
         JR      NZ,RY04;                //  No - jump
-        RET;                            //  Return
+        RETu;                           //  Return
 
 //
 //	Omit some more Z80 user interface stuff, functions
@@ -2404,11 +2421,11 @@ DD04:   SLA     (d);                    //
         SUB     (e);                    //
         JP      (M,rel027);             //
         INC     (d);                    //
-        JR      (rel024);               //
+        JRu     (rel024);               //
 rel027: ADD     (a,e);                  //
 rel024: DJNZ    (DD04);                 //
         POP     (bc);                   //
-        RET;                            //
+        RETu;                           //
 
 //***********************************************************
 // POSITIVE INTEGER MULTIPLICATION
@@ -2425,7 +2442,7 @@ rel025: SRA     (a);                    //
         RR      (d);                    //
         DJNZ    (ML04);                 //
         POP     (bc);                   //
-        RET;                            //
+        RETu;                           //
 
 //
 //	Omit some more Z80 user interface stuff, function
@@ -2457,7 +2474,7 @@ EXECMV: PUSH    (ix);                   //  Save registers
         LD      (ix,chk(MLPTRJ));       //  Index into move list
         LD      (c,ptr(ix+MLFRP));      //  Move list "from" position
         LD      (e,ptr(ix+MLTOP));      //  Move list "to" position
-        CALL    (MAKEMV);               //  Produce move
+        CALLu   (MAKEMV);               //  Produce move
         LD      (d,ptr(ix+MLFLG));      //  Move list flags
         LD      (b,0);                  //
         BIT     (6,d);                  //  Double move ?
@@ -2470,20 +2487,20 @@ EXECMV: PUSH    (ix);                   //  Save registers
         CP      (c);                    //  Same as "from" position ?
         JR      (NZ,EX04);              //  No - jump
         INC     (b);                    //  Set en passant flag
-        JR      (EX10);                 //  Jump
+        JRu     (EX10);                 //  Jump
 EX04:   CP      (1AH);                  //  White O-O ?
         JR      (NZ,EX08);              //  No - jump
         SET     (1,b);                  //  Set O-O flag
-        JR      (EX10);                 //  Jump
+        JRu     (EX10);                 //  Jump
 EX08:   CP      (60H);                  //  Black 0-0 ?
         JR      (NZ,EX0C);              //  No - jump
         SET     (1,b);                  //  Set 0-0 flag
-        JR      (EX10);                 //  Jump
+        JRu     (EX10);                 //  Jump
 EX0C:   SET     (2,b);                  //  Set 0-0-0 flag
-EX10:   CALL    (MAKEMV);               //  Make 2nd move on board
+EX10:   CALLu   (MAKEMV);               //  Make 2nd move on board
 EX14:   POP     (af);                   //  Restore registers
         POP     (ix);                   //
-        RET;                            //  Return
+        RETu;                           //  Return
 
 //
 //	Omit some more Z80 user interface stuff, function

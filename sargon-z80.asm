@@ -50,7 +50,7 @@ TBASE   EQU     START+100H
 ;the 5th byte of the DIRECT table (Z80 mnemonics)
 ;        LD      A,5
 ;        LD      [INDX2],A
-;        LD      IY,INDX2
+;        LD      IY,[INDX2]
 ;        LD      C,[IY+DIRECT]
 ;
 ;It's a bit like the little known C trick where array[5]
