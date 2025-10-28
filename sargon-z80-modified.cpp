@@ -246,7 +246,7 @@ uint8_t		plistd[10];		// corresponding directions
 uint8_t		POSK[2] = {
 	24,95
 };
-int8_t		POSQ[2] = {
+uint8_t		POSQ[2] = {
 	14,94
 };
 int8_t padding2 = -1;
@@ -509,6 +509,44 @@ void TBCPMV()  {}
 void MAKEMV()  {}
 void PRTBLK( const char *name, int len ) {}
 void CARRET()  {}
+
+//
+// Forward references
+//
+uint8_t rand();
+void INITBD();
+void PATH();
+void MPIECE();
+void ENPSNT();
+void ADJPTR();
+void CASTLE();
+void ADMOVE();
+void GENMOV();
+void INCHK();
+void INCHK1();
+void ATTACK();
+void ATKSAV();
+void PNCK();
+void PINFND();
+void XCHNG();
+void NEXTAD();
+void POINTS();
+void LIMIT();
+void MOVE();
+void UNMOVE();
+void SORTM();
+void EVAL();
+void FNDMOV();
+void ASCEND();
+void BOOK();
+void CPTRMV();
+void BITASN();
+void ASNTBI();
+void VALMOV();
+void ROYALT();
+void DIVIDE();
+void MLTPLY();
+void EXECMV();
 
 //**********************************************************
 // BOARD SETUP ROUTINE
@@ -927,7 +965,7 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow
 //
 // ARGUMENTS: --  None
 //***********************************************************
-void GENMOVE() {
+void GENMOV() {
         CALLu   (INCHK);                //  Test for King in check
         LD      (val(CKFLG),a);              //  Save attack count as flag
         LD      (de,chk(MLNXT));        //  Addr of next avail list space
@@ -975,8 +1013,12 @@ GM10:   LD      (a,val(M1));                 //  Fetch current board position
 // ARGUMENTS:  --  val(COLOR) of King
 //***********************************************************
 void INCHK() {
-        LD      (a,val(COLOR));              //  Get val(COLOR)
-INCHK1: LD      (hl,addr(POSK));        //  Addr of white King position
+        LD      (a,val(COLOR));         //  Get val(COLOR)
+        CALLu   (INCHK1);
+}
+
+void INCHK1() {                         // Like INCHK() but takes input in register A
+        LD      (hl,addr(POSK));        //  Addr of white King position
         AND     (a);                    //  White ?
         JR      (Z,rel005);             //  Yes - Skip
         INC     (hl);                   //  Addr of black King position
@@ -1706,7 +1748,7 @@ MV10:   XOR     (a);                    //  Set saved position to zero
         RETu;                           //  Return
 MV15:   SET     (2,e);                  //  Change Pawn to a Queen
         JPu     (MV5);                  //  Jump
-MV20:   LD      (hl,POSQ);              //  Addr of saved Queen position
+MV20:   LD      (hl,addr(POSQ));        //  Addr of saved Queen position
 MV21:   BIT     (7,e);                  //  Is Queen white ?
         JR      (Z,MV22);               //  Yes - jump
         INC     (hl);                   //  Increment to black Queen pos
@@ -1970,8 +2012,8 @@ rel017: LD      (a,val(NPLY));               //  Get ply counter
         LD      (hl,addr(PLYMAX));      //  Max ply number
         CP      (ptr(hl));              //  Beyond max ply ?
         JR      (NZ,FM35);              //  Yes - jump
-        LD      (a,val(COLOR));              //  Get current val(COLOR)
-        XOR     (0x80);                 //  Get opposite val(COLOR)
+        LD      (a,val(COLOR));         //  Get current COLOR
+        XOR     (0x80);                 //  Get opposite COLOR
         CALLu   (INCHK1);               //  Determine if King is in check
         AND     (a);                    //  In check ?
         JR      (Z,FM35);               //  No - jump
@@ -2041,7 +2083,7 @@ FM37:
         JP      (NZ,FM15);              //  No - jump
         LD      (hl,chk(MLPTRJ));       //  Load current move pointer
         LD      (chk(BESTM),hl);        //  Save as best move pointer
-        LD      (a,*(&(SCORE+1)));      //  Get best move score
+        LD      (a,val(SCORE+1));      //  Get best move score
         CP      (0xff);                 //  Was it a checkmate ?
         JP      (NZ,FM15);              //  No - jump
         LD      (hl,addr(PLYMAX));      //  Get maximum ply number
@@ -2317,8 +2359,6 @@ AT04:   LD      (b,a);                  //  Invalid flag
         RETu;                           //  Return
 }
 
-#if NOT_YET
-
 //***********************************************************
 // VALIDATE MOVE SUBROUTINE
 //***********************************************************
@@ -2334,7 +2374,8 @@ AT04:   LD      (b,a);                  //  Invalid flag
 // ARGUMENTS:  --  Returns flag in register A, 0 for valid
 //                 and 1 for invalid move.
 //***********************************************************
-VALMOV: LD      (hl,chk(MLPTRJ));       //  Save last move pointer
+void VALMOV() {
+        LD      (hl,chk(MLPTRJ));       //  Save last move pointer
         PUSH    (hl);                   //  Save register
         LD      (a,val(KOLOR));              //  Computers val(COLOR)
         XOR     (0x80);                 //  Toggle val(COLOR)
@@ -2345,10 +2386,10 @@ VALMOV: LD      (hl,chk(MLPTRJ));       //  Save last move pointer
         LD      (chk(MLNXT),hl);        //
         CALLu   (GENMOV);               //  Generate opponents moves
         LD      (ix,addr(MLIST)+1024);  //  Index to start of moves
-VA5:    LD      (a,MVEMSG);             //  "From" position
+VA5:    LD      (a,val(MVEMSG));        //  "From" position
         CP      (ptr(ix+MLFRP));        //  Is it in list ?
         JR      (NZ,VA6);               //  No - jump
-        LD      (a,*(&MVEMSG+1));       //  "To" position
+        LD      (a,val(MVEMSG+1));      //  "To" position
         CP      (ptr(ix+MLTOP));        //  Is it in list ?
         JR      (Z,VA7);                //  Yes - jump
 VA6:    LD      (e,ptr(ix+MLPTR));      //  Pointer to next list move
@@ -2371,6 +2412,7 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move
         POP     (hl);                   //  Restore saved register
         LD      (chk(MLPTRJ),hl);       //  Save move pointer
         RETu;                           //  Return
+}
 
 //
 //	Omit some more Z80 user interface stuff, functions
@@ -2390,33 +2432,35 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move
 //
 // ARGUMENTS:  --  None
 //***********************************************************
-ROYALT: LD      hl,POSK;                //  Start of Royalty array
-        LD      b,4;                    //  Clear all four positions
-back06: LD      (hl),0;                 //
-        INC     hl;                     //
-        DJNZ    back06;                 //
-        LD      a,21;                   //  First board position
-RY04:   LD      (M1),a;                 //  Set up board index
-        LD      hl,POSK;                //  Address of King position
-        LD      ix,(M1);                //
-        LD      a,(ix+BOARD);           //  Fetch board contents
-        BIT     7,a;                    //  Test val(COLOR) bit
-        JR      Z,rel023;               //  Jump if white
-        INC     hl;                     //  Offset for black
-rel023: AND     7;                      //  Delete flags, leave piece
-        CP      KING;                   //  King ?
-        JR      Z,RY08;                 //  Yes - jump
-        CP      QUEEN;                  //  Queen ?
-        JR      NZ,RY0C;                //  No - jump
-        INC     hl;                     //  Queen position
-        INC     hl;                     //  Plus offset
-RY08:   LD      a,(M1);                 //  Index
-        LD      (hl),a;                 //  Save
-RY0C:   LD      a,(M1);                 //  Current position
-        INC     a;                      //  Next position
-        CP      99;                     //  Done.?
-        JR      NZ,RY04;                //  No - jump
+void ROYALT() {
+        LD      (hl,addr(POSK));        //  Start of Royalty array
+        LD      (b,4);                    //  Clear all four positions
+back06: LD      (ptr(hl),0);                 //
+        INC     (hl);                     //
+        DJNZ    (back06);                 //
+        LD      (a,21);                   //  First board position
+RY04:   LD      (val(M1),a);                 //  Set up board index
+        LD      (hl,addr(POSK));                //  Address of King position
+        LD      (ix,chk(M1));                //
+        LD      (a,ptr(ix+BOARD));           //  Fetch board contents
+        BIT     (7,a);                    //  Test val(COLOR) bit
+        JR      (Z,rel023);               //  Jump if white
+        INC     (hl);                     //  Offset for black
+rel023: AND     (7);                      //  Delete flags, leave piece
+        CP      (KING);                   //  King ?
+        JR      (Z,RY08);                 //  Yes - jump
+        CP      (QUEEN);                  //  Queen ?
+        JR      (NZ,RY0C);                //  No - jump
+        INC     (ptr(hl));                     //  Queen position
+        INC     (ptr(hl));                     //  Plus offset
+RY08:   LD      (a,val(M1));                 //  Index
+        LD      (ptr(hl),a);                 //  Save
+RY0C:   LD      (a,val(M1));                 //  Current position
+        INC     (a);                      //  Next position
+        CP      (99);                     //  Done.?
+        JR      (NZ,RY04);                //  No - jump
         RETu;                           //  Return
+}
 
 //
 //	Omit some more Z80 user interface stuff, functions
@@ -2428,10 +2472,11 @@ RY0C:   LD      a,(M1);                 //  Current position
 //   inputs hi=A lo=D, divide by E
 //   output D, remainder in A
 //***********************************************************
-DIVIDE: PUSH    (bc);                   //
+void DIVIDE() {
+        PUSH    (bc);                   //
         LD      (b,8);                  //
 DD04:   SLA     (d);                    //
-        RLA;                            //
+        RLA     (a);                    //
         SUB     (e);                    //
         JP      (M,rel027);             //
         INC     (d);                    //
@@ -2440,13 +2485,15 @@ rel027: ADD     (a,e);                  //
 rel024: DJNZ    (DD04);                 //
         POP     (bc);                   //
         RETu;                           //
+}
 
 //***********************************************************
 // POSITIVE INTEGER MULTIPLICATION
 //   inputs D, E
 //   output hi=A lo=D
 //***********************************************************
-MLTPLY: PUSH    (bc);                   //
+void MLTPLY() {
+        PUSH    (bc);                   //
         SUB     (a);                    //
         LD      (b,8);                  //
 ML04:   BIT     (0,d);                  //
@@ -2457,6 +2504,7 @@ rel025: SRA     (a);                    //
         DJNZ    (ML04);                 //
         POP     (bc);                   //
         RETu;                           //
+}
 
 //
 //	Omit some more Z80 user interface stuff, function
@@ -2483,7 +2531,8 @@ rel025: SRA     (a);                    //
 // ARGUMENTS:   -- Flags set in the B register as described
 //                 above.
 //***********************************************************
-EXECMV: PUSH    (ix);                   //  Save registers
+void EXECMV() {
+        PUSH    (ix);                   //  Save registers
         PUSH    (af);                   //
         LD      (ix,chk(MLPTRJ));       //  Index into move list
         LD      (c,ptr(ix+MLFRP));      //  Move list "from" position
@@ -2502,11 +2551,11 @@ EXECMV: PUSH    (ix);                   //  Save registers
         JR      (NZ,EX04);              //  No - jump
         INC     (b);                    //  Set en passant flag
         JRu     (EX10);                 //  Jump
-EX04:   CP      (1AH);                  //  White O-O ?
+EX04:   CP      (0x1A);                 //  White O-O ?
         JR      (NZ,EX08);              //  No - jump
         SET     (1,b);                  //  Set O-O flag
         JRu     (EX10);                 //  Jump
-EX08:   CP      (60H);                  //  Black 0-0 ?
+EX08:   CP      (0x60);                 //  Black 0-0 ?
         JR      (NZ,EX0C);              //  No - jump
         SET     (1,b);                  //  Set 0-0 flag
         JRu     (EX10);                 //  Jump
@@ -2515,9 +2564,9 @@ EX10:   CALLu   (MAKEMV);               //  Make 2nd move on board
 EX14:   POP     (af);                   //  Restore registers
         POP     (ix);                   //
         RETu;                           //  Return
+}
 
 //
 //	Omit some more Z80 user interface stuff, function
 //  MAKEMV
 //
-#endif NOT_YET

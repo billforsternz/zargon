@@ -44,7 +44,7 @@ struct z80_registers
     uint16_t IY;
 };
 
-#define Z80_REGISTERS z80_registers r; bool Z,C,M; uint16_t ex_temp
+#define Z80_REGISTERS z80_registers r; bool Z,C,M,PE; uint16_t ex_temp
 #define NZ !Z
 #define NC !C
 #define P  !M
@@ -99,7 +99,10 @@ struct z80_registers
 #define RRD        
 #define EXX        
 #define SLA(x)        Z=(((x)<<1)==0), C=( ((x)&0x80) != 0 ), (x)=(x<<1)
+#define SRA(x)        Z=(((x)>>1)==0), C=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2))
 #define SRL(x)        Z=(((x)>>1)==0), C=( ((x)&0x01) != 0 ), (x)=(x>>1)
+#define RLA(x)        Z=(((x)<<1)==0), C=( ((x)&0x80) != 0 ), (x)=((x<<1)+(C?0x01:0))
+#define RR(x)         Z=((x)==0),      C=( ((x)&0x01) != 0 ), (x)=((x>>1)+(C?0x80:0))
 
 // Emulate OPCODES with functions
 void SET( uint8_t bit_nbr, uint8_t &reg );
