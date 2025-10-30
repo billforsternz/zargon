@@ -2185,7 +2185,7 @@ BM5:    INC     (ptr(hl));              //  Increment to black moves
         CP      (34);                   //  Is it a Queen Pawn ?
         JR      (Z,BM9);                //  Yes - jump
         RET     (C);                    //  If Queen side Pawn opening -
-// return (P-K4)
+										//  return (P-K4)
         CP      (35);                   //  Is it a King Pawn ?
         RET     (Z);                    //  Yes - return (P-K4)
 BM9:    INC     (ptr(hl));              //  (P-Q4)
