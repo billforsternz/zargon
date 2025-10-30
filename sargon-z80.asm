@@ -569,7 +569,7 @@ MP10:   CALL    PATH            ; Calculate next position
         CP      BISHOP          ; Bishop, Rook, or Queen ?
         JR      NC,MP10         ; Yes - Jump
 MP15:   INC     iy              ; Increment direction index
-        DJNZ    MP5             ; Decr. count-jump if non-zerc
+        DJNZ    MP5             ; Decr. count-jump if non-zero
         LD      a,(T1)          ; Piece type
         CP      KING            ; King ?
         CALL    Z,CASTLE        ; Yes - Try Castling

@@ -108,12 +108,12 @@ uint8_t padding[TBASE];
 //***********************************************************
 #define DIRECT (addr(direct)-TBASE)
 int8_t direct[24] = {
-	+9,+11,-11,-9,
-	+10,-10,+1,-1,
-	-21,-12,+8,+19,
-	+21,+12,-8,-19,
-	+10,+10,+11,+9,
-	-10,-10,-11,-9
+    +9,+11,-11,-9,
+    +10,-10,+1,-1,
+    -21,-12,+8,+19,
+    +21,+12,-8,-19,
+    +10,+10,+11,+9,
+    -10,-10,-11,-9
 };
 //***********************************************************
 // DPOINT  --  Direction Table Pointer. Used to determine
@@ -122,7 +122,7 @@ int8_t direct[24] = {
 //***********************************************************
 #define DPOINT (addr(dpoint)-TBASE)
 uint8_t dpoint[7] = {
-	20,16,8,0,4,0,0
+    20,16,8,0,4,0,0
 };
 
 //***********************************************************
@@ -142,7 +142,7 @@ uint8_t dcount[7] = {
 //***********************************************************
 #define PVALUE (addr(pvalue)-TBASE-1)  //TODO what's this minus 1 about?
 uint8_t pvalue[6] = {
-	1,3,3,5,9,10
+    1,3,3,5,9,10
 };
 
 
@@ -153,7 +153,7 @@ uint8_t pvalue[6] = {
 //***********************************************************
 #define PIECES  (addr(pieces)-TBASE)
 uint8_t pieces[8] = {
-	4,2,3,5,6,3,2,4
+    4,2,3,5,6,3,2,4
 };
 
 //***********************************************************
@@ -216,11 +216,11 @@ uint8_t BOARDA[120];
 union
 {
     uint16_t    ATKLST[7];
-        uint8_t		wact[7];
+        uint8_t     wact[7];
 /*    struct wact_bact
     {
-        uint8_t		wact[7];
-        uint8_t		bact[7];
+        uint8_t     wact[7];
+        uint8_t     bact[7];
     }; */
 };
 
@@ -232,8 +232,8 @@ union
 //***********************************************************
 #define PLIST (addr(PLISTA)-TBASE-1)     ///TODO -1 why?
 #define PLISTD (PLIST+10)
-uint8_t		PLISTA[10];		// pinned pieces
-uint8_t		plistd[10];		// corresponding directions
+uint8_t     PLISTA[10];     // pinned pieces
+uint8_t     plistd[10];     // corresponding directions
 
 //***********************************************************
 // POSK    --  Position of Kings. A two byte area, the first
@@ -243,11 +243,11 @@ uint8_t		plistd[10];		// corresponding directions
 //
 // POSQ    --  Position of Queens. Like POSK,but for queens.
 //***********************************************************
-uint8_t		POSK[2] = {
-	24,95
+uint8_t     POSK[2] = {
+    24,95
 };
-uint8_t		POSQ[2] = {
-	14,94
+uint8_t     POSQ[2] = {
+    14,94
 };
 int8_t padding2 = -1;
 
@@ -256,8 +256,8 @@ int8_t padding2 = -1;
 //             hold the scores at each ply. It includes two
 //             "dummy" entries for ply -1 and ply 0.
 //***********************************************************
-uint16_t	SCORE[6] = {
-	0,0,0,0,0,0                         // Z80 max 6 ply
+uint16_t    SCORE[6] = {
+    0,0,0,0,0,0                         // Z80 max 6 ply
 };
 
 
@@ -268,9 +268,9 @@ uint16_t	SCORE[6] = {
 //             The second pointer points to which move in the
 //             list is the one currently being considered.
 //***********************************************************
-uint16_t	PLYIX[20] = {
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0
+uint16_t    PLYIX[20] = {
+    0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0
 };
 
 //
@@ -394,31 +394,31 @@ uint16_t MLNXT   =      addr(MLIST);
 //             the first move for the computer.
 //
 //***********************************************************
-uint8_t	KOLOR   =      0;               //
-uint8_t	COLOR   =      0;               //
-uint8_t	P1      =      0;               //
-uint8_t	P2      =      0;               //
-uint8_t	P3      =      0;               //
-uint8_t	PMATE   =      0;               //
-uint8_t	MOVENO  =      0;               //
-uint8_t	PLYMAX  =      2;               //
-uint8_t	NPLY    =      0;               //
-uint8_t	CKFLG   =      0;               //
-uint8_t	MATEF   =      0;               //
-uint8_t	VALM    =      0;               //
-uint8_t	BRDC    =      0;               //
-uint8_t	PTSL    =      0;               //
-uint8_t	PTSW1   =      0;               //
-uint8_t	PTSW2   =      0;               //
-uint8_t	MTRL    =      0;               //
-uint8_t	BC0     =      0;               //
-uint8_t	MV0     =      0;               //
-uint8_t	PTSCK   =      0;               //
+uint8_t KOLOR   =      0;               //
+uint8_t COLOR   =      0;               //
+uint8_t P1      =      0;               //
+uint8_t P2      =      0;               //
+uint8_t P3      =      0;               //
+uint8_t PMATE   =      0;               //
+uint8_t MOVENO  =      0;               //
+uint8_t PLYMAX  =      2;               //
+uint8_t NPLY    =      0;               //
+uint8_t CKFLG   =      0;               //
+uint8_t MATEF   =      0;               //
+uint8_t VALM    =      0;               //
+uint8_t BRDC    =      0;               //
+uint8_t PTSL    =      0;               //
+uint8_t PTSW1   =      0;               //
+uint8_t PTSW2   =      0;               //
+uint8_t MTRL    =      0;               //
+uint8_t BC0     =      0;               //
+uint8_t MV0     =      0;               //
+uint8_t PTSCK   =      0;               //
 uint8_t BMOVES[12] = {
     35,55,0x10,
-	34,54,0x10,
-	85,65,0x10,
-	84,64,0x10
+    34,54,0x10,
+    85,65,0x10,
+    84,64,0x10
 };
 
 char MVEMSG[5] = {'a','1','-','a','1'};
@@ -474,20 +474,20 @@ uint8_t LINECT = 0;
 //
 //***********************************************************
 struct ML {
-	uint16_t	MLPTR_;
-	uint8_t		MLFRP_;
-	uint8_t		MLTOP_;
-	uint8_t		MLFLG_;
-	uint8_t		MLVAL_;
+    uint16_t    MLPTR_;
+    uint8_t     MLFRP_;
+    uint8_t     MLTOP_;
+    uint8_t     MLFLG_;
+    uint8_t     MLVAL_;
 }  MLIST[340];
 uint8_t MLEND;
 };
 
-#define	MLPTR 0
-#define	MLFRP 2
-#define	MLTOP 3
-#define	MLFLG 4
-#define	MLVAL 5
+#define MLPTR 0
+#define MLFRP 2
+#define MLTOP 3
+#define MLFLG 4
+#define MLVAL 5
 
 // Up to 64K of emulated memory
 emulated_memory mem;
@@ -621,7 +621,7 @@ void PATH() {
         LD      (a,ptr(hl));            //
         ADD     (a,c);                  //  Add direction constant
         LD      (ptr(hl),a);            //  Save new position
-        LD      (ix,chk(M2));           //  Load board index
+        LD      (ix,val16(M2));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
         CP      (-1);                   //  In border area ?
         JR      (Z,PA2);                //  Yes - jump
@@ -667,11 +667,11 @@ void MPIECE() {
         DEC     (a);                    //  Decrement for black Pawns
 rel001: AND     (7);                    //  Get piece type
         LD      (val(T1),a);                 //  Save piece type
-        LD      (iy,chk(T1));           //  Load index to DCOUNT/DPOINT
+        LD      (iy,val16(T1));           //  Load index to DCOUNT/DPOINT
         LD      (b,ptr(iy+DCOUNT));     //  Get direction count
         LD      (a,ptr(iy+DPOINT));     //  Get direction pointer
         LD      (val(INDX2),a);              //  Save as index to direct
-        LD      (iy,chk(INDX2));        //  Load index
+        LD      (iy,val16(INDX2));        //  Load index
 MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction
         LD      (a,val(M1));                 //  From position
         LD      (val(M2),a);                 //  Initialize to position
@@ -761,12 +761,12 @@ rel002: CP      (61);                   //  On en passant capture rank ?
         RET     (C);                    //  No - return
         CP      (69);                   //  On en passant capture rank ?
         RET     (NC);                   //  No - return
-        LD      (ix,chk(MLPTRJ));       //  Get pointer to previous move
+        LD      (ix,val16(MLPTRJ));       //  Get pointer to previous move
         BIT     (4,ptr(ix+MLFLG));      //  First move for that piece ?
         RET     (Z);                    //  No - return
         LD      (a,ptr(ix+MLTOP));      //  Get "to" position
         LD      (val(M4),a);                 //  Store as index to board
-        LD      (ix,chk(M4));           //  Load board index
+        LD      (ix,val16(M4));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get piece moved
         LD      (val(P3),a);                 //  Save it
         AND     (7);                    //  Get piece type
@@ -812,10 +812,10 @@ rel003: CP      (10);                   //  Is difference 10 ?
 // ARGUMENTS:  --  None
 //***********************************************************
 void ADJPTR() {
-        LD      (hl,chk(MLLST));        //  Get list pointer
+        LD      (hl,val16(MLLST));        //  Get list pointer
         LD      (de,-6);                //  Size of a move entry
         ADD16   (hl,de);                //  Back up list pointer
-        LD      (chk(MLLST),hl);        //  Save list pointer
+        LD      (val16(MLLST),hl);        //  Save list pointer
         LD      (ptr(hl),0);            //  Zero out link, first byte
         INC     (hl);                   //  Next byte
         LD      (ptr(hl),0);            //  Zero out link, second byte
@@ -849,14 +849,14 @@ CA5:    LD      (a,val(M1));                 //  King position
         ADD     (a,c);                  //  Rook position
         LD      (c,a);                  //  Save
         LD      (val(M3),a);                 //  Store as board index
-        LD      (ix,chk(M3));           //  Load board index
+        LD      (ix,val16(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
         AND     (0x7F);                 //  Clear val(COLOR) bit
         CP      (ROOK);                 //  Has Rook ever moved ?
         JR      (NZ,CA20);              //  Yes - Jump
         LD      (a,c);                  //  Restore Rook position
         JRu     (CA15);                 //  Jump
-CA10:   LD      (ix,chk(M3));           //  Load board index
+CA10:   LD      (ix,val16(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
         AND     (a);                    //  Empty ?
         JR      (NZ,CA20);              //  No - Jump
@@ -912,13 +912,13 @@ CA20:   LD      (a,b);                  //  Scan Index
 // ARGUMENT:  --  None
 //***********************************************************
 void ADMOVE() {
-        LD      (de,chk(MLNXT));        //  Addr of next loc in move list
+        LD      (de,val16(MLNXT));        //  Addr of next loc in move list
         LD      (hl,addr(MLEND));       //  Address of list end
         AND     (a);                    //  Clear carry flag
         SBC     (hl,de);                //  Calculate difference
         JR      (C,AM10);               //  Jump if out of space
-        LD      (hl,chk(MLLST));        //  Addr of prev. list area
-        LD      (chk(MLLST),de);        //  Save next as previous
+        LD      (hl,val16(MLLST));        //  Addr of prev. list area
+        LD      (val16(MLLST),de);        //  Save next as previous
         LD      (ptr(hl),e);            //  Store link address
         INC     (hl);
         LD      (ptr(hl),d);
@@ -943,7 +943,7 @@ rel004: EX      (de,hl);                //  Address of move area
         INC     (hl);
         LD      (ptr(hl),0);            //  Store initial move value
         INC     (hl);
-        LD      (chk(MLNXT),hl);        //  Save address for next move
+        LD      (val16(MLNXT),hl);        //  Save address for next move
         RETu;                           //  Return
 AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow
         INC     (hl);
@@ -968,19 +968,19 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow
 void GENMOV() {
         CALLu   (INCHK);                //  Test for King in check
         LD      (val(CKFLG),a);              //  Save attack count as flag
-        LD      (de,chk(MLNXT));        //  Addr of next avail list space
-        LD      (hl,chk(MLPTRI));       //  Ply list pointer index
+        LD      (de,val16(MLNXT));        //  Addr of next avail list space
+        LD      (hl,val16(MLPTRI));       //  Ply list pointer index
         INC     (hl);                   //  Increment to next ply
         INC     (hl);
         LD      (ptr(hl),e);            //  Save move list pointer
         INC     (hl);
         LD      (ptr(hl),d);
         INC     (hl);
-        LD      (chk(MLPTRI),hl);       //  Save new index
-        LD      (chk(MLLST),hl);        //  Last pointer for chain init.
+        LD      (val16(MLPTRI),hl);       //  Save new index
+        LD      (val16(MLLST),hl);        //  Last pointer for chain init.
         LD      (a,21);                 //  First position on board
 GM5:    LD      (val(M1),a);                 //  Save as index
-        LD      (ix,chk(M1));           //  Load board index
+        LD      (ix,val16(M1));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Fetch board contents
         AND     (a);                    //  Is it empty ?
         JR      (Z,GM10);               //  Yes - Jump
@@ -1024,7 +1024,7 @@ void INCHK1() {                         // Like INCHK() but takes input in regis
         INC     (hl);                   //  Addr of black King position
 rel005: LD      (a,ptr(hl));            //  Fetch King position
         LD      (val(M3),a);                 //  Save
-        LD      (ix,chk(M3));           //  Load board index
+        LD      (ix,val16(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Fetch board contents
         LD      (val(P1),a);                 //  Save
         AND     (7);                    //  Get piece type
@@ -1073,7 +1073,7 @@ void ATTACK() {
         XOR     (a);                    //  Clear
         LD      (b,16);                 //  Initial direction count
         LD      (val(INDX2),a);              //  Initial direction index
-        LD      (iy,chk(INDX2));        //  Load index
+        LD      (iy,val16(INDX2));        //  Load index
 AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction
         LD      (d,0);                  //  Init. scan count/flags
         LD      (a,val(M3));                 //  Init. board start position
@@ -1190,7 +1190,7 @@ void ATKSAV() {
         LD      (a,val(NPINS));         //  Number of pinned pieces
         AND     (a);                    //  Any ?
         CALL    (NZ,PNCK);              //  yes - check pin list
-        LD      (ix,chk(T2));           //  Init index to value table
+        LD      (ix,val16(T2));           //  Init index to value table
         LD      (hl,addr(ATKLST));      //  Init address of attack list
         LD      (bc,0);                 //  Init increment for white
         LD      (a,val(P2));                 //  Attacking piece
@@ -1299,13 +1299,13 @@ PF1:    LD      (a,ptr(de));            //  Get position of royal piece
         CP      (-1);                   //  At end of list ?
         RET     (Z);                    //  Yes return
         LD      (val(M3),a);                 //  Save position as board index
-        LD      (ix,chk(M3));           //  Load index to board
+        LD      (ix,val16(M3));           //  Load index to board
         LD      (a,ptr(ix+BOARD));      //  Get contents of board
         LD      (val(P1),a);                 //  Save
         LD      (b,8);                  //  Init scan direction count
         XOR     (a);
         LD      (val(INDX2),a);         //  Init direction index
-        LD      (iy,chk(INDX2));
+        LD      (iy,val16(INDX2));
 PF2:    LD      (a,val(M3));                 //  Get King/Queen position
         LD      (val(M2),a);                 //  Save
         XOR     (a);
@@ -1373,7 +1373,7 @@ rel008: LD      (a,ptr(hl));            //  Number of defenders
         JP      (P,PF25);               //  Jump if pin not valid
 PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         INC     (ptr(hl));              //  Increment
-        LD      (ix,chk(NPINS));        //  Load pin list index
+        LD      (ix,val16(NPINS));        //  Load pin list index
         LD      (ptr(ix+PLISTD),c);     //  Save direction of pin
         LD      (a,val(M4));                 //  Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list
@@ -1412,7 +1412,7 @@ rel009: LD      (b,ptr(hl));            //  Init list counts
         EXX;                            //  Restore regs.
         LD      (c,0);                  //  Init attacker/defender flag
         LD      (e,0);                  //  Init points lost count
-        LD      (ix,chk(T3));           //  Load piece value index
+        LD      (ix,val16(T3));           //  Load piece value index
         LD      (d,ptr(ix+PVALUE));     //  Get attacked piece value
         SLA     (d);                    //  Double it
         LD      (b,d);                  //  Save
@@ -1509,7 +1509,7 @@ void POINTS() {
         LD      (ptr(hl),7);            //
         LD      (a,21);                 //  Init to first square on board
 PT5:    LD      (val(M3),a);                 //  Save as board index
-        LD      (ix,chk(M3));           //  Load board index
+        LD      (ix,val16(M3));           //  Load board index
         LD      (a,ptr(ix+BOARD));      //  Get piece from board
         CP      (-1);                   //  Off board edge ?
         JP      (Z,PT25);               //  Yes - jump
@@ -1577,7 +1577,7 @@ back04: LD      (ptr(hl),a);            //
         CP      (ptr(hl));              //  Compare to current value
         JR      (C,PT23);               //  Jump if greater than
         LD      (ptr(hl),e);            //  Store new value as max lost
-        LD      (ix,chk(MLPTRJ));       //  Load pointer to this move
+        LD      (ix,val16(MLPTRJ));       //  Load pointer to this move
         LD      (a,val(M3));                 //  Get position of lost piece
         CP      (ptr(ix+MLTOP));        //  Is it the one moving ?
         JR      (NZ,PT23);              //  No - jump
@@ -1658,7 +1658,7 @@ rel026: LD      (a,6);                  //  Load board control limit
         NEG;                            //  Negate for white
 rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)
         LD      (val(VALM),a);               //  Save score
-        LD      (ix,chk(MLPTRJ));       //  Load move list pointer
+        LD      (ix,val16(MLPTRJ));       //  Load move list pointer
         LD      (ptr(ix+MLVAL),a);      //  Save score in move list
         RETu;                           //  Return
 }
@@ -1709,7 +1709,7 @@ LIM10:  CP      (b);                    //  Compare to limit
 // ARGUMENTS:  --  None
 //***********************************************************
 void MOVE() {
-        LD      (hl,chk(MLPTRJ));       //  Load move list pointer
+        LD      (hl,val16(MLPTRJ));       //  Load move list pointer
         INC     (hl);                   //  Increment past link bytes
         INC     (hl);
 MV1:    LD      (a,ptr(hl));            //  "From" position
@@ -1719,7 +1719,7 @@ MV1:    LD      (a,ptr(hl));            //  "From" position
         LD      (val(M2),a);                 //  Save
         INC     (hl);                   //  Increment pointer
         LD      (d,ptr(hl));            //  Get captured piece/flags
-        LD      (ix,chk(M1));           //  Load "from" pos board index
+        LD      (ix,val16(M1));           //  Load "from" pos board index
         LD      (e,ptr(ix+BOARD));      //  Get piece moved
         BIT     (5,d);                  //  Test Pawn promotion flag
         JR      (NZ,MV15);              //  Jump if set
@@ -1729,7 +1729,7 @@ MV1:    LD      (a,ptr(hl));            //  "From" position
         JR      (Z,MV20);               //  Yes - jump
         CP      (KING);                 //  Is it a king ?
         JR      (Z,MV30);               //  Yes - jump
-MV5:    LD      (iy,chk(M2));           //  Load "to" pos board index
+MV5:    LD      (iy,val16(M2));           //  Load "to" pos board index
         SET     (3,e);                  //  Set piece moved flag
         LD      (ptr(iy+BOARD),e);      //  Insert piece at new position
         LD      (ptr(ix+BOARD),0);      //  Empty previous position
@@ -1760,7 +1760,7 @@ MV30:   LD      (hl,addr(POSK));        //  Get saved King position
         JR      (Z,MV21);               //  No - jump
         SET     (4,e);                  //  Set King castled flag
         JPu     (MV21);                 //  Jump
-MV40:   LD      (hl,chk(MLPTRJ));       //  Get move list pointer
+MV40:   LD      (hl,val16(MLPTRJ));       //  Get move list pointer
         LD      (de,8);                 //  Increment to next move
         ADD     (hl,de);                //
         JPu     (MV1);                  //  Jump (2nd part of dbl move)
@@ -1783,7 +1783,7 @@ MV40:   LD      (hl,chk(MLPTRJ));       //  Get move list pointer
 // ARGUMENTS:  --  None
 //***********************************************************
 void UNMOVE() {
-        LD      (hl,chk(MLPTRJ));       //  Load move list pointer
+        LD      (hl,val16(MLPTRJ));       //  Load move list pointer
         INC     (hl);                   //  Increment past link bytes
         INC     (hl);
 UM1:    LD      (a,ptr(hl));            //  Get "from" position
@@ -1793,7 +1793,7 @@ UM1:    LD      (a,ptr(hl));            //  Get "from" position
         LD      (val(M2),a);                 //  Save
         INC     (hl);                   //  Increment pointer
         LD      (d,ptr(hl));            //  Get captured piece/flags
-        LD      (ix,chk(M2));           //  Load "to" pos board index
+        LD      (ix,val16(M2));           //  Load "to" pos board index
         LD      (e,ptr(ix+BOARD));      //  Get piece moved
         BIT     (5,d);                  //  Was it a Pawn promotion ?
         JR      (NZ,UM15);              //  Yes - jump
@@ -1805,7 +1805,7 @@ UM1:    LD      (a,ptr(hl));            //  Get "from" position
         JR      (Z,UM30);               //  Yes - jump
 UM5:    BIT     (4,d);                  //  Is this 1st move for piece ?
         JR      (NZ,UM16);              //  Yes - jump
-UM6:    LD      (iy,chk(M1));           //  Load "from" pos board index
+UM6:    LD      (iy,val16(M1));           //  Load "from" pos board index
         LD      (ptr(iy+BOARD),e);      //  Return to previous board pos
         LD      (a,d);                  //  Get captured piece, if any
         AND     (0x8f);                 //  Clear flags
@@ -1839,7 +1839,7 @@ UM30:   LD      (hl,addr(POSK));        //  Address of saved King pos
         JR      (Z,UM21);               //  No - jump
         RES     (4,e);                  //  Clear castled flag
         JPu     (UM21);                 //  Jump
-UM40:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
+UM40:   LD      (hl,val16(MLPTRJ));       //  Load move list pointer
         LD      (de,8);                 //  Increment to next move
         ADD     (hl,de);
         JPu     (UM1);                  //  Jump (2nd part of dbl move)
@@ -1858,7 +1858,7 @@ UM40:   LD      (hl,chk(MLPTRJ));       //  Load move list pointer
 // ARGUMENTS:  --  None
 //***********************************************************
 void SORTM() {
-        LD      (bc,chk(MLPTRI));       //  Move list begin pointer
+        LD      (bc,val16(MLPTRI));       //  Move list begin pointer
         LD      (de,0);                 //  Initialize working pointers
 SR5:    LD      (h,b);                  //
         LD      (l,c);                  //
@@ -1871,10 +1871,10 @@ SR5:    LD      (h,b);                  //
         XOR     (a);                    //  End of list ?
         CP      (b);                    //
         RET     (Z);                    //  Yes - return
-SR10:   LD      (chk(MLPTRJ),bc);       //  Save list pointer
+SR10:   LD      (val16(MLPTRJ),bc);       //  Save list pointer
         CALLu   (EVAL);                 //  Evaluate move
-        LD      (hl,chk(MLPTRI));       //  Begining of move list
-        LD      (bc,chk(MLPTRJ));       //  Restore list pointer
+        LD      (hl,val16(MLPTRI));       //  Begining of move list
+        LD      (bc,val16(MLPTRJ));       //  Restore list pointer
 SR15:   LD      (e,ptr(hl));            //  Next move for compare
         INC     (hl);                   //
         LD      (d,ptr(hl));            //
@@ -1951,15 +1951,15 @@ void FNDMOV() {
         XOR     (a);                    //  Initialize ply number to zero
         LD      (val(NPLY),a);
         LD      (hl,0);                 //  Initialize best move to zero
-        LD      (chk(BESTM),hl);
+        LD      (val16(BESTM),hl);
         LD      (hl,addr(MLIST));       //  Initialize ply list pointers
-        LD      (chk(MLNXT),hl);
+        LD      (val16(MLNXT),hl);
         LD      (hl,addr(PLYIX)-2);
-        LD      (chk(MLPTRI),hl);
+        LD      (val16(MLPTRI),hl);
         LD      (a,val(KOLOR));              //  Initialize val(COLOR)
         LD      (val(COLOR),a);
         LD      (hl,addr(SCORE));       //  Initialize score index
-        LD      (chk(SCRIX),hl);
+        LD      (val16(SCRIX),hl);
         LD      (a,val(PLYMAX));             //  Get max ply number
         ADD     (a,2);                  //  Add 2
         LD      (b,a);                  //  Save as counter
@@ -1984,17 +1984,17 @@ FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter
         LD      (hl,addr(PLYMAX));      //  Address of maximum ply number
         CP      (ptr(hl));              //  At max ply ?
         CALL    (C,SORTM);              //  No - call sort
-        LD      (hl,chk(MLPTRI));       //  Load ply index pointer
-        LD      (chk(MLPTRJ),hl);       //  Save as last move pointer
-FM15:   LD      (hl,chk(MLPTRJ));       //  Load last move pointer
+        LD      (hl,val16(MLPTRI));       //  Load ply index pointer
+        LD      (val16(MLPTRJ),hl);       //  Save as last move pointer
+FM15:   LD      (hl,val16(MLPTRJ));       //  Load last move pointer
         LD      (e,ptr(hl));            //  Get next move pointer
         INC     (hl);
         LD      (d,ptr(hl));
         LD      (a,d);
         AND     (a);                    //  End of move list ?
         JR      (Z,FM25);               //  Yes - jump
-        LD      (chk(MLPTRJ),de);       //  Save current move pointer
-        LD      (hl,chk(MLPTRI));       //  Save in ply pointer list
+        LD      (val16(MLPTRJ),de);       //  Save current move pointer
+        LD      (hl,val16(MLPTRI));       //  Save in ply pointer list
         LD      (ptr(hl),e);
         INC     (hl);
         LD      (ptr(hl),d);
@@ -2018,7 +2018,7 @@ rel017: LD      (a,val(NPLY));               //  Get ply counter
         AND     (a);                    //  In check ?
         JR      (Z,FM35);               //  No - jump
         JPu     (FM19);                 //  Jump (One more ply for check)
-FM18:   LD      (ix,chk(MLPTRJ));       //  Load move pointer
+FM18:   LD      (ix,val16(MLPTRJ));       //  Load move pointer
         LD      (a,ptr(ix+MLVAL));      //  Get move score
         AND     (a);                    //  Is it zero (illegal move) ?
         JR      (Z,FM15);               //  Yes - jump
@@ -2031,13 +2031,13 @@ FM19:   LD      (hl,addr(COLOR));       //  Toggle val(COLOR)
         JR      (NZ,rel018);            //  No - jump
         LD      (hl,addr(MOVENO));      //  Increment move number
         INC     (ptr(hl));
-rel018: LD      (hl,chk(SCRIX));        //  Load score table pointer
+rel018: LD      (hl,val16(SCRIX));        //  Load score table pointer
         LD      (a,ptr(hl));            //  Get score two plys above
         INC     (hl);                   //  Increment to current ply
         INC     (hl);
         LD      (ptr(hl),a);            //  Save score as initial value
         DEC     (hl);                   //  Decrement pointer
-        LD      (chk(SCRIX),hl);        //  Save it
+        LD      (val16(SCRIX),hl);        //  Save it
         JPu     (FM5);                  //  Jump
 FM25:   LD      (a,val(MATEF));                //  Get mate flag
         AND     (a);                    //  Checkmate or stalemate ?
@@ -2054,7 +2054,7 @@ FM30:   LD      (a,val(NPLY));               //  Get ply counter
         CP      (1);                    //  At top of tree ?
         RET     (Z);                    //  Yes - return
         CALLu   (ASCEND);               //  Ascend one ply in tree
-        LD      (hl,chk(SCRIX));        //  Load score table pointer
+        LD      (hl,val16(SCRIX));        //  Load score table pointer
         INC     (hl);                   //  Increment to current ply
         INC     (hl);                   //
         LD      (a,ptr(hl));            //  Get score
@@ -2067,7 +2067,7 @@ FM35:   CALLu   (PINFND);               //  Compile pin list
         LD      (a,val(VALM));               //  Get value of move
 FM36:   LD      (hl,addr(MATEF));       //  Set mate flag
         SET     (0,ptr(hl));            //
-        LD      (hl,chk(SCRIX));        //  Load score table pointer
+        LD      (hl,val16(SCRIX));        //  Load score table pointer
 FM37:
         CP      (ptr(hl));              //  Compare to score 2 ply above
         JR      (C,FM40);               //  Jump if less
@@ -2081,8 +2081,8 @@ FM37:
         LD      (a,val(NPLY));               //  Get current ply counter
         CP      (1);                    //  At top of tree ?
         JP      (NZ,FM15);              //  No - jump
-        LD      (hl,chk(MLPTRJ));       //  Load current move pointer
-        LD      (chk(BESTM),hl);        //  Save as best move pointer
+        LD      (hl,val16(MLPTRJ));       //  Load current move pointer
+        LD      (val16(BESTM),hl);        //  Save as best move pointer
         LD      (a,val(SCORE+1));      //  Get best move score
         CP      (0xff);                 //  Was it a checkmate ?
         JP      (NZ,FM15);              //  No - jump
@@ -2120,23 +2120,23 @@ void ASCEND() {
         JR      (Z,rel019);             //  Yes - jump
         LD      (hl,addr(MOVENO));      //  Decrement move number
         DEC     (ptr(hl));              //
-rel019: LD      (hl,chk(SCRIX));        //  Load score table index
+rel019: LD      (hl,val16(SCRIX));        //  Load score table index
         DEC     (hl);                   //  Decrement
-        LD      (chk(SCRIX),hl);        //  Save
+        LD      (val16(SCRIX),hl);        //  Save
         LD      (hl,addr(NPLY));        //  Decrement ply counter
         DEC     (ptr(hl));              //
-        LD      (hl,chk(MLPTRI));       //  Load ply list pointer
+        LD      (hl,val16(MLPTRI));       //  Load ply list pointer
         DEC     (hl);                   //  Load pointer to move list top
         LD      (d,ptr(hl));            //
         DEC     (hl);                   //
         LD      (e,ptr(hl));            //
-        LD      (chk(MLNXT),de);        //  Update move list avail ptr
+        LD      (val16(MLNXT),de);        //  Update move list avail ptr
         DEC     (hl);                   //  Get ptr to next move to undo
         LD      (d,ptr(hl));            //
         DEC     (hl);                   //
         LD      (e,ptr(hl));            //
-        LD      (chk(MLPTRI),hl);       //  Save new ply list pointer
-        LD      (chk(MLPTRJ),de);       //  Save next move pointer
+        LD      (val16(MLPTRI),hl);       //  Save new ply list pointer
+        LD      (val16(MLPTRJ),de);       //  Save next move pointer
         CALLu   (UNMOVE);               //  Restore board to previous ply
         RETu;                           //  Return
 }
@@ -2158,7 +2158,7 @@ void BOOK() {
         LD      (hl,addr(SCORE)+1);     //  Zero out score
         LD      (ptr(hl),0);            //  Zero out score table
         LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book
-        LD      (chk(BESTM),hl);        //
+        LD      (val16(BESTM),hl);        //
         LD      (hl,addr(BESTM));       //  Initialize address of pointer
         LD      (a,val(KOLOR));              //  Get computer's val(COLOR)
         AND     (a);                    //  Is it white ?
@@ -2176,7 +2176,7 @@ BM5:    INC     (ptr(hl));              //  Increment to black moves
         INC     (ptr(hl));              //
         INC     (ptr(hl));              //
         INC     (ptr(hl));              //
-        LD      (ix,chk(MLPTRJ));       //  Pointer to opponents 1st move
+        LD      (ix,val16(MLPTRJ));       //  Pointer to opponents 1st move
         LD      (a,ptr(ix+MLFRP));      //  Get "from" position
         CP      (22);                   //  Is it a Queen Knight move ?
         JR      (Z,BM9);                //  Yes - Jump
@@ -2198,9 +2198,9 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)
 //  Omit some Z80 User Interface code, eg
 //  user interface data including graphics data and text messages
 //  Also macros
-//		CARRET, CLRSCR, PRTLIN, PRTBLK and EXIT
-//	and functions
-//		DRIVER and INTERR
+//      CARRET, CLRSCR, PRTLIN, PRTBLK and EXIT
+//  and functions
+//      DRIVER and INTERR
 //
 
 //***********************************************************
@@ -2226,8 +2226,8 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)
 //***********************************************************
 void CPTRMV() {
         CALLu   (FNDMOV);               //  Select best move
-        LD      (hl,chk(BESTM));        //  Move list pointer variable
-        LD      (chk(MLPTRJ),hl);       //  Pointer to move data
+        LD      (hl,val16(BESTM));        //  Move list pointer variable
+        LD      (val16(MLPTRJ),hl);       //  Pointer to move data
         LD      (a,(val(SCORE+1)));     //  To check for mates
         CP      (1);                    //  Mate against computer ?
         JR      (NZ,CP0C);              //  No - jump
@@ -2241,10 +2241,10 @@ CP0C:   CALLu   (MOVE);                 //  Produce move on board array
         JR      (NZ,CP10);              //  Yes - jump
         LD      (d,e);                  //  "To" position of the move
         CALLu   (BITASN);               //  Convert to Ascii
-        LD      (chk(MVEMSG+3),hl);     //  Put in move message
+        LD      (val16(MVEMSG+3),hl);     //  Put in move message
         LD      (d,c);                  //  "From" position of the move
         CALLu   (BITASN);               //  Convert to Ascii
-        LD      (chk(MVEMSG),hl);       //  Put in move message
+        LD      (val16(MVEMSG),hl);       //  Put in move message
         //PRTBLK  (MVEMSG,5);             //  Output text of move
         JRu     (CP1C);                 //  Jump
 CP10:   BIT     (1,b);                  //  King side castle ?
@@ -2281,7 +2281,7 @@ CP24:   LD      (a,val(SCORE+1));        //  Check again for mates
 }
 
 //
-//	Omit some more Z80 user interface stuff, functions
+//  Omit some more Z80 user interface stuff, functions
 //  FCDMAT, TBPLCL, TBCPCL, TBPLMV and TBCPMV
 //
 
@@ -2314,7 +2314,7 @@ void BITASN() {
 }
 
 //
-//	Omit some more Z80 user interface stuff, function
+//  Omit some more Z80 user interface stuff, function
 //  PLYRMV
 //
 
@@ -2375,15 +2375,15 @@ AT04:   LD      (b,a);                  //  Invalid flag
 //                 and 1 for invalid move.
 //***********************************************************
 void VALMOV() {
-        LD      (hl,chk(MLPTRJ));       //  Save last move pointer
+        LD      (hl,val16(MLPTRJ));       //  Save last move pointer
         PUSH    (hl);                   //  Save register
         LD      (a,val(KOLOR));              //  Computers val(COLOR)
         XOR     (0x80);                 //  Toggle val(COLOR)
         LD      (val(COLOR),a);              //  Store
         LD      (hl,addr(PLYIX)-2);     //  Load move list index
-        LD      (chk(MLPTRI),hl);       //
+        LD      (val16(MLPTRI),hl);       //
         LD      (hl,addr(MLIST)+1024);  //  Next available list pointer
-        LD      (chk(MLNXT),hl);        //
+        LD      (val16(MLNXT),hl);        //
         CALLu   (GENMOV);               //  Generate opponents moves
         LD      (ix,addr(MLIST)+1024);  //  Index to start of moves
 VA5:    LD      (a,val(MVEMSG));        //  "From" position
@@ -2400,7 +2400,7 @@ VA6:    LD      (e,ptr(ix+MLPTR));      //  Pointer to next list move
         PUSH    (de);                   //  Move to X register
         POP     (ix);                   //
         JRu     (VA5);                  //  Jump
-VA7:    LD      (chk(MLPTRJ),ix);       //  Save opponents move pointer
+VA7:    LD      (val16(MLPTRJ),ix);       //  Save opponents move pointer
         CALLu   (MOVE);                 //  Make move on board array
         CALLu   (INCHK);                //  Was it a legal move ?
         AND     (a);                    //
@@ -2410,12 +2410,12 @@ VA8:    POP     (hl);                   //  Restore saved register
 VA9:    CALLu   (UNMOVE);               //  Un-do move on board array
 VA10:   LD      (a,1);                  //  Set flag for invalid move
         POP     (hl);                   //  Restore saved register
-        LD      (chk(MLPTRJ),hl);       //  Save move pointer
+        LD      (val16(MLPTRJ),hl);       //  Save move pointer
         RETu;                           //  Return
 }
 
 //
-//	Omit some more Z80 user interface stuff, functions
+//  Omit some more Z80 user interface stuff, functions
 //  CHARTR, PGIFND, MATED, ANALYS
 //
 
@@ -2441,7 +2441,7 @@ back06: LD      (ptr(hl),0);                 //
         LD      (a,21);                   //  First board position
 RY04:   LD      (val(M1),a);                 //  Set up board index
         LD      (hl,addr(POSK));                //  Address of King position
-        LD      (ix,chk(M1));                //
+        LD      (ix,val16(M1));                //
         LD      (a,ptr(ix+BOARD));           //  Fetch board contents
         BIT     (7,a);                    //  Test val(COLOR) bit
         JR      (Z,rel023);               //  Jump if white
@@ -2463,7 +2463,7 @@ RY0C:   LD      (a,val(M1));                 //  Current position
 }
 
 //
-//	Omit some more Z80 user interface stuff, functions
+//  Omit some more Z80 user interface stuff, functions
 //  DSPBRD, BSETUP, INSPCE, CONVRT
 //
 
@@ -2507,7 +2507,7 @@ rel025: SRA     (a);                    //
 }
 
 //
-//	Omit some more Z80 user interface stuff, function
+//  Omit some more Z80 user interface stuff, function
 //  BLNKER
 //
 
@@ -2534,7 +2534,7 @@ rel025: SRA     (a);                    //
 void EXECMV() {
         PUSH    (ix);                   //  Save registers
         PUSH    (af);                   //
-        LD      (ix,chk(MLPTRJ));       //  Index into move list
+        LD      (ix,val16(MLPTRJ));       //  Index into move list
         LD      (c,ptr(ix+MLFRP));      //  Move list "from" position
         LD      (e,ptr(ix+MLTOP));      //  Move list "to" position
         CALLu   (MAKEMV);               //  Produce move
@@ -2567,6 +2567,6 @@ EX14:   POP     (af);                   //  Restore registers
 }
 
 //
-//	Omit some more Z80 user interface stuff, function
+//  Omit some more Z80 user interface stuff, function
 //  MAKEMV
 //
