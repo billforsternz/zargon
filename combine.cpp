@@ -102,27 +102,6 @@ int combine( int argc, const char *argv[] )
         if( have_total < 0 )
             have_total = 0;
 
-		// While top + bottom > have_total reduce bottom to 1 then reduce top
-        while( top+bottom > have_total )
-        {
-            if( bottom>1 )
-                bottom--;
-            else if( top>0 )
-                top--;
-        }
-			
-		// While top + bottom > need_total reduce bottom to 1 then reduce top
-        while( top+bottom > need_total )
-        {
-            if( bottom>1 )
-                bottom--;
-            else if( top>0 )
-                top--;
-        }
-			
-        // Number of empty lines, may be zero
-		int empty = need_total - (top+bottom);
-
 		// Get all .cpp lines for this section
         std::vector<std::string> vcpp;
         for( int i=0; i<need_total; i++ )
@@ -145,32 +124,93 @@ int combine( int argc, const char *argv[] )
             vasm.push_back(line);
         }
 
-		// Print top from the top of vasm
-        int icpp=0;
-        for( int i=0; i<top; i++ )
+        // Basically two cases, too many lines or not enough
+        // Not enough first
+        if( need_total >= have_total )
         {
-            std::string s = vasm[i];
-            std::string scpp = vcpp[icpp++];
-            util::putline(fout,scpp + "//" + s);
-            line_nbr_out++;
+
+		    // While top + bottom > have_total reduce bottom to 1 then reduce top
+            while( top+bottom > have_total )
+            {
+                if( bottom>1 )
+                    bottom--;
+                else if( top>0 )
+                    top--;
+            }
+            while( top+bottom < have_total )
+            {
+                top++;
+            }
+			
+            // Number of empty lines, may be zero
+		    int empty = need_total - (top+bottom);
+
+		    // Print top from the top of vasm
+            int icpp=0;
+            for( int i=0; i<top; i++ )
+            {
+                std::string s = vasm[i];
+                std::string scpp = vcpp[icpp++];
+                util::putline(fout,scpp + "//" + s);
+                line_nbr_out++;
+            }
+
+		    // Print empty lines
+            for( int i=0; i<empty; i++ )
+            {
+                std::string scpp = vcpp[icpp++];
+                util::putline(fout,scpp + "//" );
+                line_nbr_out++;
+            }
+
+		    // Print bottom from the bottom of vasm
+            int n = (int)vasm.size();
+            for( int i=0; i<bottom; i++ )
+            {
+                std::string s = vasm[n-bottom+i];
+                std::string scpp = vcpp[icpp++];
+                util::putline(fout,scpp + "//" + s);
+                line_nbr_out++;
+            }
         }
 
-		// Print empty lines
-        for( int i=0; i<empty; i++ )
+        // Have too many lines second
+        else
         {
-            std::string scpp = vcpp[icpp++];
-            util::putline(fout,scpp + "//" );
-            line_nbr_out++;
-        }
 
-		// Print bottom from the bottom of vasm
-        int n = (int)vasm.size();
-        for( int i=0; i<bottom; i++ )
-        {
-            std::string s = vasm[n-bottom+i];
-            std::string scpp = vcpp[icpp++];
-            util::putline(fout,scpp + "//" + s);
-            line_nbr_out++;
+		    // While top + bottom > need_total reduce bottom to 1 then reduce top
+            while( top+bottom > need_total )
+            {
+                if( bottom>1 )
+                    bottom--;
+                else if( top>0 )
+                    top--;
+            }
+			
+            while( top+bottom < need_total )
+            {
+                top++;
+            }
+			
+		    // Print top from the top of vasm
+            int icpp=0;
+            for( int i=0; i<top; i++ )
+            {
+                std::string s = vasm[i];
+                std::string scpp = vcpp[icpp++];
+                util::putline(fout,scpp + "//" + s);
+                line_nbr_out++;
+            }
+
+		    // Print bottom from the bottom of vasm
+            int n = (int)vasm.size();
+            for( int i=0; i<bottom; i++ )
+            {
+                std::string s = vasm[n-bottom+i];
+                std::string scpp = vcpp[icpp++];
+                util::putline(fout,scpp + "//" + s);
+                line_nbr_out++;
+            }
         }
     }
 
@@ -390,7 +430,7 @@ void asm_process( std::ifstream &fin, std::vector<Identifier> &asm_identifiers )
 void tidy_cpp_line( std::string &line )
 {
     const int COL_COMMENT = 40;
-    const int COL_Z80_ASM = 68;
+    const int COL_Z80_ASM = 75;
     util::rtrim(line);
     size_t offset = line.find("//");
     if( offset==std::string::npos || offset==0 )
