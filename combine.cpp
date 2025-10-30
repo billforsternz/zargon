@@ -20,8 +20,9 @@ struct Identifier
 
 void cpp_process( std::ifstream &fin, std::vector<Identifier> &cpp_identifiers );
 void asm_process( std::ifstream &fin, std::vector<Identifier> &asm_identifiers );
+void tidy_cpp_line( std::string &line );
 
-int main( int argc, const char *argv[] )
+int combine( int argc, const char *argv[] )
 {
     const int COL_COMMENT = 40;
     const char *arg1 = "/users/bill/documents/github/zargon/sargon-z80-modified.cpp";
@@ -64,46 +65,56 @@ int main( int argc, const char *argv[] )
     cpp_process( fin1, cpp_identifiers );
     std::vector<Identifier> asm_identifiers;
     asm_process( fin2, asm_identifiers );
+    fin1.clear();
+    fin1.seekg(0, std::ios::beg); 
     fin2.clear();
     fin2.seekg(0, std::ios::beg); 
-    int line_nbr = 0;
-    size_t i = 0;
-    while( i<cpp_identifiers.size() && i<asm_identifiers.size() )
+    int line_nbr_in = 0;
+    int line_nbr_out = 0;
+    size_t isection = 0;
+    while( isection<cpp_identifiers.size() && isection<asm_identifiers.size() )
     {
-        Identifier &p = cpp_identifiers[i];
-        Identifier &q = asm_identifiers[i];
+        Identifier &p = cpp_identifiers[isection];
+        Identifier &q = asm_identifiers[isection];
+        if( p.name != q.name )
+        {
+            printf( ".cpp and .asm out of sync, aborting\n" );
+            return -1;
+        }
+        if( p.name == "PLYIX" )
+            printf( "Debug\n" );
         
         // top    print this many from the top
         // bottom print this many from the bottom
 
 		// First estimate
-        int top    =  i>0 ? cpp_identifiers[i-1].nbr_lines : 0;
-        int bottom =  asm_identifiers[i].nbr_proceeding_comment_lines;
-        i++;
+        int top    =  isection>0 ? cpp_identifiers[isection-1].nbr_lines : 5;      // 5 title lines first
+        int bottom =  asm_identifiers[isection].nbr_proceeding_comment_lines + 1;  // +1 for identifier itself
+        isection++;
 
 		// Number of cpp lines in next section is number of lines we need
-        int need_total  =  p.line_nbr - line_nbr;
+        int need_total  =  p.line_nbr - line_nbr_out;
         if( need_total < 0 )
             need_total = 0;
 		
 		// Number of asm lines in next section is number of lines we have
-        int have_total  =  q.line_nbr - line_nbr;
+        int have_total  =  q.line_nbr - line_nbr_in;
         if( have_total < 0 )
             have_total = 0;
 
-		// while top + bottom > have_total reduce bottom to 0 then reduce top
+		// While top + bottom > have_total reduce bottom to 1 then reduce top
         while( top+bottom > have_total )
         {
-            if( bottom>0 )
+            if( bottom>1 )
                 bottom--;
             else if( top>0 )
                 top--;
         }
 			
-		// while top + bottom > need_total reduce bottom to 0 then reduce top
+		// While top + bottom > need_total reduce bottom to 1 then reduce top
         while( top+bottom > need_total )
         {
-            if( bottom>0 )
+            if( bottom>1 )
                 bottom--;
             else if( top>0 )
                 top--;
@@ -112,48 +123,70 @@ int main( int argc, const char *argv[] )
         // Number of empty lines, may be zero
 		int empty = need_total - (top+bottom);
 
-		// May or may not print all asm lines
-        std::vector<std::string> v;
-        while( have_total > 0 )
+		// Get all .cpp lines for this section
+        std::vector<std::string> vcpp;
+        for( int i=0; i<need_total; i++ )
         {
-            have_total--;
+            std::string line;
+            if( !std::getline(fin1, line) )
+                break;
+            tidy_cpp_line(line);
+            vcpp.push_back(line);
+        }
+
+		// Get all .asm lines for this section
+        std::vector<std::string> vasm;
+        for( int i=0; i<have_total; i++ )
+        {
             std::string line;
             if( !std::getline(fin2, line) )
                 break;
-            line_nbr++;
-            v.push_back(line);
+            line_nbr_in++;
+            vasm.push_back(line);
         }
 
-		// print top from the top of v
+		// Print top from the top of vasm
+        int icpp=0;
         for( int i=0; i<top; i++ )
         {
-            std::string s = v[i];
-            util::putline(fout,s);
+            std::string s = vasm[i];
+            std::string scpp = vcpp[icpp++];
+            util::putline(fout,scpp + "//" + s);
+            line_nbr_out++;
         }
 
-		// print empty lines
+		// Print empty lines
         for( int i=0; i<empty; i++ )
         {
-            util::putline(fout,"");
+            std::string scpp = vcpp[icpp++];
+            util::putline(fout,scpp + "//" );
+            line_nbr_out++;
         }
 
-		// print bottom from the bottom of v
-        int n = (int)v.size();
+		// Print bottom from the bottom of vasm
+        int n = (int)vasm.size();
         for( int i=0; i<bottom; i++ )
         {
-            std::string s = v[n-bottom+i];
-            util::putline(fout,s);
+            std::string s = vasm[n-bottom+i];
+            std::string scpp = vcpp[icpp++];
+            util::putline(fout,scpp + "//" + s);
+            line_nbr_out++;
         }
     }
 
     // Print the last section
     size_t n = cpp_identifiers.size();
-    for( int i=0; i<cpp_identifiers[n-1].nbr_lines; i++ )
+    for( int i=0; n>0 && i<cpp_identifiers[n-1].nbr_lines; i++ )
     {
-        std::string line;
-        if( !std::getline(fin2, line) )
+        std::string line1;
+        if( !std::getline(fin1, line1) )
             break;
-        util::putline(fout,line);
+        tidy_cpp_line(line1);
+        std::string line2;
+        if( !std::getline(fin2, line2) )
+            break;
+        util::putline(fout,line1 + "//" + line2);
+        line_nbr_out++;
     }
     return 0;
 }
@@ -162,7 +195,7 @@ struct Waypoint
 {
 	const char *name;
 	bool skip_cpp_first;
-	bool skip_asm;
+	bool is_func;
 };
 
 Waypoint waypoints[] =
@@ -225,42 +258,41 @@ Waypoint waypoints[] =
 	{ "MV0",      false, false },
 	{ "PTSCK",    false, false },
 	{ "BMOVES",   false, false },
-	{ "LINECT",   false, true  },
 	{ "ML",       false, false },
 	{ "MLEND",    false, false },
-	{ "INITBD",   true,  false },
-	{ "PATH",     false, false },
-	{ "MPIECE",   false, false },
-	{ "ENPSNT",   false, false },
-	{ "ADJPTR",   false, false },
-	{ "CASTLE",   false, false },
-	{ "ADMOVE",   false, false },
-	{ "GENMOV",   false, false },
-	{ "INCHK",    false, false },
-	{ "INCHK1",   false, false },
-	{ "ATTACK",   false, false },
-	{ "ATKSAV",   false, false },
-	{ "PNCK",     false, false },
-	{ "PINFND",   false, false },
-	{ "XCHNG",    false, false },
-	{ "NEXTAD",   false, false },
-	{ "POINTS",   false, false },
-	{ "LIMIT",    false, false },
-	{ "MOVE",     false, false },
-	{ "UNMOVE",   false, false },
-	{ "SORTM",    false, false },
-	{ "EVAL",     false, false },
-	{ "FNDMOV",   false, false },
-	{ "ASCEND",   false, false },
-	{ "BOOK",     false, false },
-	{ "CPTRMV",   false, false },
-	{ "BITASN",   false, false },
-	{ "ASNTBI",   false, false },
-	{ "VALMOV",   false, false },
-	{ "ROYALT",   false, false },
-	{ "DIVIDE",   false, false },
-	{ "MLTPLY",   false, false },
-	{ "EXECMV",   false, false },
+	{ "INITBD",   true,  true  },
+	{ "PATH",     false, true  },
+	{ "MPIECE",   false, true  },
+	{ "ENPSNT",   false, true  },
+	{ "ADJPTR",   false, true  },
+	{ "CASTLE",   false, true  },
+	{ "ADMOVE",   false, true  },
+	{ "GENMOV",   false, true  },
+	{ "INCHK",    false, true  },
+	{ "INCHK1",   false, true  },
+	{ "ATTACK",   false, true  },
+	{ "ATKSAV",   false, true  },
+	{ "PNCK",     false, true  },
+	{ "PINFND",   false, true  },
+	{ "XCHNG",    false, true  },
+	{ "NEXTAD",   false, true  },
+	{ "POINTS",   false, true  },
+	{ "LIMIT",    false, true  },
+	{ "MOVE",     false, true  },
+	{ "UNMOVE",   false, true  },
+	{ "SORTM",    false, true  },
+	{ "EVAL",     false, true  },
+	{ "FNDMOV",   false, true  },
+	{ "ASCEND",   false, true  },
+	{ "BOOK",     false, true  },
+	{ "CPTRMV",   false, true  },
+	{ "BITASN",   false, true  },
+	{ "ASNTBI",   false, true  },
+	{ "VALMOV",   false, true  },
+	{ "ROYALT",   false, true  },
+	{ "DIVIDE",   false, true  },
+	{ "MLTPLY",   false, true  },
+	{ "EXECMV",   false, true  },
 	{ NULL,       false, false },
 };
 
@@ -302,7 +334,7 @@ void cpp_process( std::ifstream &fin, std::vector<Identifier> &cpp_identifiers )
             {
                 Identifier identifier;
                 identifier.name = w->name;
-                identifier.line_nbr = line_nbr;
+                identifier.line_nbr = w->is_func ? line_nbr+1 : line_nbr;
                 cpp_identifiers.push_back(identifier);
                 size_t n = cpp_identifiers.size();
                 if( n >= 2 && cpp_identifiers[n-2].nbr_lines == 0 )
@@ -341,8 +373,6 @@ void asm_process( std::ifstream &fin, std::vector<Identifier> &asm_identifiers )
             identifier.nbr_proceeding_comment_lines = nbr_proceeding_comment_lines;
             asm_identifiers.push_back(identifier);
             w++;
-            if( w->skip_asm )
-                w++;
         }
         size_t offset = line.find_first_not_of(" \t");
         bool is_comment = (offset == std::string::npos || line[offset]==';' );
@@ -357,66 +387,43 @@ void asm_process( std::ifstream &fin, std::vector<Identifier> &asm_identifiers )
     }
 }
 
-
-#if 0
-        if( line.length() <= 2 )
+void tidy_cpp_line( std::string &line )
+{
+    const int COL_COMMENT = 40;
+    const int COL_Z80_ASM = 68;
+    util::rtrim(line);
+    size_t offset = line.find("//");
+    if( offset==std::string::npos || offset==0 )
+        ;
+    else if( offset == COL_COMMENT )
+        ;
+    else if( offset > COL_COMMENT )
+    {
+        std::string slice = line.substr(COL_COMMENT,offset-COL_COMMENT);
+        bool all_spaces = (std::string::npos == slice.find_first_not_of(" \t") );
+        if( all_spaces )
         {
-            util::putline(fout,line);
-            continue;
+            std::string start = line.substr(0,COL_COMMENT);
+            std::string end   = line.substr(offset);
+            line = start + end;
         }
-        size_t offset = line.find(";");
-        bool have_semi = (offset!=std::string::npos);
-        size_t offset2 = line.find("//");
-        bool have_comment = (offset2!=std::string::npos);
-        bool modify = have_semi && !have_comment;
-        if( !modify )
-        {
-            // Actually I lied, modify it if it ends in ")"
-            util::rtrim(line);
-            size_t len = line.length();
-            bool trim_func_end_whitespace = util::suffix(line,")");
-            if( trim_func_end_whitespace )
-            {
-                line = line.substr(0,len-1);  // remove end ")"
-                util::rtrim(line);            // remove space
-                line += ");";                 // put back ")" + ";"
-            }
-            util::putline(fout,line);
-            continue;
-        }
-        std::string start_of_line = line.substr(0,offset);
-        std::string end_of_line   = line.substr(offset+1);
-        util::rtrim(start_of_line);
-        size_t len = start_of_line.length();
-        if( len == 0 )
-        {
-            line.clear();
-            line += "//";
-            line += end_of_line;
-        }
-        else
-        {
-            bool trim_func_end_whitespace = util::suffix(start_of_line,")");
-            if( trim_func_end_whitespace )
-            {
-                start_of_line = start_of_line.substr(0,len-1);  // remove end ")"
-                util::rtrim(start_of_line);                     // remove space
-                start_of_line += ")";                           // put back ")"
-            }
-            start_of_line += "; ";
-            len = start_of_line.length();
-            while( len < COL_COMMENT )
-            {
-                start_of_line += " ";
-                len++;
-            }
-            line = start_of_line;
-            line += "// ";
-            line += end_of_line;
-        }
-        util::rtrim(line);
-        util::putline(fout,line);
     }
-
+    else if( offset < COL_COMMENT )
+    {
+        std::string slice = line.substr(offset,COL_COMMENT);
+        if( slice.length() >= 2 )
+            slice = slice.substr(2);        // slice starts with "//" unless it's very short
+        else if( slice.length() >= 1 )
+            slice = slice.substr(1);
+        bool all_spaces = (std::string::npos == slice.find_first_not_of(" \t") );
+        if( all_spaces )
+        {
+            std::string start = line.substr(0,offset);
+            std::string end   = line.substr(offset);
+            line = start + slice + end;
+        }
+    }
+    while( line.length() < COL_Z80_ASM )
+        line += " ";
+    return;
 }
-#endif
