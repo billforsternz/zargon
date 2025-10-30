@@ -68,7 +68,7 @@ struct z80_registers
 #define LD(dst,src)     (dst) = (src)
 #define addr(var)       offsetof(emulated_memory,var)
 //#define chk(var)        offsetof(emulated_memory,var)
-#define chk(var)        *((uint16_t *)(&mem.var))
+#define val16(var)        *((uint16_t *)(&mem.var))
 #define val(var)        *((uint8_t *)(&mem.var))
 #define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
 #define INC(x)          Z=(x+1==0), C==((uint16_t)(x)+1>=0x100), M=((int8_t)((int8_t)(x)+1) < 0), (x) = (x)+1
