@@ -49,7 +49,7 @@ struct z80_registers
     static uint16_t  ex_bc,ex_de,ex_hl;  \
     static uint16_t  ex_af;              \
     static uint16_t  ex_temp;            \
-    static bool      Z,C,M,PE;           \
+    static bool      Z,C,M,PO;           \
     static uint16_t  stack[128];         \
     static uint16_t  sp = 128;           \
     static uint8_t   nib1,nib2,nib3,nib4 \
@@ -57,6 +57,7 @@ struct z80_registers
 #define NZ (!Z)
 #define NC (!C)
 #define P  (!M)
+#define PE (!PO)
 #define a  (r.A)
 #define b  (r.B)
 #define c  (r.C)
@@ -97,14 +98,13 @@ struct z80_registers
 #define JRu(label)      goto label
 #define JPu(label)      goto label
 #define CALLu(func)     (func)()
-#define FLAGS_IN        r.F = ((C?1:0) + (Z?2:0) + (M?4:0) + (PE?8:0)) 
-#define FLAGS_OUT       PE=((r.F&8)==8), M=((r.F&4)==4), Z=((r.F&2)==2), C=((r.F&1)==1) 
+#define FLAGS_IN        r.F = ((C?1:0) + (Z?2:0) + (M?4:0) + (PO?8:0)) 
+#define FLAGS_OUT       PO=((r.F&8)==8), M=((r.F&4)==4), Z=((r.F&2)==2), C=((r.F&1)==1) 
 #define PUSHf(x)        FLAGS_IN, stack[--sp] = (x)
 #define POPf(x)         (x) = stack[sp++], FLAGS_OUT
 #define PUSH(x)         stack[--sp] = (x)
 #define POP(x)          (x) = stack[sp++]
 #define Z80_EXAF        FLAGS_IN, EX(af,ex_af), FLAGS_OUT
-#define Z80_CPIR
 #define NIB_OUT(x,hi,lo)  hi=(((x)>>4)&0x0f), lo=((x)&0x0f)
 #define NIB_IN(x,hi,lo)   x = (((hi)<<4)&0xf0)|(lo)
 #define RLD               NIB_OUT(a,nib1,nib2), NIB_OUT(ptr(hl),nib3,nib4), \
@@ -145,5 +145,34 @@ struct z80_registers
                            case 2: Z = ((reg)&0x04)==0; break; \
                            case 1: Z = ((reg)&0x02)==0; break; \
                            case 0: Z = ((reg)&0x01)==0; break; }
+
+// Z80_CPIR MACRO
+// ;CPIR reference, from the Zilog Z80 Users Manual
+// ;A - (HL), HL => HL+1, BC => BC - 1
+// ;If decrementing causes BC to go to 0 or if A = (HL), the instruction is terminated.
+// ;P/V is set if BC - 1 does not equal 0; otherwise, it is reset.
+// ;
+// ;So result of the subtraction discarded, but flags are set, (although CY unaffected).
+// ;*BUT* P flag (P/V flag in Z80 parlance as it serves double duty as an overflow
+// ;flag after some instructions in that CPU) reflects the result of decrementing BC
+// ;rather than A - (HL)
+// ;
+// ;We support reflecting the result in the Z and P flags. The possibilities are
+// ;Z=1 P=1 (Z and PE)  -> first match found, counter hasn't expired
+// ;Z=1 P=0 (Z and PO)  -> match found in last position, counter has expired
+// ;Z=0 P=0 (NZ and PO) -> no match found, counter has expired
+#define Z80_CPIR do {               \
+        bool found = false;         \
+        while( !found )             \
+        {                           \
+            found = (a == ptr(hl)); \
+            hl++;                   \
+            bc--;                   \
+            if( bc == 0 )           \
+                break;              \
+        }                           \
+        PO = (bc==0);               \
+        Z  = found;                 \
+    } while(0)
 
 #endif // Z80_MACROS_H_INCLUDED
