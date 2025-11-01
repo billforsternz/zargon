@@ -44,31 +44,37 @@ struct z80_registers
     uint16_t IY;
 };
 
-#define Z80_REGISTERS z80_registers r; bool Z,C,M,PE; uint16_t ex_temp
-#define NZ !Z
-#define NC !C
-#define P  !M
-#define a r.A
-#define b r.B
-#define c r.C
-#define d r.D
-#define e r.E
-#define h r.H
-#define l r.L
-#define af r.AF
-#define bc r.BC
-#define de r.DE
-#define hl r.HL
-#define ix r.IX
-#define iy r.IY
+#define Z80_REGISTERS                    \
+    static z80_registers   r;            \
+    static uint16_t  ex_bc,ex_de,ex_hl;  \
+    static uint16_t  ex_af;              \
+    static uint16_t  ex_temp;            \
+    static bool      Z,C,M,PE;           \
+    static uint16_t  stack[128];         \
+    static uint16_t  sp = 128;           \
+    static uint8_t   nib1,nib2,nib3,nib4 \
+
+#define NZ (!Z)
+#define NC (!C)
+#define P  (!M)
+#define a  (r.A)
+#define b  (r.B)
+#define c  (r.C)
+#define d  (r.D)
+#define e  (r.E)
+#define h  (r.H)
+#define l  (r.L)
+#define af (r.AF)
+#define bc (r.BC)
+#define de (r.DE)
+#define hl (r.HL)
+#define ix (r.IX)
+#define iy (r.IY)
 
 // Emulate OPCODES with macros
-#define FUNC_BEGIN(func)    void func() {
-#define FUNC_END            }
 #define LD(dst,src)     (dst) = (src)
 #define addr(var)       offsetof(emulated_memory,var)
-//#define chk(var)        offsetof(emulated_memory,var)
-#define val16(var)        *((uint16_t *)(&mem.var))
+#define val16(var)      *((uint16_t *)(&mem.var))
 #define val(var)        *((uint8_t *)(&mem.var))
 #define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
 #define INC(x)          Z=(x+1==0), C==((uint16_t)(x)+1>=0x100), M=((int8_t)((int8_t)(x)+1) < 0), (x) = (x)+1
@@ -91,22 +97,53 @@ struct z80_registers
 #define JRu(label)      goto label
 #define JPu(label)      goto label
 #define CALLu(func)     (func)()
-#define PUSH(x)
-#define POP(x)
-#define Z80_EXAF        
+#define FLAGS_IN        r.F = ((C?1:0) + (Z?2:0) + (M?4:0) + (PE?8:0)) 
+#define FLAGS_OUT       PE=((r.F&8)==8), M=((r.F&4)==4), Z=((r.F&2)==2), C=((r.F&1)==1) 
+#define PUSHf(x)        FLAGS_IN, stack[--sp] = (x)
+#define POPf(x)         (x) = stack[sp++], FLAGS_OUT
+#define PUSH(x)         stack[--sp] = (x)
+#define POP(x)          (x) = stack[sp++]
+#define Z80_EXAF        FLAGS_IN, EX(af,ex_af), FLAGS_OUT
 #define Z80_CPIR
-#define RLD        
-#define RRD        
-#define EXX        
-#define SLA(x)        Z=(((x)<<1)==0), C=( ((x)&0x80) != 0 ), (x)=(x<<1)
-#define SRA(x)        Z=(((x)>>1)==0), C=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2))
-#define SRL(x)        Z=(((x)>>1)==0), C=( ((x)&0x01) != 0 ), (x)=(x>>1)
-#define RLA(x)        Z=(((x)<<1)==0), C=( ((x)&0x80) != 0 ), (x)=((x<<1)+(C?0x01:0))
-#define RR(x)         Z=((x)==0),      C=( ((x)&0x01) != 0 ), (x)=((x>>1)+(C?0x80:0))
+#define NIB_OUT(x,hi,lo)  hi=(((x)>>4)&0x0f), lo=((x)&0x0f)
+#define NIB_IN(x,hi,lo)   x = (((hi)<<4)&0xf0)|(lo)
+#define RLD               NIB_OUT(a,nib1,nib2), NIB_OUT(ptr(hl),nib3,nib4), \
+                          NIB_IN (a,nib1,nib3), NIB_IN (ptr(hl),nib4,nib2)
+#define RRD               NIB_OUT(a,nib1,nib2), NIB_OUT(ptr(hl),nib3,nib4), \
+                          NIB_IN(a,nib1,nib4),  NIB_IN(ptr(hl),nib2,nib3)
+#define EXX               EX(bc,ex_bc), EX(de,ex_de), EX(hl,ex_hl)
+#define SLA(x)            C=( ((x)&0x80) != 0 ), (x)=(x<<1),                       Z=((x)==0)
+#define SRA(x)            C=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2)), Z=((x)==0)
+#define SRL(x)            C=( ((x)&0x01) != 0 ), (x)=(x>>1),                       Z=((x)==0)
+#define RLA(x)            C=( ((x)&0x80) != 0 ), (x)=((x<<1)+(C?0x01:0)),          Z=((x)==0)
+#define RR(x)             C=( ((x)&0x01) != 0 ), (x)=((x>>1)+(C?0x80:0)),          Z=((x)==0)
+#define SET(bit_nbr,reg ) switch(bit_nbr) {\
+                           case 7: (reg)|=0x80; break; \
+                           case 6: (reg)|=0x40; break; \
+                           case 5: (reg)|=0x20; break; \
+                           case 4: (reg)|=0x10; break; \
+                           case 3: (reg)|=0x08; break; \
+                           case 2: (reg)|=0x04; break; \
+                           case 1: (reg)|=0x02; break; \
+                           case 0: (reg)|=0x01; break; }
+#define RES(bit_nbr,reg ) switch(bit_nbr) {\
+                           case 7: (reg)&=0x7f; break; \
+                           case 6: (reg)&=0xb0; break; \
+                           case 5: (reg)&=0xd0; break; \
+                           case 4: (reg)&=0xe0; break; \
+                           case 3: (reg)&=0xf7; break; \
+                           case 2: (reg)&=0xfb; break; \
+                           case 1: (reg)&=0xfd; break; \
+                           case 0: (reg)&=0xfe; break; }
 
-// Emulate OPCODES with functions
-void SET( uint8_t bit_nbr, uint8_t &reg );
-void RES( uint8_t bit_nbr, uint8_t &reg );
-void BIT( uint8_t bit_nbr, uint8_t &reg );
+#define BIT(bit_nbr,reg ) switch(bit_nbr) {\
+                           case 7: Z = ((reg)&0x80)==0; break; \
+                           case 6: Z = ((reg)&0x40)==0; break; \
+                           case 5: Z = ((reg)&0x20)==0; break; \
+                           case 4: Z = ((reg)&0x10)==0; break; \
+                           case 3: Z = ((reg)&0x08)==0; break; \
+                           case 2: Z = ((reg)&0x04)==0; break; \
+                           case 1: Z = ((reg)&0x02)==0; break; \
+                           case 0: Z = ((reg)&0x01)==0; break; }
 
 #endif // Z80_MACROS_H_INCLUDED

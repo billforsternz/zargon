@@ -25,7 +25,7 @@
 #define KING    6                                                          //0021: KING    EQU     6
 #define WHITE   0                                                          //0022: WHITE   EQU     0
 #define BLACK   0x80                                                       //0023: BLACK   EQU     80H
-#define BPAWN   BLACK+PAWN                                                 //0024: BPAWN   EQU     BLACK+PAWN
+#define BPAWN   (BLACK+PAWN)                                               //0024: BPAWN   EQU     BLACK+PAWN
                                                                            //0025: 
 //                                                                         //0026: ;***********************************************************
 // 1) TABLES                                                               //0027: ; TABLES SECTION
@@ -194,7 +194,7 @@ uint8_t pieces[8] = {                                                      //013
 //                     7 -- Not used                                       //0170: ;                     7 -- Not used
 //                     0 -- Empty Square                                   //0171: ;                     0 -- Empty Square
 //***********************************************************              //0172: ;***********************************************************
-#define BOARD addr(BOARDA)                                                 //0173: BOARD   EQU     $-TBASE
+#define BOARD (addr(BOARDA)-TBASE)                                         //0173: BOARD   EQU     $-TBASE
 uint8_t BOARDA[120];                                                       //0174: BOARDA  DS      120
                                                                            //0175: 
                                                                            //0176: ;***********************************************************
@@ -256,10 +256,10 @@ int8_t padding2 = -1;                                                      //021
 //             hold the scores at each ply. It includes two
 //             "dummy" entries for ply -1 and ply 0.
 //***********************************************************
-uint16_t    SCORE[6] = {                                                   //0220: SCORE   DW      0,0,0,0,0,0     ;Z80 max 6 ply
-    0,0,0,0,0,0                         // Z80 max 6 ply                   //0221: 
-};                                                                         //0222: ;***********************************************************
-                                                                           //0223: ; PLYIX   --  Ply Table. Contains pairs of pointers, a pair
+uint16_t    SCORE[20] = {                                                  //0220: SCORE   DW      0,0,0,0,0,0     ;Z80 max 6 ply
+    0,0,0,0,0,0,0,0,0,0,                // Z80 max 6 ply                   //0221: 
+    0,0,0,0,0,0,0,0,0,0                 // x86 max 20 ply                  //0222: ;***********************************************************
+};                                                                         //0223: ; PLYIX   --  Ply Table. Contains pairs of pointers, a pair
                                                                            //0224: ;             for each ply. The first pointer points to the
 //***********************************************************              //0225: ;             top of the list of possible moves at that ply.
 // PLYIX   --  Ply Table. Contains pairs of pointers, a pair
@@ -1268,7 +1268,7 @@ PC1:    Z80_CPIR;                       //  Search list for position       //110
 PC3:    Z80_EXAF;                       //  Restore search parameters      //1121: PC3:    EX      af,af'          ; Restore search parameters
         JP      (PE,PC1);               //  Jump if search not complete    //1122:         JP      PE,PC1          ; Jump if search not complete
         RETu;                           //  Return                         //1123:         RET                     ; Return
-PC5:    POP     (af);                   //  Abnormal exit                  //1124: PC5:    POP     af              ; Abnormal exit
+PC5:    POPf    (af);                   //  Abnormal exit                  //1124: PC5:    POP     af              ; Abnormal exit
         POP     (de);                   //  Restore regs.                  //1125:         POP     de              ; Restore regs.
         POP     (bc);                                                      //1126:         POP     bc
         RETu;                           //  Return to ATTACK               //1127:         RET                     ; Return to ATTACK
@@ -2154,7 +2154,7 @@ rel019: LD      (hl,val16(SCRIX));      //  Load score table index         //195
 // ARGUMENTS:  --  None                                                    //1983: ;
 //***********************************************************              //1984: ; ARGUMENTS:  --  None
 void BOOK() {                                                              //1985: ;***********************************************************
-        POP     (af);                   //  Abort return to FNDMOV         //1986: BOOK:   POP     af              ; Abort return to FNDMOV
+        POPf    (af);                   //  Abort return to FNDMOV         //1986: BOOK:   POP     af              ; Abort return to FNDMOV
         LD      (hl,addr(SCORE)+1);     //  Zero out score                 //1987:         LD      hl,SCORE+1      ; Zero out score
         LD      (ptr(hl),0);            //  Zero out score table           //1988:         LD      (hl),0          ; Zero out score table
         LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book     //1989:         LD      hl,BMOVES-2     ; Init best move ptr to book
@@ -2533,7 +2533,7 @@ rel025: SRA     (a);                    //                                 //321
 //***********************************************************              //3298: ;                 above.
 void EXECMV() {                                                            //3299: ;***********************************************************
         PUSH    (ix);                   //  Save registers                 //3300: EXECMV: PUSH    ix              ; Save registers
-        PUSH    (af);                   //                                 //3301:         PUSH    af
+        PUSHf   (af);                   //                                 //3301:         PUSH    af
         LD      (ix,val16(MLPTRJ));     //  Index into move list           //3302:         LD      ix,(MLPTRJ)     ; Index into move list
         LD      (c,ptr(ix+MLFRP));      //  Move list "from" position      //3303:         LD      c,(ix+MLFRP)    ; Move list "from" position
         LD      (e,ptr(ix+MLTOP));      //  Move list "to" position        //3304:         LD      e,(ix+MLTOP)    ; Move list "to" position
@@ -2561,7 +2561,7 @@ EX08:   CP      (0x60);                 //  Black 0-0 ?                    //332
         JRu     (EX10);                 //  Jump                           //3326:         JR      EX10            ; Jump
 EX0C:   SET     (2,b);                  //  Set 0-0-0 flag                 //3327: EX0C:   SET     2,b             ; Set 0-0-0 flag
 EX10:   CALLu   (MAKEMV);               //  Make 2nd move on board         //3328: EX10:   CALL    MAKEMV          ; Make 2nd move on board
-EX14:   POP     (af);                   //  Restore registers              //3329: EX14:   POP     af              ; Restore registers
+EX14:   POPf    (af);                   //  Restore registers              //3329: EX14:   POP     af              ; Restore registers
         POP     (ix);                   //                                 //3330:         POP     ix
         RETu;                           //  Return                         //3331:         RET                     ; Return
 }                                                                          //3332: 
