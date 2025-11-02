@@ -2569,3 +2569,19 @@ EX14:   POPf    (af);                   //  Restore registers              //332
 }                                                                          //3332: 
                                                                            //3333: ;***********************************************************
 //                                                                         //3334: ; MAKE MOVE SUBROUTINE
+
+
+// Temporary tests
+
+int main( int argc, const char *argv[] )
+{
+    INITBD();
+    CPTRMV();
+    printf( "%c%c%c%c%c\n", mem.MVEMSG[0], mem.MVEMSG[1], mem.MVEMSG[2], mem.MVEMSG[3], mem.MVEMSG[4] );
+    return 0;
+}
+
+uint8_t rand()
+{
+    return 0;
+}

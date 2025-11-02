@@ -91,7 +91,7 @@ struct z80_registers
 #define SBC(x)          C==((x+(C?1:0))>a),                                a-=(x+(C?1:0)),   M=(((x)&0x80)==0x80),     Z=((x)==0)
 // #define SUB16(x,y)      // No such instruction
 #define SBC16(x,y)      C==((y+(C?1:0))>(x)),                              (x)-=(y+(C?1:0)), M=(((x)&0x8000)==0x8000), Z=((x)==0)
-#define CP(x)           C==((x)>a),                                                          M=(((a-(x))&0x80)==0x80), Z=((a-(x))==0)
+#define CP(x)           C==(((uint8_t)x)>a),                                                 M=(((a-((uint8_t)x))&0x80)==0x80), Z=((a-((uint8_t)x))==0)
 #define NEG             Z=(a==0),  C==(a!=0), a = (int8_t)(0 - (int8_t)a),                   M=(((a)&0x80)==0x80)
 #define AND(x)          C==false, a = a&(x), M=(((x)&0x80)==0x80), Z=((x)==0)
 #define OR(x)           C==false, a = a|(x), M=(((x)&0x80)==0x80), Z=((x)==0)
