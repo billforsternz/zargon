@@ -987,7 +987,7 @@ GM5:    LD      (val(M1),a);            //  Save as index                  //084
         CP      (-1);                   //  Is it a border square ?        //0852:         CP      -1              ; Is it a border square ?
         JR      (Z,GM10);               //  Yes - Jump                     //0853:         JR      Z,GM10          ; Yes - Jump
         LD      (val(P1),a);            //  Save piece                     //0854:         LD      (P1),a          ; Save piece
-        LD      (hl,val(COLOR));        //  Address of color of piece      //0855:         LD      hl,COLOR        ; Address of color of piece
+        LD      (hl,addr(COLOR));       //  Address of color of piece      //0855:         LD      hl,COLOR        ; Address of color of piece
         XOR     (ptr(hl));              //  Test color of piece            //0856:         XOR     (hl)            ; Test color of piece
         BIT     (7,a);                  //  Match ?                        //0857:         BIT     7,a             ; Match ?
         CALL    (Z,MPIECE);             //  Yes - call Move Piece          //0858:         CALL    Z,MPIECE        ; Yes - call Move Piece
@@ -1553,7 +1553,7 @@ back04: LD      (ptr(hl),a);            //                                 //139
         INC16   (hl);                   //                                 //1398:         INC     hl
         DJNZ    (back04);               //                                 //1399:         DJNZ    back04
         CALLu   (ATTACK);               //  Build attack list for square   //1400:         CALL    ATTACK          ; Build attack list for square
-        LD      (hl,BACT);        //  Get black attacker count addr        //1401:         LD      hl,BACT         ; Get black attacker count addr
+        LD      (hl,BACT);              //  Get black attacker count addr  //1401:         LD      hl,BACT         ; Get black attacker count addr
         LD      (a,val(wact));          //  Get white attacker count       //1402:         LD      a,(WACT)        ; Get white attacker count
         SUB     (ptr(hl));              //  Compute count difference       //1403:         SUB     (hl)            ; Compute count difference
         LD      (hl,addr(BRDC));        //  Address of board control       //1404:         LD      hl,BRDC         ; Address of board control
@@ -1568,7 +1568,7 @@ back04: LD      (ptr(hl),a);            //                                 //139
         JR      (Z,PT23);               //  No - Jump                      //1413:         JR      Z,PT23          ; No - Jump
         DEC     (d);                    //  Deduct half a Pawn value       //1414:         DEC     d               ; Deduct half a Pawn value
         LD      (a,val(P1));            //  Get piece under attack         //1415:         LD      a,(P1)          ; Get piece under attack
-        LD      (hl,val(COLOR));        //  Color of side just moved       //1416:         LD      hl,COLOR        ; Color of side just moved
+        LD      (hl,addr(COLOR));        //  Color of side just moved       //1416:         LD      hl,COLOR        ; Color of side just moved
         XOR     (ptr(hl));              //  Compare with piece             //1417:         XOR     (hl)            ; Compare with piece
         BIT     (7,a);                  //  Do colors match ?              //1418:         BIT     7,a             ; Do colors match ?
         LD      (a,e);                  //  Points lost                    //1419:         LD      a,e             ; Points lost
@@ -2185,7 +2185,7 @@ BM5:    INC     (ptr(hl));              //  Increment to black moves       //200
         CP      (34);                   //  Is it a Queen Pawn ?           //2014:         CP      34              ; Is it a Queen Pawn ?
         JR      (Z,BM9);                //  Yes - jump                     //2015:         JR      Z,BM9           ; Yes - jump
         RET     (C);                    //  If Queen side Pawn opening -   //2016:         RET     C               ; If Queen side Pawn opening -
-// return (P-K4)                                                           //2017:                                 ; return (P-K4)
+                                        //  return (P-K4)                  //2017:                                 ; return (P-K4)
         CP      (35);                   //  Is it a King Pawn ?            //2018:         CP      35              ; Is it a King Pawn ?
         RET     (Z);                    //  Yes - return (P-K4)            //2019:         RET     Z               ; Yes - return (P-K4)
 BM9:    INC     (ptr(hl));              //  (P-Q4)                         //2020: BM9:    INC     (hl)            ; (P-Q4)
@@ -2451,8 +2451,8 @@ rel023: AND     (7);                    //  Delete flags, leave piece      //295
         JR      (Z,RY08);               //  Yes - jump                     //2959:         JR      Z,RY08          ; Yes - jump
         CP      (QUEEN);                //  Queen ?                        //2960:         CP      QUEEN           ; Queen ?
         JR      (NZ,RY0C);              //  No - jump                      //2961:         JR      NZ,RY0C         ; No - jump
-        INC     (ptr(hl));              //  Queen position                 //2962:         INC     hl              ; Queen position
-        INC     (ptr(hl));              //  Plus offset                    //2963:         INC     hl              ; Plus offset
+        INC16   (hl);                   //  Queen position                 //2962:         INC     hl              ; Queen position
+        INC16   (hl);                   //  Plus offset                    //2963:         INC     hl              ; Plus offset
 RY08:   LD      (a,val(M1));            //  Index                          //2964: RY08:   LD      a,(M1)          ; Index
         LD      (ptr(hl),a);            //  Save                           //2965:         LD      (hl),a          ; Save
 RY0C:   LD      (a,val(M1));            //  Current position               //2966: RY0C:   LD      a,(M1)          ; Current position
@@ -2543,7 +2543,7 @@ void EXECMV() {                                                            //329
         BIT     (6,d);                  //  Double move ?                  //3308:         BIT     6,d             ; Double move ?
         JR      (Z,EX14);               //  No - jump                      //3309:         JR      Z,EX14          ; No - jump
         LD      (de,6);                 //  Move list entry width          //3310:         LD      de,6            ; Move list entry width
-        ADD     (ix,de);                //  Increment MLPTRJ               //3311:         ADD     ix,de           ; Increment MLPTRJ
+        ADD16   (ix,de);                //  Increment MLPTRJ               //3311:         ADD     ix,de           ; Increment MLPTRJ
         LD      (c,ptr(ix+MLFRP));      //  Second "from" position         //3312:         LD      c,(ix+MLFRP)    ; Second "from" position
         LD      (e,ptr(ix+MLTOP));      //  Second "to" position           //3313:         LD      e,(ix+MLTOP)    ; Second "to" position
         LD      (a,e);                  //  Get "to" position              //3314:         LD      a,e             ; Get "to" position
