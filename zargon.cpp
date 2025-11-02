@@ -177,7 +177,7 @@ uint8_t pieces[8] = {                                                      //013
 //             moves off the board. The individual bits of                 //0153: ;             moves off the board. The individual bits of
 //             the other bytes in the board array are as                   //0154: ;             the other bytes in the board array are as
 //             follows:                                                    //0155: ;             follows:
-//             Bit 7 -- val(COLOR) of the piece                            //0156: ;             Bit 7 -- Color of the piece
+//             Bit 7 -- Color of the piece                                 //0156: ;             Bit 7 -- Color of the piece
 //                     1 -- Black                                          //0157: ;                     1 -- Black
 //                     0 -- White                                          //0158: ;                     0 -- White
 //             Bit 6 -- Not used                                           //0159: ;             Bit 6 -- Not used
@@ -336,10 +336,10 @@ uint16_t MLNXT   =      addr(MLIST);                                       //028
 //***********************************************************
 // VARIABLES SECTION                                                       //0292: ; VARIABLES SECTION
 //                                                                         //0293: ;
-// KOLOR   --  Indicates computer's val(COLOR). White is 0, and            //0294: ; KOLOR   --  Indicates computer's color. White is 0, and
+// KOLOR   --  Indicates computer's color. White is 0, and                 //0294: ; KOLOR   --  Indicates computer's color. White is 0, and
 //             Black is 80H.                                               //0295: ;             Black is 80H.
 //                                                                         //0296: ;
-// COLOR   --  Indicates val(COLOR) of the side with the move.             //0297: ; COLOR   --  Indicates color of the side with the move.
+// COLOR   --  Indicates color of the side with the move.                  //0297: ; COLOR   --  Indicates color of the side with the move.
 //                                                                         //0298: ;
 // P1-P3   --  Working area to hold the contents of the board              //0299: ; P1-P3   --  Working area to hold the contents of the board
 //             array for a given square.                                   //0300: ;             array for a given square.
@@ -453,7 +453,7 @@ uint8_t LINECT = 0;                                                        //038
 // MLFLG   --  A field in the move entry which contains flag               //0408: ;             Bit 4  --  When set, this flag indicates that
 //             information. The meaning of each bit is as                  //0409: ;                        this is the first move for the
 //             follows:                                                    //0410: ;                        piece on the move.
-//             Bit 7  --  The val(COLOR) of any captured piece             //0411: ;             Bit 3  --  This flag is set is there is a piece
+//             Bit 7  --  The color of any captured piece                  //0411: ;             Bit 3  --  This flag is set is there is a piece
 //                        0 -- White                                       //0412: ;                        captured, and that piece has moved at
 //                        1 -- Black                                       //0413: ;                        least once.
 //             Bit 6  --  Double move flag (set for castling and           //0414: ;             Bits 2-0   Describe the captured piece.  A
@@ -565,7 +565,7 @@ void INITBD() {                                                            //044
         LD      (b,120);                //  Pre-fill board with -1's       //0449: INITBD: LD      b,120           ; Pre-fill board with -1's
         LD      (hl,addr(BOARDA));                                         //0450:         LD      hl,BOARDA
 back01: LD      (ptr(hl),-1);                                              //0451: back01: LD      (hl),-1
-        INC     (hl);                                                      //0452:         INC     hl
+        INC16   (hl);                                                      //0452:         INC     hl
         DJNZ    (back01);                                                  //0453:         DJNZ    back01
         LD      (b,8);                                                     //0454:         LD      b,8
         LD      (ix,addr(BOARDA));                                         //0455:         LD      ix,BOARDA
@@ -579,7 +579,7 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
         LD      (ptr(ix+51),0);                                            //0463:         LD      (ix+51),0
         LD      (ptr(ix+61),0);                                            //0464:         LD      (ix+61),0
         LD      (ptr(ix+71),0);                                            //0465:         LD      (ix+71),0
-        INC     (ix);                                                      //0466:         INC     ix
+        INC16   (ix);                                                      //0466:         INC     ix
         DJNZ    (IB2);                                                     //0467:         DJNZ    IB2
         LD      (ix,addr(POSK));        //  Init King/Queen position list  //0468:         LD      ix,POSK         ; Init King/Queen position list
         LD      (ptr(ix+0),25);                                            //0469:         LD      (ix+0),25
@@ -601,9 +601,9 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
 //                contents:                                                //0482: ;                position, and setting a flag describing the
 //                          0  --  New position is empty                   //0483: ;                contents:
 //                          1  --  Encountered a piece of the              //0484: ;                          0  --  New position is empty
-//                                 opposite val(COLOR)                     //0485: ;                          1  --  Encountered a piece of the
+//                                 opposite color                          //0485: ;                          1  --  Encountered a piece of the
 //                          2  --  Encountered a piece of the              //0486: ;                                 opposite color
-//                                 same val(COLOR)                         //0487: ;                          2  --  Encountered a piece of the
+//                                 same color                              //0487: ;                          2  --  Encountered a piece of the
 //                          3  --  New position is off the                 //0488: ;                                 same color
 //                                 board                                   //0489: ;                          3  --  New position is off the
 //                                                                         //0490: ;                                 board
@@ -634,9 +634,9 @@ void PATH() {                                                              //050
         XOR     (ptr(hl));              //  Compare                        //0515:         XOR     (hl)            ; Compare
         BIT     (7,a);                  //  Do colors match ?              //0516:         BIT     7,a             ; Do colors match ?
         JR      (Z,PA1);                //  Yes - jump                     //0517:         JR      Z,PA1           ; Yes - jump
-        LD      (a,1);                  //  Set different val(COLOR) flag  //0518:         LD      a,1             ; Set different color flag
+        LD      (a,1);                  //  Set different color flag       //0518:         LD      a,1             ; Set different color flag
         RETu;                           //  Return                         //0519:         RET                     ; Return
-PA1:    LD      (a,2);                  //  Set same val(COLOR) flag       //0520: PA1:    LD      a,2             ; Set same color flag
+PA1:    LD      (a,2);                  //  Set same color flag            //0520: PA1:    LD      a,2             ; Set same color flag
         RETu;                           //  Return                         //0521:         RET                     ; Return
 PA2:    LD      (a,3);                  //  Set off board flag             //0522: PA2:    LD      a,3             ; Set off board flag
         RETu;                           //  Return                         //0523:         RET                     ; Return
@@ -691,7 +691,7 @@ MP10:   CALLu   (PATH);                 //  Calculate next position        //055
         JR      (Z,MP15);               //  Yes - Jump                     //0568:         JR      Z,MP15          ; Yes - Jump
         CP      (BISHOP);               //  Bishop, Rook, or Queen ?       //0569:         CP      BISHOP          ; Bishop, Rook, or Queen ?
         JR      (NC,MP10);              //  Yes - Jump                     //0570:         JR      NC,MP10         ; Yes - Jump
-MP15:   INC     (iy);                   //  Increment direction index      //0571: MP15:   INC     iy              ; Increment direction index
+MP15:   INC16   (iy);                   //  Increment direction index      //0571: MP15:   INC     iy              ; Increment direction index
         DJNZ    (MP5);                  //  Decr. count-jump if non-zerc   //0572:         DJNZ    MP5             ; Decr. count-jump if non-zero
         LD      (a,val(T1));            //  Piece type                     //0573:         LD      a,(T1)          ; Piece type
         CP      (KING);                 //  King ?                         //0574:         CP      KING            ; King ?
@@ -712,7 +712,7 @@ MP20:   LD      (a,b);                  //  Counter for direction          //057
 MP25:   LD      (hl,addr(P2));          //  Flag address                   //0589: MP25:   LD      hl,P2           ; Flag address
         SET     (5,ptr(hl));            //  Set promote flag               //0590:         SET     5,(hl)          ; Set promote flag
 MP26:   CALLu   (ADMOVE);               //  Add to move list               //0591: MP26:   CALL    ADMOVE          ; Add to move list
-        INC     (iy);                   //  Adjust to two square move      //0592:         INC     iy              ; Adjust to two square move
+        INC16   (iy);                   //  Adjust to two square move      //0592:         INC     iy              ; Adjust to two square move
         DEC     (b);                    //                                 //0593:         DEC     b
         LD      (hl,addr(P1));          //  Check Pawn moved flag          //0594:         LD      hl,P1           ; Check Pawn moved flag
         BIT     (3,ptr(hl));            //  Has it moved before ?          //0595:         BIT     3,(hl)          ; Has it moved before ?
@@ -753,7 +753,7 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture         //061
 //***********************************************************              //0627: ; ARGUMENTS:  --  None
 void ENPSNT() {                                                            //0628: ;***********************************************************
         LD      (a,val(M1));            //  Set position of Pawn           //0629: ENPSNT: LD      a,(M1)          ; Set position of Pawn
-        LD      (hl,addr(P1));          //  Check val(COLOR)               //0630:         LD      hl,P1           ; Check color
+        LD      (hl,addr(P1));          //  Check color                    //0630:         LD      hl,P1           ; Check color
         BIT     (7,ptr(hl));            //  Is it white ?                  //0631:         BIT     7,(hl)          ; Is it white ?
         JR      (Z,rel002);             //  Yes - skip                     //0632:         JR      Z,rel002        ; Yes - skip
         ADD     (a,10);                 //  Add 10 for black               //0633:         ADD     a,10            ; Add 10 for black
@@ -817,7 +817,7 @@ void ADJPTR() {                                                            //068
         ADD16   (hl,de);                //  Back up list pointer           //0688:         ADD     hl,de           ; Back up list pointer
         LD      (val16(MLLST),hl);      //  Save list pointer              //0689:         LD      (MLLST),hl      ; Save list pointer
         LD      (ptr(hl),0);            //  Zero out link, first byte      //0690:         LD      (hl),0          ; Zero out link, first byte
-        INC     (hl);                   //  Next byte                      //0691:         INC     hl              ; Next byte
+        INC16   (hl);                   //  Next byte                      //0691:         INC     hl              ; Next byte
         LD      (ptr(hl),0);            //  Zero out link, second byte     //0692:         LD      (hl),0          ; Zero out link, second byte
         RETu;                           //  Return                         //0693:         RET                     ; Return
 }                                                                          //0694: 
@@ -851,7 +851,7 @@ CA5:    LD      (a,val(M1));            //  King position                  //071
         LD      (val(M3),a);            //  Store as board index           //0720:         LD      (M3),a          ; Store as board index
         LD      (ix,val16(M3));         //  Load board index               //0721:         LD      ix,(M3)         ; Load board index
         LD      (a,ptr(ix+BOARD));      //  Get contents of board          //0722:         LD      a,(ix+BOARD)    ; Get contents of board
-        AND     (0x7F);                 //  Clear val(COLOR) bit           //0723:         AND     7FH             ; Clear color bit
+        AND     (0x7F);                 //  Clear color bit                //0723:         AND     7FH             ; Clear color bit
         CP      (ROOK);                 //  Has Rook ever moved ?          //0724:         CP      ROOK            ; Has Rook ever moved ?
         JR      (NZ,CA20);              //  Yes - Jump                     //0725:         JR      NZ,CA20         ; Yes - Jump
         LD      (a,c);                  //  Restore Rook position          //0726:         LD      a,c             ; Restore Rook position
@@ -915,12 +915,12 @@ void ADMOVE() {                                                            //078
         LD      (de,val16(MLNXT));      //  Addr of next loc in move list  //0782: ADMOVE: LD      de,(MLNXT)      ; Addr of next loc in move list
         LD      (hl,addr(MLEND));       //  Address of list end            //0783:         LD      hl,MLEND        ; Address of list end
         AND     (a);                    //  Clear carry flag               //0784:         AND     a               ; Clear carry flag
-        SBC     (hl,de);                //  Calculate difference           //0785:         SBC     hl,de           ; Calculate difference
+        SBC16   (hl,de);                //  Calculate difference           //0785:         SBC     hl,de           ; Calculate difference
         JR      (C,AM10);               //  Jump if out of space           //0786:         JR      C,AM10          ; Jump if out of space
         LD      (hl,val16(MLLST));      //  Addr of prev. list area        //0787:         LD      hl,(MLLST)      ; Addr of prev. list area
         LD      (val16(MLLST),de);      //  Save next as previous          //0788:         LD      (MLLST),de      ; Save next as previous
         LD      (ptr(hl),e);            //  Store link address             //0789:         LD      (hl),e          ; Store link address
-        INC     (hl);                                                      //0790:         INC     hl
+        INC16   (hl);                                                      //0790:         INC     hl
         LD      (ptr(hl),d);                                               //0791:         LD      (hl),d
         LD      (hl,addr(P1));          //  Address of moved piece         //0792:         LD      hl,P1           ; Address of moved piece
         BIT     (3,ptr(hl));            //  Has it moved before ?          //0793:         BIT     3,(hl)          ; Has it moved before ?
@@ -929,26 +929,26 @@ void ADMOVE() {                                                            //078
         SET     (4,ptr(hl));            //  Set first move flag            //0796:         SET     4,(hl)          ; Set first move flag
 rel004: EX      (de,hl);                //  Address of move area           //0797: rel004: EX      de,hl           ; Address of move area
         LD      (ptr(hl),0);            //  Store zero in link address     //0798:         LD      (hl),0          ; Store zero in link address
-        INC     (hl);                                                      //0799:         INC     hl
+        INC16   (hl);                                                      //0799:         INC     hl
         LD      (ptr(hl),0);                                               //0800:         LD      (hl),0
-        INC     (hl);                                                      //0801:         INC     hl
+        INC16   (hl);                                                      //0801:         INC     hl
         LD      (a,val(M1));            //  Store "from" move position     //0802:         LD      a,(M1)          ; Store "from" move position
         LD      (ptr(hl),a);                                               //0803:         LD      (hl),a
-        INC     (hl);                                                      //0804:         INC     hl
+        INC16   (hl);                                                      //0804:         INC     hl
         LD      (a,val(M2));            //  Store "to" move position       //0805:         LD      a,(M2)          ; Store "to" move position
         LD      (ptr(hl),a);                                               //0806:         LD      (hl),a
-        INC     (hl);                                                      //0807:         INC     hl
+        INC16   (hl);                                                      //0807:         INC     hl
         LD      (a,val(P2));            //  Store move flags/capt. piece   //0808:         LD      a,(P2)          ; Store move flags/capt. piece
         LD      (ptr(hl),a);                                               //0809:         LD      (hl),a
-        INC     (hl);                                                      //0810:         INC     hl
+        INC16   (hl);                                                      //0810:         INC     hl
         LD      (ptr(hl),0);            //  Store initial move value       //0811:         LD      (hl),0          ; Store initial move value
-        INC     (hl);                                                      //0812:         INC     hl
+        INC16   (hl);                                                      //0812:         INC     hl
         LD      (val16(MLNXT),hl);      //  Save address for next move     //0813:         LD      (MLNXT),hl      ; Save address for next move
         RETu;                           //  Return                         //0814:         RET                     ; Return
 AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow    //0815: AM10:   LD      (hl),0          ; Abort entry on table ovflow
-        INC     (hl);                                                      //0816:         INC     hl
+        INC16   (hl);                                                      //0816:         INC     hl
         LD      (ptr(hl),0);            //  TODO does this out of memory   //0817:         LD      (hl),0          ; TODO does this out of memory
-        DEC     (hl);                   //       check actually work?      //0818:         DEC     hl              ;      check actually work?
+        DEC16   (hl);                   //       check actually work?      //0818:         DEC     hl              ;      check actually work?
         RETu;                                                              //0819:         RET
 }                                                                          //0820: 
                                                                            //0821: ;***********************************************************
@@ -956,7 +956,7 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow    //081
 // GENERATE MOVE ROUTINE
 //***********************************************************
 // FUNCTION:  --  To generate the move set for all of the                  //0823: ;***********************************************************
-//                pieces of a given val(COLOR).                            //0824: ; FUNCTION:  --  To generate the move set for all of the
+//                pieces of a given color.                                 //0824: ; FUNCTION:  --  To generate the move set for all of the
 //                                                                         //0825: ;                pieces of a given color.
 // CALLED BY: --  FNDMOV                                                   //0826: ;
 //                                                                         //0827: ; CALLED BY: --  FNDMOV
@@ -970,12 +970,12 @@ void GENMOV() {                                                            //083
         LD      (val(CKFLG),a);         //  Save attack count as flag      //0835:         LD      (CKFLG),a       ; Save attack count as flag
         LD      (de,val16(MLNXT));      //  Addr of next avail list space  //0836:         LD      de,(MLNXT)      ; Addr of next avail list space
         LD      (hl,val16(MLPTRI));     //  Ply list pointer index         //0837:         LD      hl,(MLPTRI)     ; Ply list pointer index
-        INC     (hl);                   //  Increment to next ply          //0838:         INC     hl              ; Increment to next ply
-        INC     (hl);                                                      //0839:         INC     hl
+        INC16   (hl);                   //  Increment to next ply          //0838:         INC     hl              ; Increment to next ply
+        INC16   (hl);                                                      //0839:         INC     hl
         LD      (ptr(hl),e);            //  Save move list pointer         //0840:         LD      (hl),e          ; Save move list pointer
-        INC     (hl);                                                      //0841:         INC     hl
+        INC16   (hl);                                                      //0841:         INC     hl
         LD      (ptr(hl),d);                                               //0842:         LD      (hl),d
-        INC     (hl);                                                      //0843:         INC     hl
+        INC16   (hl);                                                      //0843:         INC     hl
         LD      (val16(MLPTRI),hl);     //  Save new index                 //0844:         LD      (MLPTRI),hl     ; Save new index
         LD      (val16(MLLST),hl);      //  Last pointer for chain init.   //0845:         LD      (MLLST),hl      ; Last pointer for chain init.
         LD      (a,21);                 //  First position on board        //0846:         LD      a,21            ; First position on board
@@ -987,8 +987,8 @@ GM5:    LD      (val(M1),a);            //  Save as index                  //084
         CP      (-1);                   //  Is it a border square ?        //0852:         CP      -1              ; Is it a border square ?
         JR      (Z,GM10);               //  Yes - Jump                     //0853:         JR      Z,GM10          ; Yes - Jump
         LD      (val(P1),a);            //  Save piece                     //0854:         LD      (P1),a          ; Save piece
-        LD      (hl,val(COLOR));        //  Address of val(COLOR) of piece //0855:         LD      hl,COLOR        ; Address of color of piece
-        XOR     (ptr(hl));              //  Test val(COLOR) of piece       //0856:         XOR     (hl)            ; Test color of piece
+        LD      (hl,val(COLOR));        //  Address of color of piece      //0855:         LD      hl,COLOR        ; Address of color of piece
+        XOR     (ptr(hl));              //  Test color of piece            //0856:         XOR     (hl)            ; Test color of piece
         BIT     (7,a);                  //  Match ?                        //0857:         BIT     7,a             ; Match ?
         CALL    (Z,MPIECE);             //  Yes - call Move Piece          //0858:         CALL    Z,MPIECE        ; Yes - call Move Piece
 GM10:   LD      (a,val(M1));            //  Fetch current board position   //0859: GM10:   LD      a,(M1)          ; Fetch current board position
@@ -1010,10 +1010,10 @@ GM10:   LD      (a,val(M1));            //  Fetch current board position   //085
 //                                                                         //0873: ;                 EVAL
 // CALLS:      --  ATTACK                                                  //0874: ;
 //                                                                         //0875: ; CALLS:      --  ATTACK
-// ARGUMENTS:  --  val(COLOR) of King                                      //0876: ;
+// ARGUMENTS:  --  Color of king                                           //0876: ;
 //***********************************************************              //0877: ; ARGUMENTS:  --  Color of King
 void INCHK() {                                                             //0878: ;***********************************************************
-        LD      (a,val(COLOR));         //  Get val(COLOR)                 //0879: INCHK:  LD      a,(COLOR)       ; Get color
+        LD      (a,val(COLOR));         //  Get color                      //0879: INCHK:  LD      a,(COLOR)       ; Get color
         CALLu   (INCHK1);
 }
 
@@ -1021,7 +1021,7 @@ void INCHK1() {                         // Like INCHK() but takes input in regis
         LD      (hl,addr(POSK));        //  Addr of white King position    //0880: INCHK1: LD      hl,POSK         ; Addr of white King position
         AND     (a);                    //  White ?                        //0881:         AND     a               ; White ?
         JR      (Z,rel005);             //  Yes - Skip                     //0882:         JR      Z,rel005        ; Yes - Skip
-        INC     (hl);                   //  Addr of black King position    //0883:         INC     hl              ; Addr of black King position
+        INC16   (hl);                   //  Addr of black King position    //0883:         INC     hl              ; Addr of black King position
 rel005: LD      (a,ptr(hl));            //  Fetch King position            //0884: rel005: LD      a,(hl)          ; Fetch King position
         LD      (val(M3),a);            //  Save                           //0885:         LD      (M3),a          ; Save
         LD      (ix,val16(M3));         //  Load board index               //0886:         LD      ix,(M3)         ; Load board index
@@ -1048,7 +1048,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
 //                 account the ability of certain pieces to                //0905: ;                 a square, this routine also takes into
 //                 attack through another attacking piece. (For            //0906: ;                 account the ability of certain pieces to
 //                 example a queen lined up behind a bishop                //0907: ;                 attack through another attacking piece. (For
-//                 of her same val(COLOR) along a diagonal.) The           //0908: ;                 example a queen lined up behind a bishop
+//                 of her same color along a diagonal.) The                //0908: ;                 example a queen lined up behind a bishop
 //                 bishop is then said to be transparent to the            //0909: ;                 of her same color along a diagonal.) The
 //                 queen, since both participate in the                    //0910: ;                 bishop is then said to be transparent to the
 //                 attack.                                                 //0911: ;                 queen, since both participate in the
@@ -1056,7 +1056,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
 //                 In the case where this routine is called                //0913: ;
 //                 by CASTLE or INCHK, the routine is                      //0914: ;                 In the case where this routine is called
 //                 terminated as soon as an attacker of the                //0915: ;                 by CASTLE or INCHK, the routine is
-//                 opposite val(COLOR) is encountered.                     //0916: ;                 terminated as soon as an attacker of the
+//                 opposite color is encountered.                          //0916: ;                 terminated as soon as an attacker of the
 //                                                                         //0917: ;                 opposite color is encountered.
 // CALLED BY:  --  POINTS                                                  //0918: ;
 //                 PINFND                                                  //0919: ; CALLED BY:  --  POINTS
@@ -1080,27 +1080,27 @@ AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction                  //093
         LD      (val(M2),a);            //  Save                           //0937:         LD      (M2),a          ; Save
 AT10:   INC     (d);                    //  Increment scan count           //0938: AT10:   INC     d               ; Increment scan count
         CALLu   (PATH);                 //  Next position                  //0939:         CALL    PATH            ; Next position
-        CP      (1);                    //  Piece of a opposite val(COLOR) ?//0940:         CP      1               ; Piece of a opposite color ?
+        CP      (1);                    //  Piece of a opposite color ?    //0940:         CP      1               ; Piece of a opposite color ?
         JR      (Z,AT14A);              //  Yes - jump                     //0941:         JR      Z,AT14A         ; Yes - jump
-        CP      (2);                    //  Piece of same val(COLOR) ?     //0942:         CP      2               ; Piece of same color ?
+        CP      (2);                    //  Piece of same color ?          //0942:         CP      2               ; Piece of same color ?
         JR      (Z,AT14B);              //  Yes - jump                     //0943:         JR      Z,AT14B         ; Yes - jump
         AND     (a);                    //  Empty position ?               //0944:         AND     a               ; Empty position ?
         JR      (NZ,AT12);              //  No - jump                      //0945:         JR      NZ,AT12         ; No - jump
         LD      (a,b);                  //  Fetch direction count          //0946:         LD      a,b             ; Fetch direction count
         CP      (9);                    //  On knight scan ?               //0947:         CP      9               ; On knight scan ?
         JR      (NC,AT10);              //  No - jump                      //0948:         JR      NC,AT10         ; No - jump
-AT12:   INC     (iy);                   //  Increment direction index      //0949: AT12:   INC     iy              ; Increment direction index
+AT12:   INC16   (iy);                   //  Increment direction index      //0949: AT12:   INC     iy              ; Increment direction index
         DJNZ    (AT5);                  //  Done ? No - jump               //0950:         DJNZ    AT5             ; Done ? No - jump
         XOR     (a);                    //  No attackers                   //0951:         XOR     a               ; No attackers
 AT13:   POP     (bc);                   //  Restore register B             //0952: AT13:   POP     bc              ; Restore register B
         RETu;                           //  Return                         //0953:         RET                     ; Return
-AT14A:  BIT     (6,d);                  //  Same val(COLOR) found already ?//0954: AT14A:  BIT     6,d             ; Same color found already ?
+AT14A:  BIT     (6,d);                  //  Same color found already ?     //0954: AT14A:  BIT     6,d             ; Same color found already ?
         JR      (NZ,AT12);              //  Yes - jump                     //0955:         JR      NZ,AT12         ; Yes - jump
-        SET     (5,d);                  //  Set opposite val(COLOR) found flag//0956:         SET     5,d             ; Set opposite color found flag
+        SET     (5,d);                  //  Set opposite color found flag  //0956:         SET     5,d             ; Set opposite color found flag
         JPu     (AT14);                 //  Jump                           //0957:         JP      AT14            ; Jump
-AT14B:  BIT     (5,d);                  //  Opposite val(COLOR) found already?//0958: AT14B:  BIT     5,d             ; Opposite color found already?
+AT14B:  BIT     (5,d);                  //  Opposite color found already?  //0958: AT14B:  BIT     5,d             ; Opposite color found already?
         JR      (NZ,AT12);              //  Yes - jump                     //0959:         JR      NZ,AT12         ; Yes - jump
-        SET     (6,d);                  //  Set same val(COLOR) found flag //0960:         SET     6,d             ; Set same color found flag
+        SET     (6,d);                  //  Set same color found flag      //0960:         SET     6,d             ; Set same color found flag
                                                                            //0961: 
 //                                                                         //0962: ;
 // ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****               //0963: ; ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****
@@ -1133,7 +1133,7 @@ AT16:   LD      (a,b);                  //  Get direction counter          //098
         JR      (NZ,AT12);              //  No - jump                      //0990:         JR      NZ,AT12         ; No - jump
         CP      (e);                    //  Is it a Pawn ?                 //0991:         CP      e               ; Is it a Pawn ?
         JR      (NZ,AT12);              //  No - jump                      //0992:         JR      NZ,AT12         ; No - jump
-        LD      (a,val(P2));            //  Fetch piece including val(COLOR)//0993:         LD      a,(P2)          ; Fetch piece including color
+        LD      (a,val(P2));            //  Fetch piece including color    //0993:         LD      a,(P2)          ; Fetch piece including color
         BIT     (7,a);                  //  Is it white ?                  //0994:         BIT     7,a             ; Is it white ?
         JR      (Z,AT20);               //  Yes - jump                     //0995:         JR      Z,AT20          ; Yes - jump
         LD      (a,b);                  //  Get direction counter          //0996:         LD      a,b             ; Get direction counter
@@ -1154,7 +1154,7 @@ AT25:   LD      (a,e);                  //  Get piece type                 //100
 AT30:   LD      (a,val(T1));            //  Attacked piece type/flag       //1011: AT30:   LD      a,(T1)          ; Attacked piece type/flag
         CP      (7);                    //  Call from POINTS ?             //1012:         CP      7               ; Call from POINTS ?
         JR      (Z,AT31);               //  Yes - jump                     //1013:         JR      Z,AT31          ; Yes - jump
-        BIT     (5,d);                  //  Is attacker opposite val(COLOR) ?//1014:         BIT     5,d             ; Is attacker opposite color ?
+        BIT     (5,d);                  //  Is attacker opposite color ?   //1014:         BIT     5,d             ; Is attacker opposite color ?
         JR      (Z,AT32);               //  No - jump                      //1015:         JR      Z,AT32          ; No - jump
         LD      (a,1);                  //  Set attacker found flag        //1016:         LD      a,1             ; Set attacker found flag
         JPu     (AT13);                 //  Jump                           //1017:         JP      AT13            ; Jump
@@ -1172,7 +1172,7 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
 //***********************************************************              //1027: ; ATTACK SAVE ROUTINE
 // FUNCTION:   --  To save an attacking piece value in the                 //1028: ;***********************************************************
 //                 attack list, and to increment the attack                //1029: ; FUNCTION:   --  To save an attacking piece value in the
-//                 count for that val(COLOR) piece.                        //1030: ;                 attack list, and to increment the attack
+//                 count for that color piece.                             //1030: ;                 attack list, and to increment the attack
 //                                                                         //1031: ;                 count for that color piece.
 //                 The pin piece list is checked for the                   //1032: ;
 //                 attacking piece, and if found there, the                //1033: ;                 The pin piece list is checked for the
@@ -1212,7 +1212,7 @@ rel007: ADD16   (hl,bc);                //  Attack list address            //106
         LD      (a,ptr(hl));            //  Get data again                 //1067:         LD      a,(hl)          ; Get data again
         AND     (0xf0);                 //  Is second slot empty ?         //1068:         AND     0F0H            ; Is second slot empty ?
         JR      (Z,AS19);               //  Yes - jump                     //1069:         JR      Z,AS19          ; Yes - jump
-        INC     (hl);                   //  Increment to King slot         //1070:         INC     hl              ; Increment to King slot
+        INC16   (hl);                   //  Increment to King slot         //1070:         INC     hl              ; Increment to King slot
         JRu     (AS20);                 //  Jump                           //1071:         JR      AS20            ; Jump
 AS19:   RLD;                            //  Temp save lower in upper       //1072: AS19:   RLD                     ; Temp save lower in upper
         LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list  //1073:         LD      a,(ix+PVALUE)   ; Get new value for attack list
@@ -1316,7 +1316,7 @@ PF5:    CALLu   (PATH);                 //  Compute next position          //116
         JR      (Z,PF5);                //  Yes - jump                     //1167:         JR      Z,PF5           ; Yes - jump
         CP      (3);                    //  Off board ?                    //1168:         CP      3               ; Off board ?
         JP      (Z,PF25);               //  Yes - jump                     //1169:         JP      Z,PF25          ; Yes - jump
-        CP      (2);                    //  Piece of same val(COLOR)       //1170:         CP      2               ; Piece of same color
+        CP      (2);                    //  Piece of same color            //1170:         CP      2               ; Piece of same color
         LD      (a,val(M4));            //  Load pinned piece position     //1171:         LD      a,(M4)          ; Load pinned piece position
         JR      (Z,PF15);               //  Yes - jump                     //1172:         JR      Z,PF15          ; Yes - jump
         AND     (a);                    //  Possible pin ?                 //1173:         AND     a               ; Possible pin ?
@@ -1352,7 +1352,7 @@ PF19:   LD      (a,val(P1));            //  Load King or Queen             //119
         LD      (b,14);                                                    //1203:         LD      b,14
         LD      (hl,addr(ATKLST));                                         //1204:         LD      hl,ATKLST
 back02: LD      (ptr(hl),a);                                               //1205: back02: LD      (hl),a
-        INC     (hl);                                                      //1206:         INC     hl
+        INC16   (hl);                                                      //1206:         INC     hl
         DJNZ    (back02);                                                  //1207:         DJNZ    back02
         LD      (a,7);                  //  Set attack flag                //1208:         LD      a,7             ; Set attack flag
         LD      (val(T1),a);                                               //1209:         LD      (T1),a
@@ -1377,9 +1377,9 @@ PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count  //122
         LD      (ptr(ix+PLISTD),c);     //  Save direction of pin          //1228:         LD      (ix+PLISTD),c   ; Save direction of pin
         LD      (a,val(M4));            //  Position of pinned piece       //1229:         LD      a,(M4)          ; Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list                   //1230:         LD      (ix+PLIST),a    ; Save in list
-PF25:   INC     (iy);                   //  Increment direction index      //1231: PF25:   INC     iy              ; Increment direction index
+PF25:   INC16   (iy);                   //  Increment direction index      //1231: PF25:   INC     iy              ; Increment direction index
         DJNZ    (PF27);                 //  Done ? No - Jump               //1232:         DJNZ    PF27            ; Done ? No - Jump
-PF26:   INC     (de);                   //  Incr King/Queen pos index      //1233: PF26:   INC     de              ; Incr King/Queen pos index
+PF26:   INC16   (de);                   //  Incr King/Queen pos index      //1233: PF26:   INC     de              ; Incr King/Queen pos index
         JPu     (PF1);                  //  Jump                           //1234:         JP      PF1             ; Jump
 PF27:   JPu     (PF2);                  //  Jump                           //1235: PF27:   JP      PF2             ; Jump
 }                                                                          //1236: 
@@ -1472,12 +1472,12 @@ void NEXTAD() {                                                            //131
         CP      (b);                    //  At end of list ?               //1319:         CP      b               ; At end of list ?
         JR      (Z,NX6);                //  Yes - jump                     //1320:         JR      Z,NX6           ; Yes - jump
         DEC     (b);                    //  Decrement list count           //1321:         DEC     b               ; Decrement list count
-back03: INC     (hl);                   //  Increment list pointer         //1322: back03: INC     hl              ; Increment list pointer
+back03: INC16   (hl);                   //  Increment list pointer         //1322: back03: INC     hl              ; Increment list pointer
         CP      (ptr(hl));              //  Check next item in list        //1323:         CP      (hl)            ; Check next item in list
         JR      (Z,back03);             //  Jump if empty                  //1324:         JR      Z,back03        ; Jump if empty
         RRD;                            //  Get value from list            //1325:         RRD                     ; Get value from list
         ADD     (a,a);                  //  Double it                      //1326:         ADD     a,a             ; Double it
-        DEC     (hl);                   //  Decrement list pointer         //1327:         DEC     hl              ; Decrement list pointer
+        DEC16   (hl);                   //  Decrement list pointer         //1327:         DEC     hl              ; Decrement list pointer
 NX6:    EXX;                            //  Restore regs.                  //1328: NX6:    EXX                     ; Restore regs.
         RETu;                           //  Return                         //1329:         RET                     ; Return
 }                                                                          //1330: 
@@ -1530,7 +1530,7 @@ PT5:    LD      (val(M3),a);            //  Save as board index            //135
 PT6AA:  BIT     (4,ptr(hl));            //  Castled yet ?                  //1375: PT6AA:  BIT     4,(hl)          ; Castled yet ?
         JR      (Z,PT6A);               //  No - jump                      //1376:         JR      Z,PT6A          ; No - jump
         LD      (a,+6);                 //  Bonus for castling             //1377:         LD      a,+6            ; Bonus for castling
-        BIT     (7,ptr(hl));            //  Check piece val(COLOR)         //1378:         BIT     7,(hl)          ; Check piece color
+        BIT     (7,ptr(hl));            //  Check piece color              //1378:         BIT     7,(hl)          ; Check piece color
         JR      (Z,PT6D);               //  Jump if white                  //1379:         JR      Z,PT6D          ; Jump if white
         LD      (a,-6);                 //  Bonus for black castling       //1380:         LD      a,-6            ; Bonus for black castling
         JPu     (PT6D);                 //  Jump                           //1381:         JP      PT6D            ; Jump
@@ -1540,7 +1540,7 @@ PT6A:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //138
 PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //1385: PT6B:   BIT     3,(hl)          ; Has piece moved yet ?
         JR      (NZ,PT6X);              //  Yes - jump                     //1386:         JR      NZ,PT6X         ; Yes - jump
 PT6C:   LD      (a,-2);                 //  Two point penalty for white    //1387: PT6C:   LD      a,-2            ; Two point penalty for white
-        BIT     (7,ptr(hl));            //  Check piece val(COLOR)         //1388:         BIT     7,(hl)          ; Check piece color
+        BIT     (7,ptr(hl));            //  Check piece color              //1388:         BIT     7,(hl)          ; Check piece color
         JR      (Z,PT6D);               //  Jump if white                  //1389:         JR      Z,PT6D          ; Jump if white
         LD      (a,+2);                 //  Two point penalty for black    //1390:         LD      a,+2            ; Two point penalty for black
 PT6D:   LD      (hl,addr(BRDC));        //  Get address of board control   //1391: PT6D:   LD      hl,BRDC         ; Get address of board control
@@ -1550,7 +1550,7 @@ PT6X:   XOR     (a);                    //  Zero out attack list           //139
         LD      (b,14);                 //                                 //1395:         LD      b,14
         LD      (hl,addr(ATKLST));      //                                 //1396:         LD      hl,ATKLST
 back04: LD      (ptr(hl),a);            //                                 //1397: back04: LD      (hl),a
-        INC     (hl);                   //                                 //1398:         INC     hl
+        INC16   (hl);                   //                                 //1398:         INC     hl
         DJNZ    (back04);               //                                 //1399:         DJNZ    back04
         CALLu   (ATTACK);               //  Build attack list for square   //1400:         CALL    ATTACK          ; Build attack list for square
         LD      (hl,BACT);        //  Get black attacker count addr        //1401:         LD      hl,BACT         ; Get black attacker count addr
@@ -1568,7 +1568,7 @@ back04: LD      (ptr(hl),a);            //                                 //139
         JR      (Z,PT23);               //  No - Jump                      //1413:         JR      Z,PT23          ; No - Jump
         DEC     (d);                    //  Deduct half a Pawn value       //1414:         DEC     d               ; Deduct half a Pawn value
         LD      (a,val(P1));            //  Get piece under attack         //1415:         LD      a,(P1)          ; Get piece under attack
-        LD      (hl,val(COLOR));        //  val(COLOR) of side just moved  //1416:         LD      hl,COLOR        ; Color of side just moved
+        LD      (hl,val(COLOR));        //  Color of side just moved       //1416:         LD      hl,COLOR        ; Color of side just moved
         XOR     (ptr(hl));              //  Compare with piece             //1417:         XOR     (hl)            ; Compare with piece
         BIT     (7,a);                  //  Do colors match ?              //1418:         BIT     7,a             ; Do colors match ?
         LD      (a,e);                  //  Points lost                    //1419:         LD      a,e             ; Points lost
@@ -1593,7 +1593,7 @@ rel011: LD      (hl,addr(PTSW2));       //  Previous 2nd max points won    //143
         JR      (C,PT23);               //  Jump if greater than           //1438:         JR      C,PT23          ; Jump if greater than
         LD      (ptr(hl),a);            //  Store as new 2nd max lost      //1439:         LD      (hl),a          ; Store as new 2nd max lost
 PT23:   LD      (hl,addr(P1));          //  Get piece                      //1440: PT23:   LD      hl,P1           ; Get piece
-        BIT     (7,ptr(hl));            //  Test val(COLOR)                //1441:         BIT     7,(hl)          ; Test color
+        BIT     (7,ptr(hl));            //  Test color                     //1441:         BIT     7,(hl)          ; Test color
         LD      (a,d);                  //  Value of piece                 //1442:         LD      a,d             ; Value of piece
         JR      (Z,rel012);             //  Jump if white                  //1443:         JR      Z,rel012        ; Jump if white
         NEG;                            //  Negate for black               //1444:         NEG                     ; Negate for black
@@ -1625,7 +1625,7 @@ rel013: LD      (b,a);                  //  Save it                        //146
         DEC     (a);                    //  Decrement it                   //1470:         DEC     a               ; Decrement it
         SRL     (a);                    //  Divide it by 2                 //1471:         SRL     a               ; Divide it by 2
 rel014: SUB     (b);                    //  Subtract points lost           //1472: rel014: SUB     b               ; Subtract points lost
-        LD      (hl,addr(COLOR));       //  val(COLOR) of side just moved ???//1473:         LD      hl,COLOR        ; Color of side just moved ???
+        LD      (hl,addr(COLOR));       //  Color of side just moved ???   //1473:         LD      hl,COLOR        ; Color of side just moved ???
         BIT     (7,ptr(hl));            //  Is it white ?                  //1474:         BIT     7,(hl)          ; Is it white ?
         JR      (Z,rel015);             //  Yes - jump                     //1475:         JR      Z,rel015        ; Yes - jump
         NEG;                            //  Negate for black               //1476:         NEG                     ; Negate for black
@@ -1652,7 +1652,7 @@ rel026: LD      (a,6);                  //  Load board control limit       //149
         ADD     (a,a);                  //  Multiply by 4                  //1497:         ADD     a,a             ; Multiply by 4
         ADD     (a,a);                  //                                 //1498:         ADD     a,a
         ADD     (a,d);                  //  Add board control              //1499:         ADD     a,d             ; Add board control
-        LD      (hl,addr(COLOR));       //  val(COLOR) of side just moved  //1500:         LD      hl,COLOR        ; Color of side just moved
+        LD      (hl,addr(COLOR));       //  Color of side just moved       //1500:         LD      hl,COLOR        ; Color of side just moved
         BIT     (7,ptr(hl));            //  Is it white ?                  //1501:         BIT     7,(hl)          ; Is it white ?
         JR      (NZ,rel016);            //  No - jump                      //1502:         JR      NZ,rel016       ; No - jump
         NEG;                            //  Negate for white               //1503:         NEG                     ; Negate for white
@@ -1710,14 +1710,14 @@ LIM10:  CP      (b);                    //  Compare to limit               //153
 //***********************************************************              //1551: ; ARGUMENTS:  --  None
 void MOVE() {                                                              //1552: ;***********************************************************
         LD      (hl,val16(MLPTRJ));     //  Load move list pointer         //1553: MOVE:   LD      hl,(MLPTRJ)     ; Load move list pointer
-        INC     (hl);                   //  Increment past link bytes      //1554:         INC     hl              ; Increment past link bytes
-        INC     (hl);                                                      //1555:         INC     hl
+        INC16   (hl);                   //  Increment past link bytes      //1554:         INC     hl              ; Increment past link bytes
+        INC16   (hl);                                                      //1555:         INC     hl
 MV1:    LD      (a,ptr(hl));            //  "From" position                //1556: MV1:    LD      a,(hl)          ; "From" position
         LD      (val(M1),a);            //  Save                           //1557:         LD      (M1),a          ; Save
-        INC     (hl);                   //  Increment pointer              //1558:         INC     hl              ; Increment pointer
+        INC16   (hl);                   //  Increment pointer              //1558:         INC     hl              ; Increment pointer
         LD      (a,ptr(hl));            //  "To" position                  //1559:         LD      a,(hl)          ; "To" position
         LD      (val(M2),a);            //  Save                           //1560:         LD      (M2),a          ; Save
-        INC     (hl);                   //  Increment pointer              //1561:         INC     hl              ; Increment pointer
+        INC16   (hl);                   //  Increment pointer              //1561:         INC     hl              ; Increment pointer
         LD      (d,ptr(hl));            //  Get captured piece/flags       //1562:         LD      d,(hl)          ; Get captured piece/flags
         LD      (ix,val16(M1));         //  Load "from" pos board index    //1563:         LD      ix,(M1)         ; Load "from" pos board index
         LD      (e,ptr(ix+BOARD));      //  Get piece moved                //1564:         LD      e,(ix+BOARD)    ; Get piece moved
@@ -1742,7 +1742,7 @@ MV5:    LD      (iy,val16(M2));         //  Load "to" pos board index      //157
         LD      (hl,addr(POSQ));        //  Addr of saved Queen position   //1583:         LD      hl,POSQ         ; Addr of saved Queen position
         BIT     (7,d);                  //  Is Queen white ?               //1584:         BIT     7,d             ; Is Queen white ?
         JR      (Z,MV10);               //  Yes - jump                     //1585:         JR      Z,MV10          ; Yes - jump
-        INC     (hl);                   //  Increment to black Queen pos   //1586:         INC     hl              ; Increment to black Queen pos
+        INC16   (hl);                   //  Increment to black Queen pos   //1586:         INC     hl              ; Increment to black Queen pos
 MV10:   XOR     (a);                    //  Set saved position to zero     //1587: MV10:   XOR     a               ; Set saved position to zero
         LD      (ptr(hl),a);                                               //1588:         LD      (hl),a
         RETu;                           //  Return                         //1589:         RET                     ; Return
@@ -1751,7 +1751,7 @@ MV15:   SET     (2,e);                  //  Change Pawn to a Queen         //159
 MV20:   LD      (hl,addr(POSQ));        //  Addr of saved Queen position   //1592: MV20:   LD      hl,POSQ         ; Addr of saved Queen position
 MV21:   BIT     (7,e);                  //  Is Queen white ?               //1593: MV21:   BIT     7,e             ; Is Queen white ?
         JR      (Z,MV22);               //  Yes - jump                     //1594:         JR      Z,MV22          ; Yes - jump
-        INC     (hl);                   //  Increment to black Queen pos   //1595:         INC     hl              ; Increment to black Queen pos
+        INC16   (hl);                   //  Increment to black Queen pos   //1595:         INC     hl              ; Increment to black Queen pos
 MV22:   LD      (a,val(M2));            //  Get new Queen position         //1596: MV22:   LD      a,(M2)          ; Get new Queen position
         LD      (ptr(hl),a);            //  Save                           //1597:         LD      (hl),a          ; Save
         JPu     (MV5);                  //  Jump                           //1598:         JP      MV5             ; Jump
@@ -1762,7 +1762,7 @@ MV30:   LD      (hl,addr(POSK));        //  Get saved King position        //159
         JPu     (MV21);                 //  Jump                           //1603:         JP      MV21            ; Jump
 MV40:   LD      (hl,val16(MLPTRJ));     //  Get move list pointer          //1604: MV40:   LD      hl,(MLPTRJ)     ; Get move list pointer
         LD      (de,8);                 //  Increment to next move         //1605:         LD      de,8            ; Increment to next move
-        ADD     (hl,de);                //                                 //1606:         ADD     hl,de
+        ADD16   (hl,de);                //                                 //1606:         ADD     hl,de
         JPu     (MV1);                  //  Jump (2nd part of dbl move)    //1607:         JP      MV1             ; Jump (2nd part of dbl move)
 }                                                                          //1608: 
                                                                            //1609: ;***********************************************************
@@ -1784,14 +1784,14 @@ MV40:   LD      (hl,val16(MLPTRJ));     //  Get move list pointer          //160
 //***********************************************************              //1623: ; ARGUMENTS:  --  None
 void UNMOVE() {                                                            //1624: ;***********************************************************
         LD      (hl,val16(MLPTRJ));     //  Load move list pointer         //1625: UNMOVE: LD      hl,(MLPTRJ)     ; Load move list pointer
-        INC     (hl);                   //  Increment past link bytes      //1626:         INC     hl              ; Increment past link bytes
-        INC     (hl);                                                      //1627:         INC     hl
+        INC16   (hl);                   //  Increment past link bytes      //1626:         INC     hl              ; Increment past link bytes
+        INC16   (hl);                                                      //1627:         INC     hl
 UM1:    LD      (a,ptr(hl));            //  Get "from" position            //1628: UM1:    LD      a,(hl)          ; Get "from" position
         LD      (val(M1),a);            //  Save                           //1629:         LD      (M1),a          ; Save
-        INC     (hl);                   //  Increment pointer              //1630:         INC     hl              ; Increment pointer
+        INC16   (hl);                   //  Increment pointer              //1630:         INC     hl              ; Increment pointer
         LD      (a,ptr(hl));            //  Get "to" position              //1631:         LD      a,(hl)          ; Get "to" position
         LD      (val(M2),a);            //  Save                           //1632:         LD      (M2),a          ; Save
-        INC     (hl);                   //  Increment pointer              //1633:         INC     hl              ; Increment pointer
+        INC16   (hl);                   //  Increment pointer              //1633:         INC     hl              ; Increment pointer
         LD      (d,ptr(hl));            //  Get captured piece/flags       //1634:         LD      d,(hl)          ; Get captured piece/flags
         LD      (ix,val16(M2));         //  Load "to" pos board index      //1635:         LD      ix,(M2)         ; Load "to" pos board index
         LD      (e,ptr(ix+BOARD));      //  Get piece moved                //1636:         LD      e,(ix+BOARD)    ; Get piece moved
@@ -1819,7 +1819,7 @@ UM6:    LD      (iy,val16(M1));         //  Load "from" pos board index    //164
         LD      (hl,addr(POSQ));        //  Address of saved Queen pos     //1658:         LD      hl,POSQ         ; Address of saved Queen pos
         BIT     (7,d);                  //  Is Queen white ?               //1659:         BIT     7,d             ; Is Queen white ?
         JR      (Z,UM10);               //  Yes - jump                     //1660:         JR      Z,UM10          ; Yes - jump
-        INC     (hl);                   //  Increment to black Queen pos   //1661:         INC     hl              ; Increment to black Queen pos
+        INC16   (hl);                   //  Increment to black Queen pos   //1661:         INC     hl              ; Increment to black Queen pos
 UM10:   LD      (a,val(M2));            //  Queen's previous position      //1662: UM10:   LD      a,(M2)          ; Queen's previous position
         LD      (ptr(hl),a);            //  Save                           //1663:         LD      (hl),a          ; Save
         RETu;                           //  Return                         //1664:         RET                     ; Return
@@ -1830,7 +1830,7 @@ UM16:   RES     (3,e);                  //  Clear piece moved flag         //166
 UM20:   LD      (hl,addr(POSQ));        //  Addr of saved Queen position   //1669: UM20:   LD      hl,POSQ         ; Addr of saved Queen position
 UM21:   BIT     (7,e);                  //  Is Queen white ?               //1670: UM21:   BIT     7,e             ; Is Queen white ?
         JR      (Z,UM22);               //  Yes - jump                     //1671:         JR      Z,UM22          ; Yes - jump
-        INC     (hl);                   //  Increment to black Queen pos   //1672:         INC     hl              ; Increment to black Queen pos
+        INC16   (hl);                   //  Increment to black Queen pos   //1672:         INC     hl              ; Increment to black Queen pos
 UM22:   LD      (a,val(M1));            //  Get previous position          //1673: UM22:   LD      a,(M1)          ; Get previous position
         LD      (ptr(hl),a);            //  Save                           //1674:         LD      (hl),a          ; Save
         JPu     (UM5);                  //  Jump                           //1675:         JP      UM5             ; Jump
@@ -1841,7 +1841,7 @@ UM30:   LD      (hl,addr(POSK));        //  Address of saved King pos      //167
         JPu     (UM21);                 //  Jump                           //1680:         JP      UM21            ; Jump
 UM40:   LD      (hl,val16(MLPTRJ));     //  Load move list pointer         //1681: UM40:   LD      hl,(MLPTRJ)     ; Load move list pointer
         LD      (de,8);                 //  Increment to next move         //1682:         LD      de,8            ; Increment to next move
-        ADD     (hl,de);                                                   //1683:         ADD     hl,de
+        ADD16   (hl,de);                                                   //1683:         ADD     hl,de
         JPu     (UM1);                  //  Jump (2nd part of dbl move)    //1684:         JP      UM1             ; Jump (2nd part of dbl move)
 }                                                                          //1685: 
                                                                            //1686: ;***********************************************************
@@ -1863,10 +1863,10 @@ void SORTM() {                                                             //169
 SR5:    LD      (h,b);                  //                                 //1700: SR5:    LD      h,b
         LD      (l,c);                  //                                 //1701:         LD      l,c
         LD      (c,ptr(hl));            //  Link to next move              //1702:         LD      c,(hl)          ; Link to next move
-        INC     (hl);                   //                                 //1703:         INC     hl
+        INC16   (hl);                   //                                 //1703:         INC     hl
         LD      (b,ptr(hl));            //                                 //1704:         LD      b,(hl)
         LD      (ptr(hl),d);            //  Store to link in list          //1705:         LD      (hl),d          ; Store to link in list
-        DEC     (hl);                   //                                 //1706:         DEC     hl
+        DEC16   (hl);                   //                                 //1706:         DEC     hl
         LD      (ptr(hl),e);            //                                 //1707:         LD      (hl),e
         XOR     (a);                    //  End of list ?                  //1708:         XOR     a               ; End of list ?
         CP      (b);                    //                                 //1709:         CP      b
@@ -1876,7 +1876,7 @@ SR10:   LD      (val16(MLPTRJ),bc);     //  Save list pointer              //171
         LD      (hl,val16(MLPTRI));     //  Begining of move list          //1713:         LD      hl,(MLPTRI)     ; Begining of move list
         LD      (bc,val16(MLPTRJ));     //  Restore list pointer           //1714:         LD      bc,(MLPTRJ)     ; Restore list pointer
 SR15:   LD      (e,ptr(hl));            //  Next move for compare          //1715: SR15:   LD      e,(hl)          ; Next move for compare
-        INC     (hl);                   //                                 //1716:         INC     hl
+        INC16   (hl);                   //                                 //1716:         INC     hl
         LD      (d,ptr(hl));            //                                 //1717:         LD      d,(hl)
         XOR     (a);                    //  At end of list ?               //1718:         XOR     a               ; At end of list ?
         CP      (d);                    //                                 //1719:         CP      d
@@ -1887,7 +1887,7 @@ SR15:   LD      (e,ptr(hl));            //  Next move for compare          //171
         CP      (ptr(ix+MLVAL));        //  Less than list value ?         //1724:         CP      (ix+MLVAL)      ; Less than list value ?
         JR      (NC,SR30);              //  No - jump                      //1725:         JR      NC,SR30         ; No - jump
 SR25:   LD      (ptr(hl),b);            //  Link new move into list        //1726: SR25:   LD      (hl),b          ; Link new move into list
-        DEC     (hl);                   //                                 //1727:         DEC     hl
+        DEC16   (hl);                   //                                 //1727:         DEC     hl
         LD      (ptr(hl),c);            //                                 //1728:         LD      (hl),c
         JPu     (SR5);                  //  Jump                           //1729:         JP      SR5             ; Jump
 SR30:   EX      (de,hl);                //  Swap pointers                  //1730: SR30:   EX      de,hl           ; Swap pointers
@@ -1956,7 +1956,7 @@ void FNDMOV() {                                                            //178
         LD      (val16(MLNXT),hl);                                         //1789:         LD      (MLNXT),hl
         LD      (hl,addr(PLYIX)-2);                                        //1790:         LD      hl,PLYIX-2
         LD      (val16(MLPTRI),hl);                                        //1791:         LD      (MLPTRI),hl
-        LD      (a,val(KOLOR));         //  Initialize val(COLOR)          //1792:         LD      a,(KOLOR)       ; Initialize color
+        LD      (a,val(KOLOR));         //  Initialize color               //1792:         LD      a,(KOLOR)       ; Initialize color
         LD      (val(COLOR),a);                                            //1793:         LD      (COLOR),a
         LD      (hl,addr(SCORE));       //  Initialize score index         //1794:         LD      hl,SCORE        ; Initialize score index
         LD      (val16(SCRIX),hl);                                         //1795:         LD      (SCRIX),hl
@@ -1965,7 +1965,7 @@ void FNDMOV() {                                                            //178
         LD      (b,a);                  //  Save as counter                //1798:         LD      b,a             ; Save as counter
         XOR     (a);                    //  Zero out score table           //1799:         XOR     a               ; Zero out score table
 back05: LD      (ptr(hl),a);                                               //1800: back05: LD      (hl),a
-        INC     (hl);                                                      //1801:         INC     hl
+        INC16   (hl);                                                      //1801:         INC     hl
         DJNZ    (back05);                                                  //1802:         DJNZ    back05
         LD      (val(BC0),a);           //  Zero ply 0 board control       //1803:         LD      (BC0),a         ; Zero ply 0 board control
         LD      (val(MV0),a);           //  Zero ply 0 material            //1804:         LD      (MV0),a         ; Zero ply 0 material
@@ -1988,7 +1988,7 @@ FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter         //181
         LD      (val16(MLPTRJ),hl);     //  Save as last move pointer      //1821:         LD      (MLPTRJ),hl     ; Save as last move pointer
 FM15:   LD      (hl,val16(MLPTRJ));     //  Load last move pointer         //1822: FM15:   LD      hl,(MLPTRJ)     ; Load last move pointer
         LD      (e,ptr(hl));            //  Get next move pointer          //1823:         LD      e,(hl)          ; Get next move pointer
-        INC     (hl);                                                      //1824:         INC     hl
+        INC16   (hl);                                                      //1824:         INC     hl
         LD      (d,ptr(hl));                                               //1825:         LD      d,(hl)
         LD      (a,d);                                                     //1826:         LD      a,d
         AND     (a);                    //  End of move list ?             //1827:         AND     a               ; End of move list ?
@@ -1996,7 +1996,7 @@ FM15:   LD      (hl,val16(MLPTRJ));     //  Load last move pointer         //182
         LD      (val16(MLPTRJ),de);     //  Save current move pointer      //1829:         LD      (MLPTRJ),de     ; Save current move pointer
         LD      (hl,val16(MLPTRI));     //  Save in ply pointer list       //1830:         LD      hl,(MLPTRI)     ; Save in ply pointer list
         LD      (ptr(hl),e);                                               //1831:         LD      (hl),e
-        INC     (hl);                                                      //1832:         INC     hl
+        INC16   (hl);                                                      //1832:         INC     hl
         LD      (ptr(hl),d);                                               //1833:         LD      (hl),d
         LD      (a,val(NPLY));          //  Current ply counter            //1834:         LD      a,(NPLY)        ; Current ply counter
         LD      (hl,addr(PLYMAX));      //  Maximum ply number ?           //1835:         LD      hl,PLYMAX       ; Maximum ply number ?
@@ -2023,20 +2023,20 @@ FM18:   LD      (ix,val16(MLPTRJ));     //  Load move pointer              //185
         AND     (a);                    //  Is it zero (illegal move) ?    //1856:         AND     a               ; Is it zero (illegal move) ?
         JR      (Z,FM15);               //  Yes - jump                     //1857:         JR      Z,FM15          ; Yes - jump
         CALLu   (MOVE);                 //  Execute move on board array    //1858:         CALL    MOVE            ; Execute move on board array
-FM19:   LD      (hl,addr(COLOR));       //  Toggle val(COLOR)              //1859: FM19:   LD      hl,COLOR        ; Toggle color
+FM19:   LD      (hl,addr(COLOR));       //  Toggle color                   //1859: FM19:   LD      hl,COLOR        ; Toggle color
         LD      (a,0x80);                                                  //1860:         LD      a,80H
         XOR     (ptr(hl));                                                 //1861:         XOR     (hl)
-        LD      (ptr(hl),a);            //  Save new val(COLOR)            //1862:         LD      (hl),a          ; Save new color
+        LD      (ptr(hl),a);            //  Save new color                 //1862:         LD      (hl),a          ; Save new color
         BIT     (7,a);                  //  Is it white ?                  //1863:         BIT     7,a             ; Is it white ?
         JR      (NZ,rel018);            //  No - jump                      //1864:         JR      NZ,rel018       ; No - jump
         LD      (hl,addr(MOVENO));      //  Increment move number          //1865:         LD      hl,MOVENO       ; Increment move number
         INC     (ptr(hl));                                                 //1866:         INC     (hl)
 rel018: LD      (hl,val16(SCRIX));      //  Load score table pointer       //1867: rel018: LD      hl,(SCRIX)      ; Load score table pointer
         LD      (a,ptr(hl));            //  Get score two plys above       //1868:         LD      a,(hl)          ; Get score two plys above
-        INC     (hl);                   //  Increment to current ply       //1869:         INC     hl              ; Increment to current ply
-        INC     (hl);                                                      //1870:         INC     hl
+        INC16   (hl);                   //  Increment to current ply       //1869:         INC     hl              ; Increment to current ply
+        INC16   (hl);                                                      //1870:         INC     hl
         LD      (ptr(hl),a);            //  Save score as initial value    //1871:         LD      (hl),a          ; Save score as initial value
-        DEC     (hl);                   //  Decrement pointer              //1872:         DEC     hl              ; Decrement pointer
+        DEC16   (hl);                   //  Decrement pointer              //1872:         DEC     hl              ; Decrement pointer
         LD      (val16(SCRIX),hl);      //  Save it                        //1873:         LD      (SCRIX),hl      ; Save it
         JPu     (FM5);                  //  Jump                           //1874:         JP      FM5             ; Jump
 FM25:   LD      (a,val(MATEF));         //  Get mate flag                  //1875: FM25:   LD      a,(MATEF)       ; Get mate flag
@@ -2055,11 +2055,11 @@ FM30:   LD      (a,val(NPLY));          //  Get ply counter                //188
         RET     (Z);                    //  Yes - return                   //1888:         RET     Z               ; Yes - return
         CALLu   (ASCEND);               //  Ascend one ply in tree         //1889:         CALL    ASCEND          ; Ascend one ply in tree
         LD      (hl,val16(SCRIX));      //  Load score table pointer       //1890:         LD      hl,(SCRIX)      ; Load score table pointer
-        INC     (hl);                   //  Increment to current ply       //1891:         INC     hl              ; Increment to current ply
-        INC     (hl);                   //                                 //1892:         INC     hl
+        INC16   (hl);                   //  Increment to current ply       //1891:         INC     hl              ; Increment to current ply
+        INC16   (hl);                   //                                 //1892:         INC     hl
         LD      (a,ptr(hl));            //  Get score                      //1893:         LD      a,(hl)          ; Get score
-        DEC     (hl);                   //  Restore pointer                //1894:         DEC     hl              ; Restore pointer
-        DEC     (hl);                   //                                 //1895:         DEC     hl
+        DEC16   (hl);                   //  Restore pointer                //1894:         DEC     hl              ; Restore pointer
+        DEC16   (hl);                   //                                 //1895:         DEC     hl
         JPu     (FM37);                 //  Jump                           //1896:         JP      FM37            ; Jump
 FM35:   CALLu   (PINFND);               //  Compile pin list               //1897: FM35:   CALL    PINFND          ; Compile pin list
         CALLu   (POINTS);               //  Evaluate move                  //1898:         CALL    POINTS          ; Evaluate move
@@ -2073,7 +2073,7 @@ FM37:                                                                      //190
         JR      (C,FM40);               //  Jump if less                   //1906:         JR      C,FM40          ; Jump if less
         JR      (Z,FM40);               //  Jump if equal                  //1907:         JR      Z,FM40          ; Jump if equal
         NEG;                            //  Negate score                   //1908:         NEG                     ; Negate score
-        INC     (hl);                   //  Incr score table pointer       //1909:         INC     hl              ; Incr score table pointer
+        INC16   (hl);                   //  Incr score table pointer       //1909:         INC     hl              ; Incr score table pointer
         CP      (ptr(hl));              //  Compare to score 1 ply above   //1910:         CP      (hl)            ; Compare to score 1 ply above
         JP      (C,FM15);               //  Jump if less than              //1911:         JP      C,FM15          ; Jump if less than
         JP      (Z,FM15);               //  Jump if equal                  //1912:         JP      Z,FM15          ; Jump if equal
@@ -2089,7 +2089,7 @@ FM37:                                                                      //190
         LD      (hl,addr(PLYMAX));      //  Get maximum ply number         //1922:         LD      hl,PLYMAX       ; Get maximum ply number
         DEC     (ptr(hl));              //  Subtract 2                     //1923:         DEC     (hl)            ; Subtract 2
         DEC     (ptr(hl));                                                 //1924:         DEC     (hl)
-        LD      (a,val(KOLOR));         //  Get computer's val(COLOR)      //1925:         LD      a,(KOLOR)       ; Get computer's color
+        LD      (a,val(KOLOR));         //  Get computer's color           //1925:         LD      a,(KOLOR)       ; Get computer's color
         BIT     (7,a);                  //  Is it white ?                  //1926:         BIT     7,a             ; Is it white ?
         RET     (Z);                    //  Yes - return                   //1927:         RET     Z               ; Yes - return
         LD      (hl,addr(PMATE));       //  Checkmate move number          //1928:         LD      hl,PMATE        ; Checkmate move number
@@ -2112,28 +2112,28 @@ FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree         //193
 // ARGUMENTS: --  None                                                     //1943: ;
 //***********************************************************              //1944: ; ARGUMENTS: --  None
 void ASCEND() {                                                            //1945: ;***********************************************************
-        LD      (hl,addr(COLOR));       //  Toggle val(COLOR)              //1946: ASCEND: LD      hl,COLOR        ; Toggle color
+        LD      (hl,addr(COLOR));       //  Toggle color                   //1946: ASCEND: LD      hl,COLOR        ; Toggle color
         LD      (a,0x80);               //                                 //1947:         LD      a,80H
         XOR     (ptr(hl));              //                                 //1948:         XOR     (hl)
-        LD      (ptr(hl),a);            //  Save new val(COLOR)            //1949:         LD      (hl),a          ; Save new color
+        LD      (ptr(hl),a);            //  Save new color                 //1949:         LD      (hl),a          ; Save new color
         BIT     (7,a);                  //  Is it white ?                  //1950:         BIT     7,a             ; Is it white ?
         JR      (Z,rel019);             //  Yes - jump                     //1951:         JR      Z,rel019        ; Yes - jump
         LD      (hl,addr(MOVENO));      //  Decrement move number          //1952:         LD      hl,MOVENO       ; Decrement move number
         DEC     (ptr(hl));              //                                 //1953:         DEC     (hl)
 rel019: LD      (hl,val16(SCRIX));      //  Load score table index         //1954: rel019: LD      hl,(SCRIX)      ; Load score table index
-        DEC     (hl);                   //  Decrement                      //1955:         DEC     hl              ; Decrement
+        DEC16   (hl);                   //  Decrement                      //1955:         DEC     hl              ; Decrement
         LD      (val16(SCRIX),hl);      //  Save                           //1956:         LD      (SCRIX),hl      ; Save
         LD      (hl,addr(NPLY));        //  Decrement ply counter          //1957:         LD      hl,NPLY         ; Decrement ply counter
         DEC     (ptr(hl));              //                                 //1958:         DEC     (hl)
         LD      (hl,val16(MLPTRI));     //  Load ply list pointer          //1959:         LD      hl,(MLPTRI)     ; Load ply list pointer
-        DEC     (hl);                   //  Load pointer to move list top  //1960:         DEC     hl              ; Load pointer to move list top
+        DEC16   (hl);                   //  Load pointer to move list top  //1960:         DEC     hl              ; Load pointer to move list top
         LD      (d,ptr(hl));            //                                 //1961:         LD      d,(hl)
-        DEC     (hl);                   //                                 //1962:         DEC     hl
+        DEC16   (hl);                   //                                 //1962:         DEC     hl
         LD      (e,ptr(hl));            //                                 //1963:         LD      e,(hl)
         LD      (val16(MLNXT),de);      //  Update move list avail ptr     //1964:         LD      (MLNXT),de      ; Update move list avail ptr
-        DEC     (hl);                   //  Get ptr to next move to undo   //1965:         DEC     hl              ; Get ptr to next move to undo
+        DEC16   (hl);                   //  Get ptr to next move to undo   //1965:         DEC     hl              ; Get ptr to next move to undo
         LD      (d,ptr(hl));            //                                 //1966:         LD      d,(hl)
-        DEC     (hl);                   //                                 //1967:         DEC     hl
+        DEC16   (hl);                   //                                 //1967:         DEC     hl
         LD      (e,ptr(hl));            //                                 //1968:         LD      e,(hl)
         LD      (val16(MLPTRI),hl);     //  Save new ply list pointer      //1969:         LD      (MLPTRI),hl     ; Save new ply list pointer
         LD      (val16(MLPTRJ),de);     //  Save next move pointer         //1970:         LD      (MLPTRJ),de     ; Save next move pointer
@@ -2160,7 +2160,7 @@ void BOOK() {                                                              //198
         LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book     //1989:         LD      hl,BMOVES-2     ; Init best move ptr to book
         LD      (val16(BESTM),hl);      //                                 //1990:         LD      (BESTM),hl
         LD      (hl,addr(BESTM));       //  Initialize address of pointer  //1991:         LD      hl,BESTM        ; Initialize address of pointer
-        LD      (a,val(KOLOR));         //  Get computer's val(COLOR)      //1992:         LD      a,(KOLOR)       ; Get computer's color
+        LD      (a,val(KOLOR));         //  Get computer's color           //1992:         LD      a,(KOLOR)       ; Get computer's color
         AND     (a);                    //  Is it white ?                  //1993:         AND     a               ; Is it white ?
         JR      (NZ,BM5);               //  No - jump                      //1994:         JR      NZ,BM5          ; No - jump
         LD      (a,rand());             //  Load refresh reg (random no)   //1995:         LD      a,r             ; Load refresh reg (random no)
@@ -2245,31 +2245,31 @@ CP0C:   CALLu   (MOVE);                 //  Produce move on board array    //234
         LD      (d,c);                  //  "From" position of the move    //2356:         LD      d,c             ; "From" position of the move
         CALLu   (BITASN);               //  Convert to Ascii               //2357:         CALL    BITASN          ; Convert to Ascii
         LD      (val16(MVEMSG),hl);     //  Put in move message            //2358:         LD      (MVEMSG),hl     ; Put in move message
-        //PRTBLK  (MVEMSG,5);             //  Output text of move          //2359:         PRTBLK  MVEMSG,5        ; Output text of move
+        //PRTBLK  (MVEMSG,5);           //  Output text of move            //2359:         PRTBLK  MVEMSG,5        ; Output text of move
         JRu     (CP1C);                 //  Jump                           //2360:         JR      CP1C            ; Jump
 CP10:   BIT     (1,b);                  //  King side castle ?             //2361: CP10:   BIT     1,b             ; King side castle ?
         JR      (Z,rel020);             //  No - jump                      //2362:         JR      Z,rel020        ; No - jump
-        //PRTBLK  (addr(O_O),5);                //  Output "O-O"           //2363:         PRTBLK  O_O,5           ; Output "O-O"
+        //PRTBLK  (addr(O_O),5);        //  Output "O-O"                   //2363:         PRTBLK  O_O,5           ; Output "O-O"
         JRu     (CP1C);                 //  Jump                           //2364:         JR      CP1C            ; Jump
 rel020: BIT     (2,b);                  //  Queen side castle ?            //2365: rel020: BIT     2,b             ; Queen side castle ?
         JR      (Z,rel021);             //  No - jump                      //2366:         JR      Z,rel021        ; No - jump
-        //PRTBLK  (addr(O_O_O),5);              //  Output "O-O-O"         //2367:         PRTBLK  O_O_O,5         ; Output "O-O-O"
+        //PRTBLK  (addr(O_O_O),5);      //  Output "O-O-O"                 //2367:         PRTBLK  O_O_O,5         ; Output "O-O-O"
         JRu     (CP1C);                 //  Jump                           //2368:         JR      CP1C            ; Jump
-rel021: //PRTBLK  (P_PEP,5);              //  Output "PxPep" - En passant  //2369: rel021: PRTBLK  P_PEP,5         ; Output "PxPep" - En passant
+rel021: //PRTBLK  (P_PEP,5);            //  Output "PxPep" - En passant    //2369: rel021: PRTBLK  P_PEP,5         ; Output "PxPep" - En passant
 CP1C:   LD      (a,val(COLOR));         //  Should computer call check ?   //2370: CP1C:   LD      a,(COLOR)       ; Should computer call check ?
         LD      (b,a);                                                     //2371:         LD      b,a
-        XOR     (0x80);                 //  Toggle val(COLOR)              //2372:         XOR     80H             ; Toggle color
+        XOR     (0x80);                 //  Toggle color                   //2372:         XOR     80H             ; Toggle color
         LD      (val(COLOR),a);                                            //2373:         LD      (COLOR),a
         CALLu   (INCHK);                //  Check for check                //2374:         CALL    INCHK           ; Check for check
         AND     (a);                    //  Is enemy in check ?            //2375:         AND     a               ; Is enemy in check ?
-        LD      (a,b);                  //  Restore val(COLOR)             //2376:         LD      a,b             ; Restore color
+        LD      (a,b);                  //  Restore color                  //2376:         LD      a,b             ; Restore color
         LD      (val(COLOR),a);                                            //2377:         LD      (COLOR),a
         JR      (Z,CP24);               //  No - return                    //2378:         JR      Z,CP24          ; No - return
         CARRET();                       //  New line                       //2379:         CARRET                  ; New line
         LD      (a,val(SCORE+1));       //  Check for player mated         //2380:         LD      a,(SCORE+1)     ; Check for player mated
         CP      (0xFF);                 //  Forced mate ?                  //2381:         CP      0FFH            ; Forced mate ?
         CALL    (NZ,TBCPMV);            //  No - Tab to computer column    //2382:         CALL    NZ,TBCPMV       ; No - Tab to computer column
-        //PRTBLK  (CKMSG,5);              //  Output "check"               //2383:         PRTBLK  CKMSG,5         ; Output "check"
+        //PRTBLK  (CKMSG,5);            //  Output "check"                 //2383:         PRTBLK  CKMSG,5         ; Output "check"
         LD      (hl,addr(LINECT));      //  Address of screen line count   //2384:         LD      hl,LINECT       ; Address of screen line count
         INC     (ptr(hl));              //  Increment for message          //2385:         INC     (hl)            ; Increment for message
 CP24:   LD      (a,val(SCORE+1));       //  Check again for mates          //2386: CP24:   LD      a,(SCORE+1)     ; Check again for mates
@@ -2377,8 +2377,8 @@ AT04:   LD      (b,a);                  //  Invalid flag                   //263
 void VALMOV() {                                                            //2652: ;***********************************************************
         LD      (hl,val16(MLPTRJ));     //  Save last move pointer         //2653: VALMOV: LD      hl,(MLPTRJ)     ; Save last move pointer
         PUSH    (hl);                   //  Save register                  //2654:         PUSH    hl              ; Save register
-        LD      (a,val(KOLOR));         //  Computers val(COLOR)           //2655:         LD      a,(KOLOR)       ; Computers color
-        XOR     (0x80);                 //  Toggle val(COLOR)              //2656:         XOR     80H             ; Toggle color
+        LD      (a,val(KOLOR));         //  Computers color                //2655:         LD      a,(KOLOR)       ; Computers color
+        XOR     (0x80);                 //  Toggle color                   //2656:         XOR     80H             ; Toggle color
         LD      (val(COLOR),a);         //  Store                          //2657:         LD      (COLOR),a       ; Store
         LD      (hl,addr(PLYIX)-2);     //  Load move list index           //2658:         LD      hl,PLYIX-2      ; Load move list index
         LD      (val16(MLPTRI),hl);     //                                 //2659:         LD      (MLPTRI),hl
@@ -2436,16 +2436,16 @@ void ROYALT() {                                                            //294
         LD      (hl,addr(POSK));        //  Start of Royalty array         //2944: ROYALT: LD      hl,POSK         ; Start of Royalty array
         LD      (b,4);                  //  Clear all four positions       //2945:         LD      b,4             ; Clear all four positions
 back06: LD      (ptr(hl),0);            //                                 //2946: back06: LD      (hl),0
-        INC     (hl);                   //                                 //2947:         INC     hl
+        INC16   (hl);                   //                                 //2947:         INC     hl
         DJNZ    (back06);               //                                 //2948:         DJNZ    back06
         LD      (a,21);                 //  First board position           //2949:         LD      a,21            ; First board position
 RY04:   LD      (val(M1),a);            //  Set up board index             //2950: RY04:   LD      (M1),a          ; Set up board index
         LD      (hl,addr(POSK));        //  Address of King position       //2951:         LD      hl,POSK         ; Address of King position
         LD      (ix,val16(M1));         //                                 //2952:         LD      ix,(M1)
         LD      (a,ptr(ix+BOARD));      //  Fetch board contents           //2953:         LD      a,(ix+BOARD)    ; Fetch board contents
-        BIT     (7,a);                  //  Test val(COLOR) bit            //2954:         BIT     7,a             ; Test color bit
+        BIT     (7,a);                  //  Test color bit                 //2954:         BIT     7,a             ; Test color bit
         JR      (Z,rel023);             //  Jump if white                  //2955:         JR      Z,rel023        ; Jump if white
-        INC     (hl);                   //  Offset for black               //2956:         INC     hl              ; Offset for black
+        INC16   (hl);                   //  Offset for black               //2956:         INC     hl              ; Offset for black
 rel023: AND     (7);                    //  Delete flags, leave piece      //2957: rel023: AND     7               ; Delete flags, leave piece
         CP      (KING);                 //  King ?                         //2958:         CP      KING            ; King ?
         JR      (Z,RY08);               //  Yes - jump                     //2959:         JR      Z,RY08          ; Yes - jump
@@ -2476,7 +2476,7 @@ void DIVIDE() {                                                            //319
         PUSH    (bc);                   //                                 //3194: DIVIDE: PUSH    bc
         LD      (b,8);                  //                                 //3195:         LD      b,8
 DD04:   SLA     (d);                    //                                 //3196: DD04:   SLA     d
-        RLA     (a);                    //                                 //3197:         RLA
+        RLA;                            //                                 //3197:         RLA
         SUB     (e);                    //                                 //3198:         SUB     e
         JP      (M,rel027);             //                                 //3199:         JP      M,rel027
         INC     (d);                    //                                 //3200:         INC     d

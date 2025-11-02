@@ -78,22 +78,29 @@ struct z80_registers
 #define val16(var)      *((uint16_t *)(&mem.var))
 #define val(var)        *((uint8_t *)(&mem.var))
 #define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
-#define INC(x)          Z=(x+1==0), C==((uint16_t)(x)+1>=0x100), M=((int8_t)((int8_t)(x)+1) < 0), (x) = (x)+1
-#define DEC(x)          Z=(x-1==0), C==((uint16_t)(x)-1>=0x100), M=((int8_t)((int8_t)(x)-1) < 0), (x) = (x)-1
 #define DJNZ(label)     if(--r.B != 0) goto label
-#define ADD(x,y)        Z=((x)+(y)==(uint8_t)0), C==((uint16_t)(x)+(uint16_t)(y)>=0x100), M=((int8_t)((int8_t)(x)+(int8_t)(y)) < 0), (x)+=(y)
-#define ADD16(x,y)      Z=((x)+(y)==(uint16_t)0), C==((uint32_t)(x)+(uint32_t)(y)>=0x10000), M=((int16_t)((int16_t)(x)+(int16_t)(y)) < 0), (x)+=(y)
-#define SBC(x,y)        Z=((x)==(y+C?1:0)), C==((y+C?1:0)>(x)), M=((int16_t)((int16_t)(x)-(int16_t)(y+C?1:0)) < 0), (x)-=(y+C?1:0)
-#define SUB(y)          Z=(a==(y)),   C==((y)>a), M=((int8_t)((int8_t)(a)-(int8_t)(y)) < 0), a-=(y)
-#define CP(y)           Z=(a==(y)),   C==((y)>a), M=((int8_t)((int8_t)(a)-(int8_t)(y)) < 0)
-#define NEG             Z=(a==0),     C==(false), M=((int8_t)a > 0), a = (int8_t)(0 - (int8_t)a)
+#define INC(x)          (x) = (x)+1, M=(((x)&0x80)==0x80), Z=((x)==0)
+#define DEC(x)          (x) = (x)-1, M=(((x)&0x80)==0x80), Z=((x)==0)
+#define INC16(x)        (x) = (x)+1
+#define DEC16(x)        (x) = (x)-1
+#define ADD(x,y)        C==((uint16_t)(x)+(uint16_t)(y)>=0x100),           (x)+=(y),         M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define ADC(x,y)        C==((uint16_t)(x)+(C?1:0)+(uint16_t)(y)>=0x100),   (x)+=(y+(C?1:0)), M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define ADD16(x,y)      C==((uint32_t)(x)+(uint32_t)(y)>=0x10000),         (x)+=(y)   // anomalous 8080 instruction, only CY affected
+#define ADC16(x,y)      C==((uint32_t)(x)+(C?1:0)+(uint32_t)(y)>=0x10000), (x)+=(y+(C?1:0))  M=(((x)&0x8000)==0x8000), Z=((x)==0)
+#define SUB(x)          C==((x)>a),                                        a-=(x),           M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define SBC(x)          C==((x+(C?1:0))>a),                                a-=(x+(C?1:0)),   M=(((x)&0x80)==0x80),     Z=((x)==0)
+// #define SUB16(x,y)      // No such instruction
+#define SBC16(x,y)      C==((y+(C?1:0))>(x)),                              (x)-=(y+(C?1:0)), M=(((x)&0x8000)==0x8000), Z=((x)==0)
+#define CP(x)           C==((x)>a),                                                          M=(((a-(x))&0x80)==0x80), Z=((a-(x))==0)
+#define NEG             Z=(a==0),  C==(a!=0), a = (int8_t)(0 - (int8_t)a),                   M=(((a)&0x80)==0x80)
+#define AND(x)          C==false, a = a&(x), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define OR(x)           C==false, a = a|(x), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define XOR(x)          C==false, a = a^(x), M=(((x)&0x80)==0x80), Z=((x)==0)
 #define EX(x,y)         ex_temp=x; x=y; y=ex_temp
 #define JR(cond,label)  if(cond) goto label
 #define JP(cond,label)  if(cond) goto label
 #define CALL(cond,func) if(cond) (func)()
-#define AND(y)          Z=((a&(y))==0),   C==false, M=((a&(y)) > 0x7f), a = a&(y)
 #define RET(cond)       if(cond) return
-#define XOR(y)          Z=((a^(y))==0),   C==false, M=((a^(y)) > 0x7f), a = a^(y)
 #define RETu            return;
 #define JRu(label)      goto label
 #define JPu(label)      goto label
@@ -108,16 +115,16 @@ struct z80_registers
 #define NIB_OUT(x,hi,lo)  hi=(((x)>>4)&0x0f), lo=((x)&0x0f)
 #define NIB_IN(x,hi,lo)   x = (((hi)<<4)&0xf0)|(lo)
 #define RLD               NIB_OUT(a,nib1,nib2), NIB_OUT(ptr(hl),nib3,nib4), \
-                          NIB_IN (a,nib1,nib3), NIB_IN (ptr(hl),nib4,nib2)
+                          NIB_IN (a,nib1,nib3), NIB_IN (ptr(hl),nib4,nib2), M=(((a)&0x80)==0x80), Z=((a)==0)
 #define RRD               NIB_OUT(a,nib1,nib2), NIB_OUT(ptr(hl),nib3,nib4), \
-                          NIB_IN(a,nib1,nib4),  NIB_IN(ptr(hl),nib2,nib3)
+                          NIB_IN(a,nib1,nib4),  NIB_IN(ptr(hl),nib2,nib3), M=(((a)&0x80)==0x80), Z=((a)==0)
 #define EXX               EX(bc,ex_bc), EX(de,ex_de), EX(hl,ex_hl)
-#define SLA(x)            C=( ((x)&0x80) != 0 ), (x)=(x<<1),                       Z=((x)==0)
-#define SRA(x)            C=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2)), Z=((x)==0)
-#define SRL(x)            C=( ((x)&0x01) != 0 ), (x)=(x>>1),                       Z=((x)==0)
-#define RLA(x)            C=( ((x)&0x80) != 0 ), (x)=((x<<1)+(C?0x01:0)),          Z=((x)==0)
-#define RR(x)             C=( ((x)&0x01) != 0 ), (x)=((x>>1)+(C?0x80:0)),          Z=((x)==0)
-#define SET(bit_nbr,reg ) switch(bit_nbr) {\
+#define SLA(x)            C=( ((x)&0x80) != 0 ), (x)=(x<<1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
+#define SRA(x)            C=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2)), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define SRL(x)            C=( ((x)&0x01) != 0 ), (x)=(x>>1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
+#define RLA               C=( ((a)&0x80) != 0 ), (a)=((a<<1)+(C?0x01:0)),          M=(((a)&0x80)==0x80), Z=((a)==0)
+#define RR(x)             C=( ((x)&0x01) != 0 ), (x)=((x>>1)+(C?0x80:0)),          M=(((x)&0x80)==0x80), Z=((x)==0)
+#define SET(bit_nbr,reg ) switch(bit_nbr) {            \
                            case 7: (reg)|=0x80; break; \
                            case 6: (reg)|=0x40; break; \
                            case 5: (reg)|=0x20; break; \
@@ -126,7 +133,7 @@ struct z80_registers
                            case 2: (reg)|=0x04; break; \
                            case 1: (reg)|=0x02; break; \
                            case 0: (reg)|=0x01; break; }
-#define RES(bit_nbr,reg ) switch(bit_nbr) {\
+#define RES(bit_nbr,reg ) switch(bit_nbr) {            \
                            case 7: (reg)&=0x7f; break; \
                            case 6: (reg)&=0xb0; break; \
                            case 5: (reg)&=0xd0; break; \
@@ -136,7 +143,7 @@ struct z80_registers
                            case 1: (reg)&=0xfd; break; \
                            case 0: (reg)&=0xfe; break; }
 
-#define BIT(bit_nbr,reg ) switch(bit_nbr) {\
+#define BIT(bit_nbr,reg ) switch(bit_nbr) {                    \
                            case 7: Z = ((reg)&0x80)==0; break; \
                            case 6: Z = ((reg)&0x40)==0; break; \
                            case 5: Z = ((reg)&0x20)==0; break; \
