@@ -793,6 +793,7 @@ rel003: CP      (10);                   //  Is difference 10 ?             //065
         CALLu   (ADMOVE);               //  Add Pawn capture to move list  //0667:         CALL    ADMOVE          ; Add Pawn capture to move list
         LD      (a,val(M3));            //  Restore "from" position        //0668:         LD      a,(M3)          ; Restore "from" position
         LD      (val(M1),a);            //                                 //0669:         LD      (M1),a
+        ADJPTR();  // emulate Z80 fall through 
 }
 
 
@@ -1014,7 +1015,7 @@ GM10:   LD      (a,val(M1));            //  Fetch current board position   //085
 //***********************************************************              //0877: ; ARGUMENTS:  --  Color of King
 void INCHK() {                                                             //0878: ;***********************************************************
         LD      (a,val(COLOR));         //  Get color                      //0879: INCHK:  LD      a,(COLOR)       ; Get color
-        CALLu   (INCHK1);
+        INCHK1();   // Emulate Z80 fall through
 }
 
 void INCHK1() {                         // Like INCHK() but takes input in register A
@@ -1437,7 +1438,7 @@ XC18:   Z80_EXAF;                       //  Save Defender                  //128
         LD      (a,b);                  //  Get value of attacked piece    //1286:         LD      a,b             ; Get value of attacked piece
 XC19:   BIT     (0,c);                  //  Attacker or defender ?         //1287: XC19:   BIT     0,c             ; Attacker or defender ?
         JR      (Z,rel010);             //  Jump if defender               //1288:         JR      Z,rel010        ; Jump if defender
-        NEG;                     //  Negate value for attacker             //1289:         NEG                     ; Negate value for attacker
+        NEG;                            //  Negate value for attacker      //1289:         NEG                     ; Negate value for attacker
 rel010: ADD     (a,e);                  //  Total points lost              //1290: rel010: ADD     a,e             ; Total points lost
         LD      (e,a);                  //  Save total                     //1291:         LD      e,a             ; Save total
         Z80_EXAF;                       //  Restore previous defender      //1292:         EX      af,af'          ; Restore previous defender
@@ -1947,7 +1948,7 @@ EV10:   CALLu   (UNMOVE);               //  Restore board array            //176
 void FNDMOV() {                                                            //1780: ;***********************************************************
         LD      (a,val(MOVENO));        //  Current move number            //1781: FNDMOV: LD      a,(MOVENO)      ; Current move number
         CP      (1);                    //  First move ?                   //1782:         CP      1               ; First move ?
-        CALL    (Z,BOOK);               //  Yes - execute book opening     //1783:         CALL    Z,BOOK          ; Yes - execute book opening
+        JR      (Z,tobook);             //  Yes - execute book opening     //1783:         CALL    Z,BOOK          ; Yes - execute book opening
         XOR     (a);                    //  Initialize ply number to zero  //1784:         XOR     a               ; Initialize ply number to zero
         LD      (val(NPLY),a);                                             //1785:         LD      (NPLY),a
         LD      (hl,0);                 //  Initialize best move to zero   //1786:         LD      hl,0            ; Initialize best move to zero
@@ -2083,7 +2084,7 @@ FM37:                                                                      //190
         JP      (NZ,FM15);              //  No - jump                      //1916:         JP      NZ,FM15         ; No - jump
         LD      (hl,val16(MLPTRJ));     //  Load current move pointer      //1917:         LD      hl,(MLPTRJ)     ; Load current move pointer
         LD      (val16(BESTM),hl);      //  Save as best move pointer      //1918:         LD      (BESTM),hl      ; Save as best move pointer
-        LD      (a,val(SCORE+1));      //  Get best move score             //1919:         LD      a,(SCORE+1)     ; Get best move score
+        LD      (a,val_offset(SCORE,1));//  Get best move score            //1919:         LD      a,(SCORE+1)     ; Get best move score
         CP      (0xff);                 //  Was it a checkmate ?           //1920:         CP      0FFH            ; Was it a checkmate ?
         JP      (NZ,FM15);              //  No - jump                      //1921:         JP      NZ,FM15         ; No - jump
         LD      (hl,addr(PLYMAX));      //  Get maximum ply number         //1922:         LD      hl,PLYMAX       ; Get maximum ply number
@@ -2097,6 +2098,7 @@ FM37:                                                                      //190
         RETu;                           //  Return                         //1930:         RET                     ; Return
 FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree         //1931: FM40:   CALL    ASCEND          ; Ascend one ply in tree
         JPu     (FM15);                 //  Jump                           //1932:         JP      FM15            ; Jump
+tobook: BOOK(); // emulate Z80 call to BOOK() with exit from FNDMOV()
 }                                                                          //1933: 
                                                                            //1934: ;***********************************************************
 //***********************************************************              //1935: ; ASCEND TREE ROUTINE
@@ -2154,7 +2156,7 @@ rel019: LD      (hl,val16(SCRIX));      //  Load score table index         //195
 // ARGUMENTS:  --  None                                                    //1983: ;
 //***********************************************************              //1984: ; ARGUMENTS:  --  None
 void BOOK() {                                                              //1985: ;***********************************************************
-        POPf    (af);                   //  Abort return to FNDMOV         //1986: BOOK:   POP     af              ; Abort return to FNDMOV
+// see tobook: POPf    (af);            //  Abort return to FNDMOV         //1986: BOOK:   POP     af              ; Abort return to FNDMOV
         LD      (hl,addr(SCORE)+1);     //  Zero out score                 //1987:         LD      hl,SCORE+1      ; Zero out score
         LD      (ptr(hl),0);            //  Zero out score table           //1988:         LD      (hl),0          ; Zero out score table
         LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book     //1989:         LD      hl,BMOVES-2     ; Init best move ptr to book
@@ -2228,20 +2230,20 @@ void CPTRMV() {                                                            //233
         CALLu   (FNDMOV);               //  Select best move               //2339: CPTRMV: CALL    FNDMOV          ; Select best move
         LD      (hl,val16(BESTM));      //  Move list pointer variable     //2340:         LD      hl,(BESTM)      ; Move list pointer variable
         LD      (val16(MLPTRJ),hl);     //  Pointer to move data           //2341:         LD      (MLPTRJ),hl     ; Pointer to move data
-        LD      (a,(val(SCORE+1)));     //  To check for mates             //2342:         LD      a,(SCORE+1)     ; To check for mates
+        LD     (a,val_offset(SCORE,1)); //  To check for mates             //2342:         LD      a,(SCORE+1)     ; To check for mates
         CP      (1);                    //  Mate against computer ?        //2343:         CP      1               ; Mate against computer ?
         JR      (NZ,CP0C);              //  No - jump                      //2344:         JR      NZ,CP0C         ; No - jump
         LD      (c,1);                  //  Computer mate flag             //2345:         LD      c,1             ; Computer mate flag
         CALLu   (FCDMAT);               //  Full checkmate ?               //2346:         CALL    FCDMAT          ; Full checkmate ?
 CP0C:   CALLu   (MOVE);                 //  Produce move on board array    //2347: CP0C:   CALL    MOVE            ; Produce move on board array
         CALLu   (EXECMV);               //  Make move on graphics board    //2348:         CALL    EXECMV          ; Make move on graphics board
-// and return info about it                                                //2349:                                 ; and return info about it
+                                        // and return info about it        //2349:                                 ; and return info about it
         LD      (a,b);                  //  Special move flags             //2350:         LD      a,b             ; Special move flags
         AND     (a);                    //  Special ?                      //2351:         AND     a               ; Special ?
         JR      (NZ,CP10);              //  Yes - jump                     //2352:         JR      NZ,CP10         ; Yes - jump
         LD      (d,e);                  //  "To" position of the move      //2353:         LD      d,e             ; "To" position of the move
         CALLu   (BITASN);               //  Convert to Ascii               //2354:         CALL    BITASN          ; Convert to Ascii
-        LD      (val16(MVEMSG+3),hl);   //  Put in move message            //2355:         LD      (MVEMSG+3),hl   ; Put in move message
+        LD   (v16_offset(MVEMSG,3),hl); //  Put in move message            //2355:         LD      (MVEMSG+3),hl   ; Put in move message
         LD      (d,c);                  //  "From" position of the move    //2356:         LD      d,c             ; "From" position of the move
         CALLu   (BITASN);               //  Convert to Ascii               //2357:         CALL    BITASN          ; Convert to Ascii
         LD      (val16(MVEMSG),hl);     //  Put in move message            //2358:         LD      (MVEMSG),hl     ; Put in move message
@@ -2266,13 +2268,13 @@ CP1C:   LD      (a,val(COLOR));         //  Should computer call check ?   //237
         LD      (val(COLOR),a);                                            //2377:         LD      (COLOR),a
         JR      (Z,CP24);               //  No - return                    //2378:         JR      Z,CP24          ; No - return
         CARRET();                       //  New line                       //2379:         CARRET                  ; New line
-        LD      (a,val(SCORE+1));       //  Check for player mated         //2380:         LD      a,(SCORE+1)     ; Check for player mated
+        LD     (a,val_offset(SCORE,1)); //  Check for player mated         //2380:         LD      a,(SCORE+1)     ; Check for player mated
         CP      (0xFF);                 //  Forced mate ?                  //2381:         CP      0FFH            ; Forced mate ?
         CALL    (NZ,TBCPMV);            //  No - Tab to computer column    //2382:         CALL    NZ,TBCPMV       ; No - Tab to computer column
         //PRTBLK  (CKMSG,5);            //  Output "check"                 //2383:         PRTBLK  CKMSG,5         ; Output "check"
         LD      (hl,addr(LINECT));      //  Address of screen line count   //2384:         LD      hl,LINECT       ; Address of screen line count
         INC     (ptr(hl));              //  Increment for message          //2385:         INC     (hl)            ; Increment for message
-CP24:   LD      (a,val(SCORE+1));       //  Check again for mates          //2386: CP24:   LD      a,(SCORE+1)     ; Check again for mates
+CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates          //2386: CP24:   LD      a,(SCORE+1)     ; Check again for mates
         CP      (0xFF);                 //  Player mated ?                 //2387:         CP      0FFH            ; Player mated ?
         RET     (NZ);                   //  No - return                    //2388:         RET     NZ              ; No - return
         LD      (c,0);                  //  Set player mate flag           //2389:         LD      c,0             ; Set player mate flag
@@ -2389,7 +2391,7 @@ void VALMOV() {                                                            //265
 VA5:    LD      (a,val(MVEMSG));        //  "From" position                //2664: VA5:    LD      a,(MVEMSG)      ; "From" position
         CP      (ptr(ix+MLFRP));        //  Is it in list ?                //2665:         CP      (ix+MLFRP)      ; Is it in list ?
         JR      (NZ,VA6);               //  No - jump                      //2666:         JR      NZ,VA6          ; No - jump
-        LD      (a,val(MVEMSG+1));      //  "To" position                  //2667:         LD      a,(MVEMSG+1)    ; "To" position
+        LD    (a,val_offset(MVEMSG,1)); //  "To" position                  //2667:         LD      a,(MVEMSG+1)    ; "To" position
         CP      (ptr(ix+MLTOP));        //  Is it in list ?                //2668:         CP      (ix+MLTOP)      ; Is it in list ?
         JR      (Z,VA7);                //  Yes - jump                     //2669:         JR      Z,VA7           ; Yes - jump
 VA6:    LD      (e,ptr(ix+MLPTR));      //  Pointer to next list move      //2670: VA6:    LD      e,(ix+MLPTR)    ; Pointer to next list move

@@ -182,4 +182,8 @@ struct z80_registers
         Z  = found;                 \
     } while(0)
 
+// Fortunately we don't need these two very much
+#define v16_offset(var,offset)  *( (uint16_t *) (offset + ((uint8_t*)(&mem.var)))  )
+#define val_offset(var,offset)  *( (uint8_t *)  (offset + ((uint8_t*)(&mem.var)))  )
+
 #endif // Z80_MACROS_H_INCLUDED
