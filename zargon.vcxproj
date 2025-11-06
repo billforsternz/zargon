@@ -139,9 +139,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="sargon-interface.cpp" />
+    <ClCompile Include="sargon-pv.cpp" />
+    <ClCompile Include="sargon-tests.cpp" />
+    <ClCompile Include="stubs.cpp" />
+    <ClCompile Include="thc.cpp" />
+    <ClCompile Include="util.cpp" />
     <ClCompile Include="zargon.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="sargon-asm-interface.h" />
+    <ClInclude Include="sargon-interface.h" />
+    <ClInclude Include="sargon-pv.h" />
+    <ClInclude Include="thc.h" />
+    <ClInclude Include="util.h" />
     <ClInclude Include="z80-macros.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

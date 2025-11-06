@@ -1,6 +1,14 @@
 #ifndef Z80_MACROS_H_INCLUDED
 #define Z80_MACROS_H_INCLUDED
 
+// Temp, until we have somewhere better to put this
+enum CB
+{
+    CB_END_OF_POINTS,
+    CB_YES_BEST_MOVE
+};
+extern void callback( CB cb );
+
 // Emulate Z80 machine
 struct z80_registers
 {
@@ -54,6 +62,7 @@ struct z80_registers
     static uint16_t  sp = 128;           \
     static uint8_t   nib1,nib2,nib3,nib4 \
 
+#ifdef EXTREME_MACROS
 #define NZ (!Z)
 #define NC (!C)
 #define P  (!M)
@@ -71,6 +80,7 @@ struct z80_registers
 #define hl (r.HL)
 #define ix (r.IX)
 #define iy (r.IY)
+#endif
 
 // Emulate OPCODES with macros
 #define LD(dst,src)     (dst) = (src)
