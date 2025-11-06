@@ -257,6 +257,7 @@ int8_t padding2 = -1;                                                      //021
 //             hold the scores at each ply. It includes two
 //             "dummy" entries for ply -1 and ply 0.
 //***********************************************************
+uint8_t padding3[44];
 uint16_t    SCORE[20] = {                                                  //0220: SCORE   DW      0,0,0,0,0,0     ;Z80 max 6 ply
     0,0,0,0,0,0,0,0,0,0,                // Z80 max 6 ply                   //0221: 
     0,0,0,0,0,0,0,0,0,0                 // x86 max 20 ply                  //0222: ;***********************************************************
@@ -269,6 +270,7 @@ uint16_t    SCORE[20] = {                                                  //022
 //             The second pointer points to which move in the              //0226: ;             The second pointer points to which move in the
 //             list is the one currently being considered.                 //0227: ;             list is the one currently being considered.
 //***********************************************************              //0228: ;***********************************************************
+uint8_t padding4[2];
 uint16_t    PLYIX[20] = {                                                  //0229: PLYIX   DW      0,0,0,0,0,0,0,0,0,0
     0,0,0,0,0,0,0,0,0,0,                                                   //0230:         DW      0,0,0,0,0,0,0,0,0,0
     0,0,0,0,0,0,0,0,0,0                                                    //0231: 
@@ -313,6 +315,7 @@ uint16_t    PLYIX[20] = {                                                  //022
 //             list.                                                       //0270: ;             list.
 //                                                                         //0271: ;
 //***********************************************************              //0272: ;***********************************************************
+uint8_t padding5[174];
 uint16_t M1      =      TBASE;                                             // (line 273 omitted) 0274: M1      DW      TBASE
 uint16_t M2      =      TBASE;                                             //0275: M2      DW      TBASE
 uint16_t M3      =      TBASE;                                             //0276: M3      DW      TBASE
@@ -421,11 +424,11 @@ uint8_t BMOVES[12] = {                                                     //037
     85,65,0x10,                                                            //0375:         DB      84,64,10H
     84,64,0x10                                                             //0376: 
 };                                                                         //0377: ;***********************************************************
-                                                                           //0378: ; MOVE LIST SECTION
+uint8_t LINECT = 0;                                                        //0378: ; MOVE LIST SECTION
 char MVEMSG[5] = {'a','1','-','a','1'};                                    //0379: ;
 char O_O[3]    = { '0', '-', '0' };                                        //0380: ; MLIST   --  A 2048 byte storage area for generated moves.
 char O_O_O[5]  = { '0', '-', '0', '-', '0' };                              //0381: ;             This area must be large enough to hold all
-uint8_t LINECT = 0;                                                        //0382: ;             the moves for a single leg of the move tree.
+//uint8_t LINECT = 0;                                                      //0382: ;             the moves for a single leg of the move tree.
 //                                                                         //0383: ;
 // 4) MOVE ARRAY                                                           //0384: ; MLEND   --  The address of the last available location
 //                                                                         //0385: ;             in the move list.
@@ -474,13 +477,14 @@ uint8_t LINECT = 0;                                                        //038
 //             score assigned to the move.
 //
 //***********************************************************
+uint8_t padding6[178];
 struct ML {                                                                //0422: MLIST   DS      2048
     uint16_t    MLPTR_;
     uint8_t     MLFRP_;
     uint8_t     MLTOP_;
     uint8_t     MLFLG_;
     uint8_t     MLVAL_;
-}  MLIST[340];
+}  MLIST[10000];
 uint8_t MLEND;                                                             //0423: MLEND   EQU     MLIST+2040
 };                                                                         //0424: MLPTR   EQU     0
                                                                            //0425: MLFRP   EQU     2
