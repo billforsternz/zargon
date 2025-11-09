@@ -93,25 +93,25 @@ struct z80_registers
 #define DEC(x)          (x) = (x)-1, M=(((x)&0x80)==0x80), Z=((x)==0)
 #define INC16(x)        (x) = (x)+1
 #define DEC16(x)        (x) = (x)-1
-#define ADD(x,y)        C=((uint16_t)(x)+(uint16_t)(y)>=0x100),           (x)+=(y),         M=(((x)&0x80)==0x80),     Z=((x)==0)
-#define ADC(x,y)        C=((uint16_t)(x)+(C?1:0)+(uint16_t)(y)>=0x100),   (x)+=(y+(C?1:0)), M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define ADD(x,y)        C=((uint16_t)(x)+(uint16_t)(y)>=0x100),  (x)+=(y),   M=(((x)&0x80)==0x80),  Z=((x)==0)
+#define ADC(x,y)        do { bool temp=( ((uint16_t)(x)+(C?1:0)+(uint16_t)(y)>=0x100);  (x)+=(((uint8_t)y)+(C?1:0)), M=(((x)&0x80)==0x80);  Z=((x)==0); C=temp; } while(0)
 #define ADD16(x,y)      C=((uint32_t)(x)+(uint32_t)(y)>=0x10000),         (x)+=(y)   // anomalous 8080 instruction, only CY affected
-#define ADC16(x,y)      C=((uint32_t)(x)+(C?1:0)+(uint32_t)(y)>=0x10000), (x)+=(y+(C?1:0))  M=(((x)&0x8000)==0x8000), Z=((x)==0)
-#define SUB(x)          C=((x)>a),                                        a-=(x),           M=(((x)&0x80)==0x80),     Z=((x)==0)
-#define SBC(x)          C=((x+(C?1:0))>a),                                a-=(x+(C?1:0)),   M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define ADC16(x,y)      do { bool temp=((uint32_t)(x)+(C?1:0)+(uint32_t)(y)>=0x10000); (x)+=(((uint16_t)y)+(C?1:0));  M=(((x)&0x8000)==0x8000); Z=((x)==0); C=temp; } while(0)
+#define SUB(x)          C=((x)>a), a-=(x), M=((a&0x80)==0x80),  Z=(a==0)
+#define SBC(x)          do { bool temp=((((uint8_t)x)+(C?1:0))>a);  a-=(((uint8_t)x)+(C?1:0)); M=((a&0x80)==0x80);  Z=(a==0); C=temp; } while(0)
 // #define SUB16(x,y)      // No such instruction
-#define SBC16(x,y)      C=((y+(C?1:0))>(x)),                              (x)-=(y+(C?1:0)), M=(((x)&0x8000)==0x8000), Z=((x)==0)
-#define CP(x)           C=(((uint8_t)x)>a),                                                 M=(((a-((uint8_t)x))&0x80)==0x80), Z=((a-((uint8_t)x))==0)
-#define NEG             Z=(a==0),  C=(a!=0), a = (int8_t)(0 - (int8_t)a),                   M=(((a)&0x80)==0x80)
-#define AND(x)          C=false, a = a&(x), M=(((x)&0x80)==0x80), Z=((x)==0)
-#define OR(x)           C=false, a = a|(x), M=(((x)&0x80)==0x80), Z=((x)==0)
-#define XOR(x)          C=false, a = a^(x), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define SBC16(x,y)      do { bool temp=((y+(C?1:0))>(x));  (x)-=(y+(C?1:0)); M=(((x)&0x8000)==0x8000); Z=((x)==0); C=temp; } while(0)
+#define CP(x)           C=(((uint8_t)x)>a), M=(((a-((uint8_t)x))&0x80)==0x80), Z=((a-((uint8_t)x))==0)
+#define NEG             Z=(a==0),  C=(a!=0), a = (int8_t)(0 - (int8_t)a), M=(((a)&0x80)==0x80)
+#define AND(x)          C=false, a = a&(x), M=((a&0x80)==0x80), Z=(a==0)
+#define OR(x)           C=false, a = a|(x), M=((a&0x80)==0x80), Z=(a==0)
+#define XOR(x)          C=false, a = a^(x), M=((a&0x80)==0x80), Z=(a==0)
 #define EX(x,y)         ex_temp=x; x=y; y=ex_temp
 #define JR(cond,label)  if(cond) goto label
 #define JP(cond,label)  if(cond) goto label
 #define CALL(cond,func) if(cond) (func)()
 #define RET(cond)       if(cond) return
-#define RETu            return;
+#define RETu            return
 #define JRu(label)      goto label
 #define JPu(label)      goto label
 #define CALLu(func)     (func)()

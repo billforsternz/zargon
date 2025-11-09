@@ -425,9 +425,9 @@ uint8_t BMOVES[12] = {                                                     //037
     84,64,0x10                                                             //0376: 
 };                                                                         //0377: ;***********************************************************
 uint8_t LINECT = 0;                                                        //0378: ; MOVE LIST SECTION
-char MVEMSG[5] = {'a','1','-','a','1'};                                    //0379: ;
-char O_O[3]    = { '0', '-', '0' };                                        //0380: ; MLIST   --  A 2048 byte storage area for generated moves.
-char O_O_O[5]  = { '0', '-', '0', '-', '0' };                              //0381: ;             This area must be large enough to hold all
+char MVEMSG[5]; // = {'a','1','-','a','1'};                                    //0379: ;
+char O_O[3];    //    = { '0', '-', '0' };                                        //0380: ; MLIST   --  A 2048 byte storage area for generated moves.
+char O_O_O[5];  //  = { '0', '-', '0', '-', '0' };                              //0381: ;             This area must be large enough to hold all
 //uint8_t LINECT = 0;                                                      //0382: ;             the moves for a single leg of the move tree.
 //                                                                         //0383: ;
 // 4) MOVE ARRAY                                                           //0384: ; MLEND   --  The address of the last available location
@@ -1574,7 +1574,7 @@ back04: LD      (ptr(hl),a);            //                                 //139
         JR      (Z,PT23);               //  No - Jump                      //1413:         JR      Z,PT23          ; No - Jump
         DEC     (d);                    //  Deduct half a Pawn value       //1414:         DEC     d               ; Deduct half a Pawn value
         LD      (a,val(P1));            //  Get piece under attack         //1415:         LD      a,(P1)          ; Get piece under attack
-        LD      (hl,addr(COLOR));        //  Color of side just moved       //1416:         LD      hl,COLOR        ; Color of side just moved
+        LD      (hl,addr(COLOR));        //  Color of side just moved      //1416:         LD      hl,COLOR        ; Color of side just moved
         XOR     (ptr(hl));              //  Compare with piece             //1417:         XOR     (hl)            ; Compare with piece
         BIT     (7,a);                  //  Do colors match ?              //1418:         BIT     7,a             ; Do colors match ?
         LD      (a,e);                  //  Points lost                    //1419:         LD      a,e             ; Points lost

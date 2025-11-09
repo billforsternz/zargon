@@ -169,6 +169,7 @@ void sargon( int api_command_code, z80_registers_mini *registers )
         case api_ASNTBI: ASNTBI(); break;
         case api_EXECMV: EXECMV(); break;
     }
+    #if 0
     s += util::sprintf("%c %-52s %s\n", ' ', "Before", "After" );
     std::string after = mem_dump();
     size_t offset = 0;
@@ -185,6 +186,7 @@ void sargon( int api_command_code, z80_registers_mini *registers )
         s += util::sprintf("%c %-52s %s\n", left==right?' ':'*', left.c_str(), right.c_str() );
     }
     printf( "%s", s.c_str() );
+    #endif
     if( registers )
     {
         registers->af = sargon_registers->AF;
