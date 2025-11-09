@@ -1190,12 +1190,20 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
 //                                                                         //1039: ; CALLS:      --  PNCK
 // ARGUMENTS:  --  None                                                    //1040: ;
 //***********************************************************              //1041: ; ARGUMENTS:  --  None
+bool abnormal_exit;
 void ATKSAV() {                                                            //1042: ;***********************************************************
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
         LD      (a,val(NPINS));         //  Number of pinned pieces        //1045:         LD      a,(NPINS)       ; Number of pinned pieces
         AND     (a);                    //  Any ?                          //1046:         AND     a               ; Any ?
+        abnormal_exit = false;
         CALL    (NZ,PNCK);              //  yes - check pin list           //1047:         CALL    NZ,PNCK         ; yes - check pin list
+        if( abnormal_exit )
+        {
+            POP(de);
+            POP(bc);
+            RETu;
+        }
         LD      (ix,val16(T2));         //  Init index to value table      //1048:         LD      ix,(T2)         ; Init index to value table
         LD      (hl,addr(ATKLST));      //  Init address of attack list    //1049:         LD      hl,ATKLST       ; Init address of attack list
         LD      (bc,0);                 //  Init increment for white       //1050:         LD      bc,0            ; Init increment for white
@@ -1250,7 +1258,12 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
 // ARGUMENTS:  --  The direction of the attack. The                        //1097: ;
 //                 pinned piece counnt.                                    //1098: ; ARGUMENTS:  --  The direction of the attack. The
 //***********************************************************              //1099: ;                 pinned piece counnt.
-void PNCK() {                                                              //1100: ;***********************************************************
+uint32_t debug_cnt;
+void PNCK() {
+        abnormal_exit = false;
+        debug_cnt++;
+        if( debug_cnt == 0x4e )      // 0x4e same, 0x4f different
+            printf( "debug\n" );    //1100: ;***********************************************************
         LD      (d,c);                  //  Save attack direction          //1101: PNCK:   LD      d,c             ; Save attack direction
         LD      (e,0);                  //  Clear flag                     //1102:         LD      e,0             ; Clear flag
         LD      (c,a);                  //  Load pin count for search      //1103:         LD      c,a             ; Load pin count for search
@@ -1274,7 +1287,10 @@ PC1:    Z80_CPIR;                       //  Search list for position       //110
 PC3:    Z80_EXAF;                       //  Restore search parameters      //1121: PC3:    EX      af,af'          ; Restore search parameters
         JP      (PE,PC1);               //  Jump if search not complete    //1122:         JP      PE,PC1          ; Jump if search not complete
         RETu;                           //  Return                         //1123:         RET                     ; Return
-PC5:    POPf    (af);                   //  Abnormal exit                  //1124: PC5:    POP     af              ; Abnormal exit
+PC5:    
+        abnormal_exit = true;
+        RETu;
+        POPf    (af);                   //  Abnormal exit                  //1124: PC5:    POP     af              ; Abnormal exit
         POP     (de);                   //  Restore regs.                  //1125:         POP     de              ; Restore regs.
         POP     (bc);                                                      //1126:         POP     bc
         RETu;                           //  Return to ATTACK               //1127:         RET                     ; Return to ATTACK
