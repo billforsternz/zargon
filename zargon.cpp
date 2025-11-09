@@ -2600,6 +2600,7 @@ void zargon_init()
 {
     sargon_base_address = (unsigned char *)(&mem);
     sargon_registers = &r;
+    #if 0
     printf( "const int BOARDA = 0x%04zx; // (0x0134 in sargon_x86.asm)\n", addr(BOARDA) );
     printf( "const int ATKLST = 0x%04zx; // (0x01ac in sargon_x86.asm)\n", addr(ATKLST) );
     printf( "const int PLISTA = 0x%04zx; // (0x01ba in sargon_x86.asm)\n", addr(PLISTA) );
@@ -2648,54 +2649,5 @@ void zargon_init()
     printf( "const int MVEMSG = 0x%04zx; // (0x0341 in sargon_x86.asm)\n", addr(MVEMSG) );
     printf( "const int MLIST  = 0x%04zx; // (0x0400 in sargon_x86.asm)\n", addr(MLIST) );
     printf( "const int MLEND  = 0x%04zx; // (0xee60 in sargon_x86.asm)\n", addr(MLEND) );
-
-
-
-/*    const int ATKLST = 0x01ac;
-    const int PLISTA = 0x01ba;
-    const int POSK = 0x01ce;
-    const int POSQ = 0x01d0;
-    const int SCORE = 0x0200;
-    const int PLYIX = 0x022a;
-    const int M1 = 0x0300;
-    const int M2 = 0x0302;
-    const int M3 = 0x0304;
-    const int M4 = 0x0306;
-    const int T1 = 0x0308;
-    const int T2 = 0x030a;
-    const int T3 = 0x030c;
-    const int INDX1 = 0x030e;
-    const int INDX2 = 0x0310;
-    const int NPINS = 0x0312;
-    const int MLPTRI = 0x0314;
-    const int MLPTRJ = 0x0316;
-    const int SCRIX = 0x0318;
-    const int BESTM = 0x031a;
-    const int MLLST = 0x031c;
-    const int MLNXT = 0x031e;
-    const int KOLOR = 0x0320;
-    const int COLOR = 0x0321;
-    const int P1 = 0x0322;
-    const int P2 = 0x0323;
-    const int P3 = 0x0324;
-    const int PMATE = 0x0325;
-    const int MOVENO = 0x0326;
-    const int PLYMAX = 0x0327;
-    const int NPLY = 0x0328;
-    const int CKFLG = 0x0329;
-    const int MATEF = 0x032a;
-    const int VALM = 0x032b;
-    const int BRDC = 0x032c;
-    const int PTSL = 0x032d;
-    const int PTSW1 = 0x032e;
-    const int PTSW2 = 0x032f;
-    const int MTRL = 0x0330;
-    const int BC0 = 0x0331;
-    const int MV0 = 0x0332;
-    const int PTSCK = 0x0333;
-    const int BMOVES = 0x0334;
-    const int LINECT = 0x0340;
-    const int MVEMSG = 0x0341;
-    const int MLIST = 0x0400;
-    const int MLEND = 0xee60; */
+    #endif
  }

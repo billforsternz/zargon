@@ -16,8 +16,8 @@ struct z80_registers
     {
         struct
         {
-            uint8_t F;
             uint8_t A;
+            uint8_t F;
         };
         uint16_t AF;
     };
@@ -93,19 +93,19 @@ struct z80_registers
 #define DEC(x)          (x) = (x)-1, M=(((x)&0x80)==0x80), Z=((x)==0)
 #define INC16(x)        (x) = (x)+1
 #define DEC16(x)        (x) = (x)-1
-#define ADD(x,y)        C==((uint16_t)(x)+(uint16_t)(y)>=0x100),           (x)+=(y),         M=(((x)&0x80)==0x80),     Z=((x)==0)
-#define ADC(x,y)        C==((uint16_t)(x)+(C?1:0)+(uint16_t)(y)>=0x100),   (x)+=(y+(C?1:0)), M=(((x)&0x80)==0x80),     Z=((x)==0)
-#define ADD16(x,y)      C==((uint32_t)(x)+(uint32_t)(y)>=0x10000),         (x)+=(y)   // anomalous 8080 instruction, only CY affected
-#define ADC16(x,y)      C==((uint32_t)(x)+(C?1:0)+(uint32_t)(y)>=0x10000), (x)+=(y+(C?1:0))  M=(((x)&0x8000)==0x8000), Z=((x)==0)
-#define SUB(x)          C==((x)>a),                                        a-=(x),           M=(((x)&0x80)==0x80),     Z=((x)==0)
-#define SBC(x)          C==((x+(C?1:0))>a),                                a-=(x+(C?1:0)),   M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define ADD(x,y)        C=((uint16_t)(x)+(uint16_t)(y)>=0x100),           (x)+=(y),         M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define ADC(x,y)        C=((uint16_t)(x)+(C?1:0)+(uint16_t)(y)>=0x100),   (x)+=(y+(C?1:0)), M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define ADD16(x,y)      C=((uint32_t)(x)+(uint32_t)(y)>=0x10000),         (x)+=(y)   // anomalous 8080 instruction, only CY affected
+#define ADC16(x,y)      C=((uint32_t)(x)+(C?1:0)+(uint32_t)(y)>=0x10000), (x)+=(y+(C?1:0))  M=(((x)&0x8000)==0x8000), Z=((x)==0)
+#define SUB(x)          C=((x)>a),                                        a-=(x),           M=(((x)&0x80)==0x80),     Z=((x)==0)
+#define SBC(x)          C=((x+(C?1:0))>a),                                a-=(x+(C?1:0)),   M=(((x)&0x80)==0x80),     Z=((x)==0)
 // #define SUB16(x,y)      // No such instruction
-#define SBC16(x,y)      C==((y+(C?1:0))>(x)),                              (x)-=(y+(C?1:0)), M=(((x)&0x8000)==0x8000), Z=((x)==0)
-#define CP(x)           C==(((uint8_t)x)>a),                                                 M=(((a-((uint8_t)x))&0x80)==0x80), Z=((a-((uint8_t)x))==0)
-#define NEG             Z=(a==0),  C==(a!=0), a = (int8_t)(0 - (int8_t)a),                   M=(((a)&0x80)==0x80)
-#define AND(x)          C==false, a = a&(x), M=(((x)&0x80)==0x80), Z=((x)==0)
-#define OR(x)           C==false, a = a|(x), M=(((x)&0x80)==0x80), Z=((x)==0)
-#define XOR(x)          C==false, a = a^(x), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define SBC16(x,y)      C=((y+(C?1:0))>(x)),                              (x)-=(y+(C?1:0)), M=(((x)&0x8000)==0x8000), Z=((x)==0)
+#define CP(x)           C=(((uint8_t)x)>a),                                                 M=(((a-((uint8_t)x))&0x80)==0x80), Z=((a-((uint8_t)x))==0)
+#define NEG             Z=(a==0),  C=(a!=0), a = (int8_t)(0 - (int8_t)a),                   M=(((a)&0x80)==0x80)
+#define AND(x)          C=false, a = a&(x), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define OR(x)           C=false, a = a|(x), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define XOR(x)          C=false, a = a^(x), M=(((x)&0x80)==0x80), Z=((x)==0)
 #define EX(x,y)         ex_temp=x; x=y; y=ex_temp
 #define JR(cond,label)  if(cond) goto label
 #define JP(cond,label)  if(cond) goto label
@@ -132,8 +132,8 @@ struct z80_registers
 #define SLA(x)            C=( ((x)&0x80) != 0 ), (x)=(x<<1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
 #define SRA(x)            C=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2)), M=(((x)&0x80)==0x80), Z=((x)==0)
 #define SRL(x)            C=( ((x)&0x01) != 0 ), (x)=(x>>1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
-#define RLA               C=( ((a)&0x80) != 0 ), (a)=((a<<1)+(C?0x01:0)),          M=(((a)&0x80)==0x80), Z=((a)==0)
-#define RR(x)             C=( ((x)&0x01) != 0 ), (x)=((x>>1)+(C?0x80:0)),          M=(((x)&0x80)==0x80), Z=((x)==0)
+#define RLA               do { bool temp=( ((a)&0x80) != 0 ); (a)=((a<<1)+(C?0x01:0));  M=(((a)&0x80)==0x80); Z=((a)==0); C=temp; } while(0)
+#define RR(x)             do { bool temp=( ((x)&0x01) != 0 ); (x)=((x>>1)+(C?0x80:0));  M=(((x)&0x80)==0x80); Z=((x)==0); C=temp; } while(0)
 #define SET(bit_nbr,reg ) switch(bit_nbr) {            \
                            case 7: (reg)|=0x80; break; \
                            case 6: (reg)|=0x40; break; \
