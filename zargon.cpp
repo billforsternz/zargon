@@ -1190,7 +1190,7 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
 //                                                                         //1039: ; CALLS:      --  PNCK
 // ARGUMENTS:  --  None                                                    //1040: ;
 //***********************************************************              //1041: ; ARGUMENTS:  --  None
-bool abnormal_exit;
+static bool abnormal_exit;
 void ATKSAV() {                                                            //1042: ;***********************************************************
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
@@ -1260,10 +1260,9 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
 //***********************************************************              //1099: ;                 pinned piece counnt.
 uint32_t debug_cnt;
 void PNCK() {
-        abnormal_exit = false;
         debug_cnt++;
         if( debug_cnt == 0x4e )      // 0x4e same, 0x4f different
-            printf( "debug\n" );    //1100: ;***********************************************************
+            {}// printf( "debug\n" );                                       //1100: ;***********************************************************
         LD      (d,c);                  //  Save attack direction          //1101: PNCK:   LD      d,c             ; Save attack direction
         LD      (e,0);                  //  Clear flag                     //1102:         LD      e,0             ; Clear flag
         LD      (c,a);                  //  Load pin count for search      //1103:         LD      c,a             ; Load pin count for search
@@ -1287,13 +1286,10 @@ PC1:    Z80_CPIR;                       //  Search list for position       //110
 PC3:    Z80_EXAF;                       //  Restore search parameters      //1121: PC3:    EX      af,af'          ; Restore search parameters
         JP      (PE,PC1);               //  Jump if search not complete    //1122:         JP      PE,PC1          ; Jump if search not complete
         RETu;                           //  Return                         //1123:         RET                     ; Return
-PC5:    
-        abnormal_exit = true;
-        RETu;
-        POPf    (af);                   //  Abnormal exit                  //1124: PC5:    POP     af              ; Abnormal exit
-        POP     (de);                   //  Restore regs.                  //1125:         POP     de              ; Restore regs.
-        POP     (bc);                                                      //1126:         POP     bc
-        RETu;                           //  Return to ATTACK               //1127:         RET                     ; Return to ATTACK
+PC5:    // POPf    (af);                //  Abnormal exit                  //1124: PC5:    POP     af              ; Abnormal exit
+        // POP     (de);                //  Restore regs.                  //1125:         POP     de              ; Restore regs.
+        // POP     (bc);                                                   //1126:         POP     bc
+        abnormal_exit=true; RETu;       //  Return to ATTACK               //1127:         RET                     ; Return to ATTACK
 }                                                                          //1128: 
                                                                            //1129: ;***********************************************************
 //***********************************************************              //1130: ; PIN FIND ROUTINE
@@ -1590,12 +1586,12 @@ back04: LD      (ptr(hl),a);            //                                 //139
         JR      (Z,PT23);               //  No - Jump                      //1413:         JR      Z,PT23          ; No - Jump
         DEC     (d);                    //  Deduct half a Pawn value       //1414:         DEC     d               ; Deduct half a Pawn value
         LD      (a,val(P1));            //  Get piece under attack         //1415:         LD      a,(P1)          ; Get piece under attack
-        LD      (hl,addr(COLOR));        //  Color of side just moved      //1416:         LD      hl,COLOR        ; Color of side just moved
+        LD      (hl,addr(COLOR));       //  Color of side just moved       //1416:         LD      hl,COLOR        ; Color of side just moved
         XOR     (ptr(hl));              //  Compare with piece             //1417:         XOR     (hl)            ; Compare with piece
         BIT     (7,a);                  //  Do colors match ?              //1418:         BIT     7,a             ; Do colors match ?
         LD      (a,e);                  //  Points lost                    //1419:         LD      a,e             ; Points lost
         JR      (NZ,PT20);              //  Jump if no match               //1420:         JR      NZ,PT20         ; Jump if no match
-        LD      (hl,val(PTSL));         //  Previous max points lost       //1421:         LD      hl,PTSL         ; Previous max points lost
+        LD      (hl,addr(PTSL));        //  Previous max points lost       //1421:         LD      hl,PTSL         ; Previous max points lost
         CP      (ptr(hl));              //  Compare to current value       //1422:         CP      (hl)            ; Compare to current value
         JR      (C,PT23);               //  Jump if greater than           //1423:         JR      C,PT23          ; Jump if greater than
         LD      (ptr(hl),e);            //  Store new value as max lost    //1424:         LD      (hl),e          ; Store new value as max lost

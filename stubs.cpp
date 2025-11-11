@@ -5,6 +5,8 @@
 #include "sargon-pv.h"
 #include "thc.h"
 #include "z80-macros.h"
+static std::string reg_dump();
+static std::string mem_dump();
 
 void sargon_minimax_main(void)
 {
@@ -24,15 +26,25 @@ extern void EXECMV();
 
 void callback( CB cb )
 {
+    static bool do_print = true;
+    static int count = 0;
+    if( count++ == 1000 )
+        do_print = false;
+    if( count == 41 )
+        printf( "debug\n" );
     switch(cb)
     {
         case CB_END_OF_POINTS:
         {
+            if( do_print )
+                printf( "CB_END_OF_POINTS(%u) %s\n", count, reg_dump().c_str() );
             sargon_pv_callback_end_of_points();
             break;
         }
         case CB_YES_BEST_MOVE:
         {
+            if( do_print )
+                printf( "CB_YES_BEST_MOVE(%u) %s\n", count, reg_dump().c_str() );
             sargon_pv_callback_yes_best_move();            
             break;
         }
@@ -47,8 +59,21 @@ void callback( uint32_t edi, uint32_t esi, uint32_t ebp, uint32_t esp,
 {
 }
 
+static std::string reg_dump()
+{
+    extern z80_registers *sargon_registers;
+    uint8_t  a  = sargon_registers->A;
+    uint16_t bc = sargon_registers->BC;
+    uint16_t de = sargon_registers->DE;
+    uint16_t hl = sargon_registers->HL;
+    uint16_t ix = sargon_registers->IX;
+    uint16_t iy = sargon_registers->IY;
+    std::string s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
+                a, bc, de, hl, ix, iy );
+    return s;
+}
 
-std::string mem_dump()
+static std::string mem_dump()
 {
     std::vector<std::pair<int,const char *>> vars=
     {

@@ -35,13 +35,13 @@ static std::string timing_calibration_game("e4 e5 Nf3 Nc6 Bb5 Qf6 Nc3 a6 Nd5 Qd6
 // main()
 int main( int argc, const char *argv[] )
 {
-#ifdef _DEBUG
+#if 1 //def _DEBUG
     const char *test_args[] =
     {
         "Debug/sargon-tests.exe",
         "p",
-        "-2",
-        "-v"
+        "-2" //,
+        //"-v"
     };
     argc = sizeof(test_args) / sizeof(test_args[0]);
     argv = test_args;
