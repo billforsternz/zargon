@@ -1,0 +1,56 @@
+//
+//  Testing Bridge between Sargon-x86 and Zargon
+//
+#ifndef BRIDGE_H_INCLUDED
+#define BRIDGE_H_INCLUDED
+#include <string>
+
+#ifndef SARGON_ASM_INTERFACE_H_INCLUDED
+struct z80_registers
+{
+    uint16_t af;    // x86 = lo al, hi flags
+    uint16_t hl;    // x86 = bx
+    uint16_t bc;    // x86 = cx
+    uint16_t de;    // x86 = dx
+    uint16_t ix;    // x86 = si
+    uint16_t iy;    // x86 = di
+};
+#endif
+
+struct z80_cpu;
+void bridge_init( const unsigned char *mem_base, const z80_cpu *cpu );
+std::string reg_dump( const z80_registers *reg = 0 );
+std::string mem_dump();
+
+// Temp, until we have somewhere better to put this
+enum CB
+{
+    CB_null,
+    CB_END_OF_POINTS,
+    CB_YES_BEST_MOVE,
+    CB_PATH,
+    CB_MPIECE,
+    CB_ENPSNT,
+    CB_ADJPTR,
+    CB_CASTLE,
+    CB_ADMOVE,
+    CB_GENMOV,
+    CB_ATTACK,
+    CB_ATKSAV,
+    CB_PNCK,
+    CB_PINFND,
+    CB_XCHNG,
+    CB_NEXTAD,
+    CB_POINTS,
+    CB_MOVE,
+    CB_UNMOVE,
+    CB_SORTM,
+    CB_EVAL,
+    CB_FNDMOV,
+    CB_ASCEND
+};
+
+void callback_dbg( CB cb, const z80_registers *reg );
+
+#endif  // BRIDGE_H_INCLUDED
+
