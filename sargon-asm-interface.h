@@ -1,32 +1,21 @@
 #ifndef SARGON_ASM_INTERFACE_H_INCLUDED
 #define SARGON_ASM_INTERFACE_H_INCLUDED
 #include <stdint.h>
+#include "z80_registers.h"
+#include "z80_cpu.h"
+#include "bridge.h"
 
 // First byte of Sargon data
 extern unsigned char *sargon_base_address;
 
-// Calls to sargon() can set and read back registers
-#ifndef BRIDGE_H_INCLUDED
-struct z80_registers
-{
-    uint16_t af;    // x86 = lo al, hi flags
-    uint16_t hl;    // x86 = bx
-    uint16_t bc;    // x86 = cx
-    uint16_t de;    // x86 = dx
-    uint16_t ix;    // x86 = si
-    uint16_t iy;    // x86 = di
-};
-#endif
-
-// Call Sargon from C, call selected functions, optionally can set input
-//  registers (and/or inspect returned registers)
+// Call Sargon core (original z80 code, now translated, call selected
+//  functions, optionally can set input registers (and/or inspect
+//  returned registers)
 void sargon( int api_command_code, z80_registers *registers=NULL );
 
-// Sargon calls C, parameters serves double duty - saved registers on the
-//  stack, can optionally be inspected by C program
-void callback( uint32_t edi, uint32_t esi, uint32_t ebp, uint32_t esp,
-                uint32_t ebx, uint32_t edx, uint32_t ecx, uint32_t eax,
-                uint32_t eflags );
+// Sargon core calls back to calling code use gb_z80_cpu to inspect
+//  and/or change registers
+extern void callback_zargon( CB cb );
 
 // Data offsets for peeking and poking
 const int BOARDA = 0x0134; // (0x0134 in sargon_x86.asm)

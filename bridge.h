@@ -4,26 +4,15 @@
 #ifndef BRIDGE_H_INCLUDED
 #define BRIDGE_H_INCLUDED
 #include <string>
-
-#ifndef SARGON_ASM_INTERFACE_H_INCLUDED
-struct z80_registers
-{
-    uint16_t af;    // x86 = lo al, hi flags
-    uint16_t hl;    // x86 = bx
-    uint16_t bc;    // x86 = cx
-    uint16_t de;    // x86 = dx
-    uint16_t ix;    // x86 = si
-    uint16_t iy;    // x86 = di
-};
-#endif
+#include "z80_registers.h"
+#include "z80_cpu.h"
 
 // Include callback tracing code
 //#define BRIDGE_CALLBACK_TRACE
 //#define BRIDGE_CALLBACK_TRACE_DETAILED
 
-struct z80_cpu;
 void bridge_init( const unsigned char *mem_base, const z80_cpu *cpu );
-std::string reg_dump( const z80_registers *reg = 0 );
+std::string reg_dump( const z80_registers *reg=0 );
 std::string mem_dump();
 
 // Callback enumeration

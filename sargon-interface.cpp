@@ -709,3 +709,39 @@ std::string algebraic( unsigned int sq )
     return s;
 }
 
+void sargon( int api_command_code, z80_registers *registers )
+{
+    extern void INITBD();
+    extern void ROYALT();
+    extern void CPTRMV();
+    extern void VALMOV();
+    extern void ASNTBI();
+    extern void EXECMV();
+    if( registers )
+    {
+        gbl_z80_cpu.AF = registers->af;
+        gbl_z80_cpu.BC = registers->bc;
+        gbl_z80_cpu.DE = registers->de;
+        gbl_z80_cpu.HL = registers->hl;
+        gbl_z80_cpu.IX = registers->ix;
+        gbl_z80_cpu.IY = registers->iy;
+    }
+    switch(api_command_code)
+    {
+        case api_INITBD: INITBD(); break;
+        case api_ROYALT: ROYALT(); break;
+        case api_CPTRMV: CPTRMV(); break;
+        case api_VALMOV: VALMOV(); break;
+        case api_ASNTBI: ASNTBI(); break;
+        case api_EXECMV: EXECMV(); break;
+    }
+    if( registers )
+    {
+        registers->af = gbl_z80_cpu.AF;
+        registers->bc = gbl_z80_cpu.BC;
+        registers->de = gbl_z80_cpu.DE;
+        registers->hl = gbl_z80_cpu.HL;
+        registers->ix = gbl_z80_cpu.IX;
+        registers->iy = gbl_z80_cpu.IY;
+    }
+}

@@ -144,7 +144,6 @@
     <ClCompile Include="sargon-minimax.cpp" />
     <ClCompile Include="sargon-pv.cpp" />
     <ClCompile Include="sargon-tests.cpp" />
-    <ClCompile Include="stubs.cpp" />
     <ClCompile Include="thc.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="zargon.cpp" />
@@ -158,6 +157,7 @@
     <ClInclude Include="util.h" />
     <ClInclude Include="z80_cpu.h" />
     <ClInclude Include="z80_opcodes.h" />
+    <ClInclude Include="z80_registers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

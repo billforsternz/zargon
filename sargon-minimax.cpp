@@ -1293,16 +1293,16 @@ bool sargon_minimax_regression_test( bool quiet)
 
 extern void after_genmov();
 
-void callback_zargon( CB cb, z80_cpu *regs )
+void callback_zargon( CB cb )
 {
     #ifdef BRIDGE_CALLBACK_TRACE
     z80_registers reg;
-    reg.af = (uint16_t)(regs->AF);
-    reg.bc = (uint16_t)(regs->BC);
-    reg.de = (uint16_t)(regs->DE);
-    reg.hl = (uint16_t)(regs->HL);
-    reg.ix = (uint16_t)(regs->IX);
-    reg.iy = (uint16_t)(regs->IY);
+    reg.af = (uint16_t)(gbl_z80_cpu.AF);
+    reg.bc = (uint16_t)(gbl_z80_cpu.BC);
+    reg.de = (uint16_t)(gbl_z80_cpu.DE);
+    reg.hl = (uint16_t)(gbl_z80_cpu.HL);
+    reg.ix = (uint16_t)(gbl_z80_cpu.IX);
+    reg.iy = (uint16_t)(gbl_z80_cpu.IY);
     bridge_callback_trace( cb, &reg );
     #endif
 
@@ -1313,7 +1313,7 @@ void callback_zargon( CB cb, z80_cpu *regs )
         //  deterministic choice of book moves
         static uint8_t a_reg;
         a_reg++;
-        regs->A = a_reg;
+        gbl_z80_cpu.A = a_reg;
     }
     else if( cb == CB_AFTER_GENMOV )
     {
@@ -1342,8 +1342,8 @@ void callback_zargon( CB cb, z80_cpu *regs )
         {
             // Change A to 2 and B to 1 and MPIECE will exit without
             //  generating (non-castling) king moves
-            regs->A = 2;
-            regs->B = 1;
+            gbl_z80_cpu.A = 2;
+            gbl_z80_cpu.B = 1;
         }
     }
 
@@ -1361,7 +1361,7 @@ void callback_zargon( CB cb, z80_cpu *regs )
                                         running_example->lines[key].c_str() );
         running_example->progress.push_back(prog);
         unsigned int value = running_example->values[key];
-        regs->A = (uint8_t)value;
+        gbl_z80_cpu.A = (uint8_t)value;
     }
 
     // For purposes of minimax tracing experiment, describe and annotate the
@@ -1381,8 +1381,8 @@ void callback_zargon( CB cb, z80_cpu *regs )
         if( key == "(root)" )
             key = "";
         key += toupper(c); 
-        unsigned int al  = regs->A;
-        unsigned int bx  = regs->HL;
+        unsigned int al  = gbl_z80_cpu.A;
+        unsigned int bx  = gbl_z80_cpu.HL;
         unsigned int val = peekb(bx);
         bool jmp = (al <= val);   // Note that Sargon integer values have reverse sense to
                                     //  float centipawns.
@@ -1417,8 +1417,8 @@ void callback_zargon( CB cb, z80_cpu *regs )
     else if( cb == CB_NO_BEST_MOVE )
     {
         Progress prog;
-        unsigned int al  = regs->A;
-        unsigned int bx  = regs->HL;
+        unsigned int al  = gbl_z80_cpu.A;
+        unsigned int bx  = gbl_z80_cpu.HL;
         unsigned int val = peekb(bx);
         bool jmp = (al <= val);   // Note that Sargon integer values have reverse sense to
                                     //  float centipawns.

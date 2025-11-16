@@ -14,19 +14,19 @@
 #define NC (!C)
 #define P  (!M)
 #define PE (!PO)
-#define a  (r.A)
-#define b  (r.B)
-#define c  (r.C)
-#define d  (r.D)
-#define e  (r.E)
-#define h  (r.H)
-#define l  (r.L)
-#define af (r.AF)
-#define bc (r.BC)
-#define de (r.DE)
-#define hl (r.HL)
-#define ix (r.IX)
-#define iy (r.IY)
+#define a  (gbl_z80_cpu.A)
+#define b  (gbl_z80_cpu.B)
+#define c  (gbl_z80_cpu.C)
+#define d  (gbl_z80_cpu.D)
+#define e  (gbl_z80_cpu.E)
+#define h  (gbl_z80_cpu.H)
+#define l  (gbl_z80_cpu.L)
+#define af (gbl_z80_cpu.AF)
+#define bc (gbl_z80_cpu.BC)
+#define de (gbl_z80_cpu.DE)
+#define hl (gbl_z80_cpu.HL)
+#define ix (gbl_z80_cpu.IX)
+#define iy (gbl_z80_cpu.IY)
 
 // Emulate OPCODES with macros
 #define LD(dst,src)     (dst) = (src)
@@ -34,7 +34,7 @@
 #define val16(var)      *((uint16_t *)(&mem.var))
 #define val(var)        *((uint8_t *)(&mem.var))
 #define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
-#define DJNZ(label)     if(--r.B != 0) goto label
+#define DJNZ(label)     if(--gbl_z80_cpu.B != 0) goto label
 #define INC(x)          (x) = (x)+1, M=(((x)&0x80)==0x80), Z=((x)==0)
 #define DEC(x)          (x) = (x)-1, M=(((x)&0x80)==0x80), Z=((x)==0)
 #define INC16(x)        (x) = (x)+1
@@ -61,8 +61,8 @@
 #define JRu(label)      goto label
 #define JPu(label)      goto label
 #define CALLu(func)     (func)()
-#define FLAGS_IN        r.F = ((C?1:0) + (Z?2:0) + (M?4:0) + (PO?8:0)) 
-#define FLAGS_OUT       PO=((r.F&8)==8), M=((r.F&4)==4), Z=((r.F&2)==2), C=((r.F&1)==1) 
+#define FLAGS_IN        gbl_z80_cpu.F = ((C?1:0) + (Z?2:0) + (M?4:0) + (PO?8:0)) 
+#define FLAGS_OUT       PO=((gbl_z80_cpu.F&8)==8), M=((gbl_z80_cpu.F&4)==4), Z=((gbl_z80_cpu.F&2)==2), C=((gbl_z80_cpu.F&1)==1) 
 #define PUSHf(x)        FLAGS_IN, stack[--sp] = (x)
 #define POPf(x)         (x) = stack[sp++], FLAGS_OUT
 #define PUSH(x)         stack[--sp] = (x)

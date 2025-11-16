@@ -9,15 +9,17 @@ struct z80_cpu
     {
         struct
         {
-            uint8_t A;
-            uint8_t F;
-        };
+            uint8_t A;    // Use the x86 convention, lo = al, hi flags, not the
+            uint8_t F;    //  Z80 hardware convention, for x86 interoperability.
+        };                //  The Sargon Z80 assembly code doesn't do anything
+                          //  that cares one way or the other.
         uint16_t AF;
     };
     union
     {
         struct
         {
+            // We are assuming a little endian machine, C is the ls byte of BC
             uint8_t C;
             uint8_t B;
         };
@@ -45,8 +47,6 @@ struct z80_cpu
     uint16_t IY;
 };
 
-#define Z80_CPU                    \
-    static z80_cpu   r;            \
-    static bool      Z,C,M,PO
+extern z80_cpu gbl_z80_cpu;
 
 #endif // Z80_CPU_H_INCLUDED

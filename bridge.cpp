@@ -13,11 +13,11 @@
 
 // Init hooks
 static const unsigned char *sargon_mem_base;
-static const z80_cpu *sargon_cpu;
+static const z80_cpu *gbl_z80_cpu_ptr;
 void bridge_init( const unsigned char *mem_base, const z80_cpu *cpu )
 {
     sargon_mem_base = mem_base;
-    sargon_cpu = cpu;
+    gbl_z80_cpu_ptr = cpu;
 }
 
 #ifdef BRIDGE_CALLBACK_TRACE
@@ -93,17 +93,15 @@ std::string reg_dump( const z80_registers *reg )
 {
     if( !reg )
     {
-        if( !sargon_cpu )
-        {
-            return "Internal error, need sargon_cpu\n";
-        }
+        if( !gbl_z80_cpu_ptr )
+            return "Internal error, need gbl_z80_cpu_ptr";
         z80_registers loc;
-        loc.af = sargon_cpu->A;
-        loc.bc = sargon_cpu->BC;
-        loc.de = sargon_cpu->DE;
-        loc.hl = sargon_cpu->HL;
-        loc.ix = sargon_cpu->IX;
-        loc.iy = sargon_cpu->IY;
+        loc.af = gbl_z80_cpu_ptr->A;
+        loc.bc = gbl_z80_cpu_ptr->BC;
+        loc.de = gbl_z80_cpu_ptr->DE;
+        loc.hl = gbl_z80_cpu_ptr->HL;
+        loc.ix = gbl_z80_cpu_ptr->IX;
+        loc.iy = gbl_z80_cpu_ptr->IY;
         reg = &loc;
     }
     std::string s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
