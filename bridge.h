@@ -17,17 +17,27 @@ struct z80_registers
 };
 #endif
 
+// Include callback tracing code
+//#define BRIDGE_CALLBACK_TRACE
+//#define BRIDGE_CALLBACK_TRACE_DETAILED
+
 struct z80_cpu;
 void bridge_init( const unsigned char *mem_base, const z80_cpu *cpu );
 std::string reg_dump( const z80_registers *reg = 0 );
 std::string mem_dump();
 
-// Temp, until we have somewhere better to put this
+// Callback enumeration
 enum CB
 {
     CB_null,
+    CB_LDAR,
+    CB_AFTER_GENMOV,
     CB_END_OF_POINTS,
+    CB_AFTER_FNDMOVE,
     CB_YES_BEST_MOVE,
+    CB_NO_BEST_MOVE,
+    CB_SUPPRESS_KING_MOVES,
+    CB_ALPHA_BETA_CUTOFF,
     CB_PATH,
     CB_MPIECE,
     CB_ENPSNT,
@@ -50,7 +60,7 @@ enum CB
     CB_ASCEND
 };
 
-void callback_dbg( CB cb, const z80_registers *reg );
+void bridge_callback_trace( CB cb, const z80_registers *reg );
 
 #endif  // BRIDGE_H_INCLUDED
 

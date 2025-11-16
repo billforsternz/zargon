@@ -4,18 +4,8 @@
 #include "sargon-asm-interface.h"
 #include "sargon-pv.h"
 #include "thc.h"
-#include "z80-macros.h"
-static std::string reg_dump();
-static std::string mem_dump();
-
-void sargon_minimax_main(void)
-{
-}
-
-bool sargon_minimax_regression_test(bool)
-{
-    return true;
-}
+#include "z80_cpu.h"
+#include "bridge.h"
 
 extern void INITBD();
 extern void ROYALT();
@@ -24,154 +14,17 @@ extern void VALMOV();
 extern void ASNTBI();
 extern void EXECMV();
 
-void callback( CB cb )
+void sargon( int api_command_code, z80_registers *registers )
 {
-    static bool do_print = true;
-    static int count = 0;
-    if( count++ == 1000 )
-        do_print = false;
-    if( count == 41 )
-        printf( "debug\n" );
-    switch(cb)
-    {
-        case CB_END_OF_POINTS:
-        {
-            if( do_print )
-                printf( "CB_END_OF_POINTS(%u) %s\n", count, reg_dump().c_str() );
-            sargon_pv_callback_end_of_points();
-            break;
-        }
-        case CB_YES_BEST_MOVE:
-        {
-            if( do_print )
-                printf( "CB_YES_BEST_MOVE(%u) %s\n", count, reg_dump().c_str() );
-            sargon_pv_callback_yes_best_move();            
-            break;
-        }
-    }
-}
-
-// Sargon calls C, parameters serves double duty - saved registers on the
-//  stack, can optionally be inspected by C program
-void callback( uint32_t edi, uint32_t esi, uint32_t ebp, uint32_t esp,
-                uint32_t ebx, uint32_t edx, uint32_t ecx, uint32_t eax,
-                uint32_t eflags )
-{
-}
-
-static std::string reg_dump()
-{
-    extern z80_registers *sargon_registers;
-    uint8_t  a  = sargon_registers->A;
-    uint16_t bc = sargon_registers->BC;
-    uint16_t de = sargon_registers->DE;
-    uint16_t hl = sargon_registers->HL;
-    uint16_t ix = sargon_registers->IX;
-    uint16_t iy = sargon_registers->IY;
-    std::string s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
-                a, bc, de, hl, ix, iy );
-    return s;
-}
-
-static std::string mem_dump()
-{
-    std::vector<std::pair<int,const char *>> vars=
-    {
-        { BOARDA  ,"BOARDA" },
-        { ATKLST  ,"ATKLST" },
-        { PLISTA  ,"PLISTA" },
-        { POSK    ,"POSK" },
-        { POSQ    ,"POSQ" },
-        { SCORE   ,"SCORE" },
-        { PLYIX   ,"PLYIX" },
-        { M1      ,"M1" },
-        { M2      ,"M2" },
-        { M3      ,"M3" },
-        { M4      ,"M4" },
-        { T1      ,"T1" },
-        { T2      ,"T2" },
-        { T3      ,"T3" },
-        { INDX1   ,"INDX1" },
-        { INDX2   ,"INDX2" },
-        { NPINS   ,"NPINS" },
-        { MLPTRI  ,"MLPTRI" },
-        { MLPTRJ  ,"MLPTRJ" },
-        { SCRIX   ,"SCRIX" },
-        { BESTM   ,"BESTM" },
-        { MLLST   ,"MLLST" },
-        { MLNXT   ,"MLNXT" },
-        { KOLOR   ,"KOLOR" },
-        { COLOR   ,"COLOR" },
-        { P1      ,"P1" },
-        { P2      ,"P2" },
-        { P3      ,"P3" },
-        { PMATE   ,"PMATE" },
-        { MOVENO  ,"MOVENO" },
-        { PLYMAX  ,"PLYMAX" },
-        { NPLY    ,"NPLY" },
-        { CKFLG   ,"CKFLG" },
-        { MATEF   ,"MATEF" },
-        { VALM    ,"VALM" },
-        { BRDC    ,"BRDC" },
-        { PTSL    ,"PTSL" },
-        { PTSW1   ,"PTSW1" },
-        { PTSW2   ,"PTSW2" },
-        { MTRL    ,"MTRL" },
-        { BC0     ,"BC0" },
-        { MV0     ,"MV0" },
-        { PTSCK   ,"PTSCK" },
-        { BMOVES  ,"BMOVES" },
-        { LINECT  ,"LINECT" },
-        { MVEMSG  ,"MVEMSG" },
-        { MLIST   ,"MLIST" },
-        { MLEND   ,"MLEND" }
-    };
-    bool need_newline = false;
-    int offset=0;
-    std::string s = util::sprintf("%-6s %04x:\n", "base", offset );
-    for( const std::pair<int,const char *> v: vars )
-    {
-        extern unsigned char *sargon_base_address;
-        int len = v.first-offset;
-        for( int lines=0, i=0; i<len; i++ )
-        {
-            if( i%8==0 && i%16 != 0)
-                s += " ";
-            s += util::sprintf( " %02x", *(sargon_base_address+offset+i) );
-            need_newline = true;
-            if( (i+1)%16 == 0 )
-            {
-                need_newline = false;
-                lines++;
-                if( lines < 16 )
-                    s += "\n";
-                else
-                {
-                    s += "\n....\n";
-                    break;
-                }
-            }
-        }
-        offset = v.first;
-        if( need_newline)
-            s += "\n";
-        s += util::sprintf("%-6s %04x:\n", v.second, offset );
-    }
-    s += "\n";
-    return s;
-}
-
-void sargon( int api_command_code, z80_registers_mini *registers )
-{
-    extern z80_registers *sargon_registers;
+    extern z80_cpu *sargon_cpu;
     if( registers )
     {
-        sargon_registers->AF = registers->af;
-        sargon_registers->BC = registers->bc;
-        sargon_registers->DE = registers->de;
-        sargon_registers->HL = registers->hl;
-        sargon_registers->IX = registers->ix;
-        sargon_registers->IY = registers->iy;
+        sargon_cpu->AF = registers->af;
+        sargon_cpu->BC = registers->bc;
+        sargon_cpu->DE = registers->de;
+        sargon_cpu->HL = registers->hl;
+        sargon_cpu->IX = registers->ix;
+        sargon_cpu->IY = registers->iy;
     }
     std::string s = "??";
     switch(api_command_code)
@@ -214,12 +67,12 @@ void sargon( int api_command_code, z80_registers_mini *registers )
     #endif
     if( registers )
     {
-        registers->af = sargon_registers->AF;
-        registers->bc = sargon_registers->BC;
-        registers->de = sargon_registers->DE;
-        registers->hl = sargon_registers->HL;
-        registers->ix = sargon_registers->IX;
-        registers->iy = sargon_registers->IY;
+        registers->af = sargon_cpu->AF;
+        registers->bc = sargon_cpu->BC;
+        registers->de = sargon_cpu->DE;
+        registers->hl = sargon_cpu->HL;
+        registers->ix = sargon_cpu->IX;
+        registers->iy = sargon_cpu->IY;
     }
 }
 

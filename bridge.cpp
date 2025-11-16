@@ -20,25 +20,9 @@ void bridge_init( const unsigned char *mem_base, const z80_cpu *cpu )
     sargon_cpu = cpu;
 }
 
-// #define TRACK_PROBLEM
-
-void callback_dbg( CB cb, const z80_registers *reg )
+#ifdef BRIDGE_CALLBACK_TRACE
+void bridge_callback_trace( CB cb, const z80_registers *reg )
 {
-#ifndef TRACK_PROBLEM
-    switch(cb)
-    {
-        case CB_END_OF_POINTS:
-        {
-            if( !reg ) sargon_pv_callback_end_of_points();
-            break;
-        }
-        case CB_YES_BEST_MOVE:
-        {
-            if( !reg ) sargon_pv_callback_yes_best_move();            
-            break;
-        }
-    }
-#else
     static bool trigger;
     static int count = 0;
     bool detail = true;
@@ -102,8 +86,8 @@ void callback_dbg( CB cb, const z80_registers *reg )
                 printf("");
         }
     }
-#endif
 }
+#endif
 
 std::string reg_dump( const z80_registers *reg )
 {
@@ -270,4 +254,5 @@ std::string mem_dump()
     s += "\n";
     return s;
 }
+
 

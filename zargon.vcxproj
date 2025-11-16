@@ -139,7 +139,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bridge.cpp" />
     <ClCompile Include="sargon-interface.cpp" />
+    <ClCompile Include="sargon-minimax.cpp" />
     <ClCompile Include="sargon-pv.cpp" />
     <ClCompile Include="sargon-tests.cpp" />
     <ClCompile Include="stubs.cpp" />
@@ -148,12 +150,14 @@
     <ClCompile Include="zargon.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bridge.h" />
     <ClInclude Include="sargon-asm-interface.h" />
     <ClInclude Include="sargon-interface.h" />
     <ClInclude Include="sargon-pv.h" />
     <ClInclude Include="thc.h" />
     <ClInclude Include="util.h" />
-    <ClInclude Include="z80-macros.h" />
+    <ClInclude Include="z80_cpu.h" />
+    <ClInclude Include="z80_opcodes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

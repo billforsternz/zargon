@@ -11,9 +11,13 @@
 #include <stdio.h>                                                         //0007: ; rights reserved.  No part of this publication may be
 #include <stdint.h>                                                        //0008: ; reproduced without the prior written permission.
 #include <stddef.h>                                                        //0009: ;***********************************************************
-#define EXTREME_MACROS
-#include "z80-macros.h"                                                    //0010: 
-                                                                           //0011: 
+                                                                           //0010: 
+#include "bridge.h"                                                        //0011:
+#include "z80_cpu.h"                                                        
+#include "z80_opcodes.h"  // include last, uses aggressive macros
+                          //  that might upset other .h files  
+extern void callback_zargon( CB cb, z80_cpu *regs );
+
 //***********************************************************              //0012: ;***********************************************************
 // EQUATES                                                                 //0013: ; EQUATES
 //***********************************************************              //0014: ;***********************************************************
@@ -386,9 +390,9 @@ uint16_t MLNXT   =      addr(MLIST);                                       //028
 //             the white pieces minus the total value of the               //0337: ;             the white pieces minus the total value of the
 //             black pieces.                                               //0338: ;             black pieces.
 //                                                                         //0339: ;
-// BC0     --  The value of board control(val(BRDC)) at ply 0.             //0340: ; BC0     --  The value of board control(BRDC) at ply 0.
+// BC0     --  The value of board control(BRDC) at ply 0.                  //0340: ; BC0     --  The value of board control(BRDC) at ply 0.
 //                                                                         //0341: ;
-// MV0     --  The value of material(val(MTRL)) at ply 0.                  //0342: ; MV0     --  The value of material(MTRL) at ply 0.
+// MV0     --  The value of material(MTRL) at ply 0.                       //0342: ; MV0     --  The value of material(MTRL) at ply 0.
 //                                                                         //0343: ;
 // PTSCK   --  A non-zero value indicates that the piece has               //0344: ; PTSCK   --  A non-zero value indicates that the piece has
 //             just moved itself into a losing exchange of                 //0345: ;             just moved itself into a losing exchange of
@@ -497,8 +501,9 @@ uint8_t MLEND;                                                             //042
 // Up to 64K of emulated memory                                            //0432: ;**********************************************************
 emulated_memory mem;
 
-// Emulate Z80 machine
-Z80_REGISTERS;
+// Emulate Z80 CPU and opcodes
+Z80_CPU;
+Z80_OPCODES;
 
 //***********************************************************
 
@@ -518,7 +523,7 @@ void CARRET()  {}
 //
 // Forward references
 //
-uint8_t rand();
+uint8_t rand_z80();
 void INITBD();
 void PATH();
 void MPIECE();
@@ -622,6 +627,7 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
 //             constant to be added for the new position.                  //0498: ; ARGUMENTS:  Direction from the direction array giving the
 //***********************************************************              //0499: ;             constant to be added for the new position.
 void PATH() {                                                              //0500: ;***********************************************************
+        callback_zargon(CB_PATH,&r);
         LD      (hl,addr(M2));          //  Get previous position          //0501: PATH:   LD      hl,M2           ; Get previous position
         LD      (a,ptr(hl));            //                                 //0502:         LD      a,(hl)
         ADD     (a,c);                  //  Add direction constant         //0503:         ADD     a,c             ; Add direction constant
@@ -665,6 +671,7 @@ PA2:    LD      (a,3);                  //  Set off board flag             //052
 // ARGUMENTS:  The piece to be moved.                                      //0537: ;
 //***********************************************************              //0538: ; ARGUMENTS:  The piece to be moved.
 void MPIECE() {                                                            //0539: ;***********************************************************
+        callback_zargon(CB_MPIECE,&r);
         XOR     (ptr(hl));              //  Piece to move                  //0540: MPIECE: XOR     (hl)            ; Piece to move
         AND     (0x87);                 //  Clear flag bit                 //0541:         AND     87H             ; Clear flag bit
         CP      (BPAWN);                //  Is it a black Pawn ?           //0542:         CP      BPAWN           ; Is it a black Pawn ?
@@ -681,6 +688,7 @@ MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction             //055
         LD      (a,val(M1));            //  From position                  //0553:         LD      a,(M1)          ; From position
         LD      (val(M2),a);            //  Initialize to position         //0554:         LD      (M2),a          ; Initialize to position
 MP10:   CALLu   (PATH);                 //  Calculate next position        //0555: MP10:   CALL    PATH            ; Calculate next position
+        callback_zargon(CB_SUPPRESS_KING_MOVES,&r);
         CP      (2);                    //  Ready for new direction ?      //0556:         CP      2               ; Ready for new direction ?
         JR      (NC,MP15);              //  Yes - Jump                     //0557:         JR      NC,MP15         ; Yes - Jump
         AND     (a);                    //  Test for empty square          //0558:         AND     a               ; Test for empty square
@@ -757,6 +765,7 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture         //061
 // ARGUMENTS:  --  None                                                    //0626: ;
 //***********************************************************              //0627: ; ARGUMENTS:  --  None
 void ENPSNT() {                                                            //0628: ;***********************************************************
+        callback_zargon(CB_ENPSNT,&r);
         LD      (a,val(M1));            //  Set position of Pawn           //0629: ENPSNT: LD      a,(M1)          ; Set position of Pawn
         LD      (hl,addr(P1));          //  Check color                    //0630:         LD      hl,P1           ; Check color
         BIT     (7,ptr(hl));            //  Is it white ?                  //0631:         BIT     7,(hl)          ; Is it white ?
@@ -818,6 +827,7 @@ rel003: CP      (10);                   //  Is difference 10 ?             //065
 // ARGUMENTS:  --  None                                                    //0683: ;
 //***********************************************************              //0684: ; ARGUMENTS:  --  None
 void ADJPTR() {                                                            //0685: ;***********************************************************
+        callback_zargon(CB_ADJPTR,&r);
         LD      (hl,val16(MLLST));      //  Get list pointer               //0686: ADJPTR: LD      hl,(MLLST)      ; Get list pointer
         LD      (de,-6);                //  Size of a move entry           //0687:         LD      de,-6           ; Size of a move entry
         ADD16   (hl,de);                //  Back up list pointer           //0688:         ADD     hl,de           ; Back up list pointer
@@ -844,6 +854,7 @@ void ADJPTR() {                                                            //068
 // ARGUMENTS:  --  None                                                    //0707: ;
 //***********************************************************              //0708: ; ARGUMENTS:  --  None
 void CASTLE() {                                                            //0709: ;***********************************************************
+        callback_zargon(CB_CASTLE,&r);
         LD      (a,val(P1));            //  Get King                       //0710: CASTLE: LD      a,(P1)          ; Get King
         BIT     (3,a);                  //  Has it moved ?                 //0711:         BIT     3,a             ; Has it moved ?
         RET     (NZ);                   //  Yes - return                   //0712:         RET     NZ              ; Yes - return
@@ -888,7 +899,7 @@ CA15:   ADD     (a,b);                  //  Next position                  //074
         CALLu   (ADMOVE);               //  Put king move in list          //0751:         CALL    ADMOVE          ; Put king move in list
         LD      (hl,addr(M1));          //  Addr of King "from" position   //0752:         LD      hl,M1           ; Addr of King "from" position
         LD      (a,ptr(hl));            //  Get King's "from" position     //0753:         LD      a,(hl)          ; Get King's "from" position
-        LD      ((hl),c);               //  Store Rook "from" position     //0754:         LD      (hl),c          ; Store Rook "from" position
+        LD      (ptr(hl),c);            //  Store Rook "from" position     //0754:         LD      (hl),c          ; Store Rook "from" position
         SUB     (b);                    //  Get Rook "to" position         //0755:         SUB     b               ; Get Rook "to" position
         LD      (val(M2),a);            //  Store Rook "to" position       //0756:         LD      (M2),a          ; Store Rook "to" position
         XOR     (a);                    //  Zero                           //0757:         XOR     a               ; Zero
@@ -918,6 +929,7 @@ CA20:   LD      (a,b);                  //  Scan Index                     //076
 // ARGUMENT:  --  None                                                     //0779: ;
 //***********************************************************              //0780: ; ARGUMENT:  --  None
 void ADMOVE() {                                                            //0781: ;***********************************************************
+        callback_zargon(CB_ADMOVE,&r);
         LD      (de,val16(MLNXT));      //  Addr of next loc in move list  //0782: ADMOVE: LD      de,(MLNXT)      ; Addr of next loc in move list
         LD      (hl,addr(MLEND));       //  Address of list end            //0783:         LD      hl,MLEND        ; Address of list end
         AND     (a);                    //  Clear carry flag               //0784:         AND     a               ; Clear carry flag
@@ -972,6 +984,7 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow    //081
 // ARGUMENTS: --  None                                                     //0831: ;
 //***********************************************************              //0832: ; ARGUMENTS: --  None
 void GENMOV() {                                                            //0833: ;***********************************************************
+        callback_zargon(CB_GENMOV,&r);
         CALLu   (INCHK);                //  Test for King in check         //0834: GENMOV: CALL    INCHK           ; Test for King in check
         LD      (val(CKFLG),a);         //  Save attack count as flag      //0835:         LD      (CKFLG),a       ; Save attack count as flag
         LD      (de,val16(MLNXT));      //  Addr of next avail list space  //0836:         LD      de,(MLNXT)      ; Addr of next avail list space
@@ -1075,6 +1088,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
 // ARGUMENTS:  --  None                                                    //0926: ;
 //***********************************************************              //0927: ; ARGUMENTS:  --  None
 void ATTACK() {                                                            //0928: ;***********************************************************
+        callback_zargon(CB_ATTACK,&r);
         PUSH    (bc);                   //  Save Register B                //0929: ATTACK: PUSH    bc              ; Save Register B
         XOR     (a);                    //  Clear                          //0930:         XOR     a               ; Clear
         LD      (b,16);                 //  Initial direction count        //0931:         LD      b,16            ; Initial direction count
@@ -1192,6 +1206,7 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
 //***********************************************************              //1041: ; ARGUMENTS:  --  None
 static bool abnormal_exit;
 void ATKSAV() {                                                            //1042: ;***********************************************************
+        callback_zargon(CB_ATKSAV,&r);
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
         LD      (a,val(NPINS));         //  Number of pinned pieces        //1045:         LD      a,(NPINS)       ; Number of pinned pieces
@@ -1258,11 +1273,9 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
 // ARGUMENTS:  --  The direction of the attack. The                        //1097: ;
 //                 pinned piece counnt.                                    //1098: ; ARGUMENTS:  --  The direction of the attack. The
 //***********************************************************              //1099: ;                 pinned piece counnt.
-uint32_t debug_cnt;
 void PNCK() {
-        debug_cnt++;
-        if( debug_cnt == 0x4e )      // 0x4e same, 0x4f different
-            {}// printf( "debug\n" );                                       //1100: ;***********************************************************
+        callback_zargon(CB_PNCK,&r);
+                                                                           //1100: ;***********************************************************
         LD      (d,c);                  //  Save attack direction          //1101: PNCK:   LD      d,c             ; Save attack direction
         LD      (e,0);                  //  Clear flag                     //1102:         LD      e,0             ; Clear flag
         LD      (c,a);                  //  Load pin count for search      //1103:         LD      c,a             ; Load pin count for search
@@ -1308,6 +1321,7 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 // ARGUMENTS:  --  None                                                    //1141: ;
 //***********************************************************              //1142: ; ARGUMENTS:  --  None
 void PINFND() {                                                            //1143: ;***********************************************************
+        callback_zargon(CB_PINFND,&r);
         XOR     (a);                    //  Zero pin count                 //1144: PINFND: XOR     a               ; Zero pin count
         LD      (val(NPINS),a);                                            //1145:         LD      (NPINS),a
         LD      (de,addr(POSK));        //  Addr of King/Queen pos list    //1146:         LD      de,POSK         ; Addr of King/Queen pos list
@@ -1416,6 +1430,7 @@ PF27:   JPu     (PF2);                  //  Jump                           //123
 // ARGUMENTS:  --  None.                                                   //1247: ;
 //***********************************************************              //1248: ; ARGUMENTS:  --  None.
 void XCHNG() {                                                             //1249: ;***********************************************************
+        callback_zargon(CB_XCHNG,&r);
         EXX;                            //  Swap regs.                     //1250: XCHNG:  EXX                     ; Swap regs.
         LD      (a,(val(P1)));          //  Piece attacked                 //1251:         LD      a,(P1)          ; Piece attacked
         LD      (hl,WACT);        //  Addr of white attkrs/dfndrs          //1252:         LD      hl,WACT         ; Addr of white attkrs/dfndrs
@@ -1480,6 +1495,7 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
 //                 Attack list counts                                      //1309: ;                 Side flag
 //***********************************************************              //1310: ;                 Attack list counts
 void NEXTAD() {                                                            //1311: ;***********************************************************
+        callback_zargon(CB_NEXTAD,&r);
         INC     (c);                    //  Increment side flag            //1312: NEXTAD: INC     c               ; Increment side flag
         EXX;                            //  Swap registers                 //1313:         EXX                     ; Swap registers
         LD      (a,b);                  //  Swap list counts               //1314:         LD      a,b             ; Swap list counts
@@ -1515,7 +1531,8 @@ NX6:    EXX;                            //  Restore regs.                  //132
 //                                                                         //1342: ;                 LIMIT
 // ARGUMENTS:  --  None                                                    //1343: ;
 //***********************************************************              //1344: ; ARGUMENTS:  --  None
-void POINTS() {                                                            //1345: ;***********************************************************
+void POINTS() {                                                            //1345: ;*********************************************************** 
+        callback_zargon(CB_POINTS,&r);
         XOR     (a);                    //  Zero out variables             //1346: POINTS: XOR     a               ; Zero out variables
         LD      (val(MTRL),a);          //                                 //1347:         LD      (MTRL),a
         LD      (val(BRDC),a);          //                                 //1348:         LD      (BRDC),a
@@ -1675,7 +1692,7 @@ rel026: LD      (a,6);                  //  Load board control limit       //149
         JR      (NZ,rel016);            //  No - jump                      //1502:         JR      NZ,rel016       ; No - jump
         NEG;                            //  Negate for white               //1503:         NEG                     ; Negate for white
 rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //1504: rel016: ADD     a,80H           ; Rescale score (neutral = 80H)
-        callback(CB_END_OF_POINTS);
+        callback_zargon(CB_END_OF_POINTS,&r);
         LD      (val(VALM),a);          //  Save score                     //1505:         LD      (VALM),a        ; Save score
         LD      (ix,val16(MLPTRJ));     //  Load move list pointer         //1506:         LD      ix,(MLPTRJ)     ; Load move list pointer
         LD      (ptr(ix+MLVAL),a);      //  Save score in move list        //1507:         LD      (ix+MLVAL),a    ; Save score in move list
@@ -1728,6 +1745,7 @@ LIM10:  CP      (b);                    //  Compare to limit               //153
 // ARGUMENTS:  --  None                                                    //1550: ;
 //***********************************************************              //1551: ; ARGUMENTS:  --  None
 void MOVE() {                                                              //1552: ;***********************************************************
+        callback_zargon(CB_MOVE,&r);
         LD      (hl,val16(MLPTRJ));     //  Load move list pointer         //1553: MOVE:   LD      hl,(MLPTRJ)     ; Load move list pointer
         INC16   (hl);                   //  Increment past link bytes      //1554:         INC     hl              ; Increment past link bytes
         INC16   (hl);                                                      //1555:         INC     hl
@@ -1802,6 +1820,7 @@ MV40:   LD      (hl,val16(MLPTRJ));     //  Get move list pointer          //160
 // ARGUMENTS:  --  None                                                    //1622: ;
 //***********************************************************              //1623: ; ARGUMENTS:  --  None
 void UNMOVE() {                                                            //1624: ;***********************************************************
+        callback_zargon(CB_UNMOVE,&r);
         LD      (hl,val16(MLPTRJ));     //  Load move list pointer         //1625: UNMOVE: LD      hl,(MLPTRJ)     ; Load move list pointer
         INC16   (hl);                   //  Increment past link bytes      //1626:         INC     hl              ; Increment past link bytes
         INC16   (hl);                                                      //1627:         INC     hl
@@ -1877,6 +1896,7 @@ UM40:   LD      (hl,val16(MLPTRJ));     //  Load move list pointer         //168
 // ARGUMENTS:  --  None                                                    //1695: ;
 //***********************************************************              //1696: ; ARGUMENTS:  --  None
 void SORTM() {                                                             //1697: ;***********************************************************
+        callback_zargon(CB_SORTM,&r);
         LD      (bc,val16(MLPTRI));     //  Move list begin pointer        //1698: SORTM:  LD      bc,(MLPTRI)     ; Move list begin pointer
         LD      (de,0);                 //  Initialize working pointers    //1699:         LD      de,0            ; Initialize working pointers
 SR5:    LD      (h,b);                  //                                 //1700: SR5:    LD      h,b
@@ -1932,6 +1952,7 @@ SR30:   EX      (de,hl);                //  Swap pointers                  //173
 // ARGUMENTS:  --  None                                                    //1748: ;
 //***********************************************************              //1749: ; ARGUMENTS:  --  None
 void EVAL() {                                                              //1750: ;***********************************************************
+        callback_zargon(CB_EVAL,&r);
         CALLu   (MOVE);                 //  Make move on the board array   //1751: EVAL:   CALL    MOVE            ; Make move on the board array
         CALLu   (INCHK);                //  Determine if move is legal     //1752:         CALL    INCHK           ; Determine if move is legal
         AND     (a);                    //  Legal move ?                   //1753:         AND     a               ; Legal move ?
@@ -1964,6 +1985,7 @@ EV10:   CALLu   (UNMOVE);               //  Restore board array            //176
 // ARGUMENTS:  --  None                                                    //1778: ;
 //***********************************************************              //1779: ; ARGUMENTS:  --  None
 void FNDMOV() {                                                            //1780: ;***********************************************************
+        callback_zargon(CB_FNDMOV,&r);
         LD      (a,val(MOVENO));        //  Current move number            //1781: FNDMOV: LD      a,(MOVENO)      ; Current move number
         CP      (1);                    //  First move ?                   //1782:         CP      1               ; First move ?
         JR      (Z,tobook);             //  Yes - execute book opening     //1783:         CALL    Z,BOOK          ; Yes - execute book opening
@@ -1999,6 +2021,7 @@ FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter         //181
         XOR     (a);                    //  Initialize mate flag           //1813:         XOR     a               ; Initialize mate flag
         LD      (val(MATEF),a);                                            //1814:         LD      (MATEF),a
         CALLu   (GENMOV);               //  Generate list of moves         //1815:         CALL    GENMOV          ; Generate list of moves
+        callback_zargon(CB_AFTER_GENMOV,&r);
         LD      (a,val(NPLY));          //  Current ply counter            //1816:         LD      a,(NPLY)        ; Current ply counter
         LD      (hl,addr(PLYMAX));      //  Address of maximum ply number  //1817:         LD      hl,PLYMAX       ; Address of maximum ply number
         CP      (ptr(hl));              //  At max ply ?                   //1818:         CP      (hl)            ; At max ply ?
@@ -2087,17 +2110,18 @@ FM35:   CALLu   (PINFND);               //  Compile pin list               //189
 FM36:   LD      (hl,addr(MATEF));       //  Set mate flag                  //1901: FM36:   LD      hl,MATEF        ; Set mate flag
         SET     (0,ptr(hl));            //                                 //1902:         SET     0,(hl)
         LD      (hl,val16(SCRIX));      //  Load score table pointer       //1903:         LD      hl,(SCRIX)      ; Load score table pointer
-FM37:                                                                      //1904: FM37:
+FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF,&r);                          //1904: FM37:
         CP      (ptr(hl));              //  Compare to score 2 ply above   //1905:         CP      (hl)            ; Compare to score 2 ply above
         JR      (C,FM40);               //  Jump if less                   //1906:         JR      C,FM40          ; Jump if less
         JR      (Z,FM40);               //  Jump if equal                  //1907:         JR      Z,FM40          ; Jump if equal
         NEG;                            //  Negate score                   //1908:         NEG                     ; Negate score
         INC16   (hl);                   //  Incr score table pointer       //1909:         INC     hl              ; Incr score table pointer
         CP      (ptr(hl));              //  Compare to score 1 ply above   //1910:         CP      (hl)            ; Compare to score 1 ply above
+        callback_zargon(CB_NO_BEST_MOVE,&r);
         JP      (C,FM15);               //  Jump if less than              //1911:         JP      C,FM15          ; Jump if less than
         JP      (Z,FM15);               //  Jump if equal                  //1912:         JP      Z,FM15          ; Jump if equal
         LD      (ptr(hl),a);            //  Save as new score 1 ply above  //1913:         LD      (hl),a          ; Save as new score 1 ply above
-        callback(CB_YES_BEST_MOVE);
+        callback_zargon(CB_YES_BEST_MOVE,&r);
         LD      (a,val(NPLY));          //  Get current ply counter        //1914:         LD      a,(NPLY)        ; Get current ply counter
         CP      (1);                    //  At top of tree ?               //1915:         CP      1               ; At top of tree ?
         JP      (NZ,FM15);              //  No - jump                      //1916:         JP      NZ,FM15         ; No - jump
@@ -2133,6 +2157,7 @@ tobook: BOOK(); // emulate Z80 call to BOOK() with exit from FNDMOV()
 // ARGUMENTS: --  None                                                     //1943: ;
 //***********************************************************              //1944: ; ARGUMENTS: --  None
 void ASCEND() {                                                            //1945: ;***********************************************************
+        callback_zargon(CB_ASCEND,&r);
         LD      (hl,addr(COLOR));       //  Toggle color                   //1946: ASCEND: LD      hl,COLOR        ; Toggle color
         LD      (a,0x80);               //                                 //1947:         LD      a,80H
         XOR     (ptr(hl));              //                                 //1948:         XOR     (hl)
@@ -2184,7 +2209,8 @@ void BOOK() {                                                              //198
         LD      (a,val(KOLOR));         //  Get computer's color           //1992:         LD      a,(KOLOR)       ; Get computer's color
         AND     (a);                    //  Is it white ?                  //1993:         AND     a               ; Is it white ?
         JR      (NZ,BM5);               //  No - jump                      //1994:         JR      NZ,BM5          ; No - jump
-        LD      (a,rand());             //  Load refresh reg (random no)   //1995:         LD      a,r             ; Load refresh reg (random no)
+        LD      (a,rand_z80());         //  Load refresh reg (random no)   //1995:         LD      a,r             ; Load refresh reg (random no)
+        callback_zargon(CB_LDAR,&r);
         BIT     (0,a);                  //  Test random bit                //1996:         BIT     0,a             ; Test random bit
         RET     (Z);                    //  Return if zero (P-K4)          //1997:         RET     Z               ; Return if zero (P-K4)
         INC     (ptr(hl));              //  P-Q4                           //1998:         INC     (hl)            ; P-Q4
@@ -2600,18 +2626,20 @@ int main( int argc, const char *argv[] )
     return 0;
 }
   */
-uint8_t rand()
+uint8_t rand_z80()
 {
-    return 0;
+    static int val;
+    return ++val;   // matches sargon-x86.asm testing
 }
 
 unsigned char *sargon_base_address;
-z80_registers *sargon_registers;
+z80_cpu *sargon_cpu;
 
 void zargon_init()
 {
     sargon_base_address = (unsigned char *)(&mem);
-    sargon_registers = &r;
+    sargon_cpu = &r;
+    bridge_init( sargon_base_address, sargon_cpu );
     #if 0
     printf( "const int BOARDA = 0x%04zx; // (0x0134 in sargon_x86.asm)\n", addr(BOARDA) );
     printf( "const int ATKLST = 0x%04zx; // (0x01ac in sargon_x86.asm)\n", addr(ATKLST) );

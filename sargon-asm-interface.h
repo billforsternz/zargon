@@ -6,7 +6,8 @@
 extern unsigned char *sargon_base_address;
 
 // Calls to sargon() can set and read back registers
-struct z80_registers_mini
+#ifndef BRIDGE_H_INCLUDED
+struct z80_registers
 {
     uint16_t af;    // x86 = lo al, hi flags
     uint16_t hl;    // x86 = bx
@@ -15,10 +16,11 @@ struct z80_registers_mini
     uint16_t ix;    // x86 = si
     uint16_t iy;    // x86 = di
 };
+#endif
 
 // Call Sargon from C, call selected functions, optionally can set input
 //  registers (and/or inspect returned registers)
-void sargon( int api_command_code, z80_registers_mini *registers=NULL );
+void sargon( int api_command_code, z80_registers *registers=NULL );
 
 // Sargon calls C, parameters serves double duty - saved registers on the
 //  stack, can optionally be inspected by C program

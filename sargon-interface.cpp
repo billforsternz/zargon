@@ -241,7 +241,7 @@ bool sargon_play_move( thc::Move &mv )
     unsigned char kolor = peekb(KOLOR); // which side is Sargon?
     pokeb( KOLOR, color==0?0x80:0 );    // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
     std::string terse = mv.TerseOut();
-    z80_registers_mini regs;
+    z80_registers regs;
     for( int i=0; i<2; i++ )
     {
         memset( &regs, 0, sizeof(regs) );
