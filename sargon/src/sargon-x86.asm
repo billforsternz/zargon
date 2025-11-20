@@ -34,11 +34,6 @@ shadow_ax  dw   0       ;For Z80 EX af,af' emulation
 shadow_bx  dw   0       ;For Z80 EXX emulation
 shadow_cx  dw   0
 shadow_dx  dw   0
-debug_cnt  dw   0
-debug_cnt2 dw   0
-PUBLIC  _dbg_trigger
-_dbg_trigger:
-dbg_trigger2 dw 0
 PUBLIC  _sargon_base_address
 _sargon_base_address:   ;Base of 64K of Z80 data we are emulating
 ;       ORG     100h
@@ -656,8 +651,8 @@ cpir_end:
          ENDM
 
 ;Wrap all code in a PROC to get source debugging
-PUBLIC   _sargon_asm
-_sargon_asm  PROC
+PUBLIC   _sargon
+_sargon  PROC
          push   eax
          push   ebx
          push   ecx
@@ -1169,7 +1164,7 @@ AM10:   MOV     byte ptr [ebp+ebx],0            ; Abort entry on table ovflow
 ;
 ; ARGUMENTS: --  None
 ;***********************************************************
-GENMOV: CALLBACK "GENMOVE"
+GENMOV: CALLBACK "GENMOV"
         CALL    INCHK                           ; Test for King in check
         MOV     byte ptr [ebp+CKFLG],al         ; Save attack count as flag
         MOV     dx,word ptr [ebp+MLNXT]         ; Addr of next avail list space
@@ -2797,7 +2792,7 @@ EX14:   POP     eax                             ; Restore registers
         RET                                     ; Return
 
 
-_sargon_asm ENDP
+_sargon ENDP
 _TEXT   ENDS
 END
 

@@ -1,8 +1,13 @@
-/*
-
-    Utility functions
-    
-*/
+/****************************************************************************
+ * This project is a Windows port of the classic program Sargon, as
+ * presented in the book "Sargon a Z80 Computer Chess Program" by Dan
+ * and Kathe Spracklen (Hayden Books 1978).
+ *
+ * File: util.h
+ *       Simple C++ utility functions
+ *
+ * Bill Forster, https://github.com/billforsternz/retro-sargon
+ ****************************************************************************/
 
 #ifndef UTIL_H_INCLUDED
 #define UTIL_H_INCLUDED
@@ -24,7 +29,7 @@ bool trim( std::string &s );
 void tests();
 void replace_all( std::string &s, const std::string from, const std::string to );
 void replace_once( std::string &s, const std::string from, const std::string to );
-void split( std::string &s, std::vector<std::string> &fields );
+void split( const std::string &s, std::vector<std::string> &fields );
 std::string toupper( const std::string &s );
 std::string tolower( const std::string &s );
 }

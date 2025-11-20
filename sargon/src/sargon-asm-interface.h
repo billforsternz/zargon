@@ -10,7 +10,6 @@ extern "C" {
     // Call Sargon from C, call selected functions, optionally can set input
     //  registers (and/or inspect returned registers)
     void sargon( int api_command_code, z80_registers *registers=NULL );
-    void sargon_asm( int api_command_code, z80_registers *registers=NULL );  // temp
 
     // Sargon calls C, parameters serves double duty - saved registers on the
     //  stack, can optionally be inspected by C program

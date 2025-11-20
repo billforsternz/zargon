@@ -7,17 +7,13 @@
 #include "util.h"
 #include "bridge.h"
 #include "sargon-asm-interface.h"
-#include "sargon-pv.h"
-#include "thc.h"
 #include "z80_registers.h"
 
 // Init hooks
 static const unsigned char *sargon_mem_base;
-static const z80_registers *gbl_zargon_z80_registers_ptr;
-void bridge_init( const unsigned char *mem_base, z80_registers *reg )
+void bridge_init( const unsigned char *mem_base )
 {
-    sargon_mem_base       = mem_base;
-    gbl_zargon_z80_registers_ptr = reg;
+    sargon_mem_base = mem_base;
 }
 
 #ifdef BRIDGE_CALLBACK_TRACE
@@ -43,7 +39,6 @@ void bridge_callback_trace( CB cb, const z80_registers *reg )
             printf( "CB_END_OF_POINTS(%u) %s\n", count, reg_dump(reg).c_str() );
             if( count > 4850 )
                 printf( "%s", mem_dump().c_str() );
-            if( !reg ) sargon_pv_callback_end_of_points();
             break;
         }
         case CB_YES_BEST_MOVE:
@@ -51,7 +46,6 @@ void bridge_callback_trace( CB cb, const z80_registers *reg )
             printf( "CB_YES_BEST_MOVE(%u) %s\n", count, reg_dump(reg).c_str() );
             if( count > 4850 )
                 printf( "%s", mem_dump().c_str() );
-            if( !reg ) sargon_pv_callback_yes_best_move();            
             break;
         }
         case CB_PATH  :  name = "PATH";   break;
@@ -91,10 +85,6 @@ void bridge_callback_trace( CB cb, const z80_registers *reg )
 
 std::string reg_dump( const z80_registers *reg )
 {
-    if( !reg )
-    {
-        reg = gbl_zargon_z80_registers_ptr;
-    }
     std::string s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
                 reg->af & 0xff, reg->bc, reg->de, reg->hl, reg->ix, reg->iy );
     return s;
@@ -243,5 +233,3 @@ std::string mem_dump()
     s += "\n";
     return s;
 }
-
-

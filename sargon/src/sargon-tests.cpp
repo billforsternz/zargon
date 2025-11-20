@@ -40,8 +40,8 @@ int main( int argc, const char *argv[] )
     {
         "Debug/sargon-tests.exe",
         "p",
-        "-2" //,
-        //"-v"
+        "-2",
+        "-v"
     };
     argc = sizeof(test_args) / sizeof(test_args[0]);
     argv = test_args;
@@ -107,7 +107,7 @@ int main( int argc, const char *argv[] )
         return -1;
     }
 
-    bridge_init( &sargon_base_address,0);
+    bridge_init( &sargon_base_address);
     util::tests();
     if( minimax_doc )
         sargon_minimax_main();

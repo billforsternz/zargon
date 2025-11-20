@@ -16,7 +16,7 @@
 #define callback_zargon_bridge(cb)
 #endif
 
-void bridge_init( const unsigned char *mem_base, z80_registers *reg );
+void bridge_init( const unsigned char *mem_base );
 std::string reg_dump( const z80_registers *reg=0 );
 std::string mem_dump();
 

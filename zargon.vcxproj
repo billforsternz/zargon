@@ -158,6 +158,7 @@
     <ClInclude Include="z80_cpu.h" />
     <ClInclude Include="z80_opcodes.h" />
     <ClInclude Include="z80_registers.h" />
+    <ClInclude Include="zargon.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

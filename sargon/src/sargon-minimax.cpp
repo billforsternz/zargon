@@ -1291,6 +1291,7 @@ bool sargon_minimax_regression_test( bool quiet)
 
 extern void after_genmov();
 
+
 // Sargon calls back into this function as it runs, we can monitor what's going on by
 //  reading registers and peeking at memory, and influence it by modifying registers
 //  and poking at memory.
@@ -1302,7 +1303,7 @@ extern "C" {
         uint32_t *sp = &reg_edi;
         sp--;
 
-        // Expect code at return address to be 0xeb = 2 byte opcode, (0xeb + 8 bit relative jump),
+        // expecting code at return address to be 0xeb = 2 byte opcode, (0xeb + 8 bit relative jump),
         uint32_t ret_addr = *sp;
         const unsigned char *code = (const unsigned char *)ret_addr;
         const char *msg = (const char *)(code+2);   // ASCIIZ text should come after that
@@ -1369,13 +1370,13 @@ extern "C" {
         {
             after_genmov();
         }
-        else if( cb == CB_YES_BEST_MOVE )
-        {
-            sargon_pv_callback_yes_best_move();
-        }
         else if( cb == CB_END_OF_POINTS )
         {
             sargon_pv_callback_end_of_points();
+        }
+        else if( cb == CB_YES_BEST_MOVE )
+        {
+            sargon_pv_callback_yes_best_move();
         }
 
         // Remaining Callbacks only apply when we are running our minimax tests and
@@ -1508,5 +1509,4 @@ extern "C" {
         }
     }
 };
-
 
