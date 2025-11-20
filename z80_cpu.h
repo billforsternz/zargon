@@ -1,6 +1,7 @@
 #ifndef Z80_CPU_H_INCLUDED
 #define Z80_CPU_H_INCLUDED
 #include <stdint.h>
+#include "z80_registers.h"
 
 // Emulate Z80 machine
 struct z80_cpu

@@ -1,7 +1,7 @@
 // Automatically generated file - C interface to Sargon assembly language
 #ifndef SARGON_ASM_INTERFACE_H_INCLUDED
 #define SARGON_ASM_INTERFACE_H_INCLUDED
-#include "../../z80_registers.h"
+#include "z80_registers.h"
 extern "C" {
 
     // First byte of Sargon data

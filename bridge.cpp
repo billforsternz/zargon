@@ -9,15 +9,15 @@
 #include "sargon-asm-interface.h"
 #include "sargon-pv.h"
 #include "thc.h"
-#include "z80_cpu.h"
+#include "z80_registers.h"
 
 // Init hooks
 static const unsigned char *sargon_mem_base;
-static const z80_cpu *gbl_z80_cpu_ptr;
-void bridge_init( const unsigned char *mem_base, const z80_cpu *cpu )
+static const z80_registers *gbl_zargon_z80_registers_ptr;
+void bridge_init( const unsigned char *mem_base, z80_registers *reg )
 {
-    sargon_mem_base = mem_base;
-    gbl_z80_cpu_ptr = cpu;
+    sargon_mem_base       = mem_base;
+    gbl_zargon_z80_registers_ptr = reg;
 }
 
 #ifdef BRIDGE_CALLBACK_TRACE
@@ -93,16 +93,7 @@ std::string reg_dump( const z80_registers *reg )
 {
     if( !reg )
     {
-        if( !gbl_z80_cpu_ptr )
-            return "Internal error, need gbl_z80_cpu_ptr";
-        z80_registers loc;
-        loc.af = gbl_z80_cpu_ptr->A;
-        loc.bc = gbl_z80_cpu_ptr->BC;
-        loc.de = gbl_z80_cpu_ptr->DE;
-        loc.hl = gbl_z80_cpu_ptr->HL;
-        loc.ix = gbl_z80_cpu_ptr->IX;
-        loc.iy = gbl_z80_cpu_ptr->IY;
-        reg = &loc;
+        reg = gbl_zargon_z80_registers_ptr;
     }
     std::string s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
                 reg->af & 0xff, reg->bc, reg->de, reg->hl, reg->ix, reg->iy );

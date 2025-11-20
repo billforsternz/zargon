@@ -1,5 +1,7 @@
 #ifndef Z80_OPCODES_H_INCLUDED
 #define Z80_OPCODES_H_INCLUDED
+#include <stdlib.h>
+#include <time.h>
 #include "z80_cpu.h"
 
 #define Z80_OPCODES                      \
@@ -12,7 +14,7 @@
 
 #define NZ (!Z)
 #define NC (!C)
-#define P  (!M)
+#define P  (!M)                     
 #define PE (!PO)
 #define a  (gbl_z80_cpu.A)
 #define b  (gbl_z80_cpu.B)
@@ -108,6 +110,20 @@
                            case 2: Z = ((reg)&0x04)==0; break; \
                            case 1: Z = ((reg)&0x02)==0; break; \
                            case 0: Z = ((reg)&0x01)==0; break; }
+
+// Z80_LDAR MACRO
+//  Loads A register with the RAM refresh register, in practice a way to get
+//  a random number
+#define Z80_LDAR do {                          \
+    static bool has_run_at_least_once;         \
+    if( !has_run_at_least_once )               \
+    {                                          \
+        has_run_at_least_once = true;          \
+        srand((unsigned int)time(NULL));       \
+    }                                          \
+    int random_number = rand();                \
+    a = (uint8_t)(random_number&0xff);         \
+} while(0)
 
 // Z80_CPIR MACRO
 // ;CPIR reference, from the Zilog Z80 Users Manual

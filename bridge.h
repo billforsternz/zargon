@@ -8,10 +8,15 @@
 #include "z80_cpu.h"
 
 // Include callback tracing code
-//#define BRIDGE_CALLBACK_TRACE
-//#define BRIDGE_CALLBACK_TRACE_DETAILED
+#define BRIDGE_CALLBACK_TRACE
+#define BRIDGE_CALLBACK_TRACE_DETAILED
+#ifdef BRIDGE_CALLBACK_TRACE_DETAILED
+#define callback_zargon_bridge(cb) callback_zargon(cb)
+#else
+#define callback_zargon_bridge(cb)
+#endif
 
-void bridge_init( const unsigned char *mem_base, const z80_cpu *cpu );
+void bridge_init( const unsigned char *mem_base, z80_registers *reg );
 std::string reg_dump( const z80_registers *reg=0 );
 std::string mem_dump();
 
