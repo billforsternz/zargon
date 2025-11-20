@@ -3,21 +3,21 @@
 //               SARGON                                                    //0003: ;               SARGON
 //                                                                         //0004: ;
 // Sargon is a computer chess playing program designed                     //0005: ;       Sargon is a computer chess playing program designed
-// and coded by Dan and Kathe Spracklen.  Copyright 1978. All
-// rights reserved.  No part of this publication may be                                 (Numbered lines of original Z80 Sargon code on the right)
-// reproduced without the prior written permission.
-//***********************************************************
-                                                                           //0006: ; and coded by Dan and Kathe Spracklen.  Copyright 1978. All
-#include <stdio.h>                                                         //0007: ; rights reserved.  No part of this publication may be
-#include <stdint.h>                                                        //0008: ; reproduced without the prior written permission.
-#include <stddef.h>                                                        //0009: ;***********************************************************
-                                                                           //0010: 
-#include "sargon-asm-interface.h"                                          //0011:
-#include "bridge.h"                                                        
-#include "zargon.h"                                                        
-#include "z80_cpu.h"                                                        
+// and coded by Dan and Kathe Spracklen.  Copyright 1978. All              //0006: ; and coded by Dan and Kathe Spracklen.  Copyright 1978. All
+// rights reserved.  No part of this publication may be                    //0007: ; rights reserved.  No part of this publication may be
+// reproduced without the prior written permission.                        //0008: ; reproduced without the prior written permission.
+//***********************************************************              //0009: ;***********************************************************
+                                                                           //0010:
+#include <stdio.h>                                                         //0011:
+#include <stdint.h>
+#include <stddef.h>                                                        //         (Numbered lines of original Z80 Sargon code on the right)
+
+#include "sargon-asm-interface.h"
+#include "bridge.h"
+#include "zargon.h"
+#include "z80_cpu.h"
 #include "z80_opcodes.h"  // include last, uses aggressive macros
-                          //  that might upset other .h files  
+                          //  that might upset other .h files
 
 //***********************************************************              //0012: ;***********************************************************
 // EQUATES                                                                 //0013: ; EQUATES
@@ -32,7 +32,7 @@
 #define WHITE   0                                                          //0022: WHITE   EQU     0
 #define BLACK   0x80                                                       //0023: BLACK   EQU     80H
 #define BPAWN   (BLACK+PAWN)                                               //0024: BPAWN   EQU     BLACK+PAWN
-                                                                           //0025: 
+                                                                           //0025:
 //                                                                         //0026: ;***********************************************************
 // 1) TABLES                                                               //0027: ; TABLES SECTION
 //                                                                         //0028: ;***********************************************************
@@ -119,26 +119,26 @@ int8_t direct[24] = {                                                      //009
     -21,-12,+8,+19,                                                        //0101:         DB      +21,+12,-08,-19
     +21,+12,-8,-19,                                                        //0102:         DB      +10,+10,+11,+09
     +10,+10,+11,+9,                                                        //0103:         DB      -10,-10,-11,-09
-    -10,-10,-11,-9                                                         //0104: ;***********************************************************
-};                                                                         //0105: ; DPOINT  --  Direction Table Pointer. Used to determine
-//***********************************************************              //0106: ;             where to begin in the direction table for any
-// DPOINT  --  Direction Table Pointer. Used to determine
-//             where to begin in the direction table for any
+    -10,-10,-11,-9
+};
+//***********************************************************              //0104: ;***********************************************************
+// DPOINT  --  Direction Table Pointer. Used to determine                  //0105: ; DPOINT  --  Direction Table Pointer. Used to determine
+//             where to begin in the direction table for any               //0106: ;             where to begin in the direction table for any
 //             given piece.                                                //0107: ;             given piece.
 //***********************************************************              //0108: ;***********************************************************
 #define DPOINT (addr(dpoint)-TBASE)                                        //0109: DPOINT  EQU     $-TBASE
 uint8_t dpoint[7] = {                                                      //0110:         DB      20,16,8,0,4,0,0
-    20,16,8,0,4,0,0                                                        //0111: 
-};                                                                         //0112: ;***********************************************************
-                                                                           //0113: ; DCOUNT  --  Direction Table Counter. Used to determine
-//***********************************************************              //0114: ;             the number of directions of movement for any
-// DCOUNT  --  Direction Table Counter. Used to determine
-//             the number of directions of movement for any
+    20,16,8,0,4,0,0                                                        //0111:
+};
+
+//***********************************************************              //0112: ;***********************************************************
+// DCOUNT  --  Direction Table Counter. Used to determine                  //0113: ; DCOUNT  --  Direction Table Counter. Used to determine
+//             the number of directions of movement for any                //0114: ;             the number of directions of movement for any
 //             given piece.                                                //0115: ;             given piece.
 //***********************************************************              //0116: ;***********************************************************
 #define DCOUNT (addr(dcount)-TBASE)                                        //0117: DCOUNT  EQU     $-TBASE
 uint8_t dcount[7] = {                                                      //0118:         DB      4,4,8,4,4,8,8
-    4,4,8,4,4,8,8                                                          //0119: 
+    4,4,8,4,4,8,8                                                          //0119:
 };                                                                         //0120: ;***********************************************************
                                                                            //0121: ; PVALUE  --  Point Value. Gives the point value of each
                                                                            //0122: ;             piece, or the worth of each piece.
@@ -148,23 +148,23 @@ uint8_t dcount[7] = {                                                      //011
 //***********************************************************
 #define PVALUE (addr(pvalue)-TBASE-1)  //TODO what's this minus 1 about?   //0124: PVALUE  EQU     $-TBASE-1
 uint8_t pvalue[6] = {                                                      //0125:         DB      1,3,3,5,9,10
-    1,3,3,5,9,10                                                           //0126: 
-};                                                                         //0127: ;***********************************************************
-                                                                           //0128: ; PIECES  --  The initial arrangement of the first rank of
-                                                                           //0129: ;             pieces on the board. Use to set up the board
-//***********************************************************              //0130: ;             for the start of the game.
-// PIECES  --  The initial arrangement of the first rank of
-//             pieces on the board. Use to set up the board
-//             for the start of the game.
+    1,3,3,5,9,10                                                           //0126:
+};
+
+
+//***********************************************************              //0127: ;***********************************************************
+// PIECES  --  The initial arrangement of the first rank of                //0128: ; PIECES  --  The initial arrangement of the first rank of
+//             pieces on the board. Use to set up the board                //0129: ;             pieces on the board. Use to set up the board
+//             for the start of the game.                                  //0130: ;             for the start of the game.
 //***********************************************************              //0131: ;***********************************************************
 #define PIECES  (addr(pieces)-TBASE)                                       //0132: PIECES  EQU     $-TBASE
 uint8_t pieces[8] = {                                                      //0133:         DB      4,2,3,5,6,3,2,4
-    4,2,3,5,6,3,2,4                                                        //0134: 
-};                                                                         //0135: ;***********************************************************
-                                                                           //0136: ; BOARD   --  Board Array.  Used to hold the current position
-//***********************************************************              //0137: ;             of the board during play. The board itself
-// BOARD   --  Board Array.  Used to hold the current position
-//             of the board during play. The board itself
+    4,2,3,5,6,3,2,4                                                        //0134:
+};
+
+//***********************************************************              //0135: ;***********************************************************
+// BOARD   --  Board Array.  Used to hold the current position             //0136: ; BOARD   --  Board Array.  Used to hold the current position
+//             of the board during play. The board itself                  //0137: ;             of the board during play. The board itself
 //             looks like:                                                 //0138: ;             looks like:
 //             FFFFFFFFFFFFFFFFFFFF                                        //0139: ;             FFFFFFFFFFFFFFFFFFFF
 //             FFFFFFFFFFFFFFFFFFFF                                        //0140: ;             FFFFFFFFFFFFFFFFFFFF
@@ -202,10 +202,10 @@ uint8_t pieces[8] = {                                                      //013
 //***********************************************************              //0172: ;***********************************************************
 #define BOARD (addr(BOARDA)-TBASE)                                         //0173: BOARD   EQU     $-TBASE
 uint8_t BOARDA[120];                                                       //0174: BOARDA  DS      120
-                                                                           //0175: 
-                                                                           //0176: ;***********************************************************
-//***********************************************************              //0177: ; ATKLIST -- Attack List. A two part array, the first
-// ATKLIST -- Attack List. A two part array, the first
+                                                                           //0175:
+
+//***********************************************************              //0176: ;***********************************************************
+// ATKLIST -- Attack List. A two part array, the first                     //0177: ; ATKLIST -- Attack List. A two part array, the first
 //            half for white and the second half for black.                //0178: ;            half for white and the second half for black.
 //            It is used to hold the attackers of any given                //0179: ;            It is used to hold the attackers of any given
 //            square in the order of their value.                          //0180: ;            square in the order of their value.
@@ -220,29 +220,29 @@ uint8_t BOARDA[120];                                                       //017
 #define WACT addr(ATKLST)                                                  //0189: WACT    EQU     ATKLST
 #define BACT (addr(ATKLST)+7)                                              //0190: BACT    EQU     ATKLST+7
 union                                                                      //0191: ATKLST  DW      0,0,0,0,0,0,0
-{                                                                          //0192: 
-    uint16_t    ATKLST[7];                                                 //0193: ;***********************************************************
-        uint8_t     wact[7];                                               //0194: ; PLIST   --  Pinned Piece Array. This is a two part array.
-/*    struct wact_bact                                                     //0195: ;             PLISTA contains the pinned piece position.
-    {                                                                      //0196: ;             PLISTD contains the direction from the pinned
-        uint8_t     wact[7];                                               //0197: ;             piece to the attacker.
-        uint8_t     bact[7];                                               //0198: ;***********************************************************
+{                                                                          //0192:
+    uint16_t    ATKLST[7];
+        uint8_t     wact[7];
+/*    struct wact_bact
+    {
+        uint8_t     wact[7];
+        uint8_t     bact[7];
     }; */
 };
 
-//***********************************************************
-// PLIST   --  Pinned Piece Array. This is a two part array.
-//             PLISTA contains the pinned piece position.
-//             PLISTD contains the direction from the pinned
-//             piece to the attacker.
-//***********************************************************
+//***********************************************************              //0193: ;***********************************************************
+// PLIST   --  Pinned Piece Array. This is a two part array.               //0194: ; PLIST   --  Pinned Piece Array. This is a two part array.
+//             PLISTA contains the pinned piece position.                  //0195: ;             PLISTA contains the pinned piece position.
+//             PLISTD contains the direction from the pinned               //0196: ;             PLISTD contains the direction from the pinned
+//             piece to the attacker.                                      //0197: ;             piece to the attacker.
+//***********************************************************              //0198: ;***********************************************************
 #define PLIST (addr(PLISTA)-TBASE-1)    ///TODO -1 why?                    //0199: PLIST   EQU     $-TBASE-1
 #define PLISTD (PLIST+10)                                                  //0200: PLISTD  EQU     PLIST+10
 uint8_t     PLISTA[10];     // pinned pieces                               //0201: PLISTA  DW      0,0,0,0,0,0,0,0,0,0
-uint8_t     plistd[10];     // corresponding directions                    //0202: 
-                                                                           //0203: ;***********************************************************
-//***********************************************************              //0204: ; POSK    --  Position of Kings. A two byte area, the first
-// POSK    --  Position of Kings. A two byte area, the first
+uint8_t     plistd[10];     // corresponding directions                    //0202:
+
+//***********************************************************              //0203: ;***********************************************************
+// POSK    --  Position of Kings. A two byte area, the first               //0204: ; POSK    --  Position of Kings. A two byte area, the first
 //             byte of which hold the position of the white                //0205: ;             byte of which hold the position of the white
 //             king and the second holding the position of                 //0206: ;             king and the second holding the position of
 //             the black king.                                             //0207: ;             the black king.
@@ -252,39 +252,39 @@ uint8_t     plistd[10];     // corresponding directions                    //020
 uint8_t     POSK[2] = {                                                    //0211: POSK    DB      24,95
     24,95                                                                  //0212: POSQ    DB      14,94
 };                                                                         //0213:         DB      -1
-uint8_t     POSQ[2] = {                                                    //0214: 
-    14,94                                                                  //0215: ;***********************************************************
-};                                                                         //0216: ; SCORE   --  Score Array. Used during Alpha-Beta pruning to
-int8_t padding2 = -1;                                                      //0217: ;             hold the scores at each ply. It includes two
-                                                                           //0218: ;             "dummy" entries for ply -1 and ply 0.
-//***********************************************************              //0219: ;***********************************************************
-// SCORE   --  Score Array. Used during Alpha-Beta pruning to
-//             hold the scores at each ply. It includes two
-//             "dummy" entries for ply -1 and ply 0.
+uint8_t     POSQ[2] = {                                                    //0214:
+    14,94
+};
+int8_t padding2 = -1;
+
 //***********************************************************
-uint8_t padding3[44];
+// SCORE   --  Score Array. Used during Alpha-Beta pruning to              //0215: ;***********************************************************
+//             hold the scores at each ply. It includes two                //0216: ; SCORE   --  Score Array. Used during Alpha-Beta pruning to
+//             "dummy" entries for ply -1 and ply 0.                       //0217: ;             hold the scores at each ply. It includes two
+//***********************************************************              //0218: ;             "dummy" entries for ply -1 and ply 0.
+uint8_t padding3[44];                                                      //0219: ;***********************************************************
 uint16_t    SCORE[20] = {                                                  //0220: SCORE   DW      0,0,0,0,0,0     ;Z80 max 6 ply
-    0,0,0,0,0,0,0,0,0,0,                // Z80 max 6 ply                   //0221: 
-    0,0,0,0,0,0,0,0,0,0                 // x86 max 20 ply                  //0222: ;***********************************************************
-};                                                                         //0223: ; PLYIX   --  Ply Table. Contains pairs of pointers, a pair
-                                                                           //0224: ;             for each ply. The first pointer points to the
-//***********************************************************              //0225: ;             top of the list of possible moves at that ply.
-// PLYIX   --  Ply Table. Contains pairs of pointers, a pair
-//             for each ply. The first pointer points to the
-//             top of the list of possible moves at that ply.
+    0,0,0,0,0,0,0,0,0,0,                // Z80 max 6 ply                   //0221:
+    0,0,0,0,0,0,0,0,0,0                 // x86 max 20 ply
+};
+
+//***********************************************************              //0222: ;***********************************************************
+// PLYIX   --  Ply Table. Contains pairs of pointers, a pair               //0223: ; PLYIX   --  Ply Table. Contains pairs of pointers, a pair
+//             for each ply. The first pointer points to the               //0224: ;             for each ply. The first pointer points to the
+//             top of the list of possible moves at that ply.              //0225: ;             top of the list of possible moves at that ply.
 //             The second pointer points to which move in the              //0226: ;             The second pointer points to which move in the
 //             list is the one currently being considered.                 //0227: ;             list is the one currently being considered.
 //***********************************************************              //0228: ;***********************************************************
 uint8_t padding4[2];
 uint16_t    PLYIX[20] = {                                                  //0229: PLYIX   DW      0,0,0,0,0,0,0,0,0,0
     0,0,0,0,0,0,0,0,0,0,                                                   //0230:         DW      0,0,0,0,0,0,0,0,0,0
-    0,0,0,0,0,0,0,0,0,0                                                    //0231: 
+    0,0,0,0,0,0,0,0,0,0                                                    //0231:
 };                                                                         //0232: ;***********************************************************
                                                                            //0233: ; STACK   --  Contains the stack for the program.
 //                                                                         //0234: ;***********************************************************
 // 2) PTRS to TABLES                                                       //0235:         ORG     START+2FFH
 //                                                                         //0236: STACK:
-                                                                           //0237: 
+                                                                           //0237:
 //***********************************************************              //0238: ;***********************************************************
 // 2) TABLE INDICES SECTION                                                //0239: ; TABLE INDICES SECTION
 //                                                                         //0240: ;
@@ -320,8 +320,8 @@ uint16_t    PLYIX[20] = {                                                  //022
 //             list.                                                       //0270: ;             list.
 //                                                                         //0271: ;
 //***********************************************************              //0272: ;***********************************************************
-uint8_t padding5[174];
-uint16_t M1      =      TBASE;                                             // (line 273 omitted) 0274: M1      DW      TBASE
+uint8_t padding5[174];                                                     //0273:         ORG     START+0
+uint16_t M1      =      TBASE;                                             //0274: M1      DW      TBASE
 uint16_t M2      =      TBASE;                                             //0275: M2      DW      TBASE
 uint16_t M3      =      TBASE;                                             //0276: M3      DW      TBASE
 uint16_t M4      =      TBASE;                                             //0277: M4      DW      TBASE
@@ -337,7 +337,7 @@ uint16_t SCRIX   =      0;                                                 //028
 uint16_t BESTM   =      0;                                                 //0287: BESTM   DW      0
 uint16_t MLLST   =      0;                                                 //0288: MLLST   DW      0
 uint16_t MLNXT   =      addr(MLIST);                                       //0289: MLNXT   DW      MLIST
-                                                                           //0290: 
+                                                                           //0290:
 //                                                                         //0291: ;***********************************************************
 // 3) MISC VARIABLES
 //
@@ -427,62 +427,62 @@ uint8_t BMOVES[12] = {                                                     //037
     35,55,0x10,                                                            //0373:         DB      34,54,10H
     34,54,0x10,                                                            //0374:         DB      85,65,10H
     85,65,0x10,                                                            //0375:         DB      84,64,10H
-    84,64,0x10                                                             //0376: 
-};                                                                         //0377: ;***********************************************************
-uint8_t LINECT = 0;                                                        //0378: ; MOVE LIST SECTION
-char MVEMSG[5]; // = {'a','1','-','a','1'};                                //0379: ;
-char O_O[3];    //    = { '0', '-', '0' };                                 //0380: ; MLIST   --  A 2048 byte storage area for generated moves.
-char O_O_O[5];  //  = { '0', '-', '0', '-', '0' };                         //0381: ;             This area must be large enough to hold all
-                                                                           //0382: ;             the moves for a single leg of the move tree.
+    84,64,0x10                                                             //0376:
+};
+uint8_t LINECT = 0;
+char MVEMSG[5]; // = {'a','1','-','a','1'};
+char O_O[3];    //    = { '0', '-', '0' };
+char O_O_O[5];  //  = { '0', '-', '0', '-', '0' };
+
+//
+// 4) MOVE ARRAY
+//
+
+//***********************************************************              //0377: ;***********************************************************
+// MOVE LIST SECTION                                                       //0378: ; MOVE LIST SECTION
+//                                                                         //0379: ;
+// MLIST   --  A 2048 byte storage area for generated moves.               //0380: ; MLIST   --  A 2048 byte storage area for generated moves.
+//             This area must be large enough to hold all                  //0381: ;             This area must be large enough to hold all
+//             the moves for a single leg of the move tree.                //0382: ;             the moves for a single leg of the move tree.
 //                                                                         //0383: ;
-// 4) MOVE ARRAY                                                           //0384: ; MLEND   --  The address of the last available location
-//                                                                         //0385: ;             in the move list.
-                                                                           //0386: ;
-//***********************************************************              //0387: ; MLPTR   --  The Move List is a linked list of individual
-// MOVE LIST SECTION                                                       //0388: ;             moves each of which is 6 bytes in length. The
-//                                                                         //0389: ;             move list pointer(MLPTR) is the link field
-// MLIST   --  A 2048 byte storage area for generated moves.               //0390: ;             within a move.
-//             This area must be large enough to hold all                  //0391: ;
-//             the moves for a single leg of the move tree.                //0392: ; MLFRP   --  The field in the move entry which gives the
-//                                                                         //0393: ;             board position from which the piece is moving.
-// MLEND   --  The address of the last available location                  //0394: ;
-//             in the move list.                                           //0395: ; MLTOP   --  The field in the move entry which gives the
-//                                                                         //0396: ;             board position to which the piece is moving.
-// MLPTR   --  The Move List is a linked list of individual                //0397: ;
-//             moves each of which is 6 bytes in length. The               //0398: ; MLFLG   --  A field in the move entry which contains flag
-//             move list pointer(MLPTR) is the link field                  //0399: ;             information. The meaning of each bit is as
-//             within a move.                                              //0400: ;             follows:
-//                                                                         //0401: ;             Bit 7  --  The color of any captured piece
-// MLFRP   --  The field in the move entry which gives the                 //0402: ;                        0 -- White
-//             board position from which the piece is moving.              //0403: ;                        1 -- Black
-//                                                                         //0404: ;             Bit 6  --  Double move flag (set for castling and
-// MLTOP   --  The field in the move entry which gives the                 //0405: ;                        en passant pawn captures)
-//             board position to which the piece is moving.                //0406: ;             Bit 5  --  Pawn Promotion flag; set when pawn
-//                                                                         //0407: ;                        promotes.
-// MLFLG   --  A field in the move entry which contains flag               //0408: ;             Bit 4  --  When set, this flag indicates that
-//             information. The meaning of each bit is as                  //0409: ;                        this is the first move for the
-//             follows:                                                    //0410: ;                        piece on the move.
-//             Bit 7  --  The color of any captured piece                  //0411: ;             Bit 3  --  This flag is set is there is a piece
-//                        0 -- White                                       //0412: ;                        captured, and that piece has moved at
-//                        1 -- Black                                       //0413: ;                        least once.
-//             Bit 6  --  Double move flag (set for castling and           //0414: ;             Bits 2-0   Describe the captured piece.  A
-//                        en passant pawn captures)                        //0415: ;                        zero value indicates no capture.
-//             Bit 5  --  Pawn Promotion flag; set when pawn               //0416: ;
-//                        promotes.                                        //0417: ; MLVAL   --  The field in the move entry which contains the
-//             Bit 4  --  When set, this flag indicates that               //0418: ;             score assigned to the move.
-//                        this is the first move for the                   //0419: ;
-//                        piece on the move.                               //0420: ;***********************************************************
-//             Bit 3  --  This flag is set is there is a piece             //0421:         ORG     START+300H
-//                        captured, and that piece has moved at
-//                        least once.
-//             Bits 2-0   Describe the captured piece.  A
-//                        zero value indicates no capture.
-//
-// MLVAL   --  The field in the move entry which contains the
-//             score assigned to the move.
-//
-//***********************************************************
-uint8_t padding6[178];
+// MLEND   --  The address of the last available location                  //0384: ; MLEND   --  The address of the last available location
+//             in the move list.                                           //0385: ;             in the move list.
+//                                                                         //0386: ;
+// MLPTR   --  The Move List is a linked list of individual                //0387: ; MLPTR   --  The Move List is a linked list of individual
+//             moves each of which is 6 bytes in length. The               //0388: ;             moves each of which is 6 bytes in length. The
+//             move list pointer(MLPTR) is the link field                  //0389: ;             move list pointer(MLPTR) is the link field
+//             within a move.                                              //0390: ;             within a move.
+//                                                                         //0391: ;
+// MLFRP   --  The field in the move entry which gives the                 //0392: ; MLFRP   --  The field in the move entry which gives the
+//             board position from which the piece is moving.              //0393: ;             board position from which the piece is moving.
+//                                                                         //0394: ;
+// MLTOP   --  The field in the move entry which gives the                 //0395: ; MLTOP   --  The field in the move entry which gives the
+//             board position to which the piece is moving.                //0396: ;             board position to which the piece is moving.
+//                                                                         //0397: ;
+// MLFLG   --  A field in the move entry which contains flag               //0398: ; MLFLG   --  A field in the move entry which contains flag
+//             information. The meaning of each bit is as                  //0399: ;             information. The meaning of each bit is as
+//             follows:                                                    //0400: ;             follows:
+//             Bit 7  --  The color of any captured piece                  //0401: ;             Bit 7  --  The color of any captured piece
+//                        0 -- White                                       //0402: ;                        0 -- White
+//                        1 -- Black                                       //0403: ;                        1 -- Black
+//             Bit 6  --  Double move flag (set for castling and           //0404: ;             Bit 6  --  Double move flag (set for castling and
+//                        en passant pawn captures)                        //0405: ;                        en passant pawn captures)
+//             Bit 5  --  Pawn Promotion flag; set when pawn               //0406: ;             Bit 5  --  Pawn Promotion flag; set when pawn
+//                        promotes.                                        //0407: ;                        promotes.
+//             Bit 4  --  When set, this flag indicates that               //0408: ;             Bit 4  --  When set, this flag indicates that
+//                        this is the first move for the                   //0409: ;                        this is the first move for the
+//                        piece on the move.                               //0410: ;                        piece on the move.
+//             Bit 3  --  This flag is set is there is a piece             //0411: ;             Bit 3  --  This flag is set is there is a piece
+//                        captured, and that piece has moved at            //0412: ;                        captured, and that piece has moved at
+//                        least once.                                      //0413: ;                        least once.
+//             Bits 2-0   Describe the captured piece.  A                  //0414: ;             Bits 2-0   Describe the captured piece.  A
+//                        zero value indicates no capture.                 //0415: ;                        zero value indicates no capture.
+//                                                                         //0416: ;
+// MLVAL   --  The field in the move entry which contains the              //0417: ; MLVAL   --  The field in the move entry which contains the
+//             score assigned to the move.                                 //0418: ;             score assigned to the move.
+//                                                                         //0419: ;
+//***********************************************************              //0420: ;***********************************************************
+uint8_t padding6[178];                                                     //0421:         ORG     START+300H
 struct ML {                                                                //0422: MLIST   DS      2048
     uint16_t    MLPTR_;
     uint8_t     MLFRP_;
@@ -496,16 +496,16 @@ uint8_t MLEND;                                                             //042
 #define MLPTR 0                                                            //0426: MLTOP   EQU     3
 #define MLFRP 2                                                            //0427: MLFLG   EQU     4
 #define MLTOP 3                                                            //0428: MLVAL   EQU     5
-#define MLFLG 4                                                            //0429: 
+#define MLFLG 4                                                            //0429:
 #define MLVAL 5                                                            //0430: ;***********************************************************
-                                                                           //0431: 
+                                                                           //0431:
 // Up to 64K of emulated memory                                            //0432: ;**********************************************************
-emulated_memory mem;
-
+emulated_memory mem;                                                       //0433: ; PROGRAM CODE SECTION
+                                                                           //0434: ;**********************************************************
 // Emulate Z80 CPU and opcodes
 Z80_OPCODES;
-z80_cpu gbl_z80_cpu;
-static bool     Z,C,M,PO;
+z80_cpu     gbl_z80_cpu;
+static bool Z,C,M,PO;
 
 //***********************************************************
 
@@ -557,9 +557,9 @@ void VALMOV();
 void ROYALT();
 void DIVIDE();
 void MLTPLY();
-void EXECMV();                                                             //0433: ; PROGRAM CODE SECTION
-                                                                           //0434: ;**********************************************************
-//**********************************************************               //0435: 
+void EXECMV();
+
+//**********************************************************               //0435:
 // BOARD SETUP ROUTINE                                                     //0436: ;**********************************************************
 //***********************************************************              //0437: ; BOARD SETUP ROUTINE
 // FUNCTION:   To initialize the board array, setting the                  //0438: ;***********************************************************
@@ -598,16 +598,16 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
         LD      (ix,addr(POSQ));                                           //0471:         LD      (ix+2),24
         LD      (ptr(ix+0),24);                                            //0472:         LD      (ix+3),94
         LD      (ptr(ix+1),94);                                            //0473:         RET
-        RETu;                                                              //0474: 
-}                                                                          //0475: ;***********************************************************
-                                                                           //0476: ; PATH ROUTINE
-//***********************************************************              //0477: ;***********************************************************
-// PATH ROUTINE
+        RETu;                                                              //0474:
+}
+
 //***********************************************************
-// FUNCTION:   To generate a single possible move for a given
+// PATH ROUTINE                                                            //0475: ;***********************************************************
+//***********************************************************              //0476: ; PATH ROUTINE
+// FUNCTION:   To generate a single possible move for a given              //0477: ;***********************************************************
 //             piece along its current path of motion including:           //0478: ; FUNCTION:   To generate a single possible move for a given
 //                                                                         //0479: ;             piece along its current path of motion including:
-//                Fetching the contents of the board at the new            //0480: 
+//                Fetching the contents of the board at the new            //0480:
 //                position, and setting a flag describing the              //0481: ;                Fetching the contents of the board at the new
 //                contents:                                                //0482: ;                position, and setting a flag describing the
 //                          0  --  New position is empty                   //0483: ;                contents:
@@ -652,15 +652,15 @@ PA1:    LD      (a,2);                  //  Set same color flag            //052
         RETu;                           //  Return                         //0521:         RET                     ; Return
 PA2:    LD      (a,3);                  //  Set off board flag             //0522: PA2:    LD      a,3             ; Set off board flag
         RETu;                           //  Return                         //0523:         RET                     ; Return
-}                                                                          //0524: 
-                                                                           //0525: ;***********************************************************
-                                                                           //0526: ; PIECE MOVER ROUTINE
-                                                                           //0527: ;***********************************************************
-//***********************************************************              //0528: ; FUNCTION:   To generate all the possible legal moves for a
-// PIECE MOVER ROUTINE
+}                                                                          //0524:
+
+
+
 //***********************************************************
-// FUNCTION:   To generate all the possible legal moves for a
-//             given piece.
+// PIECE MOVER ROUTINE                                                     //0525: ;***********************************************************
+//***********************************************************              //0526: ; PIECE MOVER ROUTINE
+// FUNCTION:   To generate all the possible legal moves for a              //0527: ;***********************************************************
+//             given piece.                                                //0528: ; FUNCTION:   To generate all the possible legal moves for a
 //                                                                         //0529: ;             given piece.
 // CALLED BY:  GENMOV                                                      //0530: ;
 //                                                                         //0531: ; CALLED BY:  GENMOV
@@ -751,7 +751,7 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture         //061
 }
 
 
-//***********************************************************              //0614: 
+//***********************************************************              //0614:
 // EN PASSANT ROUTINE                                                      //0615: ;***********************************************************
 //***********************************************************              //0616: ; EN PASSANT ROUTINE
 // FUNCTION:   --  To test for en passant Pawn capture and                 //0617: ;***********************************************************
@@ -808,11 +808,11 @@ rel003: CP      (10);                   //  Is difference 10 ?             //065
         CALLu   (ADMOVE);               //  Add Pawn capture to move list  //0667:         CALL    ADMOVE          ; Add Pawn capture to move list
         LD      (a,val(M3));            //  Restore "from" position        //0668:         LD      a,(M3)          ; Restore "from" position
         LD      (val(M1),a);            //                                 //0669:         LD      (M1),a
-        ADJPTR();  // emulate Z80 fall through 
+        ADJPTR();  // emulate Z80 fall through
 }
 
 
-//***********************************************************              //0670: 
+//***********************************************************              //0670:
 // ADJUST MOVE LIST POINTER FOR DOUBLE MOVE                                //0671: ;***********************************************************
 //***********************************************************              //0672: ; ADJUST MOVE LIST POINTER FOR DOUBLE MOVE
 // FUNCTION:   --  To adjust move list pointer to link around              //0673: ;***********************************************************
@@ -837,11 +837,11 @@ void ADJPTR() {                                                            //068
         INC16   (hl);                   //  Next byte                      //0691:         INC     hl              ; Next byte
         LD      (ptr(hl),0);            //  Zero out link, second byte     //0692:         LD      (hl),0          ; Zero out link, second byte
         RETu;                           //  Return                         //0693:         RET                     ; Return
-}                                                                          //0694: 
-                                                                           //0695: ;***********************************************************
-//***********************************************************              //0696: ; CASTLE ROUTINE
-// CASTLE ROUTINE
+}                                                                          //0694:
+
 //***********************************************************
+// CASTLE ROUTINE                                                          //0695: ;***********************************************************
+//***********************************************************              //0696: ; CASTLE ROUTINE
 // FUNCTION:   --  To determine whether castling is legal                  //0697: ;***********************************************************
 //                 (Queen side, King side, or both) and add it             //0698: ; FUNCTION:   --  To determine whether castling is legal
 //                 to the move list if it is.                              //0699: ;                 (Queen side, King side, or both) and add it
@@ -914,11 +914,11 @@ CA20:   LD      (a,b);                  //  Scan Index                     //076
         RET     (Z);                    //  Yes - return                   //0765:         RET     Z               ; Yes - return
         LD      (bc,0x01FC);            //  Set Queen-side initial values  //0766:         LD      bc,01FCH        ; Set Queen-side initial values
         JPu     (CA5);                  //  Jump                           //0767:         JP      CA5             ; Jump
-}                                                                          //0768: 
-                                                                           //0769: ;***********************************************************
-//***********************************************************              //0770: ; ADMOVE ROUTINE
-// ADMOVE ROUTINE
+}                                                                          //0768:
+
 //***********************************************************
+// ADMOVE ROUTINE                                                          //0769: ;***********************************************************
+//***********************************************************              //0770: ; ADMOVE ROUTINE
 // FUNCTION:   --  To add a move to the move list                          //0771: ;***********************************************************
 //                                                                         //0772: ; FUNCTION:   --  To add a move to the move list
 // CALLED BY:  --  MPIECE                                                  //0773: ;
@@ -969,11 +969,11 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow    //081
         LD      (ptr(hl),0);            //  TODO does this out of memory   //0817:         LD      (hl),0          ; TODO does this out of memory
         DEC16   (hl);                   //       check actually work?      //0818:         DEC     hl              ;      check actually work?
         RETu;                                                              //0819:         RET
-}                                                                          //0820: 
-                                                                           //0821: ;***********************************************************
-//***********************************************************              //0822: ; GENERATE MOVE ROUTINE
-// GENERATE MOVE ROUTINE
+}                                                                          //0820:
+
 //***********************************************************
+// GENERATE MOVE ROUTINE                                                   //0821: ;***********************************************************
+//***********************************************************              //0822: ; GENERATE MOVE ROUTINE
 // FUNCTION:  --  To generate the move set for all of the                  //0823: ;***********************************************************
 //                pieces of a given color.                                 //0824: ; FUNCTION:  --  To generate the move set for all of the
 //                                                                         //0825: ;                pieces of a given color.
@@ -1016,11 +1016,11 @@ GM10:   LD      (a,val(M1));            //  Fetch current board position   //085
         CP      (99);                   //  End of board array ?           //0861:         CP      99              ; End of board array ?
         JP      (NZ,GM5);               //  No - Jump                      //0862:         JP      NZ,GM5          ; No - Jump
         RETu;                           //  Return                         //0863:         RET                     ; Return
-}                                                                          //0864: 
-                                                                           //0865: ;***********************************************************
-//***********************************************************              //0866: ; CHECK ROUTINE
-// CHECK ROUTINE
+}                                                                          //0864:
+
 //***********************************************************
+// CHECK ROUTINE                                                           //0865: ;***********************************************************
+//***********************************************************              //0866: ; CHECK ROUTINE
 // FUNCTION:   --  To determine whether or not the                         //0867: ;***********************************************************
 //                 King is in check.                                       //0868: ; FUNCTION:   --  To determine whether or not the
 //                                                                         //0869: ;                 King is in check.
@@ -1051,11 +1051,11 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
         LD      (val(T1),a);            //  Save                           //0890:         LD      (T1),a          ; Save
         CALLu   (ATTACK);               //  Look for attackers on King     //0891:         CALL    ATTACK          ; Look for attackers on King
         RETu;                           //  Return                         //0892:         RET                     ; Return
-}                                                                          //0893: 
-                                                                           //0894: ;***********************************************************
-//***********************************************************              //0895: ; ATTACK ROUTINE
-// ATTACK ROUTINE
+}                                                                          //0893:
+
 //***********************************************************
+// ATTACK ROUTINE                                                          //0894: ;***********************************************************
+//***********************************************************              //0895: ; ATTACK ROUTINE
 // FUNCTION:   --  To find all attackers on a given square                 //0896: ;***********************************************************
 //                 by scanning outward from the square                     //0897: ; FUNCTION:   --  To find all attackers on a given square
 //                 until a piece is found that attacks                     //0898: ;                 by scanning outward from the square
@@ -1122,7 +1122,7 @@ AT14A:  BIT     (6,d);                  //  Same color found already ?     //095
 AT14B:  BIT     (5,d);                  //  Opposite color found already?  //0958: AT14B:  BIT     5,d             ; Opposite color found already?
         JR      (NZ,AT12);              //  Yes - jump                     //0959:         JR      NZ,AT12         ; Yes - jump
         SET     (6,d);                  //  Set same color found flag      //0960:         SET     6,d             ; Set same color found flag
-                                                                           //0961: 
+                                                                           //0961:
 //                                                                         //0962: ;
 // ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****               //0963: ; ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****
 AT14:   LD      (a,val(T2));            //  Fetch piece type encountered   //0964: AT14:   LD      a,(T2)          ; Fetch piece type encountered
@@ -1188,7 +1188,7 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
         JPu     (AT10);                 //  Jump                           //1024:         JP      AT10            ; Jump
  }
 
-//***********************************************************              //1025: 
+//***********************************************************              //1025:
 // ATTACK SAVE ROUTINE                                                     //1026: ;***********************************************************
 //***********************************************************              //1027: ; ATTACK SAVE ROUTINE
 // FUNCTION:   --  To save an attacking piece value in the                 //1028: ;***********************************************************
@@ -1205,8 +1205,8 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
 //                                                                         //1039: ; CALLS:      --  PNCK
 // ARGUMENTS:  --  None                                                    //1040: ;
 //***********************************************************              //1041: ; ARGUMENTS:  --  None
-static bool abnormal_exit;
-void ATKSAV() {                                                            //1042: ;***********************************************************
+static bool abnormal_exit;                                                 //1042: ;***********************************************************
+void ATKSAV() {
         callback_zargon_bridge(CB_ATKSAV);
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
@@ -1253,11 +1253,11 @@ AS20:   LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list  //107
 AS25:   POP     (de);                   //  Restore DE regs                //1078: AS25:   POP     de              ; Restore DE regs
         POP     (bc);                   //  Restore BC regs                //1079:         POP     bc              ; Restore BC regs
         RETu;                           //  Return                         //1080:         RET                     ; Return
- }                                                                         //1081: 
-                                                                           //1082: ;***********************************************************
-//***********************************************************              //1083: ; PIN CHECK ROUTINE
-// PIN CHECK ROUTINE
+ }                                                                         //1081:
+
 //***********************************************************
+// PIN CHECK ROUTINE                                                       //1082: ;***********************************************************
+//***********************************************************              //1083: ; PIN CHECK ROUTINE
 // FUNCTION:   --  Checks to see if the attacker is in the                 //1084: ;***********************************************************
 //                 pinned piece list. If so he is not a valid              //1085: ; FUNCTION:   --  Checks to see if the attacker is in the
 //                 attacker unless the direction in which he               //1086: ;                 pinned piece list. If so he is not a valid
@@ -1304,11 +1304,11 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
         // POP     (de);                //  Restore regs.                  //1125:         POP     de              ; Restore regs.
         // POP     (bc);                                                   //1126:         POP     bc
         abnormal_exit=true; RETu;       //  Return to ATTACK               //1127:         RET                     ; Return to ATTACK
-}                                                                          //1128: 
-                                                                           //1129: ;***********************************************************
-//***********************************************************              //1130: ; PIN FIND ROUTINE
-// PIN FIND ROUTINE
+}                                                                          //1128:
+
 //***********************************************************
+// PIN FIND ROUTINE                                                        //1129: ;***********************************************************
+//***********************************************************              //1130: ; PIN FIND ROUTINE
 // FUNCTION:   --  To produce a list of all pieces pinned                  //1131: ;***********************************************************
 //                 against the King or Queen, for both white               //1132: ; FUNCTION:   --  To produce a list of all pieces pinned
 //                 and black.                                              //1133: ;                 against the King or Queen, for both white
@@ -1415,11 +1415,11 @@ PF25:   INC16   (iy);                   //  Increment direction index      //123
 PF26:   INC16   (de);                   //  Incr King/Queen pos index      //1233: PF26:   INC     de              ; Incr King/Queen pos index
         JPu     (PF1);                  //  Jump                           //1234:         JP      PF1             ; Jump
 PF27:   JPu     (PF2);                  //  Jump                           //1235: PF27:   JP      PF2             ; Jump
-}                                                                          //1236: 
-                                                                           //1237: ;***********************************************************
-//***********************************************************              //1238: ; EXCHANGE ROUTINE
-// EXCHANGE ROUTINE
+}                                                                          //1236:
+
 //***********************************************************
+// EXCHANGE ROUTINE                                                        //1237: ;***********************************************************
+//***********************************************************              //1238: ; EXCHANGE ROUTINE
 // FUNCTION:   --  To determine the exchange value of a                    //1239: ;***********************************************************
 //                 piece on a given square by examining all                //1240: ; FUNCTION:   --  To determine the exchange value of a
 //                 attackers and defenders of that piece.                  //1241: ;                 piece on a given square by examining all
@@ -1478,11 +1478,11 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
         RET     (Z);                    //  Return if none                 //1293:         RET     Z               ; Return if none
         LD      (b,l);                  //  Prev attckr becomes defender   //1294:         LD      b,l             ; Prev attckr becomes defender
         JPu     (XC10);                 //  Jump                           //1295:         JP      XC10            ; Jump
-}                                                                          //1296: 
-                                                                           //1297: ;***********************************************************
-//***********************************************************              //1298: ; NEXT ATTACKER/DEFENDER ROUTINE
-// NEXT ATTACKER/DEFENDER ROUTINE
+}                                                                          //1296:
+
 //***********************************************************
+// NEXT ATTACKER/DEFENDER ROUTINE                                          //1297: ;***********************************************************
+//***********************************************************              //1298: ; NEXT ATTACKER/DEFENDER ROUTINE
 // FUNCTION:   --  To retrieve the next attacker or defender               //1299: ;***********************************************************
 //                 piece value from the attack list, and delete            //1300: ; FUNCTION:   --  To retrieve the next attacker or defender
 //                 that piece from the list.                               //1301: ;                 piece value from the attack list, and delete
@@ -1515,11 +1515,11 @@ back03: INC16   (hl);                   //  Increment list pointer         //132
         DEC16   (hl);                   //  Decrement list pointer         //1327:         DEC     hl              ; Decrement list pointer
 NX6:    EXX;                            //  Restore regs.                  //1328: NX6:    EXX                     ; Restore regs.
         RETu;                           //  Return                         //1329:         RET                     ; Return
-}                                                                          //1330: 
-                                                                           //1331: ;***********************************************************
-//***********************************************************              //1332: ; POINT EVALUATION ROUTINE
-// POINT EVALUATION ROUTINE
+}                                                                          //1330:
+
 //***********************************************************
+// POINT EVALUATION ROUTINE                                                //1331: ;***********************************************************
+//***********************************************************              //1332: ; POINT EVALUATION ROUTINE
 //FUNCTION:   --  To perform a static board evaluation and                 //1333: ;***********************************************************
 //                derive a score for a given board position                //1334: ;FUNCTION:   --  To perform a static board evaluation and
 //                                                                         //1335: ;                derive a score for a given board position
@@ -1532,7 +1532,7 @@ NX6:    EXX;                            //  Restore regs.                  //132
 //                                                                         //1342: ;                 LIMIT
 // ARGUMENTS:  --  None                                                    //1343: ;
 //***********************************************************              //1344: ; ARGUMENTS:  --  None
-void POINTS() {                                                            //1345: ;*********************************************************** 
+void POINTS() {                                                            //1345: ;***********************************************************
         callback_zargon_bridge(CB_POINTS);
         XOR     (a);                    //  Zero out variables             //1346: POINTS: XOR     a               ; Zero out variables
         LD      (val(MTRL),a);          //                                 //1347:         LD      (MTRL),a
@@ -1698,11 +1698,11 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //150
         LD      (ix,val16(MLPTRJ));     //  Load move list pointer         //1506:         LD      ix,(MLPTRJ)     ; Load move list pointer
         LD      (ptr(ix+MLVAL),a);      //  Save score in move list        //1507:         LD      (ix+MLVAL),a    ; Save score in move list
         RETu;                           //  Return                         //1508:         RET                     ; Return
-}                                                                          //1509: 
-                                                                           //1510: ;***********************************************************
-//***********************************************************              //1511: ; LIMIT ROUTINE
-// LIMIT ROUTINE
+}                                                                          //1509:
+
 //***********************************************************
+// LIMIT ROUTINE                                                           //1510: ;***********************************************************
+//***********************************************************              //1511: ; LIMIT ROUTINE
 // FUNCTION:   --  To limit the magnitude of a given value                 //1512: ;***********************************************************
 //                 to another given value.                                 //1513: ; FUNCTION:   --  To limit the magnitude of a given value
 //                                                                         //1514: ;                 to another given value.
@@ -1727,11 +1727,11 @@ LIM10:  CP      (b);                    //  Compare to limit               //153
         RET     (C);                    //  Return if outside limit        //1533:         RET     C               ; Return if outside limit
         LD      (a,b);                  //  Output value as is             //1534:         LD      a,b             ; Output value as is
         RETu;                           //  Return                         //1535:         RET                     ; Return
-}                                                                          //1536: 
-                                                                           //1537: ;***********************************************************
-//***********************************************************              //1538: ; MOVE ROUTINE
-// MOVE ROUTINE
+}                                                                          //1536:
+
 //***********************************************************
+// MOVE ROUTINE                                                            //1537: ;***********************************************************
+//***********************************************************              //1538: ; MOVE ROUTINE
 // FUNCTION:   --  To execute a move from the move list on the             //1539: ;***********************************************************
 //                 board array.                                            //1540: ; FUNCTION:   --  To execute a move from the move list on the
 //                                                                         //1541: ;                 board array.
@@ -1802,11 +1802,11 @@ MV40:   LD      (hl,val16(MLPTRJ));     //  Get move list pointer          //160
         LD      (de,8);                 //  Increment to next move         //1605:         LD      de,8            ; Increment to next move
         ADD16   (hl,de);                //                                 //1606:         ADD     hl,de
         JPu     (MV1);                  //  Jump (2nd part of dbl move)    //1607:         JP      MV1             ; Jump (2nd part of dbl move)
-}                                                                          //1608: 
-                                                                           //1609: ;***********************************************************
-//***********************************************************              //1610: ; UN-MOVE ROUTINE
-// UN-MOVE ROUTINE
+}                                                                          //1608:
+
 //***********************************************************
+// UN-MOVE ROUTINE                                                         //1609: ;***********************************************************
+//***********************************************************              //1610: ; UN-MOVE ROUTINE
 // FUNCTION:   --  To reverse the process of the move routine,             //1611: ;***********************************************************
 //                 thereby restoring the board array to its                //1612: ; FUNCTION:   --  To reverse the process of the move routine,
 //                 previous position.                                      //1613: ;                 thereby restoring the board array to its
@@ -1882,11 +1882,11 @@ UM40:   LD      (hl,val16(MLPTRJ));     //  Load move list pointer         //168
         LD      (de,8);                 //  Increment to next move         //1682:         LD      de,8            ; Increment to next move
         ADD16   (hl,de);                                                   //1683:         ADD     hl,de
         JPu     (UM1);                  //  Jump (2nd part of dbl move)    //1684:         JP      UM1             ; Jump (2nd part of dbl move)
-}                                                                          //1685: 
-                                                                           //1686: ;***********************************************************
-//***********************************************************              //1687: ; SORT ROUTINE
-// SORT ROUTINE
+}                                                                          //1685:
+
 //***********************************************************
+// SORT ROUTINE                                                            //1686: ;***********************************************************
+//***********************************************************              //1687: ; SORT ROUTINE
 // FUNCTION:   --  To sort the move list in order of                       //1688: ;***********************************************************
 //                 increasing move value scores.                           //1689: ; FUNCTION:   --  To sort the move list in order of
 //                                                                         //1690: ;                 increasing move value scores.
@@ -1932,11 +1932,11 @@ SR25:   LD      (ptr(hl),b);            //  Link new move into list        //172
         JPu     (SR5);                  //  Jump                           //1729:         JP      SR5             ; Jump
 SR30:   EX      (de,hl);                //  Swap pointers                  //1730: SR30:   EX      de,hl           ; Swap pointers
         JPu     (SR15);                 //  Jump                           //1731:         JP      SR15            ; Jump
-}                                                                          //1732: 
-                                                                           //1733: ;***********************************************************
-//***********************************************************              //1734: ; EVALUATION ROUTINE
-// EVALUATION ROUTINE
+}                                                                          //1732:
+
 //***********************************************************
+// EVALUATION ROUTINE                                                      //1733: ;***********************************************************
+//***********************************************************              //1734: ; EVALUATION ROUTINE
 // FUNCTION:   --  To evaluate a given move in the move list.              //1735: ;***********************************************************
 //                 It first makes the move on the board, then if           //1736: ; FUNCTION:   --  To evaluate a given move in the move list.
 //                 the move is legal, it evaluates it, and then            //1737: ;                 It first makes the move on the board, then if
@@ -1965,11 +1965,11 @@ EV5:    CALLu   (PINFND);               //  Compile pinned list            //175
         CALLu   (POINTS);               //  Assign points to move          //1759:         CALL    POINTS          ; Assign points to move
 EV10:   CALLu   (UNMOVE);               //  Restore board array            //1760: EV10:   CALL    UNMOVE          ; Restore board array
         RETu;                           //  Return                         //1761:         RET                     ; Return
-}                                                                          //1762: 
-                                                                           //1763: ;***********************************************************
-//***********************************************************              //1764: ; FIND MOVE ROUTINE
-// FIND MOVE ROUTINE
+}                                                                          //1762:
+
 //***********************************************************
+// FIND MOVE ROUTINE                                                       //1763: ;***********************************************************
+//***********************************************************              //1764: ; FIND MOVE ROUTINE
 // FUNCTION:   --  To determine the computer's best move by                //1765: ;***********************************************************
 //                 performing a depth first tree search using              //1766: ; FUNCTION:   --  To determine the computer's best move by
 //                 the techniques of alpha-beta pruning.                   //1767: ;                 performing a depth first tree search using
@@ -2143,11 +2143,11 @@ FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);                             //190
 FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree         //1931: FM40:   CALL    ASCEND          ; Ascend one ply in tree
         JPu     (FM15);                 //  Jump                           //1932:         JP      FM15            ; Jump
 tobook: BOOK(); // emulate Z80 call to BOOK() with exit from FNDMOV()
-}                                                                          //1933: 
-                                                                           //1934: ;***********************************************************
-//***********************************************************              //1935: ; ASCEND TREE ROUTINE
-// ASCEND TREE ROUTINE
+}                                                                          //1933:
+
 //***********************************************************
+// ASCEND TREE ROUTINE                                                     //1934: ;***********************************************************
+//***********************************************************              //1935: ; ASCEND TREE ROUTINE
 // FUNCTION:  --  To adjust all necessary parameters to                    //1936: ;***********************************************************
 //                ascend one ply in the tree.                              //1937: ; FUNCTION:  --  To adjust all necessary parameters to
 //                                                                         //1938: ;                ascend one ply in the tree.
@@ -2186,11 +2186,11 @@ rel019: LD      (hl,val16(SCRIX));      //  Load score table index         //195
         LD      (val16(MLPTRJ),de);     //  Save next move pointer         //1970:         LD      (MLPTRJ),de     ; Save next move pointer
         CALLu   (UNMOVE);               //  Restore board to previous ply  //1971:         CALL    UNMOVE          ; Restore board to previous ply
         RETu;                           //  Return                         //1972:         RET                     ; Return
-}                                                                          //1973: 
-                                                                           //1974: ;***********************************************************
-//***********************************************************              //1975: ; ONE MOVE BOOK OPENING
-// ONE MOVE BOOK OPENING
-// **********************************************************
+}                                                                          //1973:
+
+//***********************************************************
+// ONE MOVE BOOK OPENING                                                   //1974: ;***********************************************************
+// **********************************************************              //1975: ; ONE MOVE BOOK OPENING
 // FUNCTION:   --  To provide an opening book of a single                  //1976: ; **********************************************************
 //                 move.                                                   //1977: ; FUNCTION:   --  To provide an opening book of a single
 //                                                                         //1978: ;                 move.
@@ -2240,7 +2240,7 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)                         //202
         INC     (ptr(hl));              //                                 //2021:         INC     (hl)
         INC     (ptr(hl));              //                                 //2022:         INC     (hl)
         RETu;                           //  Return to CPTRMV               //2023:         RET                     ; Return to CPTRMV
-}                                                                          //2024: 
+}                                                                          //2024:
                                                                            //2025: ;*******************************************************
 //                                                                         //2026: ; GRAPHICS DATA BASE
 //  Omit some Z80 User Interface code, eg                                  //2027: ;*******************************************************
@@ -2251,7 +2251,7 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)                         //202
 //      DRIVER and INTERR                                                  //2032: ;               square. A White piece on a black square is
 //                                                                         //2033: ;               produced by complementing each block, and a
                                                                            //2034: ;               piece on its own color square is produced
-//***********************************************************              // (lines 2035-2316 omitted) 2317: 
+//***********************************************************              // (lines 2035-2316 omitted) 2317:
 // COMPUTER MOVE ROUTINE                                                   //2318: ;***********************************************************
 //***********************************************************              //2319: ; COMPUTER MOVE ROUTINE
 // FUNCTION:   --  To control the search for the computers move            //2320: ;***********************************************************
@@ -2326,14 +2326,14 @@ CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates          //238
         LD      (c,0);                  //  Set player mate flag           //2389:         LD      c,0             ; Set player mate flag
         CALLu   (FCDMAT);               //  Full checkmate ?               //2390:         CALL    FCDMAT          ; Full checkmate ?
         RETu;                           //  Return                         //2391:         RET                     ; Return
-}                                                                          //2392: 
+}                                                                          //2392:
                                                                            //2393: ;***********************************************************
 //                                                                         //2394: ; FORCED MATE HANDLING
 //  Omit some more Z80 user interface stuff, functions                     //2395: ;***********************************************************
 //  FCDMAT, TBPLCL, TBCPCL, TBPLMV and TBCPMV                              //2396: ; FUNCTION:   --  To examine situations where there exits
 //                                                                         //2397: ;                 a forced mate and determine whether or
                                                                            //2398: ;                 not the current move is checkmate. If it is,
-//***********************************************************              // (lines 2399-2518 omitted) 2519: 
+//***********************************************************              // (lines 2399-2518 omitted) 2519:
 // BOARD INDEX TO ASCII SQUARE NAME                                        //2520: ;***********************************************************
 //***********************************************************              //2521: ; BOARD INDEX TO ASCII SQUARE NAME
 // FUNCTION:   --  To translate a hexadecimal index in the                 //2522: ;***********************************************************
@@ -2359,14 +2359,14 @@ void BITASN() {                                                            //253
         ADD     (a,0x30);               //  Convert rank to Ascii (1-8)    //2542:         ADD     a,30H           ; Convert rank to Ascii (1-8)
         LD      (h,a);                  //  Save                           //2543:         LD      h,a             ; Save
         RETu;                           //  Return                         //2544:         RET                     ; Return
-}                                                                          //2545: 
+}                                                                          //2545:
                                                                            //2546: ;***********************************************************
 //                                                                         //2547: ; PLAYERS MOVE ANALYSIS
 //  Omit some more Z80 user interface stuff, function                      //2548: ;***********************************************************
 //  PLYRMV                                                                 //2549: ; FUNCTION:   --  To accept and validate the players move
 //                                                                         //2550: ;                 and produce it on the graphics board. Also
                                                                            //2551: ;                 allows player to resign the game by
-//***********************************************************              // (lines 2552-2597 omitted) 2598: 
+//***********************************************************              // (lines 2552-2597 omitted) 2598:
 // ASCII SQUARE NAME TO BOARD INDEX                                        //2599: ;***********************************************************
 //***********************************************************              //2600: ; ASCII SQUARE NAME TO BOARD INDEX
 // FUNCTION:   --  To convert an algebraic square name in                  //2601: ;***********************************************************
@@ -2405,11 +2405,11 @@ void ASNTBI() {                                                            //261
         RETu;                           //  Return                         //2634:         RET                     ; Return
 AT04:   LD      (b,a);                  //  Invalid flag                   //2635: AT04:   LD      b,a             ; Invalid flag
         RETu;                           //  Return                         //2636:         RET                     ; Return
-}                                                                          //2637: 
-                                                                           //2638: ;***********************************************************
-//***********************************************************              //2639: ; VALIDATE MOVE SUBROUTINE
-// VALIDATE MOVE SUBROUTINE
+}                                                                          //2637:
+
 //***********************************************************
+// VALIDATE MOVE SUBROUTINE                                                //2638: ;***********************************************************
+//***********************************************************              //2639: ; VALIDATE MOVE SUBROUTINE
 // FUNCTION:   --  To check a players move for validity.                   //2640: ;***********************************************************
 //                                                                         //2641: ; FUNCTION:   --  To check a players move for validity.
 // CALLED BY:  --  PLYRMV                                                  //2642: ;
@@ -2460,14 +2460,14 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move      //268
         POP     (hl);                   //  Restore saved register         //2687:         POP     hl              ; Restore saved register
         LD      (val16(MLPTRJ),hl);     //  Save move pointer              //2688:         LD      (MLPTRJ),hl     ; Save move pointer
         RETu;                           //  Return                         //2689:         RET                     ; Return
-}                                                                          //2690: 
+}                                                                          //2690:
                                                                            //2691: ;***********************************************************
 //                                                                         //2692: ; ACCEPT INPUT CHARACTER
 //  Omit some more Z80 user interface stuff, functions                     //2693: ;***********************************************************
 //  CHARTR, PGIFND, MATED, ANALYS                                          //2694: ; FUNCTION:   --  Accepts a single character input from the
 //                                                                         //2695: ;                 console keyboard and places it in the A
                                                                            //2696: ;                 register. The character is also echoed on
-//***********************************************************              // (lines 2697-2929 omitted) 2930: 
+//***********************************************************              // (lines 2697-2929 omitted) 2930:
 // UPDATE POSITIONS OF ROYALTY                                             //2931: ;***********************************************************
 //***********************************************************              //2932: ; UPDATE POSITIONS OF ROYALTY
 // FUNCTION:   --  To update the positions of the Kings                    //2933: ;***********************************************************
@@ -2508,14 +2508,14 @@ RY0C:   LD      (a,val(M1));            //  Current position               //296
         CP      (99);                   //  Done.?                         //2968:         CP      99              ; Done.?
         JR      (NZ,RY04);              //  No - jump                      //2969:         JR      NZ,RY04         ; No - jump
         RETu;                           //  Return                         //2970:         RET                     ; Return
-}                                                                          //2971: 
+}                                                                          //2971:
                                                                            //2972: ;***********************************************************
 //                                                                         //2973: ; SET UP EMPTY BOARD
 //  Omit some more Z80 user interface stuff, functions                     //2974: ;***********************************************************
 //  DSPBRD, BSETUP, INSPCE, CONVRT                                         //2975: ; FUNCTION:   --  Display graphics board and pieces.
 //                                                                         //2976: ;
                                                                            //2977: ; CALLED BY:  --  DRIVER
-//***********************************************************              // (lines 2978-3187 omitted) 3188: 
+//***********************************************************              // (lines 2978-3187 omitted) 3188:
 // POSITIVE INTEGER DIVISION                                               //3189: ;***********************************************************
 //   inputs hi=A lo=D, divide by E                                         //3190: ; POSITIVE INTEGER DIVISION
 //   output D, remainder in A                                              //3191: ;   inputs hi=A lo=D, divide by E
@@ -2533,11 +2533,11 @@ rel027: ADD     (a,e);                  //                                 //320
 rel024: DJNZ    (DD04);                 //                                 //3203: rel024: DJNZ    DD04
         POP     (bc);                   //                                 //3204:         POP     bc
         RETu;                           //                                 //3205:         RET
-}                                                                          //3206: 
-                                                                           //3207: ;***********************************************************
-//***********************************************************              //3208: ; POSITIVE INTEGER MULTIPLICATION
-// POSITIVE INTEGER MULTIPLICATION
-//   inputs D, E
+}                                                                          //3206:
+
+//***********************************************************
+// POSITIVE INTEGER MULTIPLICATION                                         //3207: ;***********************************************************
+//   inputs D, E                                                           //3208: ; POSITIVE INTEGER MULTIPLICATION
 //   output hi=A lo=D                                                      //3209: ;   inputs D, E
 //***********************************************************              //3210: ;   output hi=A lo=D
 void MLTPLY() {                                                            //3211: ;***********************************************************
@@ -2552,14 +2552,14 @@ rel025: SRA     (a);                    //                                 //321
         DJNZ    (ML04);                 //                                 //3220:         DJNZ    ML04
         POP     (bc);                   //                                 //3221:         POP     bc
         RETu;                           //                                 //3222:         RET
-}                                                                          //3223: 
+}                                                                          //3223:
                                                                            //3224: ;***********************************************************
 //                                                                         //3225: ; SQUARE BLINKER
 //  Omit some more Z80 user interface stuff, function                      //3226: ;***********************************************************
 //  BLNKER                                                                 //3227: ;
 //                                                                         //3228: ; FUNCTION:   --  To blink the graphics board square to signal
                                                                            //3229: ;                 a piece's intention to move, or to high-
-//***********************************************************              // (lines 3230-3278 omitted) 3279: 
+//***********************************************************              // (lines 3230-3278 omitted) 3279:
 // EXECUTE MOVE SUBROUTINE                                                 //3280: ;***********************************************************
 //***********************************************************              //3281: ; EXECUTE MOVE SUBROUTINE
 // FUNCTION:   --  This routine is the control routine for                 //3282: ;***********************************************************
@@ -2612,10 +2612,7 @@ EX10:   CALLu   (MAKEMV);               //  Make 2nd move on board         //332
 EX14:   POPf    (af);                   //  Restore registers              //3329: EX14:   POP     af              ; Restore registers
         POP     (ix);                   //                                 //3330:         POP     ix
         RETu;                           //  Return                         //3331:         RET                     ; Return
-}                                                                          //3332: 
-                                                                           //3333: ;***********************************************************
-//                                                                         //3334: ; MAKE MOVE SUBROUTINE
-
+}                                                                          //3332:
 
 unsigned char *sargon_base_address;
 
