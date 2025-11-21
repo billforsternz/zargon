@@ -8,8 +8,8 @@
 #include "z80_cpu.h"
 
 // Include callback tracing code
-#define BRIDGE_CALLBACK_TRACE
-#define BRIDGE_CALLBACK_TRACE_DETAILED
+// #define BRIDGE_CALLBACK_TRACE
+// #define BRIDGE_CALLBACK_TRACE_DETAILED
 #ifdef BRIDGE_CALLBACK_TRACE_DETAILED
 #define callback_zargon_bridge(cb) callback_zargon(cb)
 #else

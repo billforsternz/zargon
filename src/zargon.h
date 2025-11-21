@@ -4,6 +4,44 @@
 #ifndef ZARGON_H_INCLUDED
 #define ZARGON_H_INCLUDED
 #include <stdio.h>
+#include "sargon-asm-interface.h"   // for zargon_data_defs_check_and_regen
+
+//
+// Sargon function declarations
+//
+void INITBD();
+void PATH();
+void MPIECE();
+void ENPSNT();
+void ADJPTR();
+void CASTLE();
+void ADMOVE();
+void GENMOV();
+void INCHK();
+void INCHK1();
+void ATTACK();
+void ATKSAV();
+void PNCK();
+void PINFND();
+void XCHNG();
+void NEXTAD();
+void POINTS();
+void LIMIT();
+void MOVE();
+void UNMOVE();
+void SORTM();
+void EVAL();
+void FNDMOV();
+void ASCEND();
+void BOOK();
+void CPTRMV();
+void BITASN();
+void ASNTBI();
+void VALMOV();
+void ROYALT();
+void DIVIDE();
+void MLTPLY();
+void EXECMV();
 
 // Initially at least we were emulating 64K of Z80 memory
 //  at some point we will probably rename this to simply
@@ -472,101 +510,121 @@ struct ML {                                                                //042
 uint8_t MLEND;                                                             //0423: MLEND   EQU     MLIST+2040
 };   //  end struct emulated_memory
 
-//
-// Sargon function declarations
-//
-void INITBD();
-void PATH();
-void MPIECE();
-void ENPSNT();
-void ADJPTR();
-void CASTLE();
-void ADMOVE();
-void GENMOV();
-void INCHK();
-void INCHK1();
-void ATTACK();
-void ATKSAV();
-void PNCK();
-void PINFND();
-void XCHNG();
-void NEXTAD();
-void POINTS();
-void LIMIT();
-void MOVE();
-void UNMOVE();
-void SORTM();
-void EVAL();
-void FNDMOV();
-void ASCEND();
-void BOOK();
-void CPTRMV();
-void BITASN();
-void ASNTBI();
-void VALMOV();
-void ROYALT();
-void DIVIDE();
-void MLTPLY();
-void EXECMV();
-
-// Later Instantiate this class to create definitions to paste into sargon-asm-interface.h
-#if 0
-#define addr(var)       offsetof(emulated_memory,var)
-class zargon_data_defs_regen
+// Instantiate this class to check sargon-asm-interface.h definitions
+//  and regenerate them if required
+class zargon_data_defs_check_and_regen
 {
-    zargon_data_defs_regen()
+    public:
+    zargon_data_defs_check_and_regen()
     {
-        printf( "const int BOARDA = 0x%04zx; // (0x0134 in sargon_x86.asm)\n", addr(BOARDA) );
-        printf( "const int ATKLST = 0x%04zx; // (0x01ac in sargon_x86.asm)\n", addr(ATKLST) );
-        printf( "const int PLISTA = 0x%04zx; // (0x01ba in sargon_x86.asm)\n", addr(PLISTA) );
-        printf( "const int POSK   = 0x%04zx; // (0x01ce in sargon_x86.asm)\n", addr(POSK) );
-        printf( "const int POSQ   = 0x%04zx; // (0x01d0 in sargon_x86.asm)\n", addr(POSQ) );
-        printf( "const int SCORE  = 0x%04zx; // (0x0200 in sargon_x86.asm)\n", addr(SCORE) );
-        printf( "const int PLYIX  = 0x%04zx; // (0x022a in sargon_x86.asm)\n", addr(PLYIX) );
-        printf( "const int M1     = 0x%04zx; // (0x0300 in sargon_x86.asm)\n", addr(M1) );
-        printf( "const int M2     = 0x%04zx; // (0x0302 in sargon_x86.asm)\n", addr(M2) );
-        printf( "const int M3     = 0x%04zx; // (0x0304 in sargon_x86.asm)\n", addr(M3) );
-        printf( "const int M4     = 0x%04zx; // (0x0306 in sargon_x86.asm)\n", addr(M4) );
-        printf( "const int T1     = 0x%04zx; // (0x0308 in sargon_x86.asm)\n", addr(T1) );
-        printf( "const int T2     = 0x%04zx; // (0x030a in sargon_x86.asm)\n", addr(T2) );
-        printf( "const int T3     = 0x%04zx; // (0x030c in sargon_x86.asm)\n", addr(T3) );
-        printf( "const int INDX1  = 0x%04zx; // (0x030e in sargon_x86.asm)\n", addr(INDX1) );
-        printf( "const int INDX2  = 0x%04zx; // (0x0310 in sargon_x86.asm)\n", addr(INDX2) );
-        printf( "const int NPINS  = 0x%04zx; // (0x0312 in sargon_x86.asm)\n", addr(NPINS) );
-        printf( "const int MLPTRI = 0x%04zx; // (0x0314 in sargon_x86.asm)\n", addr(MLPTRI) );
-        printf( "const int MLPTRJ = 0x%04zx; // (0x0316 in sargon_x86.asm)\n", addr(MLPTRJ) );
-        printf( "const int SCRIX  = 0x%04zx; // (0x0318 in sargon_x86.asm)\n", addr(SCRIX) );
-        printf( "const int BESTM  = 0x%04zx; // (0x031a in sargon_x86.asm)\n", addr(BESTM) );
-        printf( "const int MLLST  = 0x%04zx; // (0x031c in sargon_x86.asm)\n", addr(MLLST) );
-        printf( "const int MLNXT  = 0x%04zx; // (0x031e in sargon_x86.asm)\n", addr(MLNXT) );
-        printf( "const int KOLOR  = 0x%04zx; // (0x0320 in sargon_x86.asm)\n", addr(KOLOR) );
-        printf( "const int COLOR  = 0x%04zx; // (0x0321 in sargon_x86.asm)\n", addr(COLOR) );
-        printf( "const int P1     = 0x%04zx; // (0x0322 in sargon_x86.asm)\n", addr(P1) );
-        printf( "const int P2     = 0x%04zx; // (0x0323 in sargon_x86.asm)\n", addr(P2) );
-        printf( "const int P3     = 0x%04zx; // (0x0324 in sargon_x86.asm)\n", addr(P3) );
-        printf( "const int PMATE  = 0x%04zx; // (0x0325 in sargon_x86.asm)\n", addr(PMATE) );
-        printf( "const int MOVENO = 0x%04zx; // (0x0326 in sargon_x86.asm)\n", addr(MOVENO) );
-        printf( "const int PLYMAX = 0x%04zx; // (0x0327 in sargon_x86.asm)\n", addr(PLYMAX) );
-        printf( "const int NPLY   = 0x%04zx; // (0x0328 in sargon_x86.asm)\n", addr(NPLY) );
-        printf( "const int CKFLG  = 0x%04zx; // (0x0329 in sargon_x86.asm)\n", addr(CKFLG) );
-        printf( "const int MATEF  = 0x%04zx; // (0x032a in sargon_x86.asm)\n", addr(MATEF) );
-        printf( "const int VALM   = 0x%04zx; // (0x032b in sargon_x86.asm)\n", addr(VALM) );
-        printf( "const int BRDC   = 0x%04zx; // (0x032c in sargon_x86.asm)\n", addr(BRDC) );
-        printf( "const int PTSL   = 0x%04zx; // (0x032d in sargon_x86.asm)\n", addr(PTSL) );
-        printf( "const int PTSW1  = 0x%04zx; // (0x032e in sargon_x86.asm)\n", addr(PTSW1) );
-        printf( "const int PTSW2  = 0x%04zx; // (0x032f in sargon_x86.asm)\n", addr(PTSW2) );
-        printf( "const int MTRL   = 0x%04zx; // (0x0330 in sargon_x86.asm)\n", addr(MTRL) );
-        printf( "const int BC0    = 0x%04zx; // (0x0331 in sargon_x86.asm)\n", addr(BC0) );
-        printf( "const int MV0    = 0x%04zx; // (0x0332 in sargon_x86.asm)\n", addr(MV0) );
-        printf( "const int PTSCK  = 0x%04zx; // (0x0333 in sargon_x86.asm)\n", addr(PTSCK) );
-        printf( "const int BMOVES = 0x%04zx; // (0x0334 in sargon_x86.asm)\n", addr(BMOVES) );
-        printf( "const int LINECT = 0x%04zx; // (0x0340 in sargon_x86.asm)\n", addr(LINECT) );
-        printf( "const int MVEMSG = 0x%04zx; // (0x0341 in sargon_x86.asm)\n", addr(MVEMSG) );
-        printf( "const int MLIST  = 0x%04zx; // (0x0400 in sargon_x86.asm)\n", addr(MLIST) );
-        printf( "const int MLEND  = 0x%04zx; // (0xee60 in sargon_x86.asm)\n", addr(MLEND) );
+        bool match = 
+               (BOARDA == offsetof(emulated_memory,BOARDA) )
+            && (ATKLST == offsetof(emulated_memory,ATKLST) )
+            && (PLISTA == offsetof(emulated_memory,PLISTA) )
+            && (POSK   == offsetof(emulated_memory,POSK) )
+            && (POSQ   == offsetof(emulated_memory,POSQ) )
+            && (SCORE  == offsetof(emulated_memory,SCORE) )
+            && (PLYIX  == offsetof(emulated_memory,PLYIX) )
+            && (M1     == offsetof(emulated_memory,M1) )
+            && (M2     == offsetof(emulated_memory,M2) )
+            && (M3     == offsetof(emulated_memory,M3) )
+            && (M4     == offsetof(emulated_memory,M4) )
+            && (T1     == offsetof(emulated_memory,T1) )
+            && (T2     == offsetof(emulated_memory,T2) )
+            && (T3     == offsetof(emulated_memory,T3) )
+            && (INDX1  == offsetof(emulated_memory,INDX1) )
+            && (INDX2  == offsetof(emulated_memory,INDX2) )
+            && (NPINS  == offsetof(emulated_memory,NPINS) )
+            && (MLPTRI == offsetof(emulated_memory,MLPTRI) )
+            && (MLPTRJ == offsetof(emulated_memory,MLPTRJ) )
+            && (SCRIX  == offsetof(emulated_memory,SCRIX) )
+            && (BESTM  == offsetof(emulated_memory,BESTM) )
+            && (MLLST  == offsetof(emulated_memory,MLLST) )
+            && (MLNXT  == offsetof(emulated_memory,MLNXT) )
+            && (KOLOR  == offsetof(emulated_memory,KOLOR) )
+            && (COLOR  == offsetof(emulated_memory,COLOR) )
+            && (P1     == offsetof(emulated_memory,P1) )
+            && (P2     == offsetof(emulated_memory,P2) )
+            && (P3     == offsetof(emulated_memory,P3) )
+            && (PMATE  == offsetof(emulated_memory,PMATE) )
+            && (MOVENO == offsetof(emulated_memory,MOVENO) )
+            && (PLYMAX == offsetof(emulated_memory,PLYMAX) )
+            && (NPLY   == offsetof(emulated_memory,NPLY) )
+            && (CKFLG  == offsetof(emulated_memory,CKFLG) )
+            && (MATEF  == offsetof(emulated_memory,MATEF) )
+            && (VALM   == offsetof(emulated_memory,VALM) )
+            && (BRDC   == offsetof(emulated_memory,BRDC) )
+            && (PTSL   == offsetof(emulated_memory,PTSL) )
+            && (PTSW1  == offsetof(emulated_memory,PTSW1) )
+            && (PTSW2  == offsetof(emulated_memory,PTSW2) )
+            && (MTRL   == offsetof(emulated_memory,MTRL) )
+            && (BC0    == offsetof(emulated_memory,BC0) )
+            && (MV0    == offsetof(emulated_memory,MV0) )
+            && (PTSCK  == offsetof(emulated_memory,PTSCK) )
+            && (BMOVES == offsetof(emulated_memory,BMOVES) )
+            && (LINECT == offsetof(emulated_memory,LINECT) )
+            && (MVEMSG == offsetof(emulated_memory,MVEMSG) )
+            && (MLIST  == offsetof(emulated_memory,MLIST) )
+            && (MLEND  == offsetof(emulated_memory,MLEND) );
+        if( !match )
+        {
+            printf( "*\n" );
+            printf( "* The data offsets in sargon-asm-interface.h do not match the\n" );
+            printf( "* emulated_memory data structure defined in zargon.h. Please copy\n" );
+            printf( "* and paste these updated definitions into sargon-asm-interface.h\n" );
+            printf( "* and rebuild\n" );
+            printf( "*\n" );
+            printf( "const int BOARDA = 0x%04zx; // (0x0134 in sargon_x86.asm)\n", offsetof(emulated_memory,BOARDA) );
+            printf( "const int ATKLST = 0x%04zx; // (0x01ac in sargon_x86.asm)\n", offsetof(emulated_memory,ATKLST) );
+            printf( "const int PLISTA = 0x%04zx; // (0x01ba in sargon_x86.asm)\n", offsetof(emulated_memory,PLISTA) );
+            printf( "const int POSK   = 0x%04zx; // (0x01ce in sargon_x86.asm)\n", offsetof(emulated_memory,POSK) );
+            printf( "const int POSQ   = 0x%04zx; // (0x01d0 in sargon_x86.asm)\n", offsetof(emulated_memory,POSQ) );
+            printf( "const int SCORE  = 0x%04zx; // (0x0200 in sargon_x86.asm)\n", offsetof(emulated_memory,SCORE) );
+            printf( "const int PLYIX  = 0x%04zx; // (0x022a in sargon_x86.asm)\n", offsetof(emulated_memory,PLYIX) );
+            printf( "const int M1     = 0x%04zx; // (0x0300 in sargon_x86.asm)\n", offsetof(emulated_memory,M1) );
+            printf( "const int M2     = 0x%04zx; // (0x0302 in sargon_x86.asm)\n", offsetof(emulated_memory,M2) );
+            printf( "const int M3     = 0x%04zx; // (0x0304 in sargon_x86.asm)\n", offsetof(emulated_memory,M3) );
+            printf( "const int M4     = 0x%04zx; // (0x0306 in sargon_x86.asm)\n", offsetof(emulated_memory,M4) );
+            printf( "const int T1     = 0x%04zx; // (0x0308 in sargon_x86.asm)\n", offsetof(emulated_memory,T1) );
+            printf( "const int T2     = 0x%04zx; // (0x030a in sargon_x86.asm)\n", offsetof(emulated_memory,T2) );
+            printf( "const int T3     = 0x%04zx; // (0x030c in sargon_x86.asm)\n", offsetof(emulated_memory,T3) );
+            printf( "const int INDX1  = 0x%04zx; // (0x030e in sargon_x86.asm)\n", offsetof(emulated_memory,INDX1) );
+            printf( "const int INDX2  = 0x%04zx; // (0x0310 in sargon_x86.asm)\n", offsetof(emulated_memory,INDX2) );
+            printf( "const int NPINS  = 0x%04zx; // (0x0312 in sargon_x86.asm)\n", offsetof(emulated_memory,NPINS) );
+            printf( "const int MLPTRI = 0x%04zx; // (0x0314 in sargon_x86.asm)\n", offsetof(emulated_memory,MLPTRI) );
+            printf( "const int MLPTRJ = 0x%04zx; // (0x0316 in sargon_x86.asm)\n", offsetof(emulated_memory,MLPTRJ) );
+            printf( "const int SCRIX  = 0x%04zx; // (0x0318 in sargon_x86.asm)\n", offsetof(emulated_memory,SCRIX) );
+            printf( "const int BESTM  = 0x%04zx; // (0x031a in sargon_x86.asm)\n", offsetof(emulated_memory,BESTM) );
+            printf( "const int MLLST  = 0x%04zx; // (0x031c in sargon_x86.asm)\n", offsetof(emulated_memory,MLLST) );
+            printf( "const int MLNXT  = 0x%04zx; // (0x031e in sargon_x86.asm)\n", offsetof(emulated_memory,MLNXT) );
+            printf( "const int KOLOR  = 0x%04zx; // (0x0320 in sargon_x86.asm)\n", offsetof(emulated_memory,KOLOR) );
+            printf( "const int COLOR  = 0x%04zx; // (0x0321 in sargon_x86.asm)\n", offsetof(emulated_memory,COLOR) );
+            printf( "const int P1     = 0x%04zx; // (0x0322 in sargon_x86.asm)\n", offsetof(emulated_memory,P1) );
+            printf( "const int P2     = 0x%04zx; // (0x0323 in sargon_x86.asm)\n", offsetof(emulated_memory,P2) );
+            printf( "const int P3     = 0x%04zx; // (0x0324 in sargon_x86.asm)\n", offsetof(emulated_memory,P3) );
+            printf( "const int PMATE  = 0x%04zx; // (0x0325 in sargon_x86.asm)\n", offsetof(emulated_memory,PMATE) );
+            printf( "const int MOVENO = 0x%04zx; // (0x0326 in sargon_x86.asm)\n", offsetof(emulated_memory,MOVENO) );
+            printf( "const int PLYMAX = 0x%04zx; // (0x0327 in sargon_x86.asm)\n", offsetof(emulated_memory,PLYMAX) );
+            printf( "const int NPLY   = 0x%04zx; // (0x0328 in sargon_x86.asm)\n", offsetof(emulated_memory,NPLY) );
+            printf( "const int CKFLG  = 0x%04zx; // (0x0329 in sargon_x86.asm)\n", offsetof(emulated_memory,CKFLG) );
+            printf( "const int MATEF  = 0x%04zx; // (0x032a in sargon_x86.asm)\n", offsetof(emulated_memory,MATEF) );
+            printf( "const int VALM   = 0x%04zx; // (0x032b in sargon_x86.asm)\n", offsetof(emulated_memory,VALM) );
+            printf( "const int BRDC   = 0x%04zx; // (0x032c in sargon_x86.asm)\n", offsetof(emulated_memory,BRDC) );
+            printf( "const int PTSL   = 0x%04zx; // (0x032d in sargon_x86.asm)\n", offsetof(emulated_memory,PTSL) );
+            printf( "const int PTSW1  = 0x%04zx; // (0x032e in sargon_x86.asm)\n", offsetof(emulated_memory,PTSW1) );
+            printf( "const int PTSW2  = 0x%04zx; // (0x032f in sargon_x86.asm)\n", offsetof(emulated_memory,PTSW2) );
+            printf( "const int MTRL   = 0x%04zx; // (0x0330 in sargon_x86.asm)\n", offsetof(emulated_memory,MTRL) );
+            printf( "const int BC0    = 0x%04zx; // (0x0331 in sargon_x86.asm)\n", offsetof(emulated_memory,BC0) );
+            printf( "const int MV0    = 0x%04zx; // (0x0332 in sargon_x86.asm)\n", offsetof(emulated_memory,MV0) );
+            printf( "const int PTSCK  = 0x%04zx; // (0x0333 in sargon_x86.asm)\n", offsetof(emulated_memory,PTSCK) );
+            printf( "const int BMOVES = 0x%04zx; // (0x0334 in sargon_x86.asm)\n", offsetof(emulated_memory,BMOVES) );
+            printf( "const int LINECT = 0x%04zx; // (0x0340 in sargon_x86.asm)\n", offsetof(emulated_memory,LINECT) );
+            printf( "const int MVEMSG = 0x%04zx; // (0x0341 in sargon_x86.asm)\n", offsetof(emulated_memory,MVEMSG) );
+            printf( "const int MLIST  = 0x%04zx; // (0x0400 in sargon_x86.asm)\n", offsetof(emulated_memory,MLIST) );
+            printf( "const int MLEND  = 0x%04zx; // (0xee60 in sargon_x86.asm)\n", offsetof(emulated_memory,MLEND) );
+            exit(0);
+        }
     }
  };
-
-#endif
 
  #endif // ZARGON_H_INCLUDED
