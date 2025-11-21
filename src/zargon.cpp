@@ -19,6 +19,12 @@
 #include "z80_opcodes.h"  // include last, uses aggressive macros
                           //  that might upset other .h files
 
+// Emulate Z80 CPU and opcodes
+z80_cpu     gbl_z80_cpu;
+
+// Up to 64K of emulated memory
+emulated_memory mem;
+
 //***********************************************************              //0012: ;***********************************************************
 // EQUATES                                                                 //0013: ; EQUATES
 //***********************************************************              //0014: ;***********************************************************
@@ -32,15 +38,19 @@
 #define WHITE   0                                                          //0022: WHITE   EQU     0
 #define BLACK   0x80                                                       //0023: BLACK   EQU     80H
 #define BPAWN   (BLACK+PAWN)                                               //0024: BPAWN   EQU     BLACK+PAWN
-                                                                           //0025:
-//                                                                         //0026: ;***********************************************************
-// 1) TABLES                                                               //0027: ; TABLES SECTION
-//                                                                         //0028: ;***********************************************************
-//***********************************************************              //0029: START:
-// TABLES SECTION                                                          //0030:         ORG     START+80H
-//***********************************************************
-//
-//There are multiple tables used for fast table look ups
+
+//                                                                         
+// 1) TABLES                                                               
+//                                                                         
+
+// Data section now actually defined in zargon.h, for now at least
+//  we reproduce it here for comparison to original Sargon Z80 code
+#ifndef ZARGON_H_INCLUDED
+//***********************************************************              //0026: ;***********************************************************
+// TABLES SECTION                                                          //0027: ; TABLES SECTION
+//***********************************************************              //0028: ;***********************************************************
+//                                                                         //0029: START:
+//There are multiple tables used for fast table look ups                   //0030:         ORG     START+80H
 //that are declared relative to TBASE. In each case there
 //is a table (say DIRECT) and one or more variables that
 //index into the table (say INDX2). The table is declared
@@ -491,25 +501,31 @@ struct ML {                                                                //042
     uint8_t     MLVAL_;
 }  MLIST[10000];
 uint8_t MLEND;                                                             //0423: MLEND   EQU     MLIST+2040
-};                                                                         //0424: MLPTR   EQU     0
-                                                                           //0425: MLFRP   EQU     2
-#define MLPTR 0                                                            //0426: MLTOP   EQU     3
-#define MLFRP 2                                                            //0427: MLFLG   EQU     4
-#define MLTOP 3                                                            //0428: MLVAL   EQU     5
-#define MLFLG 4                                                            //0429:
-#define MLVAL 5                                                            //0430: ;***********************************************************
+};
+#endif // ZARGON_H_INCLUDED
+
+// Macros not actually defined in zargon.h to avoid namespace pollution
+#define MLPTR 0                                                            //0424: MLPTR   EQU     0
+#define MLFRP 2                                                            //0425: MLFRP   EQU     2
+#define MLTOP 3                                                            //0426: MLTOP   EQU     3
+#define MLFLG 4                                                            //0427: MLFLG   EQU     4
+#define MLVAL 5                                                            //0428: MLVAL   EQU     5
+#define DIRECT (addr(direct)-TBASE)   
+#define DPOINT (addr(dpoint)-TBASE)   
+#define DCOUNT (addr(dcount)-TBASE)   
+#define PVALUE (addr(pvalue)-TBASE-1) 
+#define PIECES  (addr(pieces)-TBASE)  
+#define BOARD (addr(BOARDA)-TBASE)    
+#define WACT addr(ATKLST)             
+#define BACT (addr(ATKLST)+7)         
+#define PLIST (addr(PLISTA)-TBASE-1)  
+#define PLISTD (PLIST+10)             
+
+//***********************************************************              //0430: ;***********************************************************
                                                                            //0431:
-// Up to 64K of emulated memory                                            //0432: ;**********************************************************
-emulated_memory mem;                                                       //0433: ; PROGRAM CODE SECTION
-                                                                           //0434: ;**********************************************************
-// Emulate Z80 CPU and opcodes
-z80_cpu     gbl_z80_cpu;
-
-//***********************************************************
-
-//**********************************************************
-// PROGRAM CODE SECTION
-//**********************************************************
+//**********************************************************               //0432: ;**********************************************************
+// PROGRAM CODE SECTION                                                    //0433: ; PROGRAM CODE SECTION
+//**********************************************************               //0434: ;**********************************************************
 
 //
 // Miscellaneous stubs
@@ -519,43 +535,6 @@ void TBCPMV()  {}
 void MAKEMV()  {}
 void PRTBLK( const char *name, int len ) {}
 void CARRET()  {}
-
-//
-// Forward references
-//
-void INITBD();
-void PATH();
-void MPIECE();
-void ENPSNT();
-void ADJPTR();
-void CASTLE();
-void ADMOVE();
-void GENMOV();
-void INCHK();
-void INCHK1();
-void ATTACK();
-void ATKSAV();
-void PNCK();
-void PINFND();
-void XCHNG();
-void NEXTAD();
-void POINTS();
-void LIMIT();
-void MOVE();
-void UNMOVE();
-void SORTM();
-void EVAL();
-void FNDMOV();
-void ASCEND();
-void BOOK();
-void CPTRMV();
-void BITASN();
-void ASNTBI();
-void VALMOV();
-void ROYALT();
-void DIVIDE();
-void MLTPLY();
-void EXECMV();
 
 //**********************************************************               //0435:
 // BOARD SETUP ROUTINE                                                     //0436: ;**********************************************************
