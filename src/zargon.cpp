@@ -503,9 +503,7 @@ uint8_t MLEND;                                                             //042
 emulated_memory mem;                                                       //0433: ; PROGRAM CODE SECTION
                                                                            //0434: ;**********************************************************
 // Emulate Z80 CPU and opcodes
-Z80_OPCODES;
 z80_cpu     gbl_z80_cpu;
-static bool Z,C,M,PO;
 
 //***********************************************************
 
@@ -696,8 +694,8 @@ MP10:   CALLu   (PATH);                 //  Calculate next position        //055
         Z80_EXAF;                       //  Save result                    //0559:         EX      af,af'          ; Save result
         LD      (a,val(T1));            //  Get piece moved                //0560:         LD      a,(T1)          ; Get piece moved
         CP      (PAWN+1);               //  Is it a Pawn ?                 //0561:         CP      PAWN+1          ; Is it a Pawn ?
-        JR      (C,MP20);               //  Yes - Jump                     //0562:         JR      C,MP20          ; Yes - Jump
-        CALLu    (ADMOVE);              //  Add move to list               //0563:         CALL    ADMOVE          ; Add move to list
+        JR      (CY,MP20);              //  Yes - Jump                     //0562:         JR      C,MP20          ; Yes - Jump
+        CALLu   (ADMOVE);               //  Add move to list               //0563:         CALL    ADMOVE          ; Add move to list
         Z80_EXAF;                       //  Empty square ?                 //0564:         EX      af,af'          ; Empty square ?
         JR      (NZ,MP15);              //  No - Jump                      //0565:         JR      NZ,MP15         ; No - Jump
         LD      (a,val(T1));            //  Piece type                     //0566:         LD      a,(T1)          ; Piece type
@@ -714,7 +712,7 @@ MP15:   INC16   (iy);                   //  Increment direction index      //057
 // ***** PAWN LOGIC *****                                                  //0577: ; ***** PAWN LOGIC *****
 MP20:   LD      (a,b);                  //  Counter for direction          //0578: MP20:   LD      a,b             ; Counter for direction
         CP      (3);                    //  On diagonal moves ?            //0579:         CP      3               ; On diagonal moves ?
-        JR      (C,MP35);               //  Yes - Jump                     //0580:         JR      C,MP35          ; Yes - Jump
+        JR      (CY,MP35);              //  Yes - Jump                     //0580:         JR      C,MP35          ; Yes - Jump
         JR      (Z,MP30);               //  -or-jump if on 2 square move   //0581:         JR      Z,MP30          ; -or-jump if on 2 square move
         Z80_EXAF;                       //  Is forward square empty?       //0582:         EX      af,af'          ; Is forward square empty?
         JR      (NZ,MP15);              //  No - jump                      //0583:         JR      NZ,MP15         ; No - jump
@@ -773,7 +771,7 @@ void ENPSNT() {                                                            //062
         JR      (Z,rel002);             //  Yes - skip                     //0632:         JR      Z,rel002        ; Yes - skip
         ADD     (a,10);                 //  Add 10 for black               //0633:         ADD     a,10            ; Add 10 for black
 rel002: CP      (61);                   //  On en passant capture rank ?   //0634: rel002: CP      61              ; On en passant capture rank ?
-        RET     (C);                    //  No - return                    //0635:         RET     C               ; No - return
+        RET     (CY);                   //  No - return                    //0635:         RET     C               ; No - return
         CP      (69);                   //  On en passant capture rank ?   //0636:         CP      69              ; On en passant capture rank ?
         RET     (NC);                   //  No - return                    //0637:         RET     NC              ; No - return
         LD      (ix,v16(MLPTRJ));       //  Get pointer to previous move   //0638:         LD      ix,(MLPTRJ)     ; Get pointer to previous move
@@ -935,7 +933,7 @@ void ADMOVE() {                                                            //078
         LD      (hl,addr(MLEND));       //  Address of list end            //0783:         LD      hl,MLEND        ; Address of list end
         AND     (a);                    //  Clear carry flag               //0784:         AND     a               ; Clear carry flag
         SBC16   (hl,de);                //  Calculate difference           //0785:         SBC     hl,de           ; Calculate difference
-        JR      (C,AM10);               //  Jump if out of space           //0786:         JR      C,AM10          ; Jump if out of space
+        JR      (CY,AM10);              //  Jump if out of space           //0786:         JR      C,AM10          ; Jump if out of space
         LD      (hl,v16(MLLST));        //  Addr of prev. list area        //0787:         LD      hl,(MLLST)      ; Addr of prev. list area
         LD      (v16(MLLST),de);        //  Save next as previous          //0788:         LD      (MLLST),de      ; Save next as previous
         LD      (ptr(hl),e);            //  Store link address             //0789:         LD      (hl),e          ; Store link address
@@ -1129,7 +1127,7 @@ AT14:   LD      (a,val(T2));            //  Fetch piece type encountered   //096
         LD      (e,a);                  //  Save                           //0965:         LD      e,a             ; Save
         LD      (a,b);                  //  Get direction-counter          //0966:         LD      a,b             ; Get direction-counter
         CP      (9);                    //  Look for Knights ?             //0967:         CP      9               ; Look for Knights ?
-        JR      (C,AT25);               //  Yes - jump                     //0968:         JR      C,AT25          ; Yes - jump
+        JR      (CY,AT25);              //  Yes - jump                     //0968:         JR      C,AT25          ; Yes - jump
         LD      (a,e);                  //  Get piece type                 //0969:         LD      a,e             ; Get piece type
         CP      (QUEEN);                //  Is is a Queen ?                //0970:         CP      QUEEN           ; Is is a Queen ?
         JR      (NZ,AT15);              //  No - Jump                      //0971:         JR      NZ,AT15         ; No - Jump
@@ -1144,7 +1142,7 @@ AT15:   LD      (a,d);                  //  Get flag/scan count            //097
         JR      (Z,AT30);               //  Yes - jump                     //0980:         JR      Z,AT30          ; Yes - jump
 AT16:   LD      (a,b);                  //  Get direction counter          //0981: AT16:   LD      a,b             ; Get direction counter
         CP      (13);                   //  Scanning files or ranks ?      //0982:         CP      13              ; Scanning files or ranks ?
-        JR      (C,AT21);               //  Yes - jump                     //0983:         JR      C,AT21          ; Yes - jump
+        JR      (CY,AT21);              //  Yes - jump                     //0983:         JR      C,AT21          ; Yes - jump
         LD      (a,e);                  //  Get piece type                 //0984:         LD      a,e             ; Get piece type
         CP      (BISHOP);               //  Is it a Bishop ?               //0985:         CP      BISHOP          ; Is it a Bishop ?
         JR      (Z,AT30);               //  Yes - jump                     //0986:         JR      Z,AT30          ; Yes - jump
@@ -1159,7 +1157,7 @@ AT16:   LD      (a,b);                  //  Get direction counter          //098
         JR      (Z,AT20);               //  Yes - jump                     //0995:         JR      Z,AT20          ; Yes - jump
         LD      (a,b);                  //  Get direction counter          //0996:         LD      a,b             ; Get direction counter
         CP      (15);                   //  On a non-attacking diagonal ?  //0997:         CP      15              ; On a non-attacking diagonal ?
-        JR      (C,AT12);               //  Yes - jump                     //0998:         JR      C,AT12          ; Yes - jump
+        JR      (CY,AT12);              //  Yes - jump                     //0998:         JR      C,AT12          ; Yes - jump
         JRu     (AT30);                 //  Jump                           //0999:         JR      AT30            ; Jump
 AT20:   LD      (a,b);                  //  Get direction counter          //1000: AT20:   LD      a,b             ; Get direction counter
         CP      (15);                   //  On a non-attacking diagonal ?  //1001:         CP      15              ; On a non-attacking diagonal ?
@@ -1360,7 +1358,7 @@ PF5:    CALLu   (PATH);                 //  Compute next position          //116
         LD      (l,a);                  //  Save piece type                //1178:         LD      l,a             ; Save piece type
         LD      (a,b);                  //  Direction counter              //1179:         LD      a,b             ; Direction counter
         CP      (5);                    //  Non-diagonal direction ?       //1180:         CP      5               ; Non-diagonal direction ?
-        JR      (C,PF10);               //  Yes - jump                     //1181:         JR      C,PF10          ; Yes - jump
+        JR      (CY,PF10);              //  Yes - jump                     //1181:         JR      C,PF10          ; Yes - jump
         LD      (a,l);                  //  Piece type                     //1182:         LD      a,l             ; Piece type
         CP      (BISHOP);               //  Bishop ?                       //1183:         CP      BISHOP          ; Bishop ?
         JP      (NZ,PF25);              //  No - jump                      //1184:         JP      NZ,PF25         ; No - jump
@@ -1461,7 +1459,7 @@ XC10:   LD      (l,a);                  //  Save attacker value            //127
         JR      (NC,XC19);              //  No - jump                      //1276:         JR      NC,XC19         ; No - jump
         Z80_EXAF;                       //  -Restore defender              //1277:         EX      af,af'          ; -Restore defender
 XC15:   CP      (l);                    //  Defender less than attacker ?  //1278: XC15:   CP      l               ; Defender less than attacker ?
-        RET     (C);                    //  Yes - return                   //1279:         RET     C               ; Yes - return
+        RET     (CY);                   //  Yes - return                   //1279:         RET     C               ; Yes - return
         CALLu   (NEXTAD);               //  Retrieve next attacker value   //1280:         CALL    NEXTAD          ; Retrieve next attacker value
         RET     (Z);                    //  Return if none                 //1281:         RET     Z               ; Return if none
         LD      (l,a);                  //  Save attacker value            //1282:         LD      l,a             ; Save attacker value
@@ -1554,14 +1552,14 @@ PT5:    LD      (val(M3),a);            //  Save as board index            //135
         AND     (7);                    //  Save piece type, if any        //1363:         AND     7               ; Save piece type, if any
         LD      (val(T3),a);            //                                 //1364:         LD      (T3),a
         CP      (KNIGHT);               //  Less than a Knight (Pawn) ?    //1365:         CP      KNIGHT          ; Less than a Knight (Pawn) ?
-        JR      (C,PT6X);               //  Yes - Jump                     //1366:         JR      C,PT6X          ; Yes - Jump
+        JR      (CY,PT6X);              //  Yes - Jump                     //1366:         JR      C,PT6X          ; Yes - Jump
         CP      (ROOK);                 //  Rook, Queen or King ?          //1367:         CP      ROOK            ; Rook, Queen or King ?
-        JR      (C,PT6B);               //  No - jump                      //1368:         JR      C,PT6B          ; No - jump
+        JR      (CY,PT6B);              //  No - jump                      //1368:         JR      C,PT6B          ; No - jump
         CP      (KING);                 //  Is it a King ?                 //1369:         CP      KING            ; Is it a King ?
         JR      (Z,PT6AA);              //  Yes - jump                     //1370:         JR      Z,PT6AA         ; Yes - jump
         LD      (a,val(MOVENO));        //  Get move number                //1371:         LD      a,(MOVENO)      ; Get move number
         CP      (7);                    //  Less than 7 ?                  //1372:         CP      7               ; Less than 7 ?
-        JR      (C,PT6A);               //  Yes - Jump                     //1373:         JR      C,PT6A          ; Yes - Jump
+        JR      (CY,PT6A);              //  Yes - Jump                     //1373:         JR      C,PT6A          ; Yes - Jump
         JPu     (PT6X);                 //  Jump                           //1374:         JP      PT6X            ; Jump
 PT6AA:  BIT     (4,ptr(hl));            //  Castled yet ?                  //1375: PT6AA:  BIT     4,(hl)          ; Castled yet ?
         JR      (Z,PT6A);               //  No - jump                      //1376:         JR      Z,PT6A          ; No - jump
@@ -1611,7 +1609,7 @@ back04: LD      (ptr(hl),a);            //                                 //139
         JR      (NZ,PT20);              //  Jump if no match               //1420:         JR      NZ,PT20         ; Jump if no match
         LD      (hl,addr(PTSL));        //  Previous max points lost       //1421:         LD      hl,PTSL         ; Previous max points lost
         CP      (ptr(hl));              //  Compare to current value       //1422:         CP      (hl)            ; Compare to current value
-        JR      (C,PT23);               //  Jump if greater than           //1423:         JR      C,PT23          ; Jump if greater than
+        JR      (CY,PT23);              //  Jump if greater than           //1423:         JR      C,PT23          ; Jump if greater than
         LD      (ptr(hl),e);            //  Store new value as max lost    //1424:         LD      (hl),e          ; Store new value as max lost
         LD      (ix,v16(MLPTRJ));       //  Load pointer to this move      //1425:         LD      ix,(MLPTRJ)     ; Load pointer to this move
         LD      (a,val(M3));            //  Get position of lost piece     //1426:         LD      a,(M3)          ; Get position of lost piece
@@ -1621,12 +1619,12 @@ back04: LD      (ptr(hl),a);            //                                 //139
         JPu     (PT23);                 //  Jump                           //1430:         JP      PT23            ; Jump
 PT20:   LD      (hl,addr(PTSW1));       //  Previous maximum points won    //1431: PT20:   LD      hl,PTSW1        ; Previous maximum points won
         CP      (ptr(hl));              //  Compare to current value       //1432:         CP      (hl)            ; Compare to current value
-        JR      (C,rel011);             //  Jump if greater than           //1433:         JR      C,rel011        ; Jump if greater than
+        JR      (CY,rel011);            //  Jump if greater than           //1433:         JR      C,rel011        ; Jump if greater than
         LD      (a,ptr(hl));            //  Load previous max value        //1434:         LD      a,(hl)          ; Load previous max value
         LD      (ptr(hl),e);            //  Store new value as max won     //1435:         LD      (hl),e          ; Store new value as max won
 rel011: LD      (hl,addr(PTSW2));       //  Previous 2nd max points won    //1436: rel011: LD      hl,PTSW2        ; Previous 2nd max points won
         CP      (ptr(hl));              //  Compare to current value       //1437:         CP      (hl)            ; Compare to current value
-        JR      (C,PT23);               //  Jump if greater than           //1438:         JR      C,PT23          ; Jump if greater than
+        JR      (CY,PT23);              //  Jump if greater than           //1438:         JR      C,PT23          ; Jump if greater than
         LD      (ptr(hl),a);            //  Store as new 2nd max lost      //1439:         LD      (hl),a          ; Store as new 2nd max lost
 PT23:   LD      (hl,addr(P1));          //  Get piece                      //1440: PT23:   LD      hl,P1           ; Get piece
         BIT     (7,ptr(hl));            //  Test color                     //1441:         BIT     7,(hl)          ; Test color
@@ -1724,7 +1722,7 @@ void LIMIT() {                                                             //152
         LD      (a,b);                  //  Output value as is             //1530:         LD      a,b             ; Output value as is
         RETu;                           //  Return                         //1531:         RET                     ; Return
 LIM10:  CP      (b);                    //  Compare to limit               //1532: LIM10:  CP      b               ; Compare to limit
-        RET     (C);                    //  Return if outside limit        //1533:         RET     C               ; Return if outside limit
+        RET     (CY);                   //  Return if outside limit        //1533:         RET     C               ; Return if outside limit
         LD      (a,b);                  //  Output value as is             //1534:         LD      a,b             ; Output value as is
         RETu;                           //  Return                         //1535:         RET                     ; Return
 }                                                                          //1536:
@@ -2026,7 +2024,7 @@ FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter         //181
         LD      (a,val(NPLY));          //  Current ply counter            //1816:         LD      a,(NPLY)        ; Current ply counter
         LD      (hl,addr(PLYMAX));      //  Address of maximum ply number  //1817:         LD      hl,PLYMAX       ; Address of maximum ply number
         CP      (ptr(hl));              //  At max ply ?                   //1818:         CP      (hl)            ; At max ply ?
-        CALL    (C,SORTM);              //  No - call sort                 //1819:         CALL    C,SORTM         ; No - call sort
+        CALL    (CY,SORTM);             //  No - call sort                 //1819:         CALL    C,SORTM         ; No - call sort
         LD      (hl,v16(MLPTRI));       //  Load ply index pointer         //1820:         LD      hl,(MLPTRI)     ; Load ply index pointer
         LD      (v16(MLPTRJ),hl);       //  Save as last move pointer      //1821:         LD      (MLPTRJ),hl     ; Save as last move pointer
 FM15:   LD      (hl,v16(MLPTRJ));       //  Load last move pointer         //1822: FM15:   LD      hl,(MLPTRJ)     ; Load last move pointer
@@ -2044,7 +2042,7 @@ FM15:   LD      (hl,v16(MLPTRJ));       //  Load last move pointer         //182
         LD      (a,val(NPLY));          //  Current ply counter            //1834:         LD      a,(NPLY)        ; Current ply counter
         LD      (hl,addr(PLYMAX));      //  Maximum ply number ?           //1835:         LD      hl,PLYMAX       ; Maximum ply number ?
         CP      (ptr(hl));              //  Compare                        //1836:         CP      (hl)            ; Compare
-        JR      (C,FM18);               //  Jump if not max                //1837:         JR      C,FM18          ; Jump if not max
+        JR      (CY,FM18);              //  Jump if not max                //1837:         JR      C,FM18          ; Jump if not max
         CALLu   (MOVE);                 //  Execute move on board array    //1838:         CALL    MOVE            ; Execute move on board array
         CALLu   (INCHK);                //  Check for legal move           //1839:         CALL    INCHK           ; Check for legal move
         AND     (a);                    //  Is move legal                  //1840:         AND     a               ; Is move legal
@@ -2113,13 +2111,13 @@ FM36:   LD      (hl,addr(MATEF));       //  Set mate flag                  //190
         LD      (hl,v16(SCRIX));        //  Load score table pointer       //1903:         LD      hl,(SCRIX)      ; Load score table pointer
 FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);                             //1904: FM37:
         CP      (ptr(hl));              //  Compare to score 2 ply above   //1905:         CP      (hl)            ; Compare to score 2 ply above
-        JR      (C,FM40);               //  Jump if less                   //1906:         JR      C,FM40          ; Jump if less
+        JR      (CY,FM40);              //  Jump if less                   //1906:         JR      C,FM40          ; Jump if less
         JR      (Z,FM40);               //  Jump if equal                  //1907:         JR      Z,FM40          ; Jump if equal
         NEG;                            //  Negate score                   //1908:         NEG                     ; Negate score
         INC16   (hl);                   //  Incr score table pointer       //1909:         INC     hl              ; Incr score table pointer
         CP      (ptr(hl));              //  Compare to score 1 ply above   //1910:         CP      (hl)            ; Compare to score 1 ply above
         callback_zargon(CB_NO_BEST_MOVE);
-        JP      (C,FM15);               //  Jump if less than              //1911:         JP      C,FM15          ; Jump if less than
+        JP      (CY,FM15);              //  Jump if less than              //1911:         JP      C,FM15          ; Jump if less than
         JP      (Z,FM15);               //  Jump if equal                  //1912:         JP      Z,FM15          ; Jump if equal
         LD      (ptr(hl),a);            //  Save as new score 1 ply above  //1913:         LD      (hl),a          ; Save as new score 1 ply above
         callback_zargon(CB_YES_BEST_MOVE);
@@ -2232,7 +2230,7 @@ BM5:    INC     (ptr(hl));              //  Increment to black moves       //200
         JR      (Z,BM9);                //  Yes - jump                     //2013:         JR      Z,BM9           ; Yes - jump
         CP      (34);                   //  Is it a Queen Pawn ?           //2014:         CP      34              ; Is it a Queen Pawn ?
         JR      (Z,BM9);                //  Yes - jump                     //2015:         JR      Z,BM9           ; Yes - jump
-        RET     (C);                    //  If Queen side Pawn opening -   //2016:         RET     C               ; If Queen side Pawn opening -
+        RET     (CY);                   //  If Queen side Pawn opening -   //2016:         RET     C               ; If Queen side Pawn opening -
                                         //  return (P-K4)                  //2017:                                 ; return (P-K4)
         CP      (35);                   //  Is it a King Pawn ?            //2018:         CP      35              ; Is it a King Pawn ?
         RET     (Z);                    //  Yes - return (P-K4)            //2019:         RET     Z               ; Yes - return (P-K4)

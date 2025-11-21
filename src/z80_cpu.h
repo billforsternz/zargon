@@ -44,8 +44,15 @@ struct z80_cpu
         };
         uint16_t HL;
     };
-    uint16_t IX;
-    uint16_t IY;
+    uint16_t  IX;
+    uint16_t  IY;
+    bool      z,cy,m,po;
+    uint16_t  ex_bc,ex_de,ex_hl;
+    uint16_t  ex_af;
+    uint16_t  ex_temp;
+    uint16_t  stack[2048];     
+    uint16_t  sp = 2048;
+    uint8_t   nib1,nib2,nib3,nib4;
 };
 
 extern z80_cpu gbl_z80_cpu;

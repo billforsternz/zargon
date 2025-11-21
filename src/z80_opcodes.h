@@ -4,18 +4,23 @@
 #include <time.h>
 #include "z80_cpu.h"
 
-#define Z80_OPCODES                      \
-    static uint16_t  ex_bc,ex_de,ex_hl;  \
-    static uint16_t  ex_af;              \
-    static uint16_t  ex_temp;            \
-    static uint16_t  stack[2048];         \
-    static uint16_t  sp = 2048;           \
-    static uint8_t   nib1,nib2,nib3,nib4
+//#define Z80_OPCODES                      \
+//    static uint16_t  ex_bc,ex_de,ex_hl;  \
+//    static uint16_t  ex_af;              \
+//    static uint16_t  ex_temp;            \
+//    static uint16_t  stack[2048];         \
+//    static uint16_t  sp = 2048;           \
+//    static uint8_t   nib1,nib2,nib3,nib4
 
+#define Z  (gbl_z80_cpu.z)
 #define NZ (!Z)
-#define NC (!C)
+#define CY (gbl_z80_cpu.cy)
+#define NC (!CY)
+#define M  (gbl_z80_cpu.m)
 #define P  (!M)                     
+#define PO (gbl_z80_cpu.po)
 #define PE (!PO)
+
 #define a  (gbl_z80_cpu.A)
 #define b  (gbl_z80_cpu.B)
 #define c  (gbl_z80_cpu.C)
@@ -41,20 +46,20 @@
 #define DEC(x)          (x) = (x)-1, M=(((x)&0x80)==0x80), Z=((x)==0)
 #define INC16(x)        (x) = (x)+1
 #define DEC16(x)        (x) = (x)-1
-#define ADD(x,y)        C=((uint16_t)(x)+(uint16_t)(y)>=0x100),  (x)+=(y),   M=(((x)&0x80)==0x80),  Z=((x)==0)
-#define ADC(x,y)        do { bool temp=( ((uint16_t)(x)+(C?1:0)+(uint16_t)(y)>=0x100);  (x)+=(((uint8_t)y)+(C?1:0)), M=(((x)&0x80)==0x80);  Z=((x)==0); C=temp; } while(0)
-#define ADD16(x,y)      C=((uint32_t)(x)+(uint32_t)(y)>=0x10000),         (x)+=(y)   // anomalous 8080 instruction, only CY affected
-#define ADC16(x,y)      do { bool temp=((uint32_t)(x)+(C?1:0)+(uint32_t)(y)>=0x10000); (x)+=(((uint16_t)y)+(C?1:0));  M=(((x)&0x8000)==0x8000); Z=((x)==0); C=temp; } while(0)
-#define SUB(x)          C=((x)>a), a-=(x), M=((a&0x80)==0x80),  Z=(a==0)
-#define SBC(x)          do { bool temp=((((uint8_t)x)+(C?1:0))>a);  a-=(((uint8_t)x)+(C?1:0)); M=((a&0x80)==0x80);  Z=(a==0); C=temp; } while(0)
+#define ADD(x,y)        CY=((uint16_t)(x)+(uint16_t)(y)>=0x100),  (x)+=(y),   M=(((x)&0x80)==0x80),  Z=((x)==0)
+#define ADC(x,y)        do { bool temp=( ((uint16_t)(x)+(CY?1:0)+(uint16_t)(y)>=0x100);  (x)+=(((uint8_t)y)+(CY?1:0)), M=(((x)&0x80)==0x80);  Z=((x)==0); CY=temp; } while(0)
+#define ADD16(x,y)      CY=((uint32_t)(x)+(uint32_t)(y)>=0x10000),         (x)+=(y)   // anomalous 8080 instruction, only CY affected
+#define ADC16(x,y)      do { bool temp=((uint32_t)(x)+(CY?1:0)+(uint32_t)(y)>=0x10000); (x)+=(((uint16_t)y)+(CY?1:0));  M=(((x)&0x8000)==0x8000); Z=((x)==0); CY=temp; } while(0)
+#define SUB(x)          CY=((x)>a), a-=(x), M=((a&0x80)==0x80),  Z=(a==0)
+#define SBC(x)          do { bool temp=((((uint8_t)x)+(CY?1:0))>a);  a-=(((uint8_t)x)+(CY?1:0)); M=((a&0x80)==0x80);  Z=(a==0); CY=temp; } while(0)
 // #define SUB16(x,y)      // No such instruction
-#define SBC16(x,y)      do { bool temp=((y+(C?1:0))>(x));  (x)-=(y+(C?1:0)); M=(((x)&0x8000)==0x8000); Z=((x)==0); C=temp; } while(0)
-#define CP(x)           C=(((uint8_t)x)>a), M=(((a-((uint8_t)x))&0x80)==0x80), Z=((a-((uint8_t)x))==0)
-#define NEG             Z=(a==0),  C=(a!=0), a = (int8_t)(0 - (int8_t)a), M=(((a)&0x80)==0x80)
-#define AND(x)          C=false, a = a&(x), M=((a&0x80)==0x80), Z=(a==0)
-#define OR(x)           C=false, a = a|(x), M=((a&0x80)==0x80), Z=(a==0)
-#define XOR(x)          C=false, a = a^(x), M=((a&0x80)==0x80), Z=(a==0)
-#define EX(x,y)         ex_temp=x; x=y; y=ex_temp
+#define SBC16(x,y)      do { bool temp=((y+(CY?1:0))>(x));  (x)-=(y+(CY?1:0)); M=(((x)&0x8000)==0x8000); Z=((x)==0); CY=temp; } while(0)
+#define CP(x)           CY=(((uint8_t)x)>a), M=(((a-((uint8_t)x))&0x80)==0x80), Z=((a-((uint8_t)x))==0)
+#define NEG             Z=(a==0),  CY=(a!=0), a = (int8_t)(0 - (int8_t)a), M=(((a)&0x80)==0x80)
+#define AND(x)          CY=false, a = a&(x), M=((a&0x80)==0x80), Z=(a==0)
+#define OR(x)           CY=false, a = a|(x), M=((a&0x80)==0x80), Z=(a==0)
+#define XOR(x)          CY=false, a = a^(x), M=((a&0x80)==0x80), Z=(a==0)
+#define EX(x,y)         gbl_z80_cpu.ex_temp=x; x=y; y=gbl_z80_cpu.ex_temp
 #define JR(cond,label)  if(cond) goto label
 #define JP(cond,label)  if(cond) goto label
 #define CALL(cond,func) if(cond) (func)()
@@ -63,25 +68,25 @@
 #define JRu(label)      goto label
 #define JPu(label)      goto label
 #define CALLu(func)     (func)()
-#define FLAGS_IN        gbl_z80_cpu.F = ((C?1:0) + (Z?2:0) + (M?4:0) + (PO?8:0)) 
-#define FLAGS_OUT       PO=((gbl_z80_cpu.F&8)==8), M=((gbl_z80_cpu.F&4)==4), Z=((gbl_z80_cpu.F&2)==2), C=((gbl_z80_cpu.F&1)==1) 
-#define PUSHf(x)        FLAGS_IN, stack[--sp] = (x)
-#define POPf(x)         (x) = stack[sp++], FLAGS_OUT
-#define PUSH(x)         stack[--sp] = (x)
-#define POP(x)          (x) = stack[sp++]
-#define Z80_EXAF        FLAGS_IN, EX(af,ex_af), FLAGS_OUT
+#define FLAGS_IN        gbl_z80_cpu.F = ((CY?1:0) + (Z?2:0) + (M?4:0) + (PO?8:0)) 
+#define FLAGS_OUT       PO=((gbl_z80_cpu.F&8)==8), M=((gbl_z80_cpu.F&4)==4), Z=((gbl_z80_cpu.F&2)==2), CY=((gbl_z80_cpu.F&1)==1) 
+#define PUSHf(x)        FLAGS_IN, gbl_z80_cpu.stack[--gbl_z80_cpu.sp] = (x)
+#define POPf(x)         (x) = gbl_z80_cpu.stack[gbl_z80_cpu.sp++], FLAGS_OUT
+#define PUSH(x)         gbl_z80_cpu.stack[--gbl_z80_cpu.sp] = (x)
+#define POP(x)          (x) = gbl_z80_cpu.stack[gbl_z80_cpu.sp++]
+#define Z80_EXAF        FLAGS_IN, EX(af,gbl_z80_cpu.ex_af), FLAGS_OUT
 #define NIB_OUT(x,hi,lo)  hi=(((x)>>4)&0x0f), lo=((x)&0x0f)
 #define NIB_IN(x,hi,lo)   x = (((hi)<<4)&0xf0)|(lo)
-#define RLD               NIB_OUT(a,nib1,nib2), NIB_OUT(ptr(hl),nib3,nib4), \
-                          NIB_IN (a,nib1,nib3), NIB_IN (ptr(hl),nib4,nib2), M=(((a)&0x80)==0x80), Z=((a)==0)
-#define RRD               NIB_OUT(a,nib1,nib2), NIB_OUT(ptr(hl),nib3,nib4), \
-                          NIB_IN(a,nib1,nib4),  NIB_IN(ptr(hl),nib2,nib3), M=(((a)&0x80)==0x80), Z=((a)==0)
-#define EXX               EX(bc,ex_bc), EX(de,ex_de), EX(hl,ex_hl)
-#define SLA(x)            C=( ((x)&0x80) != 0 ), (x)=(x<<1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
-#define SRA(x)            C=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2)), M=(((x)&0x80)==0x80), Z=((x)==0)
-#define SRL(x)            C=( ((x)&0x01) != 0 ), (x)=(x>>1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
-#define RLA               do { bool temp=( ((a)&0x80) != 0 ); (a)=((a<<1)+(C?0x01:0));  M=(((a)&0x80)==0x80); Z=((a)==0); C=temp; } while(0)
-#define RR(x)             do { bool temp=( ((x)&0x01) != 0 ); (x)=((x>>1)+(C?0x80:0));  M=(((x)&0x80)==0x80); Z=((x)==0); C=temp; } while(0)
+#define RLD               NIB_OUT(a,gbl_z80_cpu.nib1,gbl_z80_cpu.nib2), NIB_OUT(ptr(hl),gbl_z80_cpu.nib3,gbl_z80_cpu.nib4), \
+                          NIB_IN (a,gbl_z80_cpu.nib1,gbl_z80_cpu.nib3), NIB_IN (ptr(hl),gbl_z80_cpu.nib4,gbl_z80_cpu.nib2), M=(((a)&0x80)==0x80), Z=((a)==0)
+#define RRD               NIB_OUT(a,gbl_z80_cpu.nib1,gbl_z80_cpu.nib2), NIB_OUT(ptr(hl),gbl_z80_cpu.nib3,gbl_z80_cpu.nib4), \
+                          NIB_IN (a,gbl_z80_cpu.nib1,gbl_z80_cpu.nib4),  NIB_IN(ptr(hl),gbl_z80_cpu.nib2,gbl_z80_cpu.nib3), M=(((a)&0x80)==0x80), Z=((a)==0)
+#define EXX               EX(bc,gbl_z80_cpu.ex_bc), EX(de,gbl_z80_cpu.ex_de), EX(hl,gbl_z80_cpu.ex_hl)
+#define SLA(x)            CY=( ((x)&0x80) != 0 ), (x)=(x<<1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
+#define SRA(x)            CY=( ((x)&0x01) != 0 ), (x) = ((uint8_t)((int8_t)(x)/2)), M=(((x)&0x80)==0x80), Z=((x)==0)
+#define SRL(x)            CY=( ((x)&0x01) != 0 ), (x)=(x>>1),                       M=(((x)&0x80)==0x80), Z=((x)==0)
+#define RLA               do { bool temp=( ((a)&0x80) != 0 ); (a)=((a<<1)+(CY?0x01:0));  M=(((a)&0x80)==0x80); Z=((a)==0); CY=temp; } while(0)
+#define RR(x)             do { bool temp=( ((x)&0x01) != 0 ); (x)=((x>>1)+(CY?0x80:0));  M=(((x)&0x80)==0x80); Z=((x)==0); CY=temp; } while(0)
 #define SET(bit_nbr,reg ) switch(bit_nbr) {            \
                            case 7: (reg)|=0x80; break; \
                            case 6: (reg)|=0x40; break; \
