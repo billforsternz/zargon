@@ -15,7 +15,7 @@
 #include <string>
 #include "sargon-pv.h"
 #include "thc.h"
-#include "../../bridge.h"
+#include "../../src/bridge.h"
 
 // Read a square value out of Sargon
 bool sargon_export_square( unsigned int sargon_square, thc::Square &sq );
