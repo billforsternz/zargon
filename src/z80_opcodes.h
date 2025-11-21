@@ -33,7 +33,7 @@
 // Emulate OPCODES with macros
 #define LD(dst,src)     (dst) = (src)
 #define addr(var)       offsetof(emulated_memory,var)
-#define val16(var)      *((uint16_t *)(&mem.var))
+#define v16(var)        *((uint16_t *)(&mem.var))
 #define val(var)        *((uint8_t *)(&mem.var))
 #define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
 #define DJNZ(label)     if(--gbl_z80_cpu.B != 0) goto label
