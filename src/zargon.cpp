@@ -29,6 +29,9 @@ emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
 
+// Native C++ functions
+#define PATH path_gen_single_move
+
 //***********************************************************              //0012: ;***********************************************************
 // EQUATES                                                                 //0013: ; EQUATES
 //***********************************************************              //0014: ;***********************************************************
@@ -608,7 +611,7 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
 // ARGUMENTS:  Direction from the direction array giving the               //0497: ;
 //             constant to be added for the new position.                  //0498: ; ARGUMENTS:  Direction from the direction array giving the
 //***********************************************************              //0499: ;             constant to be added for the new position.
-void PATH() {                                                              //0500: ;***********************************************************
+void PATH_z80_asm() {                                                      //0500: ;***********************************************************
         callback_zargon_bridge(CB_PATH);
         LD      (hl,addr(M2));          //  Get previous position          //0501: PATH:   LD      hl,M2           ; Get previous position
         LD      (a,ptr(hl));            //                                 //0502:         LD      a,(hl)
@@ -635,7 +638,30 @@ PA2:    LD      (a,3);                  //  Set off board flag             //052
         RETu;                           //  Return                         //0523:         RET                     ; Return
 }                                                                          //0524:
 
-
+// Recode as a "native" C++ routine
+void path_gen_single_move()
+{
+    callback_zargon_bridge(CB_PATH);
+    uint8_t *m2 = (uint8_t *)(&m.M2);
+    *m2 += c;
+    a = m.BOARDA[*m2];
+    if( a == (uint8_t)(-1) )
+    {
+        a = 3;
+        return;
+    }
+    uint8_t *p2 = (uint8_t *)(&m.P2);
+    *p2 = a;
+    a &= 0x07;
+    uint8_t *t2 = (uint8_t *)(&m.T2);
+    *t2 = a;
+    if( a == 0 )
+    {
+        return;
+    }
+    uint8_t *p1 = (uint8_t *)(&m.P1);
+    a = ((*p2 ^ *p1)&0x80) ? 1 : 2;
+}
 
 //***********************************************************
 // PIECE MOVER ROUTINE                                                     //0525: ;***********************************************************
