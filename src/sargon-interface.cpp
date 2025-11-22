@@ -15,6 +15,10 @@
 #include "thc.h"
 #include "sargon-interface.h"
 #include "sargon-asm-interface.h"
+#include "zargon.h"
+
+// First byte of Sargon data
+unsigned char *sargon_base_address = (unsigned char *)zargon_get_ptr_emulated_memory();
 
 // Write chess position into Sargon (inner-most part)
 static void sargon_import_position_inner( const thc::ChessPosition &cp );
@@ -650,8 +654,7 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
 
 const unsigned char *peek(int offset)
 {
-    unsigned char *sargon_mem_base = sargon_base_address;
-    unsigned char *addr = sargon_mem_base + offset;
+    unsigned char *addr = sargon_base_address + offset;
     return addr;
 }
 
@@ -674,8 +677,7 @@ unsigned int peekw(int offset)
 
 unsigned char *poke(int offset)
 {
-    unsigned char *sargon_mem_base = sargon_base_address;
-    unsigned char *addr = sargon_mem_base + offset;
+    unsigned char *addr = sargon_base_address + offset;
     return addr;
 }
 

@@ -43,6 +43,9 @@ void DIVIDE();
 void MLTPLY();
 void EXECMV();
 
+struct emulated_memory;
+emulated_memory *zargon_get_ptr_emulated_memory();
+
 // Initially at least we were emulating 64K of Z80 memory
 //  at some point we will probably rename this to simply
 //  zargon_data or similar
@@ -625,6 +628,6 @@ class zargon_data_defs_check_and_regen
             exit(0);
         }
     }
- };
+};
 
- #endif // ZARGON_H_INCLUDED
+#endif // ZARGON_H_INCLUDED

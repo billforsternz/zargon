@@ -38,9 +38,9 @@
 // Emulate OPCODES with macros
 #define LD(dst,src)     (dst) = (src)
 #define addr(var)       offsetof(emulated_memory,var)
-#define v16(var)        *((uint16_t *)(&mem.var))
-#define val(var)        *((uint8_t *)(&mem.var))
-#define ptr(addr)       *( ((uint8_t *)&mem) + (addr))
+#define v16(var)        *((uint16_t *)(&m.var))
+#define val(var)        *((uint8_t *) (&m.var))
+#define ptr(addr)       *( ((uint8_t *)&m) + (addr))
 #define DJNZ(label)     if(--gbl_z80_cpu.B != 0) goto label
 #define INC(x)          (x) = (x)+1, M=(((x)&0x80)==0x80), Z=((x)==0)
 #define DEC(x)          (x) = (x)-1, M=(((x)&0x80)==0x80), Z=((x)==0)
@@ -160,7 +160,7 @@
     } while(0)
 
 // Fortunately we don't need these two very much
-#define v16_offset(var,offset)  *( (uint16_t *) (offset + ((uint8_t*)(&mem.var)))  )
-#define val_offset(var,offset)  *( (uint8_t *)  (offset + ((uint8_t*)(&mem.var)))  )
+#define v16_offset(var,offset)  *( (uint16_t *) (offset + ((uint8_t*)(&m.var)))  )
+#define val_offset(var,offset)  *( (uint8_t *)  (offset + ((uint8_t*)(&m.var)))  )
 
 #endif // Z80_OPCODES_H_INCLUDED

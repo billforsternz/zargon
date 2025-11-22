@@ -23,7 +23,8 @@
 z80_cpu     gbl_z80_cpu;
 
 // Up to 64K of emulated memory
-static emulated_memory mem;
+static emulated_memory m;
+emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
@@ -2594,10 +2595,3 @@ EX14:   POPf    (af);                   //  Restore registers              //332
         RETu;                           //  Return                         //3331:         RET                     ; Return
 }                                                                          //3332:
 
-unsigned char *sargon_base_address;
-
-void zargon_init()
-{
-    sargon_base_address = (unsigned char *)(&mem);
-    bridge_init( sargon_base_address );
-}

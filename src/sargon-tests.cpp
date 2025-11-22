@@ -20,6 +20,8 @@
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "sargon-pv.h"
+#include "bridge.h"
+#include "zargon.h"
 
 // Individual tests
 bool sargon_position_tests( bool quiet, int comprehensive );
@@ -107,8 +109,7 @@ int main( int argc, const char *argv[] )
         return -1;
     }
 
-    extern void zargon_init();
-    zargon_init();
+    bridge_init(sargon_base_address);
     util::tests();
     if( minimax_doc )
         sargon_minimax_main();
