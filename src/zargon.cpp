@@ -1230,7 +1230,6 @@ void attack_c()
         bool stepping = true;
         while( stepping )
         {
-            stepping = false;   // treat continuing stepping as an exceptional case
 
             // AT10:   INC     (d);                    //  Increment scan count
             //         CALLu   (PATH);                 //  Next position
@@ -1251,42 +1250,31 @@ void attack_c()
             // 1  --  Encountered a piece of the opposite color
             // 2  --  Encountered a piece of the same color
             // 3  --  New position is off the board
-            switch(a)
+            if( a==0 && dir_count>=9 )
+                continue; // empty square, not a knight, keep stepping
+            stepping = false;   // otherwise treat continuing stepping as an exceptional case
+            if( a==0 || a==3 )
+                continue;
+            if( a == 1)
             {
-                case 0:
-                {
-                    if( dir_count >= 9 )
-                        stepping = true;  // not a knight, keep stepping
+                // 1  --  Encountered a piece of the opposite color
+                // AT14A:  BIT     (6,d);                  //  Same color found already ?
+                //         JR      (NZ,AT12);              //  Yes - jump
+                //         SET     (5,d);                  //  Set opposite color found flag
+                //         JPu     (AT14);                 //  Jump
+                if( (d&0x40) != 0 )
                     continue;
-                }
-                case 1:
-                {
-                    // 1  --  Encountered a piece of the opposite color
-                    // AT14A:  BIT     (6,d);                  //  Same color found already ?
-                    //         JR      (NZ,AT12);              //  Yes - jump
-                    //         SET     (5,d);                  //  Set opposite color found flag
-                    //         JPu     (AT14);                 //  Jump
-                    if( (d&0x40) != 0 )
-                        continue;
-                    d |= 0x20;
-                    break;
-                }
-                case 2:
-                {
-                    // 2  --  Encountered a piece of the same color
-                    // AT14B:  BIT     (5,d);                  //  Opposite color found already?
-                    //         JR      (NZ,AT12);              //  Yes - jump
-                    //         SET     (6,d);                  //  Set same color found flag
-                    if( (d&0x20) != 0 )
-                        continue;
-                    d |= 0x40;
-                    break;
-                }
-                default:
-                case 3:
-                {
-                    continue;  // off the board
-                }
+                d |= 0x20;
+            }
+            else if( a == 2 )
+            {
+                // 2  --  Encountered a piece of the same color
+                // AT14B:  BIT     (5,d);                  //  Opposite color found already?
+                //         JR      (NZ,AT12);              //  Yes - jump
+                //         SET     (6,d);                  //  Set same color found flag
+                if( (d&0x20) != 0 )
+                    continue;
+                d |= 0x40;
             }
 
             //  Encountered a piece of either colour
