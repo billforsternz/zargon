@@ -1328,9 +1328,7 @@ void attack_c()
             //         LD      (a,e);                  //  Get encountered piece type
             //         CP      (KING);                 //  Is it a King ?
             //         JR      (Z,AT30);               //  Yes - jump
-            if( (d&0x0f) != 1 )
-                goto at16;
-            if( e == KING )
+            if( (d&0x0f) == 1 && e == KING )
                 goto at30;
 
             at16:
@@ -1354,7 +1352,15 @@ void attack_c()
             //         JR      (CY,AT12);              //  Yes - jump
             //         JRu     (AT30);                 //  Jump
             if( dir_count < 13 )
-                goto at21;
+            {
+                // AT21:   LD      (a,e);                  //  Get piece type
+                //         CP      (ROOK);                 //  Is is a Rook ?
+                //         JR      (NZ,AT12);              //  No - jump
+                //         JRu     (AT30);                 //  Jump
+                if( e != ROOK )
+                    continue;
+                goto at30;
+            }
             if( e == BISHOP )
                 goto at30;
             if( (d&0x0f) != 1 )
@@ -1374,17 +1380,6 @@ void attack_c()
             //         JRu     (AT30);                 //  Jump
             if( dir_count >= 15 )
                 continue;
-            goto at30;
-
-            at21:
-            // AT21:   LD      (a,e);                  //  Get piece type
-            //         CP      (ROOK);                 //  Is is a Rook ?
-            //         JR      (NZ,AT12);              //  No - jump
-            //         JRu     (AT30);                 //  Jump
-            if( e != ROOK )
-                continue;
-            goto at30;
-
 
             at30:
             // AT30:   LD      (a,val(T1));            //  Attacked piece type/flag
