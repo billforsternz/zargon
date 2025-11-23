@@ -1351,6 +1351,8 @@ void attack_c()
             //         CP      (15);                   //  On a non-attacking diagonal ?
             //         JR      (CY,AT12);              //  Yes - jump
             //         JRu     (AT30);                 //  Jump
+
+            // Ranks and files?
             if( dir_count < 13 )
             {
                 // AT21:   LD      (a,e);                  //  Get piece type
@@ -1363,23 +1365,24 @@ void attack_c()
             }
             if( e == BISHOP )
                 goto at30;
-            if( (d&0x0f) != 1 )
+            if( (d&0x0f) != 1 || e != PAWN )
                 continue;
-            if( e != 1 )
-                continue;
-            if( (*p2&0x80) == 0 )
-                goto at20;
-            if( dir_count < 15 )
-                continue;
-            goto at30;
 
-            at20:
-            // AT20:   LD      (a,b);                  //  Get direction counter
-            //         CP      (15);                   //  On a non-attacking diagonal ?
-            //         JR      (NC,AT12);              //  Yes - jump
-            //         JRu     (AT30);                 //  Jump
-            if( dir_count >= 15 )
-                continue;
+            // Pawn attack logic
+            if( (*p2&0x80) == 0 )
+            {
+                // AT20:   LD      (a,b);                  //  Get direction counter
+                //         CP      (15);                   //  On a non-attacking diagonal ?
+                //         JR      (NC,AT12);              //  Yes - jump
+                //         JRu     (AT30);                 //  Jump
+                if( dir_count >= 15 )
+                    continue;
+            }
+            else
+            {
+                if( dir_count < 15 )
+                    continue;
+            }
 
             at30:
             // AT30:   LD      (a,val(T1));            //  Attacked piece type/flag
