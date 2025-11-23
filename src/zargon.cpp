@@ -1289,6 +1289,7 @@ void attack_c()
                 }
             }
 
+            //  Encountered a piece of either colour
             //
             //  ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****
             //
@@ -1305,13 +1306,21 @@ void attack_c()
             //         JRu     (AT30);                 //  Jump
             e = *t2;
             if( dir_count < 9 )
-                goto at25;
-            if( e != QUEEN )
-                goto at15;
-            d |= 0x80;
-            goto at30;
+            {
+                // AT25:   LD      (a,e);                  //  Get piece type
+                //         CP      (KNIGHT);               //  Is it a Knight ?
+                //         JR      (NZ,AT12);              //  No - jump
+                if( e != KNIGHT )
+                    continue;
+                goto at30;
+            }
 
-            at15:
+            if( e == QUEEN )
+            {
+                d |= 0x80;
+                goto at30;
+            }
+
             // AT15:   LD      (a,d);                  //  Get flag/scan count
             //         AND     (0x0F);                 //  Isolate count
             //         CP      (1);                    //  On first position ?
@@ -1376,12 +1385,6 @@ void attack_c()
                 continue;
             goto at30;
 
-            at25:
-            // AT25:   LD      (a,e);                  //  Get piece type
-            //         CP      (KNIGHT);               //  Is it a Knight ?
-            //         JR      (NZ,AT12);              //  No - jump
-            if( e != KNIGHT )
-                continue;
 
             at30:
             // AT30:   LD      (a,val(T1));            //  Attacked piece type/flag
