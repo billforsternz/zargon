@@ -1305,6 +1305,8 @@ void attack_c()
             //         SET     (7,d);                  //  Set Queen found flag
             //         JRu     (AT30);                 //  Jump
             e = *t2;
+
+            // Knight attacks
             if( dir_count < 9 )
             {
                 // AT25:   LD      (a,e);                  //  Get piece type
@@ -1312,13 +1314,11 @@ void attack_c()
                 //         JR      (NZ,AT12);              //  No - jump
                 if( e != KNIGHT )
                     continue;
-                goto at30;
             }
 
             else if( e == QUEEN )
             {
                 d |= 0x80;
-                goto at30;
             }
 
             // AT15:   LD      (a,d);                  //  Get flag/scan count
@@ -1329,7 +1329,7 @@ void attack_c()
             //         CP      (KING);                 //  Is it a King ?
             //         JR      (Z,AT30);               //  Yes - jump
             else if( (d&0x0f) == 1 && e == KING )
-                goto at30;
+                ;
 
             // AT16:   LD      (a,b);                  //  Get direction counter
             //         CP      (13);                   //  Scanning files or ranks ?
@@ -1360,10 +1360,9 @@ void attack_c()
                 //         JRu     (AT30);                 //  Jump
                 if( e != ROOK )
                     continue;
-                goto at30;
             }
             else if( e == BISHOP )
-                goto at30;
+                ;
 
             else
             {
@@ -1387,7 +1386,6 @@ void attack_c()
                 }
             }
 
-            at30:
             // AT30:   LD      (a,val(T1));            //  Attacked piece type/flag
             //         CP      (7);                    //  Call from POINTS ?
             //         JR      (Z,AT31);               //  Yes - jump
