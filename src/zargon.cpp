@@ -1212,7 +1212,7 @@ void attack_c()
     uint8_t *p2 = (uint8_t *)&m.P2;
     *p2 = 0;
     uint8_t *dir_ptr = (uint8_t *)m.direct;
-    uint8_t ret_val = 0;    // has attackers
+    bool attacker_found = false;    // return value
     
     // Direction loop
     for( uint8_t dir_count=16; dir_count>0; dir_count-- )
@@ -1392,17 +1392,16 @@ void attack_c()
             //         LD      (a,1);                  //  Set attacker found flag
             //         JPu     (AT13);                 //  Jump
             if( *t1 == 7 )
-                goto at31;
-            if( (d&0x20) == 0 )
-                goto at32;
-            ret_val = 1;
-            break;
+            {
+                // AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
+                ATKSAV();
+            }
+            else if( (d&0x20) != 0 )
+            {
+                attacker_found = true;
+                break;
+            }
 
-            at31:
-            // AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
-            ATKSAV();
-
-            at32:
             // AT32:   LD      (a,val(T2));            //  Attacking piece type
             //         CP      (KING);                 //  Is it a King,?
             //         JP      (Z,AT12);               //  Yes - jump
@@ -1425,7 +1424,7 @@ void attack_c()
     // AT13:   POP     (bc);                   //  Restore register B
     //         RETu;                           //  Return
     bc = save_bc;
-    a = ret_val;
+    a = attacker_found;
     return;
 }
 
