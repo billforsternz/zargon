@@ -1315,7 +1315,7 @@ void attack_c()
                 goto at30;
             }
 
-            if( e == QUEEN )
+            else if( e == QUEEN )
             {
                 d |= 0x80;
                 goto at30;
@@ -1328,10 +1328,9 @@ void attack_c()
             //         LD      (a,e);                  //  Get encountered piece type
             //         CP      (KING);                 //  Is it a King ?
             //         JR      (Z,AT30);               //  Yes - jump
-            if( (d&0x0f) == 1 && e == KING )
+            else if( (d&0x0f) == 1 && e == KING )
                 goto at30;
 
-            at16:
             // AT16:   LD      (a,b);                  //  Get direction counter
             //         CP      (13);                   //  Scanning files or ranks ?
             //         JR      (CY,AT21);              //  Yes - jump
@@ -1353,7 +1352,7 @@ void attack_c()
             //         JRu     (AT30);                 //  Jump
 
             // Ranks and files?
-            if( dir_count < 13 )
+            else if( dir_count < 13 )
             {
                 // AT21:   LD      (a,e);                  //  Get piece type
                 //         CP      (ROOK);                 //  Is is a Rook ?
@@ -1363,25 +1362,29 @@ void attack_c()
                     continue;
                 goto at30;
             }
-            if( e == BISHOP )
+            else if( e == BISHOP )
                 goto at30;
-            if( (d&0x0f) != 1 || e != PAWN )
-                continue;
 
-            // Pawn attack logic
-            if( (*p2&0x80) == 0 )
-            {
-                // AT20:   LD      (a,b);                  //  Get direction counter
-                //         CP      (15);                   //  On a non-attacking diagonal ?
-                //         JR      (NC,AT12);              //  Yes - jump
-                //         JRu     (AT30);                 //  Jump
-                if( dir_count >= 15 )
-                    continue;
-            }
             else
             {
-                if( dir_count < 15 )
+                if( (d&0x0f) != 1 || e != PAWN )
                     continue;
+
+                // Pawn attack logic
+                if( (*p2&0x80) == 0 )
+                {
+                    // AT20:   LD      (a,b);                  //  Get direction counter
+                    //         CP      (15);                   //  On a non-attacking diagonal ?
+                    //         JR      (NC,AT12);              //  Yes - jump
+                    //         JRu     (AT30);                 //  Jump
+                    if( dir_count >= 15 )
+                        continue;
+                }
+                else
+                {
+                    if( dir_count < 15 )
+                        continue;
+                }
             }
 
             at30:
