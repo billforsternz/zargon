@@ -1227,8 +1227,7 @@ void attack_c()
         m.M2 = m.M3;
 
         // Stepping loop
-        bool stepping = true;
-        while( stepping )
+        for(;;)
         {
 
             // AT10:   INC     (d);                    //  Increment scan count
@@ -1252,9 +1251,8 @@ void attack_c()
             // 3  --  New position is off the board
             if( a==0 && dir_count>=9 )
                 continue; // empty square, not a knight, keep stepping
-            stepping = false;   // otherwise treat continuing stepping as an exceptional case
             if( a==0 || a==3 )
-                continue;
+                break;  // break to stop stepping
             if( a == 1)
             {
                 // 1  --  Encountered a piece of the opposite color
@@ -1263,7 +1261,7 @@ void attack_c()
                 //         SET     (5,d);                  //  Set opposite color found flag
                 //         JPu     (AT14);                 //  Jump
                 if( (d&0x40) != 0 )
-                    continue;
+                    break;
                 d |= 0x20;
             }
             else if( a == 2 )
@@ -1273,7 +1271,7 @@ void attack_c()
                 //         JR      (NZ,AT12);              //  Yes - jump
                 //         SET     (6,d);                  //  Set same color found flag
                 if( (d&0x20) != 0 )
-                    continue;
+                    break;
                 d |= 0x40;
             }
 
@@ -1301,7 +1299,7 @@ void attack_c()
                 //         CP      (KNIGHT);               //  Is it a Knight ?
                 //         JR      (NZ,AT12);              //  No - jump
                 if( e != KNIGHT )
-                    continue;
+                    break;
             }
 
             // Queen is good for ranks and diagonals
@@ -1350,7 +1348,7 @@ void attack_c()
                 //         JR      (NZ,AT12);              //  No - jump
                 //         JRu     (AT30);                 //  Jump
                 if( e != ROOK )
-                    continue;   // ranks and files and not rook
+                    break;   // ranks and files and not rook
             }
 
             // Diagonals and bishop?
@@ -1361,7 +1359,7 @@ void attack_c()
             else
             {
                 if( (d&0x0f) != 1 || e != PAWN )    // count must be 1, pawns don't XRAY
-                    continue;
+                    break;
 
                 // Pawn attack logic
                 if( (*p2&0x80) == 0 )
@@ -1371,12 +1369,12 @@ void attack_c()
                     //         JR      (NC,AT12);              //  Yes - jump
                     //         JRu     (AT30);                 //  Jump
                     if( dir_count >= 15 )
-                        continue;   // not the right direction for this colour
+                        break;   // not the right direction for this colour
                 }
                 else
                 {
                     if( dir_count < 15 )
-                        continue;   // not the right direction for this colour
+                        break;   // not the right direction for this colour
                 }
             }
 
@@ -1397,6 +1395,7 @@ void attack_c()
             else if( (d&0x20) != 0 )
             {
                 attacker_found = true;
+                dir_count = 1;  // break out of both loops
                 break;
             }
 
@@ -1407,10 +1406,11 @@ void attack_c()
             //         JP      (Z,AT12);               //  Yes - jump
             //         JPu     (AT10);                 //  Jump
             if( *t2 == KING )
-                continue;
+                break;
             if( *t2 == KNIGHT )
-                continue;
-            stepping = true;
+                break;
+
+            // End stepping loop, keep stepping except for the break;s above
         }
 
         // End direction loop
