@@ -1293,8 +1293,83 @@ bool sargon_minimax_regression_test( bool quiet)
 
 extern void after_genmov();
 
+//
+// Calculate Func frequency to aid in optimisation efforts
+// Results after sorting: (cmdline "p -2")
+//
+//         36: CB_FNDMOV
+//        611: CB_ADJPTR
+//      14358: CB_SORTM
+//      73911: CB_ASCEND
+//      73949: CB_CASTLE
+//      73949: CB_GENMOV
+//     450992: CB_ENPSNT
+//     523827: CB_EVAL
+//     717136: CB_MPIECE
+//     964728: CB_PINFND
+//     964728: CB_POINTS
+//    1390072: CB_UNMOVE
+//    1390117: CB_MOVE
+//    2687473: CB_ADMOVE
+//   19345956: CB_XCHNG
+//   27442701: CB_NEXTAD
+//   36379168: CB_PNCK
+//   63706739: CB_ATTACK
+//  100303176: CB_ATKSAV
+// 1873664451: CB_PATH
+//
+static uint64_t cb_counts[ CB_ASCEND+1 ];
+class for_destructor
+{
+    public:
+    for_destructor() {}
+    ~for_destructor()
+    {
+        for( int i=0; i<= CB_ASCEND; i++ )
+        {
+            const char *s = "??";
+            switch(i)
+            {
+                case CB_null:                     s = "CB_null"; break;
+                case CB_LDAR:                     s = "CB_LDAR"; break;
+                case CB_AFTER_GENMOV:             s = "CB_AFTER_GENMOV"; break;
+                case CB_END_OF_POINTS:            s = "CB_END_OF_POINTS"; break;
+                case CB_AFTER_FNDMOVE:            s = "CB_AFTER_FNDMOVE"; break;
+                case CB_YES_BEST_MOVE:            s = "CB_YES_BEST_MOVE"; break;
+                case CB_NO_BEST_MOVE:             s = "CB_NO_BEST_MOVE"; break;
+                case CB_SUPPRESS_KING_MOVES:      s = "CB_SUPPRESS_KING_MOVES"; break;
+                case CB_ALPHA_BETA_CUTOFF:        s = "CB_ALPHA_BETA_CUTOFF"; break;
+                case CB_PATH:                     s = "CB_PATH"; break;
+                case CB_MPIECE:                   s = "CB_MPIECE"; break;
+                case CB_ENPSNT:                   s = "CB_ENPSNT"; break;
+                case CB_ADJPTR:                   s = "CB_ADJPTR"; break;
+                case CB_CASTLE:                   s = "CB_CASTLE"; break;
+                case CB_ADMOVE:                   s = "CB_ADMOVE"; break;
+                case CB_GENMOV:                   s = "CB_GENMOV"; break;
+                case CB_ATTACK:                   s = "CB_ATTACK"; break;
+                case CB_ATKSAV:                   s = "CB_ATKSAV"; break;
+                case CB_PNCK:                     s = "CB_PNCK"; break;
+                case CB_PINFND:                   s = "CB_PINFND"; break;
+                case CB_XCHNG:                    s = "CB_XCHNG"; break;
+                case CB_NEXTAD:                   s = "CB_NEXTAD"; break;
+                case CB_POINTS:                   s = "CB_POINTS"; break;
+                case CB_MOVE:                     s = "CB_MOVE"; break;
+                case CB_UNMOVE:                   s = "CB_UNMOVE"; break;
+                case CB_SORTM:                    s = "CB_SORTM"; break;
+                case CB_EVAL:                     s = "CB_EVAL"; break;
+                case CB_FNDMOV:                   s = "CB_FNDMOV"; break;
+                case CB_ASCEND:                   s = "CB_ASCEND"; break;
+            }
+            printf( "%20llu: %s\n", cb_counts[i], s ); 
+        }
+    }
+};
+// for_destructor inst;  // just an instance to make the destructor run after main()
+
 void callback_zargon( CB cb )
 {
+    //if( cb <= CB_ASCEND )
+    //    cb_counts[cb]++;
     #ifdef BRIDGE_CALLBACK_TRACE
     z80_registers reg;
     reg.af = (uint16_t)(gbl_z80_cpu.AF);
