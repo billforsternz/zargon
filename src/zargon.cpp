@@ -1707,15 +1707,29 @@ bool pnck_c() {
                                                                            
         LD      (d,c);                  //  Save attack direction          
         bool first_find=false;          //  Clear flag                     
-        LD      (c,a);                  //  Load pin count for search      
-        LD      (b,0);                                                     
-        LD      (hl,addr(PLISTA));      //  Pin list address               
-PC1:    a = m.M2;                       //  Position of piece              
-        Z80_CPIR;                       //  Search list for position       
-        if(NZ) return false;            //  Return if not found            
+        //LD      (c,a);                  //  Load pin count for search      
+        //LD      (b,0); 
+        uint16_t count = a;
+        uint8_t *p = &m.PLISTA[0];  //LD      (hl,addr(PLISTA));      //  Pin list address               
+PC1:    //a = m.M2;                       //  Position of piece              
+        //Z80_CPIR;                       //  Search list for position 
+        bool found = false;         
+        while( !found )             
+        {                           
+            found = (m.M2 == *p);
+            p++;
+            count--;                   
+            if( count == 0 )           
+                break;              
+        }                           
+        bool expired = (count==0);               
+
+
+
+        if(!found) return false;            //  Return if not found            
         //Z80_EXAF;                       //  Save search parameters         
         //bool found2  = Z;
-        bool expired = PO;
+        //bool expired = PO;
         //uint8_t temp = a;
         if( first_find ) return true;   //  Is this the first find ?       
         //JR      (NZ,PC5);               //  No - jump                      
@@ -1723,7 +1737,7 @@ PC1:    a = m.M2;                       //  Position of piece
         //PUSH    (hl);                   //  Get corresp index to dir list  
         //POP     (ix);                                                      
         //LD      (a,ptr(ix+9));          //  Get direction                  
-        a = ptr(hl+9);
+        a = *(p+9);
         CP      (d);                    //  Same as attacking direction ?  
         JR      (Z,PC3);                //  Yes - jump                     
         NEG;                            //  Opposite direction ?           
