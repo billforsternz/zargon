@@ -544,6 +544,22 @@ cb_end:  popad
 CALLBACK MACRO   txt
          ENDM
          ENDIF
+callback_trace_detailed_enabled EQU 0
+         IF callback_trace_detailed_enabled
+CALLBACK_TRACE_DETAILED MACRO   txt
+LOCAL    cb_end
+         pushfd         ;save all registers, also can be inspected by callback()
+         pushad
+         call   _callback
+         jmp    cb_end
+         db     txt,0
+cb_end:  popad
+         popfd
+         ENDM
+         ELSE
+CALLBACK_TRACE_DETAILED MACRO   txt
+         ENDM
+         ENDIF
 
 ;
 ; Z80 Opcode emulation
@@ -803,7 +819,7 @@ IB2:    MOV     al,byte ptr [ebp+esi-8]         ; Fill non-border squares
 ; ARGUMENTS:  Direction from the direction array giving the
 ;             constant to be added for the new position.
 ;***********************************************************
-PATH:   CALLBACK "PATH"
+PATH:   CALLBACK_TRACE_DETAILED "PATH"
         MOV     bx,M2                           ; Get previous position
         MOV     al,byte ptr [ebp+ebx]
         ADD     al,cl                           ; Add direction constant
@@ -845,7 +861,7 @@ PA2:    MOV     al,3                            ; Set off board flag
 ;
 ; ARGUMENTS:  The piece to be moved.
 ;***********************************************************
-MPIECE: CALLBACK "MPIECE"
+MPIECE: CALLBACK_TRACE_DETAILED "MPIECE"
         XOR     al,byte ptr [ebp+ebx]           ; Piece to move
         AND     al,87H                          ; Clear flag bit
         CMP     al,BPAWN                        ; Is it a black Pawn ?
@@ -939,7 +955,7 @@ MP36:   CALL    ENPSNT                          ; Try en passant capture
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-ENPSNT: CALLBACK "ENPSNT"
+ENPSNT: CALLBACK_TRACE_DETAILED "ENPSNT"
         MOV     al,byte ptr [ebp+M1]            ; Set position of Pawn
         MOV     bx,P1                           ; Check color
         TEST    byte ptr [ebp+ebx],80h          ; Is it white ?
@@ -1007,7 +1023,7 @@ skip7:
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-ADJPTR: CALLBACK "ADJPTR"
+ADJPTR: CALLBACK_TRACE_DETAILED "ADJPTR"
         MOV     bx,word ptr [ebp+MLLST]         ; Get list pointer
         MOV     dx,-6                           ; Size of a move entry
         ADD     bx,dx                           ; Back up list pointer
@@ -1032,7 +1048,7 @@ ADJPTR: CALLBACK "ADJPTR"
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-CASTLE: CALLBACK "CASTLE"
+CASTLE: CALLBACK_TRACE_DETAILED "CASTLE"
         MOV     al,byte ptr [ebp+P1]            ; Get King
         TEST    al,8                            ; Has it moved ?
         JZ      skip8                           ; Yes - return
@@ -1111,7 +1127,7 @@ skip10:
 ;
 ; ARGUMENT:  --  None
 ;***********************************************************
-ADMOVE: CALLBACK "ADMOVE"
+ADMOVE: CALLBACK_TRACE_DETAILED "ADMOVE"
         MOV     dx,word ptr [ebp+MLNXT]         ; Addr of next loc in move list
         MOV     bx,MLEND                        ; Address of list end
         AND     al,al                           ; Clear carry flag
@@ -1164,7 +1180,7 @@ AM10:   MOV     byte ptr [ebp+ebx],0            ; Abort entry on table ovflow
 ;
 ; ARGUMENTS: --  None
 ;***********************************************************
-GENMOV: CALLBACK "GENMOV"
+GENMOV: CALLBACK_TRACE_DETAILED "GENMOV"
         CALL    INCHK                           ; Test for King in check
         MOV     byte ptr [ebp+CKFLG],al         ; Save attack count as flag
         MOV     dx,word ptr [ebp+MLNXT]         ; Addr of next avail list space
@@ -1262,7 +1278,7 @@ rel005: MOV     al,byte ptr [ebp+ebx]           ; Fetch King position
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-ATTACK: CALLBACK "ATTACK"
+ATTACK: CALLBACK_TRACE_DETAILED "ATTACK"
         PUSH    ecx                             ; Save Register B
         XOR     al,al                           ; Clear
         MOV     ch,16                           ; Initial direction count
@@ -1378,7 +1394,7 @@ AT32:   MOV     al,byte ptr [ebp+T2]            ; Attacking piece type
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-ATKSAV: CALLBACK "ATKSAV"
+ATKSAV: CALLBACK_TRACE_DETAILED "ATKSAV"
         PUSH    ecx                             ; Save Regs BC
         PUSH    edx                             ; Save Regs DE
         MOV     al,byte ptr [ebp+NPINS]         ; Number of pinned pieces
@@ -1439,7 +1455,7 @@ AS25:   POP     edx                             ; Restore DE regs
 ; ARGUMENTS:  --  The direction of the attack. The
 ;                 pinned piece counnt.
 ;***********************************************************
-PNCK:   CALLBACK "PNCK"                              
+PNCK:   CALLBACK_TRACE_DETAILED "PNCK"
         MOV     dh,cl                           ; Save attack direction
         MOV     dl,0                            ; Clear flag
         MOV     cl,al                           ; Load pin count for search
@@ -1486,7 +1502,7 @@ PC5:    POP     eax                             ; Abnormal exit
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-PINFND: CALLBACK "PINFND"
+PINFND: CALLBACK_TRACE_DETAILED "PINFND"
         XOR     al,al                           ; Zero pin count
         MOV     byte ptr [ebp+NPINS],al
         MOV     dx,POSK                         ; Addr of King/Queen pos list
@@ -1597,7 +1613,7 @@ PF27:   JMP     PF2                             ; Jump
 ;
 ; ARGUMENTS:  --  None.
 ;***********************************************************
-XCHNG:  CALLBACK "XCHNG"
+XCHNG:  CALLBACK_TRACE_DETAILED "XCHNG"
         Z80_EXX                                 ; Swap regs.
         MOV     al,byte ptr [ebp+P1]            ; Piece attacked
         MOV     bx,WACT                         ; Addr of white attkrs/dfndrs
@@ -1668,7 +1684,7 @@ skip18:
 ;                 Side flag
 ;                 Attack list counts
 ;***********************************************************
-NEXTAD: CALLBACK "NEXTAD"
+NEXTAD: CALLBACK_TRACE_DETAILED "NEXTAD"
         INC     cl                              ; Increment side flag
         Z80_EXX                                 ; Swap registers
         MOV     al,ch                           ; Swap list counts
@@ -1735,7 +1751,7 @@ NX6:    Z80_EXX                                 ; Restore regs.
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-POINTS: CALLBACK "POINTS"
+POINTS: CALLBACK_TRACE_DETAILED "POINTS"
         XOR     al,al                           ; Zero out variables
         MOV     byte ptr [ebp+MTRL],al
         MOV     byte ptr [ebp+BRDC],al
@@ -1949,7 +1965,7 @@ skip20:
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-MOVE:   CALLBACK "MOVE"
+MOVE:   CALLBACK_TRACE_DETAILED "MOVE"
         MOV     bx,word ptr [ebp+MLPTRJ]        ; Load move list pointer
         INC     bx                              ; Increment past link bytes
         INC     bx
@@ -2024,7 +2040,7 @@ MV40:   MOV     bx,word ptr [ebp+MLPTRJ]        ; Get move list pointer
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-UNMOVE: CALLBACK "UNMOVE"
+UNMOVE: CALLBACK_TRACE_DETAILED "UNMOVE"
         MOV     bx,word ptr [ebp+MLPTRJ]        ; Load move list pointer
         INC     bx                              ; Increment past link bytes
         INC     bx
@@ -2100,7 +2116,7 @@ UM40:   MOV     bx,word ptr [ebp+MLPTRJ]        ; Load move list pointer
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-SORTM:  CALLBACK "SORTM"
+SORTM:  CALLBACK_TRACE_DETAILED "SORTM"
         MOV     cx,word ptr [ebp+MLPTRI]        ; Move list begin pointer
         MOV     dx,0                            ; Initialize working pointers
 SR5:    MOV     bh,ch
@@ -2156,7 +2172,7 @@ SR30:   XCHG    bx,dx                           ; Swap pointers
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-EVAL:   CALLBACK "EVAL"
+EVAL:   CALLBACK_TRACE_DETAILED "EVAL"
         CALL    MOVE                            ; Make move on the board array
         CALL    INCHK                           ; Determine if move is legal
         AND     al,al                           ; Legal move ?
@@ -2187,7 +2203,7 @@ EV10:   CALL    UNMOVE                          ; Restore board array
 ;
 ; ARGUMENTS:  --  None
 ;***********************************************************
-FNDMOV: CALLBACK "FNDMOV"
+FNDMOV: CALLBACK_TRACE_DETAILED "FNDMOV"
         MOV     al,byte ptr [ebp+MOVENO]        ; Current move number
         CMP     al,1                            ; First move ?
         JNZ     skip24                          ; Yes - execute book opening
@@ -2365,7 +2381,7 @@ FM40:   CALL    ASCEND                          ; Ascend one ply in tree
 ;
 ; ARGUMENTS: --  None
 ;***********************************************************
-ASCEND: CALLBACK "ASCEND"
+ASCEND: CALLBACK_TRACE_DETAILED "ASCEND"
         MOV     bx,COLOR                        ; Toggle color
         MOV     al,80H
         XOR     al,byte ptr [ebp+ebx]

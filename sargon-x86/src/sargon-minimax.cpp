@@ -1318,26 +1318,27 @@ extern "C" {
         else if( 0 == strcmp(msg,"Alpha beta cutoff?") ) cb = CB_ALPHA_BETA_CUTOFF;
 
         #ifdef BRIDGE_CALLBACK_TRACE_DETAILED
+        // Check in order of frequency of function called (as established by a separate experiment)_
         else if( 0 == strcmp(msg,"PATH"  ) )             cb = CB_PATH;
-        else if( 0 == strcmp(msg,"MPIECE") )             cb = CB_MPIECE;
-        else if( 0 == strcmp(msg,"ENPSNT") )             cb = CB_ENPSNT;
-        else if( 0 == strcmp(msg,"ADJPTR") )             cb = CB_ADJPTR;
-        else if( 0 == strcmp(msg,"CASTLE") )             cb = CB_CASTLE;
-        else if( 0 == strcmp(msg,"ADMOVE") )             cb = CB_ADMOVE;
-        else if( 0 == strcmp(msg,"GENMOV") )             cb = CB_GENMOV;
-        else if( 0 == strcmp(msg,"ATTACK") )             cb = CB_ATTACK;
         else if( 0 == strcmp(msg,"ATKSAV") )             cb = CB_ATKSAV;
+        else if( 0 == strcmp(msg,"ATTACK") )             cb = CB_ATTACK;
         else if( 0 == strcmp(msg,"PNCK"  ) )             cb = CB_PNCK;
-        else if( 0 == strcmp(msg,"PINFND") )             cb = CB_PINFND;
-        else if( 0 == strcmp(msg,"XCHNG" ) )             cb = CB_XCHNG;
         else if( 0 == strcmp(msg,"NEXTAD") )             cb = CB_NEXTAD;
-        else if( 0 == strcmp(msg,"POINTS") )             cb = CB_POINTS;
+        else if( 0 == strcmp(msg,"XCHNG" ) )             cb = CB_XCHNG;
+        else if( 0 == strcmp(msg,"ADMOVE") )             cb = CB_ADMOVE;
         else if( 0 == strcmp(msg,"MOVE"  ) )             cb = CB_MOVE;
         else if( 0 == strcmp(msg,"UNMOVE") )             cb = CB_UNMOVE;
-        else if( 0 == strcmp(msg,"SORTM" ) )             cb = CB_SORTM;
+        else if( 0 == strcmp(msg,"POINTS") )             cb = CB_POINTS;
+        else if( 0 == strcmp(msg,"PINFND") )             cb = CB_PINFND;
+        else if( 0 == strcmp(msg,"MPIECE") )             cb = CB_MPIECE;
         else if( 0 == strcmp(msg,"EVAL"  ) )             cb = CB_EVAL;
-        else if( 0 == strcmp(msg,"FNDMOV") )             cb = CB_FNDMOV;
+        else if( 0 == strcmp(msg,"ENPSNT") )             cb = CB_ENPSNT;
+        else if( 0 == strcmp(msg,"GENMOV") )             cb = CB_GENMOV;
+        else if( 0 == strcmp(msg,"CASTLE") )             cb = CB_CASTLE;
         else if( 0 == strcmp(msg,"ASCEND") )             cb = CB_ASCEND;
+        else if( 0 == strcmp(msg,"SORTM" ) )             cb = CB_SORTM;
+        else if( 0 == strcmp(msg,"ADJPTR") )             cb = CB_ADJPTR;
+        else if( 0 == strcmp(msg,"FNDMOV") )             cb = CB_FNDMOV;
         #endif
 
         // Unknown Callback, do nothing
