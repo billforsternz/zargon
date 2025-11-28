@@ -43,6 +43,7 @@ void DIVIDE();
 void MLTPLY();
 void EXECMV();
 
+// Provide ptr to the 64K emulated memory
 struct emulated_memory;
 emulated_memory *zargon_get_ptr_emulated_memory();
 
@@ -50,86 +51,83 @@ emulated_memory *zargon_get_ptr_emulated_memory();
 //  at some point we will probably rename this to simply
 //  zargon_data or similar
 struct emulated_memory {
-//                                                                         //0026: ;***********************************************************
-// 1) TABLES                                                               //0027: ; TABLES SECTION
-//                                                                         //0028: ;***********************************************************
-//***********************************************************              //0029: START:
-// TABLES SECTION                                                          //0030:         ORG     START+80H
-//***********************************************************
-//                                                                         //         (Numbered lines of original Z80 Sargon code on the right)
-//There are multiple tables used for fast table look ups
-//that are declared relative to TBASE. In each case there
-//is a table (say DIRECT) and one or more variables that
-//index into the table (say INDX2). The table is declared
-//as a relative offset from the TBASE like this;
-//
-//DIRECT = .-TBASE  ;In this . is the current location
-//                  ;($ rather than . is used in most assemblers)
-//
-//The index variable is declared as;
-//INDX2    .WORD TBASE
-//
-//TBASE itself is page aligned, for example TBASE = 100h
-//Although 2 bytes are allocated for INDX2 the most significant
-//never changes (so in our example it's 01h). If we want
-//to index 5 bytes into DIRECT we set the low byte of INDX2
-//to 5 (now INDX2 = 105h) and load IDX2 into an index
-//register. The following sequence loads register C with
-//the 5th byte of the DIRECT table (Z80 mnemonics)
-//        LD      A,5
-//        LD      [INDX2],A
-//        LD      IY,[INDX2]
-//        LD      C,[IY+DIRECT]
-//
-//It's a bit like the little known C trick where array[5]
-//can also be written as 5[array].
-//
-//The Z80 indexed addressing mode uses a signed 8 bit
-//displacement offset (here DIRECT) in the range -128
-//to 127. Sargon needs most of this range, which explains
-//why DIRECT is allocated 80h bytes after start and 80h
-//bytes *before* TBASE, this arrangement sets the DIRECT
-//displacement to be -80h bytes (-128 bytes). After the 24
-//byte DIRECT table comes the DPOINT table. So the DPOINT
-//displacement is -128 + 24 = -104. The final tables have
-//positive displacements.
-//
-//The negative displacements are not necessary in X86 where
-//the equivalent mov reg,[di+offset] indexed addressing
-//is not limited to 8 bit offsets, so in the X86 port we
-//put the first table DIRECT at the same address as TBASE,
-//a more natural arrangement I am sure you'll agree.
-//
-//In general it seems Sargon doesn't want memory allocated
-//in the first page of memory, so we start TBASE at 100h not
-//at 0h. One reason is that Sargon extensively uses a trick
-//to test for a NULL pointer; it tests whether the hi byte of
-//a pointer == 0 considers this as a equivalent to testing
-//whether the whole pointer == 0 (works as long as pointers
-//never point to page 0).
-//
-//Also there is an apparent bug in Sargon, such that MLPTRJ
-//is left at 0 for the root node and the MLVAL for that root
-//node is therefore written to memory at offset 5 from 0 (so
-//in page 0). It's a bit wasteful to waste a whole 256 byte
-//page for this, but it is compatible with the goal of making
-//as few changes as possible to the inner heart of Sargon.
-//In the X86 port we lock the uninitialised MLPTRJ bug down
-//so MLPTRJ is always set to zero and rendering the bug
-//harmless (search for MLPTRJ to find the relevant code).
-//
 
+//***********************************************************              //0026: ;***********************************************************
+// TABLES SECTION                                                          //0027: ; TABLES SECTION
+//***********************************************************              //0028: ;***********************************************************
+//                                                                         //0029: START:
+//                                                                         //0030:         ORG     START+80H
 // Note that as much as possible #defines have been commented out
-//  to avoid polluting the global namespace, they are collected
+//  to avoid polluting the global namespace, they are collected            //         (Numbered lines of original Z80 Sargon code on the right)
 //  together in zargon.cpp instead
 #define TBASE 0x100     // The following tables begin at this              //0031: TBASE   EQU     START+100H
-                        //  low but non-zero page boundary in              //0032: ;There are multiple tables used for fast table look ups
-                        //  in our 64K emulated memory                     //0033: ;that are declared relative to TBASE. In each case there
-                                                   //0034: ;is a table (say DIRECT) and one or more variables that
-                                                                           //0035: ;index into the table (say INDX2). The table is declared
-uint8_t padding[TBASE];                                                    //0036: ;as a relative offset from the TBASE like this;
-//**********************************************************               //0037: ;
-// DIRECT  --  Direction Table.  Used to determine the dir-                // (lines 38-93 omitted) 0094: ; DIRECT  --  Direction Table.  Used to determine the dir-
+                        //  low but non-zero page boundary in
+                        //  in our 64K emulated memory
+uint8_t padding[TBASE];
+
+//There are multiple tables used for fast table look ups                   //0032: ;There are multiple tables used for fast table look ups
+//that are declared relative to TBASE. In each case there                  //0033: ;that are declared relative to TBASE. In each case there
+//is a table (say DIRECT) and one or more variables that                   //0034: ;is a table (say DIRECT) and one or more variables that
+//index into the table (say INDX2). The table is declared                  //0035: ;index into the table (say INDX2). The table is declared
+//as a relative offset from the TBASE like this;                           //0036: ;as a relative offset from the TBASE like this;
+//                                                                         //0037: ;
+//DIRECT = .-TBASE  ;In this . is the current location                     //0038: ;DIRECT = .-TBASE  ;In this . is the current location
+//                  ;($ rather than . is used in most assemblers)          //0039: ;                  ;($ rather than . is used in most assemblers)
+//                                                                         //0040: ;
+//The index variable is declared as;                                       //0041: ;The index variable is declared as;
+//INDX2    .WORD TBASE                                                     //0042: ;INDX2    .WORD TBASE
+//                                                                         //0043: ;
+//TBASE itself is page aligned, for example TBASE = 100h                   //0044: ;TBASE itself is page aligned, for example TBASE = 100h
+//Although 2 bytes are allocated for INDX2 the most significant            //0045: ;Although 2 bytes are allocated for INDX2 the most significant
+//never changes (so in our example it's 01h). If we want                   //0046: ;never changes (so in our example it's 01h). If we want
+//to index 5 bytes into DIRECT we set the low byte of INDX2                //0047: ;to index 5 bytes into DIRECT we set the low byte of INDX2
+//to 5 (now INDX2 = 105h) and load IDX2 into an index                      //0048: ;to 5 (now INDX2 = 105h) and load IDX2 into an index
+//register. The following sequence loads register C with                   //0049: ;register. The following sequence loads register C with
+//the 5th byte of the DIRECT table (Z80 mnemonics)                         //0050: ;the 5th byte of the DIRECT table (Z80 mnemonics)
+//        LD      A,5                                                      //0051: ;        LD      A,5
+//        LD      [INDX2],A                                                //0052: ;        LD      [INDX2],A
+//        LD      IY,[INDX2]                                               //0053: ;        LD      IY,[INDX2]
+//        LD      C,[IY+DIRECT]                                            //0054: ;        LD      C,[IY+DIRECT]
+//                                                                         //0055: ;
+//It's a bit like the little known C trick where array[5]                  //0056: ;It's a bit like the little known C trick where array[5]
+//can also be written as 5[array].                                         //0057: ;can also be written as 5[array].
+//                                                                         //0058: ;
+//The Z80 indexed addressing mode uses a signed 8 bit                      //0059: ;The Z80 indexed addressing mode uses a signed 8 bit
+//displacement offset (here DIRECT) in the range -128                      //0060: ;displacement offset (here DIRECT) in the range -128
+//to 127. Sargon needs most of this range, which explains                  //0061: ;to 127. Sargon needs most of this range, which explains
+//why DIRECT is allocated 80h bytes after start and 80h                    //0062: ;why DIRECT is allocated 80h bytes after start and 80h
+//bytes *before* TBASE, this arrangement sets the DIRECT                   //0063: ;bytes *before* TBASE, this arrangement sets the DIRECT
+//displacement to be -80h bytes (-128 bytes). After the 24                 //0064: ;displacement to be -80h bytes (-128 bytes). After the 24
+//byte DIRECT table comes the DPOINT table. So the DPOINT                  //0065: ;byte DIRECT table comes the DPOINT table. So the DPOINT
+//displacement is -128 + 24 = -104. The final tables have                  //0066: ;displacement is -128 + 24 = -104. The final tables have
+//positive displacements.                                                  //0067: ;positive displacements.
+//                                                                         //0068: ;
+//The negative displacements are not necessary in X86 where                //0069: ;The negative displacements are not necessary in X86 where
+//the equivalent mov reg,[di+offset] indexed addressing                    //0070: ;the equivalent mov reg,[di+offset] indexed addressing
+//is not limited to 8 bit offsets, so in the X86 port we                   //0071: ;is not limited to 8 bit offsets, so in the X86 port we
+//put the first table DIRECT at the same address as TBASE,                 //0072: ;put the first table DIRECT at the same address as TBASE,
+//a more natural arrangement I am sure you'll agree.                       //0073: ;a more natural arrangement I am sure you'll agree.
+//                                                                         //0074: ;
+//In general it seems Sargon doesn't want memory allocated                 //0075: In general it seems Sargon doesn't want memory allocated
+//in the first page of memory, so we start TBASE at 100h not               //0076: ;in the first page of memory, so we start TBASE at 100h not
+//at 0h. One reason is that Sargon extensively uses a trick                //0077: ;at 0h. One reason is that Sargon extensively uses a trick
+//to test for a NULL pointer; it tests whether the hi byte of              //0078: ;to test for a NULL pointer; it tests whether the hi byte of
+//a pointer == 0 considers this as a equivalent to testing                 //0079: ;a pointer == 0 considers this as a equivalent to testing
+//whether the whole pointer == 0 (works as long as pointers                //0080: ;whether the whole pointer == 0 (works as long as pointers
+//never point to page 0).                                                  //0081: ;never point to page 0).
+//                                                                         //0082: ;
+//Also there is an apparent bug in Sargon, such that MLPTRJ                //0083: ;Also there is an apparent bug in Sargon, such that MLPTRJ
+//is left at 0 for the root node and the MLVAL for that root               //0084: ;is left at 0 for the root node and the MLVAL for that root
+//node is therefore written to memory at offset 5 from 0 (so               //0085: ;node is therefore written to memory at offset 5 from 0 (so
+//in page 0). It's a bit wasteful to waste a whole 256 byte                //0086: ;in page 0). It's a bit wasteful to waste a whole 256 byte
+//page for this, but it is compatible with the goal of making              //0087: ;page for this, but it is compatible with the goal of making
+//as few changes as possible to the inner heart of Sargon.                 //0088: ;as few changes as possible to the inner heart of Sargon.
+//In the X86 port we lock the uninitialised MLPTRJ bug down                //0089: ;In the X86 port we lock the uninitialised MLPTRJ bug down
+//so MLPTRJ is always set to zero and rendering the bug                    //0090: ;so MLPTRJ is always set to zero and rendering the bug
+//harmless (search for MLPTRJ to find the relevant code).                  //0091: ;harmless (search for MLPTRJ to find the relevant code).
+//                                                                         //0092:
+//**********************************************************               //0093: ;**********************************************************
+// DIRECT  --  Direction Table.  Used to determine the dir-                //0094: ; DIRECT  --  Direction Table.  Used to determine the dir-
 //             ection of movement of each piece.                           //0095: ;             ection of movement of each piece.
 //***********************************************************              //0096: ;***********************************************************
 // #define DIRECT (addr(direct)-TBASE)                                     //0097: DIRECT  EQU     $-TBASE
@@ -159,18 +157,16 @@ uint8_t dpoint[7] = {                                                      //011
 // #define DCOUNT (addr(dcount)-TBASE)                                     //0117: DCOUNT  EQU     $-TBASE
 uint8_t dcount[7] = {                                                      //0118:         DB      4,4,8,4,4,8,8
     4,4,8,4,4,8,8                                                          //0119:
-};                                                                         //0120: ;***********************************************************
-                                                                           //0121: ; PVALUE  --  Point Value. Gives the point value of each
-                                                                           //0122: ;             piece, or the worth of each piece.
+};
+
+//***********************************************************              //0120: ;***********************************************************
+// PVALUE  --  Point Value. Gives the point value of each                  //0121: ; PVALUE  --  Point Value. Gives the point value of each
+//             piece, or the worth of each piece.                          //0122: ;             piece, or the worth of each piece.
 //***********************************************************              //0123: ;***********************************************************
-// PVALUE  --  Point Value. Gives the point value of each
-//             piece, or the worth of each piece.
-//***********************************************************
-// #define PVALUE (addr(pvalue)-TBASE-1)  //TODO what's this minus 1 about?//0124: PVALUE  EQU     $-TBASE-1
+// #define PVALUE (addr(pvalue)-TBASE-1)  //-1 because PAWN is 1 not 0     //0124: PVALUE  EQU     $-TBASE-1
 uint8_t pvalue[6] = {                                                      //0125:         DB      1,3,3,5,9,10
     1,3,3,5,9,10                                                           //0126:
 };
-
 
 //***********************************************************              //0127: ;***********************************************************
 // PIECES  --  The initial arrangement of the first rank of                //0128: ; PIECES  --  The initial arrangement of the first rank of
@@ -223,7 +219,6 @@ uint8_t pieces[8] = {                                                      //013
 // #define BOARD (addr(BOARDA)-TBASE)                                      //0173: BOARD   EQU     $-TBASE
 uint8_t BOARDA[120];                                                       //0174: BOARDA  DS      120
                                                                            //0175:
-
 //***********************************************************              //0176: ;***********************************************************
 // ATKLIST -- Attack List. A two part array, the first                     //0177: ; ATKLIST -- Attack List. A two part array, the first
 //            half for white and the second half for black.                //0178: ;            half for white and the second half for black.
@@ -277,12 +272,12 @@ uint8_t     POSQ[2] = {                                                    //021
 };
 int8_t padding2 = -1;
 
-//***********************************************************
-// SCORE   --  Score Array. Used during Alpha-Beta pruning to              //0215: ;***********************************************************
-//             hold the scores at each ply. It includes two                //0216: ; SCORE   --  Score Array. Used during Alpha-Beta pruning to
-//             "dummy" entries for ply -1 and ply 0.                       //0217: ;             hold the scores at each ply. It includes two
-//***********************************************************              //0218: ;             "dummy" entries for ply -1 and ply 0.
-uint8_t padding3[44];                                                      //0219: ;***********************************************************
+//***********************************************************              //0215: ;***********************************************************
+// SCORE   --  Score Array. Used during Alpha-Beta pruning to              //0216: ; SCORE   --  Score Array. Used during Alpha-Beta pruning to
+//             hold the scores at each ply. It includes two                //0217: ;             hold the scores at each ply. It includes two
+//             "dummy" entries for ply -1 and ply 0.                       //0218: ;             "dummy" entries for ply -1 and ply 0.
+//***********************************************************              //0219: ;***********************************************************
+uint8_t padding3[44];
 uint16_t    SCORE[20] = {                                                  //0220: SCORE   DW      0,0,0,0,0,0     ;Z80 max 6 ply
     0,0,0,0,0,0,0,0,0,0,                // Z80 max 6 ply                   //0221:
     0,0,0,0,0,0,0,0,0,0                 // x86 max 20 ply
@@ -358,11 +353,11 @@ uint16_t BESTM   =      0;                                                 //028
 uint16_t MLLST   =      0;                                                 //0288: MLLST   DW      0
 uint16_t MLNXT   =      offsetof(emulated_memory,MLIST);                   //0289: MLNXT   DW      MLIST
                                                                            //0290:
-//                                                                         //0291: ;***********************************************************
+//
 // 3) MISC VARIABLES
 //
 
-//***********************************************************
+//***********************************************************              //0291: ;***********************************************************
 // VARIABLES SECTION                                                       //0292: ; VARIABLES SECTION
 //                                                                         //0293: ;
 // KOLOR   --  Indicates computer's color. White is 0, and                 //0294: ; KOLOR   --  Indicates computer's color. White is 0, and
@@ -520,7 +515,7 @@ class zargon_data_defs_check_and_regen
     public:
     zargon_data_defs_check_and_regen()
     {
-        bool match = 
+        bool match =
                (BOARDA == offsetof(emulated_memory,BOARDA) )
             && (ATKLST == offsetof(emulated_memory,ATKLST) )
             && (PLISTA == offsetof(emulated_memory,PLISTA) )
@@ -631,3 +626,4 @@ class zargon_data_defs_check_and_regen
 };
 
 #endif // ZARGON_H_INCLUDED
+

@@ -70,9 +70,9 @@
 #define CALLu(func)     (func)()
 #define FLAGS_IN        gbl_z80_cpu.F = ((CY?1:0) + (Z?2:0) + (M?4:0) + (PO?8:0)) 
 #define FLAGS_OUT       PO=((gbl_z80_cpu.F&8)==8), M=((gbl_z80_cpu.F&4)==4), Z=((gbl_z80_cpu.F&2)==2), CY=((gbl_z80_cpu.F&1)==1) 
-#define PUSHf(x)        FLAGS_IN, gbl_z80_cpu.stack[--gbl_z80_cpu.sp] = (x)
+#define PUSHf(x)        FLAGS_IN, gbl_z80_cpu.stack[--gbl_z80_cpu.sp] = (x); if( gbl_z80_cpu.sp < min_so_far )  min_so_far = gbl_z80_cpu.sp
 #define POPf(x)         (x) = gbl_z80_cpu.stack[gbl_z80_cpu.sp++], FLAGS_OUT
-#define PUSH(x)         gbl_z80_cpu.stack[--gbl_z80_cpu.sp] = (x)
+#define PUSH(x)         gbl_z80_cpu.stack[--gbl_z80_cpu.sp] = (x); if( gbl_z80_cpu.sp < min_so_far )  min_so_far = gbl_z80_cpu.sp
 #define POP(x)          (x) = gbl_z80_cpu.stack[gbl_z80_cpu.sp++]
 #define Z80_EXAF        FLAGS_IN, EX(af,gbl_z80_cpu.ex_af), FLAGS_OUT
 #define NIB_OUT(x,hi,lo)  hi=(((x)>>4)&0x0f), lo=((x)&0x0f)
