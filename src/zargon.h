@@ -21,7 +21,7 @@ void INCHK();
 void INCHK1();
 void ATTACK();
 void ATKSAV();
-void PNCK();
+bool PNCK();
 void PINFND();
 void XCHNG();
 void NEXTAD();
