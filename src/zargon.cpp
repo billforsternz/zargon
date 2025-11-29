@@ -1220,7 +1220,7 @@ void attack_c()
     m.P2 = 0;
     const uint8_t *dir_ptr = (uint8_t *)m.direct;
     bool attacker_found = false;    // return value
-    
+
     // Direction loop
     for( uint8_t dir_count=16; dir_count>0; dir_count-- )
     {
@@ -1450,7 +1450,7 @@ void attack_c()
 // ARGUMENTS:  --  None                                                    //1041: ; ARGUMENTS:  --  None
 //***********************************************************              //1042: ;***********************************************************
 static bool abnormal_exit;
-void ATKSAV() {
+void ATKSAV_asm() {
         callback_zargon_bridge(CB_ATKSAV);
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
@@ -1497,7 +1497,147 @@ AS20:   LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list  //107
 AS25:   POP     (de);                   //  Restore DE regs                //1078: AS25:   POP     de              ; Restore DE regs
         POP     (bc);                   //  Restore BC regs                //1079:         POP     bc              ; Restore BC regs
         RETu;                           //  Return                         //1080:         RET                     ; Return
- }                                                                         //1081:
+}                                                                         //1081:
+
+void atksav_c()
+{
+//       callback_zargon_bridge(CB_ATKSAV);
+//       PUSH    (bc);                   //  Save Regs BC
+//       PUSH    (de);                   //  Save Regs DE
+//       LD      (a,val(NPINS));         //  Number of pinned pieces
+//       AND     (a);                    //  Any ?
+//       abnormal_exit = false;
+//       CALL    (NZ,PNCK);              //  yes - check pin list
+//       if( abnormal_exit )
+//       {
+//           POP(de);
+//           POP(bc);
+//           RETu;
+//       }
+    callback_zargon_bridge(CB_ATKSAV);
+    uint16_t save_bc = bc;
+    uint16_t save_de = de;
+    a = m.NPINS;
+    if( a != 0 )
+    {
+        abnormal_exit = false;
+        PNCK();
+        if( abnormal_exit )
+        {
+            bc = save_bc;
+            de = save_de;
+            return;
+        }
+    }
+//         LD      (ix,v16(T2));           //  Init index to value table
+//         LD      (hl,addr(ATKLST));      //  Init address of attack list
+//         LD      (bc,0);                 //  Init increment for white
+//         LD      (a,val(P2));            //  Attacking piece
+//         BIT     (7,a);                  //  Is it white ?
+//         JR      (Z,rel006);             //  Yes - jump
+//         LD      (c,7);                  //  Init increment for black
+    uint8_t *p = &m.wact[0];
+    bc = 0;
+    if( (m.P2&0x80) != 0 )
+        c = 7;
+
+// rel006: AND     (7);                    //  Attacking piece type
+//         LD      (e,a);                  //  Init increment for type
+//         BIT     (7,d);                  //  Queen found this scan ?
+//         JR      (Z,rel007);             //  No - jump
+//         LD      (e,QUEEN);              //  Use Queen slot in attack list
+// rel007: ADD16   (hl,bc);                //  Attack list address
+//         INC     (ptr(hl));              //  Increment list count
+//         LD      (d,0);
+//         ADD16   (hl,de);                //  Attack list slot address
+//         LD      (a,ptr(hl));            //  Get data already there
+//         AND     (0x0f);                 //  Is first slot empty ?
+//         JR      (Z,AS20);               //  Yes - jump
+    e = m.P2 & 0x07;
+    if( (d&0x80) != 0 )
+        e = QUEEN;
+    p += bc;
+    (*p)++;
+    d = 0;
+    p += de;
+
+#if 1
+    if( (*p&0x0f)!=0 && (*p&0xf0)==0 )
+    {
+        a = *p & 0xf0;
+        uint8_t nib1, nib2, nib3, nib4;
+        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+        /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
+        uint8_t *pvalue = &m.pvalue[0] - 1;
+        a = pvalue[m.T2];
+        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+        /*NIB_IN (a,nib1,nib4);*/ NIB_IN( *p,nib2,nib3);
+    }
+    else
+    {
+        if( (*p&0x0f) != 0 )
+            p++;
+        // AS20:   LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
+        //         RLD;                            //  Put in 1st attack list slot
+        uint8_t *pvalue = &m.pvalue[0] - 1;
+        a = pvalue[m.T2];
+        uint8_t nib1, nib2, nib3, nib4;
+        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+        /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
+    }
+#else
+    a = *p & 0x0f;
+    if( a != 0 )
+    {
+        //         LD      (a,ptr(hl));            //  Get data again
+        //         AND     (0xf0);                 //  Is second slot empty ?
+        //         JR      (Z,AS19);               //  Yes - jump
+        //         INC16   (hl);                   //  Increment to King slot
+        //         JRu     (AS20);                 //  Jump
+        // AS19:   RLD;                            //  Temp save lower in upper
+        //         LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
+        //         RRD;                            //  Put in 2nd attack list slot
+        //         JRu     (AS25);                 //  Jump
+        a = *p & 0xf0;
+        if( a != 0 )
+        {
+            p++;
+            //AS20:
+            uint8_t *pvalue = &m.pvalue[0] - 1;
+            a = pvalue[m.T2];
+            uint8_t nib1, nib2, nib3, nib4;
+            NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+            /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
+        }
+        else
+        {
+            uint8_t nib1, nib2, nib3, nib4;
+            NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+            /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
+            uint8_t *pvalue = &m.pvalue[0] - 1;
+            a = pvalue[m.T2];
+            NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+            /*NIB_IN (a,nib1,nib4);*/ NIB_IN( *p,nib2,nib3);
+        }
+    }
+    else
+    {
+        // AS20:   LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
+        //         RLD;                            //  Put in 1st attack list slot
+        uint8_t *pvalue = &m.pvalue[0] - 1;
+        a = pvalue[m.T2];
+        uint8_t nib1, nib2, nib3, nib4;
+        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+        /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
+    }
+
+#endif
+ //AS25:   POP     (de);                   //  Restore DE regs
+ //        POP     (bc);                   //  Restore BC regs
+ //        RETu;                           //  Return
+    bc = save_bc;
+    de = save_de;
+}
 
 //***********************************************************              //1082: ;***********************************************************
 // PIN CHECK ROUTINE                                                       //1083: ; PIN CHECK ROUTINE
