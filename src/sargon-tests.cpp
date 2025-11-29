@@ -20,8 +20,6 @@
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "sargon-pv.h"
-#include "bridge.h"
-#include "zargon.h"
 
 // Individual tests
 bool sargon_position_tests( bool quiet, int comprehensive );
@@ -716,9 +714,9 @@ bool sargon_position_tests( bool quiet, int comprehensive )
     thc::ChessPosition cp, cp2;
     std::string en_passant_fen1 = "r4rk1/pb1pq1pp/5p2/2ppP3/5P2/2Q5/PPP3PP/2KR1B1R w - c6 0 15";
     cp.Forsyth( en_passant_fen1.c_str() );   // en passant provides a good workout on import and export
-    printf( "Temporary startup message: prelim 1\n" );
+    // printf( "Temporary startup message: prelim 1\n" );
     sargon_import_position(cp);
-    printf( "Temporary startup message: prelim 2\n" );
+    // printf( "Temporary startup message: prelim 2\n" );
     sargon_export_position(cp2);
     std::string en_passant_fen2 = cp2.ForsythPublish();
     if( en_passant_fen2 != en_passant_fen1 )

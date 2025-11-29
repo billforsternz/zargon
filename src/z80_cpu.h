@@ -50,8 +50,10 @@ struct z80_cpu
     uint16_t  ex_bc,ex_de,ex_hl;
     uint16_t  ex_af;
     uint16_t  ex_temp;
-    uint16_t  stack[2048];     
-    uint16_t  sp = 2048;
+    uint16_t  stack[128];  // actually an even smaller stack would be fine, a
+                           //  temporary separate experiment measured the max
+                           //  depth as 7 (!) words
+    uint16_t  sp = 128;
     uint8_t   nib1,nib2,nib3,nib4;
 };
 

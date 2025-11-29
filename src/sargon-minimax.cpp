@@ -20,8 +20,6 @@
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "sargon-pv.h"
-#include "bridge.h"
-#include "z80_cpu.h"
 
 // Entry points
 void sargon_minimax_main();
