@@ -1107,7 +1107,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
 //                                                                         //0926: ;
 // ARGUMENTS:  --  None                                                    //0927: ; ARGUMENTS:  --  None
 //***********************************************************              //0928: ;***********************************************************
-void ATTACK() {
+void ATTACK_asm() {
         callback_zargon_bridge(CB_ATTACK);
         PUSH    (bc);                   //  Save Register B                //0929: ATTACK: PUSH    bc              ; Save Register B
         XOR     (a);                    //  Clear                          //0930:         XOR     a               ; Clear
@@ -1205,8 +1205,233 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
         CP      (KNIGHT);               //  Is it a Knight ?               //1022:         CP      KNIGHT          ; Is it a Knight ?
         JP      (Z,AT12);               //  Yes - jump                     //1023:         JP      Z,AT12          ; Yes - jump
         JPu     (AT10);                 //  Jump                           //1024:         JP      AT10            ; Jump
- }
-                                                                           //1025:
+}
+
+void attack_c()
+{
+    //         callback_zargon_bridge(CB_ATTACK);
+    //         PUSH    (bc);                   //  Save Register B
+    //         XOR     (a);                    //  Clear
+    //         LD      (b,16);                 //  Initial direction count
+    //         LD      (val(INDX2),a);         //  Initial direction index
+    //         LD      (iy,v16(INDX2));        //  Load index
+    callback_zargon_bridge(CB_ATTACK);
+    uint16_t save_bc = bc;
+    m.P2 = 0;
+    const uint8_t *dir_ptr = (uint8_t *)m.direct;
+    bool attacker_found = false;    // return value
+    
+    // Direction loop
+    for( uint8_t dir_count=16; dir_count>0; dir_count-- )
+    {
+
+        // AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction
+        //         LD      (d,0);                  //  Init. scan count/flags
+        //         LD      (a,val(M3));            //  Init. board start position
+        //         LD      (val(M2),a);            //  Save
+        c = *dir_ptr++;
+        d = 0;
+        m.M2 = m.M3;
+
+        // Stepping loop
+        for(;;)
+        {
+
+            // AT10:   INC     (d);                    //  Increment scan count
+            //         CALLu   (PATH);                 //  Next position
+            //         CP      (1);                    //  Piece of a opposite color ?
+            //         JR      (Z,AT14A);              //  Yes - jump
+            //         CP      (2);                    //  Piece of same color ?
+            //         JR      (Z,AT14B);              //  Yes - jump
+            //         AND     (a);                    //  Empty position ?
+            //         JR      (NZ,AT12);              //  No - jump
+            //         LD      (a,b);                  //  Fetch direction count
+            //         CP      (9);                    //  On knight scan ?
+            //         JR      (NC,AT10);              //  No - jump
+            d++;
+            PATH();
+
+            // PATH() return values
+            // 0  --  New position is empty
+            // 1  --  Encountered a piece of the opposite color
+            // 2  --  Encountered a piece of the same color
+            // 3  --  New position is off the board
+            if( a==0 && dir_count>=9 )
+                continue; // empty square, not a knight, keep stepping
+            if( a==0 || a==3 )
+                break;  // break to stop stepping
+            if( a == 1)
+            {
+                // 1  --  Encountered a piece of the opposite color
+                // AT14A:  BIT     (6,d);                  //  Same color found already ?
+                //         JR      (NZ,AT12);              //  Yes - jump
+                //         SET     (5,d);                  //  Set opposite color found flag
+                //         JPu     (AT14);                 //  Jump
+                if( (d&0x40) != 0 )
+                    break;
+                d |= 0x20;
+            }
+            else if( a == 2 )
+            {
+                // 2  --  Encountered a piece of the same color
+                // AT14B:  BIT     (5,d);                  //  Opposite color found already?
+                //         JR      (NZ,AT12);              //  Yes - jump
+                //         SET     (6,d);                  //  Set same color found flag
+                if( (d&0x20) != 0 )
+                    break;
+                d |= 0x40;
+            }
+
+            //  Encountered a piece of either colour
+            //
+            //  ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****
+            //
+
+            // AT14:   LD      (a,val(T2));            //  Fetch piece type encountered
+            //         LD      (e,a);                  //  Save
+            //         LD      (a,b);                  //  Get direction-counter
+            //         CP      (9);                    //  Look for Knights ?
+            //         JR      (CY,AT25);              //  Yes - jump
+            //         LD      (a,e);                  //  Get piece type
+            //         CP      (QUEEN);                //  Is is a Queen ?
+            //         JR      (NZ,AT15);              //  No - Jump
+            //         SET     (7,d);                  //  Set Queen found flag
+            //         JRu     (AT30);                 //  Jump
+            e = m.T2;
+
+            // Knight moves?
+            if( dir_count < 9 )
+            {
+                // AT25:   LD      (a,e);                  //  Get piece type
+                //         CP      (KNIGHT);               //  Is it a Knight ?
+                //         JR      (NZ,AT12);              //  No - jump
+                if( e != KNIGHT )
+                    break;
+            }
+
+            // Queen is good for ranks and diagonals
+            else if( e == QUEEN )
+            {
+                d |= 0x80;
+            }
+
+            // King is good for ranks and diagonals for one step
+            // AT15:   LD      (a,d);                  //  Get flag/scan count
+            //         AND     (0x0F);                 //  Isolate count
+            //         CP      (1);                    //  On first position ?
+            //         JR      (NZ,AT16);              //  No - jump
+            //         LD      (a,e);                  //  Get encountered piece type
+            //         CP      (KING);                 //  Is it a King ?
+            //         JR      (Z,AT30);               //  Yes - jump
+            else if( (d&0x0f) == 1 && e == KING )
+                ;
+
+            // Rooks, Bishops and Pawn logic
+            // AT16:   LD      (a,b);                  //  Get direction counter
+            //         CP      (13);                   //  Scanning files or ranks ?
+            //         JR      (CY,AT21);              //  Yes - jump
+            //         LD      (a,e);                  //  Get piece type
+            //         CP      (BISHOP);               //  Is it a Bishop ?
+            //         JR      (Z,AT30);               //  Yes - jump
+            //         LD      (a,d);                  //  Get flags/scan count
+            //         AND     (0x0F);                 //  Isolate count
+            //         CP      (1);                    //  On first position ?
+            //         JR      (NZ,AT12);              //  No - jump
+            //         CP      (e);                    //  Is it a Pawn ?
+            //         JR      (NZ,AT12);              //  No - jump
+            //         LD      (a,val(P2));            //  Fetch piece including color
+            //         BIT     (7,a);                  //  Is it white ?
+            //         JR      (Z,AT20);               //  Yes - jump
+            //         LD      (a,b);                  //  Get direction counter
+            //         CP      (15);                   //  On a non-attacking diagonal ?
+            //         JR      (CY,AT12);              //  Yes - jump
+            //         JRu     (AT30);                 //  Jump
+
+            // Ranks and files and rook?
+            else if( dir_count < 13 )
+            {
+                // AT21:   LD      (a,e);                  //  Get piece type
+                //         CP      (ROOK);                 //  Is is a Rook ?
+                //         JR      (NZ,AT12);              //  No - jump
+                //         JRu     (AT30);                 //  Jump
+                if( e != ROOK )
+                    break;   // ranks and files and not rook
+            }
+
+            // Diagonals and bishop?
+            else if( e == BISHOP )
+                ;
+
+            // Diagonals and pawn
+            else
+            {
+                if( (d&0x0f) != 1 || e != PAWN )    // count must be 1, pawn reach
+                    break;
+
+                // Pawn attack logic
+                if( (m.P2&0x80) == 0 )
+                {
+                    // AT20:   LD      (a,b);                  //  Get direction counter
+                    //         CP      (15);                   //  On a non-attacking diagonal ?
+                    //         JR      (NC,AT12);              //  Yes - jump
+                    //         JRu     (AT30);                 //  Jump
+                    if( dir_count >= 15 )
+                        break;   // not the right direction for this colour
+                }
+                else
+                {
+                    if( dir_count < 15 )
+                        break;   // not the right direction for this colour
+                }
+            }
+
+            // Get here if we've identified a suitable piece on the vector
+            //
+            // AT30:   LD      (a,val(T1));            //  Attacked piece type/flag
+            //         CP      (7);                    //  Call from POINTS ?
+            //         JR      (Z,AT31);               //  Yes - jump
+            //         BIT     (5,d);                  //  Is attacker opposite color ?
+            //         JR      (Z,AT32);               //  No - jump
+            //         LD      (a,1);                  //  Set attacker found flag
+            //         JPu     (AT13);                 //  Jump
+            if( m.T1 == 7 )
+            {
+                // AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
+                ATKSAV();
+            }
+            else if( (d&0x20) != 0 )
+            {
+                attacker_found = true;
+                dir_count = 1;  // break out of both loops
+                break;
+            }
+
+            // AT32:   LD      (a,val(T2));            //  Attacking piece type
+            //         CP      (KING);                 //  Is it a King,?
+            //         JP      (Z,AT12);               //  Yes - jump
+            //         CP      (KNIGHT);               //  Is it a Knight ?
+            //         JP      (Z,AT12);               //  Yes - jump
+            //         JPu     (AT10);                 //  Jump
+            if( m.T2 == KING )
+                break;
+            if( m.T2 == KNIGHT )
+                break;
+
+            // End stepping loop, keep stepping except for the break;s above
+        }
+
+        // End direction loop
+        // AT12:   INC16   (iy);                   //  Increment direction index
+        //         DJNZ    (AT5);                  //  Done ? No - jump
+        //         XOR     (a);                    //  No attackers
+    }
+
+    // AT13:   POP     (bc);                   //  Restore register B
+    //         RETu;                           //  Return
+    bc = save_bc;
+    a = attacker_found;
+}
+
 //***********************************************************              //1026: ;***********************************************************
 // ATTACK SAVE ROUTINE                                                     //1027: ; ATTACK SAVE ROUTINE
 //***********************************************************              //1028: ;***********************************************************
