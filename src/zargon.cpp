@@ -14,6 +14,7 @@
 
 #include "sargon-asm-interface.h"
 #include "bridge.h"
+#include "select_asm_or_cpp_functions.h"
 #include "zargon.h"
 #include "z80_cpu.h"
 #include "z80_opcodes.h"  // include last, uses aggressive macros
@@ -604,7 +605,7 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
 // ARGUMENTS:  Direction from the direction array giving the               //0498: ; ARGUMENTS:  Direction from the direction array giving the
 //             constant to be added for the new position.                  //0499: ;             constant to be added for the new position.
 //***********************************************************              //0500: ;***********************************************************
-void PATH() {
+void PATH_asm() {
         callback_zargon_bridge(CB_PATH);
         LD      (hl,addr(M2));          //  Get previous position          //0501: PATH:   LD      hl,M2           ; Get previous position
         LD      (a,ptr(hl));            //                                 //0502:         LD      a,(hl)
@@ -630,6 +631,50 @@ PA1:    LD      (a,2);                  //  Set same color flag            //052
 PA2:    LD      (a,3);                  //  Set off board flag             //0522: PA2:    LD      a,3             ; Set off board flag
         RETu;                           //  Return                         //0523:         RET                     ; Return
 }                                                                          //0524:
+
+// Recode as a "native" C++ routine
+void path_c()
+{
+    callback_zargon_bridge(CB_PATH);
+    //        LD      (hl,addr(M2));          //  Get previous position
+    //        LD      (a,ptr(hl));            //
+    //        ADD     (a,c);                  //  Add direction constant
+    //        LD      (ptr(hl),a);            //  Save new position
+    //        LD      (ix,v16(M2));           //  Load board index
+    //        LD      (a,ptr(ix+BOARD));      //  Get contents of board
+    m.M2 += c;
+    a = m.BOARDA[m.M2];
+
+    //        CP      (-1);            //  In border area ?
+    //        JR      (Z,PA2);         //  Yes - jump
+    //        LD      (val(P2),a);     //  Save piece
+    //        AND     (7);             //  Clear flags
+    //        LD      (val(T2),a);     //  Save piece type
+    //        RET     (Z);             //  Return if empty
+    if( a == (uint8_t)(-1) )
+    {
+        a = 3;
+        return;
+    }
+    m.P2 = a;
+    a &= 0x07;
+    m.T2 = a;
+    if( a == 0 )
+    {
+        return;
+    }
+
+    //        LD      (a,val(P2));     //  Get piece encountered
+    //        LD      (hl,addr(P1));   //  Get moving piece address
+    //        XOR     (ptr(hl));       //  Compare
+    //        BIT     (7,a);           //  Do colors match ?
+    //        JR      (Z,PA1);         //  Yes - jump
+    //        LD      (a,1);           //  Set different color flag
+    //        RETu;                    //  Return
+    //PA1:    LD      (a,2);           //  Set same color flag
+    //        RETu;                    //  Return
+    a = ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
+}
 
 //***********************************************************              //0525: ;***********************************************************
 // PIECE MOVER ROUTINE                                                     //0526: ; PIECE MOVER ROUTINE

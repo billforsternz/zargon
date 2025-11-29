@@ -336,16 +336,16 @@ uint16_t    PLYIX[20] = {                                                  //022
 //                                                                         //0271: ;
 //***********************************************************              //0272: ;***********************************************************
 uint8_t padding5[174];                                                     //0273:         ORG     START+0
-uint16_t M1      =      TBASE;                                             //0274: M1      DW      TBASE
-uint16_t M2      =      TBASE;                                             //0275: M2      DW      TBASE
-uint16_t M3      =      TBASE;                                             //0276: M3      DW      TBASE
-uint16_t M4      =      TBASE;                                             //0277: M4      DW      TBASE
-uint16_t T1      =      TBASE;                                             //0278: T1      DW      TBASE
-uint16_t T2      =      TBASE;                                             //0279: T2      DW      TBASE
-uint16_t T3      =      TBASE;                                             //0280: T3      DW      TBASE
-uint16_t INDX1   =      TBASE;                                             //0281: INDX1   DW      TBASE
-uint16_t INDX2   =      TBASE;                                             //0282: INDX2   DW      TBASE
-uint16_t NPINS   =      TBASE;                                             //0283: NPINS   DW      TBASE
+uint8_t  M1      =      0;              uint8_t tbase_hi0 = 1;             //0274: M1      DW      TBASE
+uint8_t  M2      =      0;              uint8_t tbase_hi1 = 1;             //0275: M2      DW      TBASE
+uint8_t  M3      =      0;              uint8_t tbase_hi2 = 1;             //0276: M3      DW      TBASE
+uint8_t  M4      =      0;              uint8_t tbase_hi3 = 1;             //0277: M4      DW      TBASE
+uint8_t  T1      =      0;              uint8_t tbase_hi4 = 1;             //0278: T1      DW      TBASE
+uint8_t  T2      =      0;              uint8_t tbase_hi5 = 1;             //0279: T2      DW      TBASE
+uint8_t  T3      =      0;              uint8_t tbase_hi6 = 1;             //0280: T3      DW      TBASE
+uint8_t  INDX1   =      0;              uint8_t tbase_hi7 = 1;             //0281: INDX1   DW      TBASE
+uint8_t  INDX2   =      0;              uint8_t tbase_hi8 = 1;             //0282: INDX2   DW      TBASE
+uint8_t  NPINS   =      0;              uint8_t tbase_hi9 = 1;             //0283: NPINS   DW      TBASE
 uint16_t MLPTRI  =      offsetof(emulated_memory,PLYIX);                   //0284: MLPTRI  DW      PLYIX
 uint16_t MLPTRJ  =      0;                                                 //0285: MLPTRJ  DW      0
 uint16_t SCRIX   =      0;                                                 //0286: SCRIX   DW      0
