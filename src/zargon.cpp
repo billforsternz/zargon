@@ -1535,9 +1535,11 @@ void atksav_c()
 //         JR      (Z,rel006);             //  Yes - jump
 //         LD      (c,7);                  //  Init increment for black
     uint8_t *p = &m.wact[0];
-    bc = 0;
+    uint16_t offset = 0;
     if( (m.P2&0x80) != 0 )
-        c = 7;
+        offset = 7;
+    p += offset;
+    (*p)++;
 
 // rel006: AND     (7);                    //  Attacking piece type
 //         LD      (e,a);                  //  Init increment for type
@@ -1551,88 +1553,30 @@ void atksav_c()
 //         LD      (a,ptr(hl));            //  Get data already there
 //         AND     (0x0f);                 //  Is first slot empty ?
 //         JR      (Z,AS20);               //  Yes - jump
-    e = m.P2 & 0x07;
+    offset = m.P2 & 0x07;
     if( (d&0x80) != 0 )
-        e = QUEEN;
-    p += bc;
-    (*p)++;
-    d = 0;
-    p += de;
-
-#if 1
-    if( (*p&0x0f)!=0 && (*p&0xf0)==0 )
+        offset = QUEEN;
+    p += offset;
+    uint8_t hi = *p&0xf0;
+    uint8_t lo = *p&0x0f;
+    if( lo!=0 && hi==0 )
     {
-        a = *p & 0xf0;
         uint8_t nib1, nib2, nib3, nib4;
-        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-        /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
+        NIB_OUT(hi,nib1,nib2); NIB_OUT(*p,nib3,nib4);
+        NIB_IN (*p,nib4,nib2);
         uint8_t *pvalue = &m.pvalue[0] - 1;
-        a = pvalue[m.T2];
-        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-        /*NIB_IN (a,nib1,nib4);*/ NIB_IN( *p,nib2,nib3);
+        NIB_OUT(pvalue[m.T2],nib1,nib2); NIB_OUT(*p,nib3,nib4);
+        NIB_IN( *p,nib2,nib3);
     }
     else
     {
-        if( (*p&0x0f) != 0 )
+        if( lo != 0 )
             p++;
-        // AS20:   LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
-        //         RLD;                            //  Put in 1st attack list slot
         uint8_t *pvalue = &m.pvalue[0] - 1;
-        a = pvalue[m.T2];
         uint8_t nib1, nib2, nib3, nib4;
-        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-        /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
+        NIB_OUT(pvalue[m.T2],nib1,nib2); NIB_OUT(*p,nib3,nib4);
+        NIB_IN (*p,nib4,nib2);
     }
-#else
-    a = *p & 0x0f;
-    if( a != 0 )
-    {
-        //         LD      (a,ptr(hl));            //  Get data again
-        //         AND     (0xf0);                 //  Is second slot empty ?
-        //         JR      (Z,AS19);               //  Yes - jump
-        //         INC16   (hl);                   //  Increment to King slot
-        //         JRu     (AS20);                 //  Jump
-        // AS19:   RLD;                            //  Temp save lower in upper
-        //         LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
-        //         RRD;                            //  Put in 2nd attack list slot
-        //         JRu     (AS25);                 //  Jump
-        a = *p & 0xf0;
-        if( a != 0 )
-        {
-            p++;
-            //AS20:
-            uint8_t *pvalue = &m.pvalue[0] - 1;
-            a = pvalue[m.T2];
-            uint8_t nib1, nib2, nib3, nib4;
-            NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-            /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
-        }
-        else
-        {
-            uint8_t nib1, nib2, nib3, nib4;
-            NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-            /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
-            uint8_t *pvalue = &m.pvalue[0] - 1;
-            a = pvalue[m.T2];
-            NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-            /*NIB_IN (a,nib1,nib4);*/ NIB_IN( *p,nib2,nib3);
-        }
-    }
-    else
-    {
-        // AS20:   LD      (a,ptr(ix+PVALUE));     //  Get new value for attack list
-        //         RLD;                            //  Put in 1st attack list slot
-        uint8_t *pvalue = &m.pvalue[0] - 1;
-        a = pvalue[m.T2];
-        uint8_t nib1, nib2, nib3, nib4;
-        NIB_OUT(a,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-        /*NIB_IN (a,nib1,nib3);*/ NIB_IN (*p,nib4,nib2);
-    }
-
-#endif
- //AS25:   POP     (de);                   //  Restore DE regs
- //        POP     (bc);                   //  Restore BC regs
- //        RETu;                           //  Return
     bc = save_bc;
     de = save_de;
 }
