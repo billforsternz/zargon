@@ -108,9 +108,8 @@ GM10:   LD      (a,val(M1));            //  Fetch current board position   //085
 
 At the moment I have Zargon running nicely, twice as fast as the original Sargon-x86.
 I only have it running in the context of the test harness from the original project
-(same test harness code, same test results). I haven't bothered to create a Zargon
-UCI engine just yet, although it's a routine job I'm sure I could do in an hour or
-so when I feel the need.
+(same test harness code, same test results). I have also built a zargon-uci-engine
+and confirmed it plays the same moves (at the same depth) as sargon-x86.
 
 Acknowledgment of Original Authorship
 =====================================
