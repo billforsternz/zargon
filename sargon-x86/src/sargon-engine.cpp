@@ -140,7 +140,7 @@ static void timer_set( int ms );    // Set a timeout event, ms millisecs into th
 // main()
 int main( int argc, char *argv[] )
 {
-    //logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
+    logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
 #ifdef _DEBUG
     static const std::vector<std::string> test_sequence =
     {

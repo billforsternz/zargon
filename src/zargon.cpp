@@ -2597,6 +2597,7 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)                         //202
 //***********************************************************              //2338: ;***********************************************************
 void CPTRMV() {
         CALLu   (FNDMOV);               //  Select best move               //2339: CPTRMV: CALL    FNDMOV          ; Select best move
+        callback_zargon_bridge(CB_AFTER_FNDMOV);
         LD      (hl,v16(BESTM));        //  Move list pointer variable     //2340:         LD      hl,(BESTM)      ; Move list pointer variable
         LD      (v16(MLPTRJ),hl);       //  Pointer to move data           //2341:         LD      (MLPTRJ),hl     ; Pointer to move data
         LD     (a,val_offset(SCORE,1)); //  To check for mates             //2342:         LD      a,(SCORE+1)     ; To check for mates

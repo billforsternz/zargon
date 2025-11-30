@@ -1332,7 +1332,7 @@ class for_destructor
                 case CB_LDAR:                     s = "CB_LDAR"; break;
                 case CB_AFTER_GENMOV:             s = "CB_AFTER_GENMOV"; break;
                 case CB_END_OF_POINTS:            s = "CB_END_OF_POINTS"; break;
-                case CB_AFTER_FNDMOVE:            s = "CB_AFTER_FNDMOVE"; break;
+                case CB_AFTER_FNDMOV:             s = "CB_AFTER_FNDMOV"; break;
                 case CB_YES_BEST_MOVE:            s = "CB_YES_BEST_MOVE"; break;
                 case CB_NO_BEST_MOVE:             s = "CB_NO_BEST_MOVE"; break;
                 case CB_SUPPRESS_KING_MOVES:      s = "CB_SUPPRESS_KING_MOVES"; break;
