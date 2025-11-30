@@ -1514,18 +1514,12 @@ void atksav_c()
 //           RETu;
 //       }
     callback_zargon_bridge(CB_ATKSAV);
-    uint16_t save_bc = bc;
-    uint16_t save_de = de;
     a = m.NPINS;
     if( a != 0 )
     {
         bool abnormal_exit = PNCK();
         if( abnormal_exit )
-        {
-            bc = save_bc;
-            de = save_de;
             return;
-        }
     }
 //         LD      (ix,v16(T2));           //  Init index to value table
 //         LD      (hl,addr(ATKLST));      //  Init address of attack list
@@ -1577,8 +1571,6 @@ void atksav_c()
         NIB_OUT(pvalue[m.T2],nib1,nib2); NIB_OUT(*p,nib3,nib4);
         NIB_IN (*p,nib4,nib2);
     }
-    bc = save_bc;
-    de = save_de;
 }
 
 //***********************************************************              //1082: ;***********************************************************
