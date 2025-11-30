@@ -10,7 +10,7 @@
 // Sargon function declarations
 //
 void INITBD();
-void PATH();
+// void PATH(); // static and inline
 void MPIECE();
 void ENPSNT();
 void ADJPTR();

@@ -605,7 +605,7 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
 // ARGUMENTS:  Direction from the direction array giving the               //0498: ; ARGUMENTS:  Direction from the direction array giving the
 //             constant to be added for the new position.                  //0499: ;             constant to be added for the new position.
 //***********************************************************              //0500: ;***********************************************************
-void PATH_asm() {
+static inline void PATH_asm() {
         callback_zargon_bridge(CB_PATH);
         LD      (hl,addr(M2));          //  Get previous position          //0501: PATH:   LD      hl,M2           ; Get previous position
         LD      (a,ptr(hl));            //                                 //0502:         LD      a,(hl)
@@ -633,9 +633,9 @@ PA2:    LD      (a,3);                  //  Set off board flag             //052
 }                                                                          //0524:
 
 // Recode as a "native" C++ routine
-void path_c()
+static inline void path_c()
 {
-    callback_zargon_bridge(CB_PATH);
+    //callback_zargon_bridge(CB_PATH);
     //        LD      (hl,addr(M2));          //  Get previous position
     //        LD      (a,ptr(hl));            //
     //        ADD     (a,c);                  //  Add direction constant
@@ -643,7 +643,7 @@ void path_c()
     //        LD      (ix,v16(M2));           //  Load board index
     //        LD      (a,ptr(ix+BOARD));      //  Get contents of board
     m.M2 += c;
-    a = m.BOARDA[m.M2];
+    uint8_t temp = m.BOARDA[m.M2];
 
     //        CP      (-1);            //  In border area ?
     //        JR      (Z,PA2);         //  Yes - jump
@@ -651,16 +651,17 @@ void path_c()
     //        AND     (7);             //  Clear flags
     //        LD      (val(T2),a);     //  Save piece type
     //        RET     (Z);             //  Return if empty
-    if( a == (uint8_t)(-1) )
+    if( temp == (uint8_t)(-1) )
     {
         a = 3;
         return;
     }
-    m.P2 = a;
-    a &= 0x07;
-    m.T2 = a;
-    if( a == 0 )
+    m.P2 = temp;
+    temp &= 0x07;
+    m.T2 = temp;
+    if( temp == 0 )
     {
+        a = 0;
         return;
     }
 
@@ -1500,76 +1501,40 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
 
 void atksav_c()
 {
-//       callback_zargon_bridge(CB_ATKSAV);
-//       PUSH    (bc);                   //  Save Regs BC
-//       PUSH    (de);                   //  Save Regs DE
-//       LD      (a,val(NPINS));         //  Number of pinned pieces
-//       AND     (a);                    //  Any ?
-//       abnormal_exit = false;
-//       CALL    (NZ,PNCK);              //  yes - check pin list
-//       if( abnormal_exit )
-//       {
-//           POP(de);
-//           POP(bc);
-//           RETu;
-//       }
     callback_zargon_bridge(CB_ATKSAV);
     a = m.NPINS;
     if( a != 0 )
     {
-        bool abnormal_exit = PNCK();
-        if( abnormal_exit )
+        bool invalid_attacker = PNCK();
+        if( invalid_attacker )
             return;
     }
-//         LD      (ix,v16(T2));           //  Init index to value table
-//         LD      (hl,addr(ATKLST));      //  Init address of attack list
-//         LD      (bc,0);                 //  Init increment for white
-//         LD      (a,val(P2));            //  Attacking piece
-//         BIT     (7,a);                  //  Is it white ?
-//         JR      (Z,rel006);             //  Yes - jump
-//         LD      (c,7);                  //  Init increment for black
-    uint8_t *p = &m.wact[0];
-    uint16_t offset = 0;
-    if( (m.P2&0x80) != 0 )
-        offset = 7;
-    p += offset;
-    (*p)++;
 
-// rel006: AND     (7);                    //  Attacking piece type
-//         LD      (e,a);                  //  Init increment for type
-//         BIT     (7,d);                  //  Queen found this scan ?
-//         JR      (Z,rel007);             //  No - jump
-//         LD      (e,QUEEN);              //  Use Queen slot in attack list
-// rel007: ADD16   (hl,bc);                //  Attack list address
-//         INC     (ptr(hl));              //  Increment list count
-//         LD      (d,0);
-//         ADD16   (hl,de);                //  Attack list slot address
-//         LD      (a,ptr(hl));            //  Get data already there
-//         AND     (0x0f);                 //  Is first slot empty ?
-//         JR      (Z,AS20);               //  Yes - jump
-    offset = m.P2 & 0x07;
-    if( (d&0x80) != 0 )
-        offset = QUEEN;
+    uint8_t *p = &m.wact[0];    // Attack list
+    uint16_t offset = 0;        // White offset
+    if( (m.P2&0x80) != 0 )
+        offset = 7;             // Black offset
     p += offset;
+    (*p)++;                     // Increment list count
+
+    offset = m.P2 & 0x07;       // Piece type
+    if( (d&0x80) != 0 )         // Queen found this scan ?
+        offset = QUEEN;         //  Use Queen slot in attack list
+    p += offset;                // Attack list slot address
+
+    // Add nibble to attack list
+    uint8_t *pvalue = &m.pvalue[0] - 1;
     uint8_t hi = *p&0xf0;
     uint8_t lo = *p&0x0f;
     if( lo!=0 && hi==0 )
     {
-        uint8_t nib1, nib2, nib3, nib4;
-        NIB_OUT(hi,nib1,nib2); NIB_OUT(*p,nib3,nib4);
-        NIB_IN (*p,nib4,nib2);
-        uint8_t *pvalue = &m.pvalue[0] - 1;
-        NIB_OUT(pvalue[m.T2],nib1,nib2); NIB_OUT(*p,nib3,nib4);
-        NIB_IN( *p,nib2,nib3);
+        *p = (pvalue[m.T2]<<4) + lo;
     }
     else
     {
         if( lo != 0 )
             p++;
-        uint8_t *pvalue = &m.pvalue[0] - 1;
-        uint8_t nib1, nib2, nib3, nib4;
-        NIB_OUT(pvalue[m.T2],nib1,nib2); NIB_OUT(*p,nib3,nib4);
-        NIB_IN (*p,nib4,nib2);
+        *p = (*p<<4) + pvalue[m.T2]&0x0f;
     }
 }
 
