@@ -1687,123 +1687,46 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
         return true;                    //  Return to ATTACK               //1127:         RET                     ; Return to ATTACK
 }                                                                          //1128:
 
-// Returns true if abnormal exit
-#if 1
+// Returns true if attacker is not a valid attacker
 bool pnck_c() {
-        callback_zargon_bridge(CB_PNCK);
-
-        LD      (d,c);                  //  Save attack direction
-        bool first_find=false;          //  Clear flag
-        //LD      (c,a);                  //  Load pin count for search
-        //LD      (b,0);
-        uint16_t count = a;
-        uint8_t *p = &m.PLISTA[0];  //LD      (hl,addr(PLISTA));      //  Pin list address
-PC1:    //a = m.M2;                       //  Position of piece
-        //Z80_CPIR;                       //  Search list for position
+    callback_zargon_bridge(CB_PNCK);
+    int8_t attack_direction = (int8_t)(c);
+    uint16_t pin_count = a;
+    bool not_first_find=false;
+    uint8_t *p = &m.PLISTA[0];  // Pin list address
+    for(;;)
+    {
+        // Search list for position (Z80_CPIR)
         bool found = false;
         while( !found )
         {
             found = (m.M2 == *p);
             p++;
-            count--;
-            if( count == 0 )
+            pin_count--;
+            if( pin_count == 0 )
                 break;
         }
-        bool expired = (count==0);
+        bool expired = (pin_count==0);
 
-
-
-        if(!found) return false;            //  Return if not found
-        //Z80_EXAF;                       //  Save search parameters
-        //bool found2  = Z;
-        //bool expired = PO;
-        //uint8_t temp = a;
-        if( first_find ) return true;   //  Is this the first find ?
-        //JR      (NZ,PC5);               //  No - jump
-        first_find = true;                // SET     (0,e);                  //  Set first find flag
-        //PUSH    (hl);                   //  Get corresp index to dir list
-        //POP     (ix);
-        //LD      (a,ptr(ix+9));          //  Get direction
-        a = *(p+9);
-        CP      (d);                    //  Same as attacking direction ?
-        JR      (Z,PC3);                //  Yes - jump
-        NEG;                            //  Opposite direction ?
-        CP      (d);                    //  Same as attacking direction ?
-        JR      (NZ,PC5);               //  No - jump
-PC3:    //Z = found2;                       //  Restore search parameters
-        JP      (!expired,PC1);               //  Jump if search not complete
-        return false;                   //  Return
-PC5:    // POPf    (af);                //  Abnormal exit
-        // POP     (de);                //  Restore regs.
-        // POP     (bc);
-        return true;                    //  Return to ATTACK
-}
-#else
-bool pnck_c() {
-        callback_zargon_bridge(CB_PNCK);
-
-//        LD      (d,c);                  //  Save attack direction
-//        LD      (e,0);                  //  Clear flag
-//        LD      (c,a);                  //  Load pin count for search
-//        LD      (b,0);
-//        LD      (a,val(M2));            //  Position of piece
-//        LD      (hl,addr(PLISTA));      //  Pin list address
-        d = c;
-        bool first_find = false;
-        uint16_t count = a;
-        uint8_t *p = &m.PLISTA[0];
-
-pc1:
-// PC1:    Z80_CPIR;                       //  Search list for position
-        bool found = false;
-        while( !found )
-        {
-            found = (m.M2 == *p);
-            p++;
-            count--;
-            if( count == 0 )
-                break;
-        }
-        bool expired = (count==0);
-//        RET     (NZ);                   //  Return if not found
+        //  Return if not found
         if( !found )
             return false;
-//        Z80_EXAF;                       //  Save search parameters
-//        BIT     (0,e);                  //  Is this the first find ?
-//        JR      (NZ,PC5);               //  No - jump
-        if( first_find )
+
+        // Return if not the first find
+        if( not_first_find )
             return true;
-//        SET     (0,e);                  //  Set first find flag
-        first_find = true;
-//        PUSH    (hl);                   //  Get corresp index to dir list
-//        POP     (ix);
-//        LD      (a,ptr(ix+9));          //  Get direction
-//        CP      (d);                    //  Same as attacking direction ?
-//        JR      (Z,PC3);                //  Yes - jump
-//        NEG;                            //  Opposite direction ?
-//        CP      (d);                    //  Same as attacking direction ?
-//        JR      (NZ,PC5);               //  No - jump
-        a = *(p+9);
-        if( a != d )
+        not_first_find = true;
+
+        // Check whether pin direction is same as attacking direction
+        int8_t dir = (int8_t)*(p+9);
+        if( dir == attack_direction ||  (0-dir) == attack_direction  )
         {
-            int8_t temp = (int8_t)a;
-            temp = 0-temp;
-            if( temp != d )
-            {
-                return true;
-            }
+            if( expired )
+                return false;
         }
-//PC3:    Z80_EXAF;                       //  Restore search parameters
-//        JP      (PE,PC1);               //  Jump if search not complete
-//        RETu;                           //  Return
-        if( !expired )
-            goto pc1;
-//PC5:    // POPf    (af);                //  Abnormal exit
-//        // POP     (de);                //  Restore regs.
-//        // POP     (bc);
-        return true;                   //  Return to ATTACK
+    }
+    return true;
 }
-#endif
 
 //***********************************************************              //1129: ;***********************************************************
 // PIN FIND ROUTINE                                                        //1130: ; PIN FIND ROUTINE
