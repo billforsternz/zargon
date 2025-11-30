@@ -1534,7 +1534,7 @@ void atksav_c()
     {
         if( lo != 0 )
             p++;
-        *p = (*p<<4) + pvalue[m.T2]&0x0f;
+        *p = (*p<<4) + (pvalue[m.T2]&0x0f);
     }
 }
 
