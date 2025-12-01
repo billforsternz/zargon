@@ -1257,7 +1257,6 @@ void attack_c()
     //         LD      (val(INDX2),a);         //  Initial direction index
     //         LD      (iy,v16(INDX2));        //  Load index
     callback_zargon_bridge(CB_ATTACK);
-    uint16_t save_bc = bc;
     m.P2 = 0;
     const int8_t *dir_ptr = (int8_t *)m.direct;
     bool attacker_found = false;    // return value
@@ -1271,7 +1270,7 @@ void attack_c()
         //         LD      (a,val(M3));            //  Init. board start position
         //         LD      (val(M2),a);            //  Save
         int8_t dir = *dir_ptr++;
-        d = 0;
+        uint8_t scan_count = 0;
         m.M2 = m.M3;
 
         // Stepping loop
@@ -1289,7 +1288,7 @@ void attack_c()
             //         LD      (a,b);                  //  Fetch direction count
             //         CP      (9);                    //  On knight scan ?
             //         JR      (NC,AT10);              //  No - jump
-            d++;
+            scan_count++;
             a = PATH(dir);
 
             // PATH() return values
@@ -1304,13 +1303,13 @@ void attack_c()
             if( a == 1)
             {
                 // 1  --  Encountered a piece of the opposite color
-                // AT14A:  BIT     (6,d);                  //  Same color found already ?
+                // AT14A:  BIT     (6,scan_count);                  //  Same color found already ?
                 //         JR      (NZ,AT12);              //  Yes - jump
                 //         SET     (5,d);                  //  Set opposite color found flag
                 //         JPu     (AT14);                 //  Jump
-                if( (d&0x40) != 0 )
+                if( (scan_count&0x40) != 0 )
                     break;
-                d |= 0x20;
+                scan_count |= 0x20;
             }
             else if( a == 2 )
             {
@@ -1318,9 +1317,9 @@ void attack_c()
                 // AT14B:  BIT     (5,d);                  //  Opposite color found already?
                 //         JR      (NZ,AT12);              //  Yes - jump
                 //         SET     (6,d);                  //  Set same color found flag
-                if( (d&0x20) != 0 )
+                if( (scan_count&0x20) != 0 )
                     break;
-                d |= 0x40;
+                scan_count |= 0x40;
             }
 
             //  Encountered a piece of either colour
@@ -1338,7 +1337,7 @@ void attack_c()
             //         JR      (NZ,AT15);              //  No - Jump
             //         SET     (7,d);                  //  Set Queen found flag
             //         JRu     (AT30);                 //  Jump
-            e = m.T2;
+            uint8_t piece = m.T2;
 
             // Knight moves?
             if( dir_count < 9 )
@@ -1346,14 +1345,14 @@ void attack_c()
                 // AT25:   LD      (a,e);                  //  Get piece type
                 //         CP      (KNIGHT);               //  Is it a Knight ?
                 //         JR      (NZ,AT12);              //  No - jump
-                if( e != KNIGHT )
+                if( piece != KNIGHT )
                     break;
             }
 
             // Queen is good for ranks and diagonals
-            else if( e == QUEEN )
+            else if( piece == QUEEN )
             {
-                d |= 0x80;
+                scan_count |= 0x80;
             }
 
             // King is good for ranks and diagonals for one step
@@ -1364,7 +1363,7 @@ void attack_c()
             //         LD      (a,e);                  //  Get encountered piece type
             //         CP      (KING);                 //  Is it a King ?
             //         JR      (Z,AT30);               //  Yes - jump
-            else if( (d&0x0f) == 1 && e == KING )
+            else if( (scan_count&0x0f) == 1 && piece == KING )
                 ;
 
             // Rooks, Bishops and Pawn logic
@@ -1395,18 +1394,18 @@ void attack_c()
                 //         CP      (ROOK);                 //  Is is a Rook ?
                 //         JR      (NZ,AT12);              //  No - jump
                 //         JRu     (AT30);                 //  Jump
-                if( e != ROOK )
+                if( piece != ROOK )
                     break;   // ranks and files and not rook
             }
 
             // Diagonals and bishop?
-            else if( e == BISHOP )
+            else if( piece == BISHOP )
                 ;
 
             // Diagonals and pawn
             else
             {
-                if( (d&0x0f) != 1 || e != PAWN )    // count must be 1, pawn reach
+                if( (scan_count&0x0f) != 1 || piece != PAWN )    // count must be 1, pawn reach
                     break;
 
                 // Pawn attack logic
@@ -1440,7 +1439,7 @@ void attack_c()
                 // AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
                 ATKSAV(dir);
             }
-            else if( (d&0x20) != 0 )
+            else if( (scan_count&0x20) != 0 )
             {
                 attacker_found = true;
                 dir_count = 1;  // break out of both loops
@@ -1469,7 +1468,6 @@ void attack_c()
 
     // AT13:   POP     (bc);                   //  Restore register B
     //         RETu;                           //  Return
-    bc = save_bc;
     a = attacker_found;
 }
 
