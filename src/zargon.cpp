@@ -633,7 +633,8 @@ PA2:    LD      (a,3);                  //  Set off board flag             //052
 }                                                                          //0524:
 
 // Recode as a "native" C++ routine
-static inline void path_c()
+#if 0
+static inline void path2_c()
 {
     //callback_zargon_bridge(CB_PATH);
     //        LD      (hl,addr(M2));          //  Get previous position
@@ -676,6 +677,45 @@ static inline void path_c()
     //        RETu;                    //  Return
     a = ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
 }
+#endif
+
+#if 0
+//37300
+static inline void path_c()
+{
+    a = m.BOARDA[m.M2+=c] == ((uint8_t)-1) ? 3 :
+        (
+            0 == (m.T2 = 7&(m.P2 = m.BOARDA[m.M2])) ? 0 :
+                (
+                    (m.P2 ^ m.P1)&0x80 ? 1 : 2
+                )
+        );
+}
+#endif
+
+#if 0
+//37300
+static inline void path_c()
+{
+    if( m.BOARDA[m.M2+=c] == ((uint8_t)-1) )
+        a = 3;
+    else if(  0 == (m.T2 = 7&(m.P2 = m.BOARDA[m.M2]))  )
+        a = 0;
+    else 
+        a = ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
+}
+#endif
+
+//38000+
+static inline uint8_t path_c()
+{
+    uint8_t piece = m.BOARDA[m.M2+=c];
+    if( piece == ((uint8_t)-1) )
+        return 3;
+    else if(  0 == (m.T2 = (m.P2=piece)&7) )
+        return 0;
+    return ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
+}
 
 //***********************************************************              //0525: ;***********************************************************
 // PIECE MOVER ROUTINE                                                     //0526: ; PIECE MOVER ROUTINE
@@ -709,7 +749,7 @@ rel001: AND     (7);                    //  Get piece type                 //054
 MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction             //0552: MP5:    LD      c,(iy+DIRECT)   ; Get move direction
         LD      (a,val(M1));            //  From position                  //0553:         LD      a,(M1)          ; From position
         LD      (val(M2),a);            //  Initialize to position         //0554:         LD      (M2),a          ; Initialize to position
-MP10:   CALLu   (PATH);                 //  Calculate next position        //0555: MP10:   CALL    PATH            ; Calculate next position
+MP10:   a =     PATH();                 //  Calculate next position        //0555: MP10:   CALL    PATH            ; Calculate next position
         callback_zargon(CB_SUPPRESS_KING_MOVES);
         CP      (2);                    //  Ready for new direction ?      //0556:         CP      2               ; Ready for new direction ?
         JR      (NC,MP15);              //  Yes - Jump                     //0557:         JR      NC,MP15         ; Yes - Jump
@@ -1120,7 +1160,7 @@ AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction                  //093
         LD      (a,val(M3));            //  Init. board start position     //0936:         LD      a,(M3)          ; Init. board start position
         LD      (val(M2),a);            //  Save                           //0937:         LD      (M2),a          ; Save
 AT10:   INC     (d);                    //  Increment scan count           //0938: AT10:   INC     d               ; Increment scan count
-        CALLu   (PATH);                 //  Next position                  //0939:         CALL    PATH            ; Next position
+        a =     PATH();                 //  Next position                  //0939:         CALL    PATH            ; Next position
         CP      (1);                    //  Piece of a opposite color ?    //0940:         CP      1               ; Piece of a opposite color ?
         JR      (Z,AT14A);              //  Yes - jump                     //0941:         JR      Z,AT14A         ; Yes - jump
         CP      (2);                    //  Piece of same color ?          //0942:         CP      2               ; Piece of same color ?
@@ -1250,7 +1290,7 @@ void attack_c()
             //         CP      (9);                    //  On knight scan ?
             //         JR      (NC,AT10);              //  No - jump
             d++;
-            PATH();
+            a = PATH();
 
             // PATH() return values
             // 0  --  New position is empty
@@ -1667,7 +1707,7 @@ PF2:    LD      (a,val(M3));            //  Get King/Queen position        //116
         XOR     (a);                                                       //1162:         XOR     a
         LD      (val(M4),a);            //  Clear pinned piece saved pos   //1163:         LD      (M4),a          ; Clear pinned piece saved pos
         LD      (c,ptr(iy+DIRECT));     //  Get direction of scan          //1164:         LD      c,(iy+DIRECT)   ; Get direction of scan
-PF5:    CALLu   (PATH);                 //  Compute next position          //1165: PF5:    CALL    PATH            ; Compute next position
+PF5:    a =     PATH();                 //  Compute next position          //1165: PF5:    CALL    PATH            ; Compute next position
         AND     (a);                    //  Is it empty ?                  //1166:         AND     a               ; Is it empty ?
         JR      (Z,PF5);                //  Yes - jump                     //1167:         JR      Z,PF5           ; Yes - jump
         CP      (3);                    //  Off board ?                    //1168:         CP      3               ; Off board ?
