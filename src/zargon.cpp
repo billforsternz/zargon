@@ -707,9 +707,9 @@ static inline void path_c()
 #endif
 
 //38000+
-static inline uint8_t path_c()
+static inline uint8_t path_c( uint8_t direction )
 {
-    uint8_t piece = m.BOARDA[m.M2+=c];
+    uint8_t piece = m.BOARDA[m.M2+=direction];
     if( piece == ((uint8_t)-1) )
         return 3;
     else if(  0 == (m.T2 = (m.P2=piece)&7) )
@@ -749,7 +749,7 @@ rel001: AND     (7);                    //  Get piece type                 //054
 MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction             //0552: MP5:    LD      c,(iy+DIRECT)   ; Get move direction
         LD      (a,val(M1));            //  From position                  //0553:         LD      a,(M1)          ; From position
         LD      (val(M2),a);            //  Initialize to position         //0554:         LD      (M2),a          ; Initialize to position
-MP10:   a =     PATH();                 //  Calculate next position        //0555: MP10:   CALL    PATH            ; Calculate next position
+MP10:   a =     PATH(c);                //  Calculate next position        //0555: MP10:   CALL    PATH            ; Calculate next position
         callback_zargon(CB_SUPPRESS_KING_MOVES);
         CP      (2);                    //  Ready for new direction ?      //0556:         CP      2               ; Ready for new direction ?
         JR      (NC,MP15);              //  Yes - Jump                     //0557:         JR      NC,MP15         ; Yes - Jump
@@ -1160,7 +1160,7 @@ AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction                  //093
         LD      (a,val(M3));            //  Init. board start position     //0936:         LD      a,(M3)          ; Init. board start position
         LD      (val(M2),a);            //  Save                           //0937:         LD      (M2),a          ; Save
 AT10:   INC     (d);                    //  Increment scan count           //0938: AT10:   INC     d               ; Increment scan count
-        a =     PATH();                 //  Next position                  //0939:         CALL    PATH            ; Next position
+        a =     PATH(c);                //  Next position                  //0939:         CALL    PATH            ; Next position
         CP      (1);                    //  Piece of a opposite color ?    //0940:         CP      1               ; Piece of a opposite color ?
         JR      (Z,AT14A);              //  Yes - jump                     //0941:         JR      Z,AT14A         ; Yes - jump
         CP      (2);                    //  Piece of same color ?          //0942:         CP      2               ; Piece of same color ?
@@ -1239,7 +1239,7 @@ AT30:   LD      (a,val(T1));            //  Attacked piece type/flag       //101
         JR      (Z,AT32);               //  No - jump                      //1015:         JR      Z,AT32          ; No - jump
         LD      (a,1);                  //  Set attacker found flag        //1016:         LD      a,1             ; Set attacker found flag
         JPu     (AT13);                 //  Jump                           //1017:         JP      AT13            ; Jump
-AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list   //1018: AT31:   CALL    ATKSAV          ; Save attacker in attack list
+AT31:   ATKSAV(c);                      //  Save attacker in attack list   //1018: AT31:   CALL    ATKSAV          ; Save attacker in attack list
 AT32:   LD      (a,val(T2));            //  Attacking piece type           //1019: AT32:   LD      a,(T2)          ; Attacking piece type
         CP      (KING);                 //  Is it a King,?                 //1020:         CP      KING            ; Is it a King,?
         JP      (Z,AT12);               //  Yes - jump                     //1021:         JP      Z,AT12          ; Yes - jump
@@ -1259,7 +1259,7 @@ void attack_c()
     callback_zargon_bridge(CB_ATTACK);
     uint16_t save_bc = bc;
     m.P2 = 0;
-    const uint8_t *dir_ptr = (uint8_t *)m.direct;
+    const int8_t *dir_ptr = (int8_t *)m.direct;
     bool attacker_found = false;    // return value
 
     // Direction loop
@@ -1270,7 +1270,7 @@ void attack_c()
         //         LD      (d,0);                  //  Init. scan count/flags
         //         LD      (a,val(M3));            //  Init. board start position
         //         LD      (val(M2),a);            //  Save
-        c = *dir_ptr++;
+        int8_t dir = *dir_ptr++;
         d = 0;
         m.M2 = m.M3;
 
@@ -1290,7 +1290,7 @@ void attack_c()
             //         CP      (9);                    //  On knight scan ?
             //         JR      (NC,AT10);              //  No - jump
             d++;
-            a = PATH();
+            a = PATH(dir);
 
             // PATH() return values
             // 0  --  New position is empty
@@ -1438,7 +1438,7 @@ void attack_c()
             if( m.T1 == 7 )
             {
                 // AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
-                ATKSAV();
+                ATKSAV(dir);
             }
             else if( (d&0x20) != 0 )
             {
@@ -1490,14 +1490,14 @@ void attack_c()
 //                                                                         //1040: ;
 // ARGUMENTS:  --  None                                                    //1041: ; ARGUMENTS:  --  None
 //***********************************************************              //1042: ;***********************************************************
-void ATKSAV_asm() {
+void ATKSAV_asm(int8_t dir) {
         callback_zargon_bridge(CB_ATKSAV);
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
         LD      (a,val(NPINS));         //  Number of pinned pieces        //1045:         LD      a,(NPINS)       ; Number of pinned pieces
         AND     (a);                    //  Any ?                          //1046:         AND     a               ; Any ?
         bool abnormal_exit = false;
-        if(NZ) abnormal_exit = PNCK();  //  yes - check pin list           //1047:         CALL    NZ,PNCK         ; yes - check pin list
+        if(NZ) abnormal_exit = PNCK(dir);  //  yes - check pin list        //1047:         CALL    NZ,PNCK         ; yes - check pin list
         if( abnormal_exit )
         {
             POP(de);
@@ -1539,13 +1539,13 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
         RETu;                           //  Return                         //1080:         RET                     ; Return
 }                                                                         //1081:
 
-void atksav_c()
+void atksav_c(int8_t dir)
 {
     callback_zargon_bridge(CB_ATKSAV);
     a = m.NPINS;
     if( a != 0 )
     {
-        bool invalid_attacker = PNCK();
+        bool invalid_attacker = PNCK(dir);
         if( invalid_attacker )
             return;
     }
@@ -1629,9 +1629,8 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
-bool pnck_c() {
+bool pnck_c( int8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
-    int8_t attack_direction = (int8_t)(c);
     uint16_t pin_count = a;
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
@@ -1707,7 +1706,7 @@ PF2:    LD      (a,val(M3));            //  Get King/Queen position        //116
         XOR     (a);                                                       //1162:         XOR     a
         LD      (val(M4),a);            //  Clear pinned piece saved pos   //1163:         LD      (M4),a          ; Clear pinned piece saved pos
         LD      (c,ptr(iy+DIRECT));     //  Get direction of scan          //1164:         LD      c,(iy+DIRECT)   ; Get direction of scan
-PF5:    a =     PATH();                 //  Compute next position          //1165: PF5:    CALL    PATH            ; Compute next position
+PF5:    a =     PATH(c);                //  Compute next position          //1165: PF5:    CALL    PATH            ; Compute next position
         AND     (a);                    //  Is it empty ?                  //1166:         AND     a               ; Is it empty ?
         JR      (Z,PF5);                //  Yes - jump                     //1167:         JR      Z,PF5           ; Yes - jump
         CP      (3);                    //  Off board ?                    //1168:         CP      3               ; Off board ?

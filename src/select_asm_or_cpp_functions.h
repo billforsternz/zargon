@@ -9,6 +9,8 @@
 #define ATTACK attack_c
 #define ATKSAV atksav_c
 #define PNCK   pnck_c
+bool pnck_c( int8_t attack_direction );
+void atksav_c(int8_t dir);
 
 //37300
 //#define PATH (m.BOARDA[m.M2+=c] == ((uint8_t)-1) ? 3 :          \
