@@ -1288,18 +1288,18 @@ bool ATTACK()
             //         CP      (9);                    //  On knight scan ?
             //         JR      (NC,AT10);              //  No - jump
             scan_count++;
-            a = PATH(dir);
+            uint8_t path_result = PATH(dir);
 
             // PATH() return values
             // 0  --  New position is empty
             // 1  --  Encountered a piece of the opposite color
             // 2  --  Encountered a piece of the same color
             // 3  --  New position is off the board
-            if( a==0 && dir_count>=9 )
+            if( path_result==0 && dir_count>=9 )
                 continue; // empty square, not a knight, keep stepping
-            if( a==0 || a==3 )
+            if( path_result==0 || path_result==3 )
                 break;  // break to stop stepping
-            if( a == 1)
+            if( path_result == 1)
             {
                 // 1  --  Encountered a piece of the opposite color
                 // AT14A:  BIT     (6,scan_count);                  //  Same color found already ?
@@ -1310,7 +1310,7 @@ bool ATTACK()
                     break;
                 scan_count |= 0x20;
             }
-            else if( a == 2 )
+            else // if( path_result == 2 )
             {
                 // 2  --  Encountered a piece of the same color
                 // AT14B:  BIT     (5,d);                  //  Opposite color found already?
@@ -1651,8 +1651,8 @@ bool PNCK( uint16_t pin_count, uint8_t attack_direction ) {
 
         // Check whether pin direction is same as attacking direction
         uint8_t dir = *(p+9);
-        int8_t neg_dir = (0 - (int8_t)dir);
-        if( dir == attack_direction ||  (uint8_t)neg_dir == attack_direction  )
+        uint8_t neg_dir = ~dir + 1; //(0 - (int8_t)dir);
+        if( dir == attack_direction || neg_dir == attack_direction  )
         {
             if( expired )
                 return false;
