@@ -1492,7 +1492,7 @@ void ATKSAV_asm(int8_t dir) {
         LD      (a,val(NPINS));         //  Number of pinned pieces        //1045:         LD      a,(NPINS)       ; Number of pinned pieces
         AND     (a);                    //  Any ?                          //1046:         AND     a               ; Any ?
         bool abnormal_exit = false;
-        if(NZ) abnormal_exit = PNCK(dir);  //  yes - check pin list        //1047:         CALL    NZ,PNCK         ; yes - check pin list
+        if(NZ) abnormal_exit = PNCK(a,dir);  //  yes - check pin list      //1047:         CALL    NZ,PNCK         ; yes - check pin list
         if( abnormal_exit )
         {
             POP(de);
@@ -1537,14 +1537,12 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
 void atksav_c(int8_t dir)
 {
     callback_zargon_bridge(CB_ATKSAV);
-    a = m.NPINS;
-    if( a != 0 )
+    if( m.NPINS )
     {
-        bool invalid_attacker = PNCK(dir);
+        bool invalid_attacker = PNCK(m.NPINS,dir);
         if( invalid_attacker )
             return;
     }
-
     uint8_t *p = &m.wact[0];    // Attack list
     uint16_t offset = 0;        // White offset
     if( (m.P2&0x80) != 0 )
@@ -1624,9 +1622,9 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
-bool pnck_c( int8_t attack_direction ) {
+bool pnck_c( uint8_t npins, int8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
-    uint16_t pin_count = a;
+    uint16_t pin_count = npins;
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
     for(;;)
