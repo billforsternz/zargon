@@ -6,43 +6,6 @@
 #include <stdio.h>
 #include "sargon-asm-interface.h"   // for zargon_data_defs_check_and_regen
 
-//
-// Sargon function declarations
-//
-void INITBD();
-// void PATH(); // static and inline
-void MPIECE();
-void ENPSNT();
-void ADJPTR();
-void CASTLE();
-void ADMOVE();
-void GENMOV();
-void INCHK();
-void INCHK1();
-void ATTACK();
-void ATKSAV();
-bool PNCK();
-void PINFND();
-void XCHNG();
-void NEXTAD();
-void POINTS();
-void LIMIT();
-void MOVE();
-void UNMOVE();
-void SORTM();
-void EVAL();
-void FNDMOV();
-void ASCEND();
-void BOOK();
-void CPTRMV();
-void BITASN();
-void ASNTBI();
-void VALMOV();
-void ROYALT();
-void DIVIDE();
-void MLTPLY();
-void EXECMV();
-
 // Provide ptr to the 64K emulated memory
 struct emulated_memory;
 emulated_memory *zargon_get_ptr_emulated_memory();
