@@ -9,7 +9,7 @@
 #define ATTACK attack_c
 #define ATKSAV atksav_c
 #define PNCK   pnck_c
-bool pnck_c( uint8_t pin_count, int8_t attack_direction );
+bool pnck_c( uint16_t pin_count, int8_t attack_direction );
 //void atksav_c(int8_t dir);
 bool attack_c();
 
@@ -35,7 +35,7 @@ bool ATTACK();
 //bool PNCK();
 //void ATTACK();
 void ATKSAV( int8_t dir );
-bool PNCK( uint8_t pin_count, int8_t attack_direction );
+bool PNCK( uint16_t pin_count, int8_t attack_direction );
 void PINFND();
 void XCHNG();
 void NEXTAD();

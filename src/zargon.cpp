@@ -1622,9 +1622,9 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
-bool pnck_c( uint8_t npins, int8_t attack_direction ) {
+bool pnck_c( uint16_t pin_count, int8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
-    uint16_t pin_count = npins;
+    //uint16_t pin_count = npins;
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
     for(;;)
