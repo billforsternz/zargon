@@ -1485,7 +1485,7 @@ bool ATTACK()
 //                                                                         //1040: ;
 // ARGUMENTS:  --  None                                                    //1041: ; ARGUMENTS:  --  None
 //***********************************************************              //1042: ;***********************************************************
-void ATKSAV_asm(int8_t dir) {
+void ATKSAV_asm( uint8_t dir ) {
         callback_zargon_bridge(CB_ATKSAV);
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
@@ -1534,7 +1534,7 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
         RETu;                           //  Return                         //1080:         RET                     ; Return
 }                                                                         //1081:
 
-void ATKSAV(int8_t dir)
+void ATKSAV( uint8_t dir )
 {
     callback_zargon_bridge(CB_ATKSAV);
     if( m.NPINS )
@@ -1590,7 +1590,7 @@ void ATKSAV(int8_t dir)
 // ARGUMENTS:  --  The direction of the attack. The                        //1098: ; ARGUMENTS:  --  The direction of the attack. The
 //                 pinned piece counnt.                                    //1099: ;                 pinned piece counnt.
 //***********************************************************              //1100: ;***********************************************************
-bool PNCK_asm( uint16_t pin_count, int8_t attack_direction ) {
+bool PNCK_asm( uint16_t pin_count, uint8_t attack_direction ) {
         callback_zargon_bridge(CB_PNCK);
         LD      (d,c);                  //  Save attack direction          //1101: PNCK:   LD      d,c             ; Save attack direction
         LD      (e,0);                  //  Clear flag                     //1102:         LD      e,0             ; Clear flag
@@ -1622,7 +1622,7 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
-bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
+bool PNCK( uint16_t pin_count, uint8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
@@ -1650,8 +1650,9 @@ bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
         not_first_find = true;
 
         // Check whether pin direction is same as attacking direction
-        int8_t dir = (int8_t)*(p+9);
-        if( dir == attack_direction ||  (0-dir) == attack_direction  )
+        uint8_t dir = *(p+9);
+        int8_t neg_dir = (0 - (int8_t)dir);
+        if( dir == attack_direction ||  (uint8_t)neg_dir == attack_direction  )
         {
             if( expired )
                 return false;
