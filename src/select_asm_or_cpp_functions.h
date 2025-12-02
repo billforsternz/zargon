@@ -11,11 +11,11 @@
 #define PNCK   pnck_c
 //bool pnck_c( uint8_t pin_count, int8_t attack_direction );
 //void atksav_c(int8_t dir);
-//bool attack_c();
+bool attack_c();
 
 bool pnck_c( int8_t attack_direction );
 void atksav_c(int8_t dir);
-void attack_c();
+//void attack_c();
 
 //
 // Sargon function declarations
@@ -30,10 +30,10 @@ void ADMOVE();
 void GENMOV();
 void INCHK();
 void INCHK1();
-//bool ATTACK();
+bool ATTACK();
 //void ATKSAV( int8_t dir );
 //bool PNCK();
-void ATTACK();
+//void ATTACK();
 void ATKSAV( int8_t dir );
 bool PNCK();
 void PINFND();

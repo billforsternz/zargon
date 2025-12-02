@@ -943,9 +943,9 @@ CA10:   LD      (ix,v16(M3));           //  Load board index               //072
         JR      (Z,CA15);               //  Yes - Jump                     //0734:         JR      Z,CA15          ; Yes - Jump
         CP      (92);                   //  Black Queen Knight square ?    //0735:         CP      92              ; Black Queen Knight square ?
         JR      (Z,CA15);               //  Yes - Jump                     //0736:         JR      Z,CA15          ; Yes - Jump
-        CALLu   (ATTACK);               //  Look for attack on square      //0737:         CALL    ATTACK          ; Look for attack on square
-        AND     (a);                    //  Any attackers ?                //0738:         AND     a               ; Any attackers ?
-        JR      (NZ,CA20);              //  Yes - Jump                     //0739:         JR      NZ,CA20         ; Yes - Jump
+        if( ATTACK() ) goto CA20;       //  Look for attack on square      //0737:         CALL    ATTACK          ; Look for attack on square
+        //AND     (a);                  //  Any attackers ?                //0738:         AND     a               ; Any attackers ?
+        //JR      (NZ,CA20);            //  Yes - Jump                     //0739:         JR      NZ,CA20         ; Yes - Jump
         LD      (a,val(M3));            //  Current position               //0740:         LD      a,(M3)          ; Current position
 CA15:   ADD     (a,b);                  //  Next position                  //0741: CA15:   ADD     a,b             ; Next position
         LD      (val(M3),a);            //  Save as board index            //0742:         LD      (M3),a          ; Save as board index
@@ -1109,7 +1109,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
         LD      (val(P1),a);            //  Save                           //0888:         LD      (P1),a          ; Save
         AND     (7);                    //  Get piece type                 //0889:         AND     7               ; Get piece type
         LD      (val(T1),a);            //  Save                           //0890:         LD      (T1),a          ; Save
-        CALLu   (ATTACK);               //  Look for attackers on King     //0891:         CALL    ATTACK          ; Look for attackers on King
+        a = ATTACK();                   //  Look for attackers on King     //0891:         CALL    ATTACK          ; Look for attackers on King
         RETu;                           //  Return                         //0892:         RET                     ; Return
 }                                                                          //0893:
 
@@ -1148,7 +1148,7 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
 //                                                                         //0926: ;
 // ARGUMENTS:  --  None                                                    //0927: ; ARGUMENTS:  --  None
 //***********************************************************              //0928: ;***********************************************************
-void ATTACK_asm() {
+bool ATTACK_asm() {
         callback_zargon_bridge(CB_ATTACK);
         PUSH    (bc);                   //  Save Register B                //0929: ATTACK: PUSH    bc              ; Save Register B
         XOR     (a);                    //  Clear                          //0930:         XOR     a               ; Clear
@@ -1174,7 +1174,7 @@ AT12:   INC16   (iy);                   //  Increment direction index      //094
         DJNZ    (AT5);                  //  Done ? No - jump               //0950:         DJNZ    AT5             ; Done ? No - jump
         XOR     (a);                    //  No attackers                   //0951:         XOR     a               ; No attackers
 AT13:   POP     (bc);                   //  Restore register B             //0952: AT13:   POP     bc              ; Restore register B
-        RETu;                           //  Return                         //0953:         RET                     ; Return
+        return a!=0;                    //  Return                         //0953:         RET                     ; Return
 AT14A:  BIT     (6,d);                  //  Same color found already ?     //0954: AT14A:  BIT     6,d             ; Same color found already ?
         JR      (NZ,AT12);              //  Yes - jump                     //0955:         JR      NZ,AT12         ; Yes - jump
         SET     (5,d);                  //  Set opposite color found flag  //0956:         SET     5,d             ; Set opposite color found flag
@@ -1248,7 +1248,7 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
         JPu     (AT10);                 //  Jump                           //1024:         JP      AT10            ; Jump
 }
 
-void attack_c()
+bool attack_c()
 {
     //         callback_zargon_bridge(CB_ATTACK);
     //         PUSH    (bc);                   //  Save Register B
@@ -1259,7 +1259,6 @@ void attack_c()
     callback_zargon_bridge(CB_ATTACK);
     m.P2 = 0;
     const int8_t *dir_ptr = (int8_t *)m.direct;
-    bool attacker_found = false;    // return value
 
     // Direction loop
     for( uint8_t dir_count=16; dir_count>0; dir_count-- )
@@ -1441,9 +1440,7 @@ void attack_c()
             }
             else if( (scan_count&0x20) != 0 )
             {
-                attacker_found = true;
-                dir_count = 1;  // break out of both loops
-                break;
+                return true;
             }
 
             // AT32:   LD      (a,val(T2));            //  Attacking piece type
@@ -1468,7 +1465,7 @@ void attack_c()
 
     // AT13:   POP     (bc);                   //  Restore register B
     //         RETu;                           //  Return
-    a = attacker_found;
+    return false;
 }
 
 //***********************************************************              //1026: ;***********************************************************
