@@ -5,23 +5,11 @@
 #ifndef SELECT_ASM_OR_CPP_FUNCTIONS_H_INCLUDED
 #define SELECT_ASM_OR_CPP_FUNCTIONS_H_INCLUDED
 
-#define PATH   path_c
-#define ATTACK attack_c
-#define ATKSAV atksav_c
-#define PNCK   pnck_c
-bool pnck_c( uint16_t pin_count, int8_t attack_direction );
-//void atksav_c(int8_t dir);
-bool attack_c();
-
-//bool pnck_c( int8_t attack_direction );
-void atksav_c(int8_t dir);
-//void attack_c();
-
 //
 // Sargon function declarations
 //
 void INITBD();
-// void PATH(); // static and inline
+inline uint8_t PATH( uint8_t dir );
 void MPIECE();
 void ENPSNT();
 void ADJPTR();
@@ -31,9 +19,6 @@ void GENMOV();
 void INCHK();
 void INCHK1();
 bool ATTACK();
-//void ATKSAV( int8_t dir );
-//bool PNCK();
-//void ATTACK();
 void ATKSAV( int8_t dir );
 bool PNCK( uint16_t pin_count, int8_t attack_direction );
 void PINFND();

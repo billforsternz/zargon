@@ -605,11 +605,11 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
 // ARGUMENTS:  Direction from the direction array giving the               //0498: ; ARGUMENTS:  Direction from the direction array giving the
 //             constant to be added for the new position.                  //0499: ;             constant to be added for the new position.
 //***********************************************************              //0500: ;***********************************************************
-static inline void PATH_asm() {
+inline uint8_t PATH_asm( uint8_t dir ) {
         callback_zargon_bridge(CB_PATH);
         LD      (hl,addr(M2));          //  Get previous position          //0501: PATH:   LD      hl,M2           ; Get previous position
         LD      (a,ptr(hl));            //                                 //0502:         LD      a,(hl)
-        ADD     (a,c);                  //  Add direction constant         //0503:         ADD     a,c             ; Add direction constant
+        ADD     (a,dir);                //  Add direction constant         //0503:         ADD     a,c             ; Add direction constant
         LD      (ptr(hl),a);            //  Save new position              //0504:         LD      (hl),a          ; Save new position
         LD      (ix,v16(M2));           //  Load board index               //0505:         LD      ix,(M2)         ; Load board index
         LD      (a,ptr(ix+BOARD));      //  Get contents of board          //0506:         LD      a,(ix+BOARD)    ; Get contents of board
@@ -618,18 +618,18 @@ static inline void PATH_asm() {
         LD      (val(P2),a);            //  Save piece                     //0509:         LD      (P2),a          ; Save piece
         AND     (7);                    //  Clear flags                    //0510:         AND     7               ; Clear flags
         LD      (val(T2),a);            //  Save piece type                //0511:         LD      (T2),a          ; Save piece type
-        RET     (Z);                    //  Return if empty                //0512:         RET     Z               ; Return if empty
+        JR      (Z,pa3);                //  Return if empty                //0512:         RET     Z               ; Return if empty
         LD      (a,val(P2));            //  Get piece encountered          //0513:         LD      a,(P2)          ; Get piece encountered
         LD      (hl,addr(P1));          //  Get moving piece address       //0514:         LD      hl,P1           ; Get moving piece address
         XOR     (ptr(hl));              //  Compare                        //0515:         XOR     (hl)            ; Compare
         BIT     (7,a);                  //  Do colors match ?              //0516:         BIT     7,a             ; Do colors match ?
         JR      (Z,PA1);                //  Yes - jump                     //0517:         JR      Z,PA1           ; Yes - jump
         LD      (a,1);                  //  Set different color flag       //0518:         LD      a,1             ; Set different color flag
-        RETu;                           //  Return                         //0519:         RET                     ; Return
+        return a;                       //  Return                         //0519:         RET                     ; Return
 PA1:    LD      (a,2);                  //  Set same color flag            //0520: PA1:    LD      a,2             ; Set same color flag
-        RETu;                           //  Return                         //0521:         RET                     ; Return
+        return a;                       //  Return                         //0521:         RET                     ; Return
 PA2:    LD      (a,3);                  //  Set off board flag             //0522: PA2:    LD      a,3             ; Set off board flag
-        RETu;                           //  Return                         //0523:         RET                     ; Return
+pa3:    return a;                       //  Return                         //0523:         RET                     ; Return
 }                                                                          //0524:
 
 // Recode as a "native" C++ routine
@@ -707,9 +707,9 @@ static inline void path_c()
 #endif
 
 //38000+
-static inline uint8_t path_c( uint8_t direction )
+inline uint8_t PATH( uint8_t dir )
 {
-    uint8_t piece = m.BOARDA[m.M2+=direction];
+    uint8_t piece = m.BOARDA[m.M2+=dir];
     if( piece == ((uint8_t)-1) )
         return 3;
     else if(  0 == (m.T2 = (m.P2=piece)&7) )
@@ -1248,7 +1248,7 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
         JPu     (AT10);                 //  Jump                           //1024:         JP      AT10            ; Jump
 }
 
-bool attack_c()
+bool ATTACK()
 {
     //         callback_zargon_bridge(CB_ATTACK);
     //         PUSH    (bc);                   //  Save Register B
@@ -1534,7 +1534,7 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
         RETu;                           //  Return                         //1080:         RET                     ; Return
 }                                                                         //1081:
 
-void atksav_c(int8_t dir)
+void ATKSAV(int8_t dir)
 {
     callback_zargon_bridge(CB_ATKSAV);
     if( m.NPINS )
@@ -1590,7 +1590,7 @@ void atksav_c(int8_t dir)
 // ARGUMENTS:  --  The direction of the attack. The                        //1098: ; ARGUMENTS:  --  The direction of the attack. The
 //                 pinned piece counnt.                                    //1099: ;                 pinned piece counnt.
 //***********************************************************              //1100: ;***********************************************************
-bool PNCK_asm() {
+bool PNCK_asm( uint16_t pin_count, int8_t attack_direction ) {
         callback_zargon_bridge(CB_PNCK);
         LD      (d,c);                  //  Save attack direction          //1101: PNCK:   LD      d,c             ; Save attack direction
         LD      (e,0);                  //  Clear flag                     //1102:         LD      e,0             ; Clear flag
@@ -1622,9 +1622,8 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
-bool pnck_c( uint16_t pin_count, int8_t attack_direction ) {
+bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
-    //uint16_t pin_count = npins;
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
     for(;;)
