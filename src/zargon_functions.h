@@ -1,15 +1,17 @@
 //
-// Select switchable function implementations
+// The original Sargon functions
 //
 
-#ifndef SELECT_ASM_OR_CPP_FUNCTIONS_H_INCLUDED
-#define SELECT_ASM_OR_CPP_FUNCTIONS_H_INCLUDED
+#ifndef ZARGON_FUNCTIONS_H_INCLUDED
+#define ZARGON_FUNCTIONS_H_INCLUDED
 
 //
-// Sargon function declarations
+// Originally all functions were void functions with no parameters,
+//  but this changes as the plan to progressively convert them to
+//  idiomatic C is realised
 //
 void INITBD();
-inline uint8_t PATH( uint8_t dir );
+inline uint8_t PATH( int8_t dir );
 void MPIECE();
 void ENPSNT();
 void ADJPTR();
@@ -19,8 +21,8 @@ void GENMOV();
 void INCHK();
 void INCHK1();
 bool ATTACK();
-void ATKSAV( uint8_t dir );
-bool PNCK( uint16_t pin_count, uint8_t attack_direction );
+inline void ATKSAV( int8_t dir );
+inline bool PNCK( uint16_t pin_count, int8_t attack_direction );
 void PINFND();
 void XCHNG();
 void NEXTAD();
@@ -42,7 +44,11 @@ void DIVIDE();
 void MLTPLY();
 void EXECMV();
 
-// #define PATH(dir) (m.BOARDA[m.M2+=(dir)] == ((uint8_t)-1) ? 3 :          \
+// PATH() is the most important function from a performance perspective
+// Defining uint8_t PATH( int8_t dir ) as a macro instead of a function
+// like this doesn't improve performance, which demonstrates that the
+// inline keyword is doing its job
+// #define PATH(dir) (m.BOARDA[m.M2+=(dir)] == ((uint8_t)-1) ? 3 : \
 //             (                                                   \
 //                 0 == (m.T2 = 7&(m.P2 = m.BOARDA[m.M2])) ? 0 :   \
 //                     (                                           \
@@ -51,4 +57,4 @@ void EXECMV();
 //             )                                                   \
 //         )
 
-#endif // SELECT_ASM_OR_CPP_FUNCTIONS_H_INCLUDED
+#endif // ZARGON_FUNCTIONS_H_INCLUDED

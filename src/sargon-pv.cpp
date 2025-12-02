@@ -182,7 +182,7 @@ void sargon_pv_callback_yes_best_move()
     NODE n(level,from,to,adjusted_material,brdc);
     nodes.push_back(n);
     if( nodes.size() > max_len_so_far )
-        max_len_so_far = nodes.size();
+        max_len_so_far = (unsigned long)nodes.size();
     if( level == 1 )
     {
         calculate_pv( provisional );
@@ -207,7 +207,7 @@ static void calculate_pv( PV &pv )
     // Scan the best so far node list once in reverse order
     // If a scanned node has level equal to N, append it to PV and increment N
     std::vector<NODE> nodes_pv;
-    int nbr = nodes.size();
+    int nbr = (int)nodes.size();
     int target = 1;
     int plymax = peekb(PLYMAX);
     for( int i=nbr-1; i>=0; i-- )
@@ -222,7 +222,7 @@ static void calculate_pv( PV &pv )
         }
     }
     thc::ChessRules cr = pv_base_position;
-    nbr = nodes_pv.size();
+    nbr = (int)nodes_pv.size();
     bool ok = true;
     for( int i=0; ok && i<nbr; i++ )
     {
@@ -276,7 +276,7 @@ static void calculate_pv( PV &pv )
 
     // Note that nodes_pv might have been resized by in_check test above, so
     //  recalculate nbr (fixing BUG_EXTRA_PLY_RESIZE)
-    nbr = nodes_pv.size();
+    nbr = (int)nodes_pv.size();
     pv.depth = plymax;
     NODE *nptr = &nodes_pv[nbr-1];
 

@@ -25,7 +25,7 @@ void putline(std::ostream &out,const std::string &line)
 
 std::string sprintf( const char *fmt, ... )
 {
-    int size = strlen(fmt) * 3;   // guess at size
+    int size = (int)strlen(fmt) * 3;   // guess at size
     std::string str;
     va_list ap;
     for(;;)

@@ -554,7 +554,7 @@ private:
                     size_t next = offset + key.length();
                     if( next < s.length() && 'A'<= s[next] && s[next]<='H' ) 
                         continue;   // eg key = "AG" found "AGH", keep looking
-                    int prev = offset - 1; // int in case offset = 0
+                    int prev = (int)(offset - 1); // int in case offset = 0
                     if( prev >= 0 && 'A'<= s[prev] && s[prev]<='H' ) 
                         continue;   // eg key = "B" found "AGB", keep looking
                     idx = i;
