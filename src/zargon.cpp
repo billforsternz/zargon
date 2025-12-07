@@ -1627,8 +1627,11 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
+#if 1
 inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
+    d = attack_direction;           //  For compatibility with Sargon Z80 asm - maybe a bug in Sargon Z80 asm
+                                    //   (for further investigation)
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
     for(;;)
@@ -1664,6 +1667,39 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
     }
     return false;
 }
+
+#else
+inline bool PNCK( uint16_t count, int8_t attack_dir ) {
+    callback_zargon_bridge(CB_PNCK);
+    d = attack_dir;                     //  For compatibility with Sargon Z80 asm - maybe a bug in Sargon Z80 asm
+                                        //   (for further investigation)
+    bool first_find=false;              //  Clear flag
+    uint8_t *p = &m.PLISTA[0];          //LD      (hl,addr(PLISTA));      //  Pin list address
+    //Z80_CPIR;                         //  Search list for position
+    bool expired = false;
+    while(!expired)
+    {
+        bool found = false;
+        while( !found )
+        {
+            found = (m.M2 == *p);
+            p++;
+            count--;
+            if( count == 0 )
+                break;
+        }
+        expired = (count==0);
+        if(!found) return false;            //  Return if not found
+        if( first_find ) return true;       //  Is this the first find ?
+        first_find = true;                  //  Set first find flag
+        int8_t dir = (int8_t)*(p+9);
+        if( dir!=attack_dir && (0-dir!=attack_dir)  )  
+            return true;    // Not same as attacking direction 
+    }
+    return false;
+}
+#endif
+
 
 //***********************************************************              //1129: ;***********************************************************
 // PIN FIND ROUTINE                                                        //1130: ; PIN FIND ROUTINE
