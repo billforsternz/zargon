@@ -1239,7 +1239,7 @@ AT30:   LD      (a,val(T1));            //  Attacked piece type/flag       //101
         JR      (Z,AT32);               //  No - jump                      //1015:         JR      Z,AT32          ; No - jump
         LD      (a,1);                  //  Set attacker found flag        //1016:         LD      a,1             ; Set attacker found flag
         JPu     (AT13);                 //  Jump                           //1017:         JP      AT13            ; Jump
-AT31:   ATKSAV(c);                      //  Save attacker in attack list   //1018: AT31:   CALL    ATKSAV          ; Save attacker in attack list
+AT31:   ATKSAV(d,c);                    //  Save attacker in attack list   //1018: AT31:   CALL    ATKSAV          ; Save attacker in attack list
 AT32:   LD      (a,val(T2));            //  Attacking piece type           //1019: AT32:   LD      a,(T2)          ; Attacking piece type
         CP      (KING);                 //  Is it a King,?                 //1020:         CP      KING            ; Is it a King,?
         JP      (Z,AT12);               //  Yes - jump                     //1021:         JP      Z,AT12          ; Yes - jump
@@ -1257,11 +1257,8 @@ bool ATTACK()
     //         LD      (val(INDX2),a);         //  Initial direction index
     //         LD      (iy,v16(INDX2));        //  Load index
     callback_zargon_bridge(CB_ATTACK);
-    uint16_t save_bc = bc;
     m.P2 = 0;
     const int8_t *dir_ptr = (int8_t *)m.direct;
-    //uint8_t piece;
-    //uint8_t scan_count = 0;
 
     // Direction loop
     for( uint8_t dir_count=16; dir_count>0; dir_count-- )
@@ -1272,7 +1269,7 @@ bool ATTACK()
         //         LD      (a,val(M3));            //  Init. board start position
         //         LD      (val(M2),a);            //  Save
         int8_t dir = *dir_ptr++;
-        d = 0;
+        uint8_t scan_count = 0;
         m.M2 = m.M3;
 
         // Stepping loop
@@ -1290,7 +1287,7 @@ bool ATTACK()
             //         LD      (a,b);                  //  Fetch direction count
             //         CP      (9);                    //  On knight scan ?
             //         JR      (NC,AT10);              //  No - jump
-            d++;
+            scan_count++;
             uint8_t path_result = PATH(dir);
 
             // PATH() return values
@@ -1309,9 +1306,9 @@ bool ATTACK()
                 //         JR      (NZ,AT12);              //  Yes - jump
                 //         SET     (5,d);                  //  Set opposite color found flag
                 //         JPu     (AT14);                 //  Jump
-                if( (d&0x40) != 0 )
+                if( (scan_count&0x40) != 0 )
                     break;
-                d |= 0x20;
+                scan_count |= 0x20;
             }
             else // if( path_result == 2 )
             {
@@ -1319,9 +1316,9 @@ bool ATTACK()
                 // AT14B:  BIT     (5,d);                  //  Opposite color found already?
                 //         JR      (NZ,AT12);              //  Yes - jump
                 //         SET     (6,d);                  //  Set same color found flag
-                if( (d&0x20) != 0 )
+                if( (scan_count&0x20) != 0 )
                     break;
-                d |= 0x40;
+                scan_count |= 0x40;
             }
 
             //  Encountered a piece of either colour
@@ -1339,7 +1336,7 @@ bool ATTACK()
             //         JR      (NZ,AT15);              //  No - Jump
             //         SET     (7,d);                  //  Set Queen found flag
             //         JRu     (AT30);                 //  Jump
-            e = m.T2;
+            uint8_t piece = m.T2;
 
             // Knight moves?
             if( dir_count < 9 )
@@ -1347,14 +1344,14 @@ bool ATTACK()
                 // AT25:   LD      (a,e);                  //  Get piece type
                 //         CP      (KNIGHT);               //  Is it a Knight ?
                 //         JR      (NZ,AT12);              //  No - jump
-                if( e != KNIGHT )
+                if( piece != KNIGHT )
                     break;
             }
 
             // Queen is good for ranks and diagonals
-            else if( e == QUEEN )
+            else if( piece == QUEEN )
             {
-                d |= 0x80;
+                scan_count |= 0x80;
             }
 
             // King is good for ranks and diagonals for one step
@@ -1365,7 +1362,7 @@ bool ATTACK()
             //         LD      (a,e);                  //  Get encountered piece type
             //         CP      (KING);                 //  Is it a King ?
             //         JR      (Z,AT30);               //  Yes - jump
-            else if( (d&0x0f) == 1 && e == KING )
+            else if( (scan_count&0x0f) == 1 && piece == KING )
                 ;
 
             // Rooks, Bishops and Pawn logic
@@ -1396,18 +1393,18 @@ bool ATTACK()
                 //         CP      (ROOK);                 //  Is is a Rook ?
                 //         JR      (NZ,AT12);              //  No - jump
                 //         JRu     (AT30);                 //  Jump
-                if( e != ROOK )
+                if( piece != ROOK )
                     break;   // ranks and files and not rook
             }
 
             // Diagonals and bishop?
-            else if( e == BISHOP )
+            else if( piece == BISHOP )
                 ;
 
             // Diagonals and pawn
             else
             {
-                if( (d&0x0f) != 1 || e != PAWN )    // count must be 1, pawn reach
+                if( (scan_count&0x0f) != 1 || piece != PAWN )    // count must be 1, pawn reach
                     break;
 
                 // Pawn attack logic
@@ -1439,11 +1436,10 @@ bool ATTACK()
             if( m.T1 == 7 )
             {
                 // AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
-                ATKSAV(dir);
+                ATKSAV(scan_count,dir);
             }
-            else if( (d&0x20) != 0 )
+            else if( (scan_count&0x20) != 0 )
             {
-                bc = save_bc;
                 return true;
             }
 
@@ -1469,7 +1465,6 @@ bool ATTACK()
 
     // AT13:   POP     (bc);                   //  Restore register B
     //         RETu;                           //  Return
-    bc = save_bc;
     return false;
 }
 
@@ -1490,7 +1485,7 @@ bool ATTACK()
 //                                                                         //1040: ;
 // ARGUMENTS:  --  None                                                    //1041: ; ARGUMENTS:  --  None
 //***********************************************************              //1042: ;***********************************************************
-void ATKSAV_asm( int8_t dir ) {
+void ATKSAV_asm( uint8_t scan_count, int8_t dir ) {
         callback_zargon_bridge(CB_ATKSAV);
         PUSH    (bc);                   //  Save Regs BC                   //1043: ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    (de);                   //  Save Regs DE                   //1044:         PUSH    de              ; Save Regs DE
@@ -1513,7 +1508,7 @@ void ATKSAV_asm( int8_t dir ) {
         LD      (c,7);                  //  Init increment for black       //1054:         LD      c,7             ; Init increment for black
 rel006: AND     (7);                    //  Attacking piece type           //1055: rel006: AND     7               ; Attacking piece type
         LD      (e,a);                  //  Init increment for type        //1056:         LD      e,a             ; Init increment for type
-        BIT     (7,d);                  //  Queen found this scan ?        //1057:         BIT     7,d             ; Queen found this scan ?
+        BIT     (7,scan_count);                  //  Queen found this scan ?        //1057:         BIT     7,d             ; Queen found this scan ?
         JR      (Z,rel007);             //  No - jump                      //1058:         JR      Z,rel007        ; No - jump
         LD      (e,QUEEN);              //  Use Queen slot in attack list  //1059:         LD      e,QUEEN         ; Use Queen slot in attack list
 rel007: ADD16   (hl,bc);                //  Attack list address            //1060: rel007: ADD     hl,bc           ; Attack list address
@@ -1539,7 +1534,7 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
         RETu;                           //  Return                         //1080:         RET                     ; Return
 }                                                                         //1081:
 
-inline void ATKSAV( int8_t dir )
+inline void ATKSAV( uint8_t scan_count, int8_t dir )
 {
     callback_zargon_bridge(CB_ATKSAV);
     if( m.NPINS )
@@ -1547,6 +1542,7 @@ inline void ATKSAV( int8_t dir )
         bool invalid_attacker = PNCK(m.NPINS,dir);
         if( invalid_attacker )
             return;
+        scan_count = dir;   // reproduce bug in original Sargon
     }
     uint8_t *p = &m.wact[0];    // Attack list
     uint16_t offset = 0;        // White offset
@@ -1556,7 +1552,7 @@ inline void ATKSAV( int8_t dir )
     (*p)++;                     // Increment list count
 
     offset = m.P2 & 0x07;       // Piece type
-    if( (d&0x80) != 0 )         // Queen found this scan ?
+    if( (scan_count&0x80) != 0 )         // Queen found this scan ?
         offset = QUEEN;         //  Use Queen slot in attack list
     p += offset;                // Attack list slot address
 
@@ -1627,11 +1623,8 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
-#if 1
 inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
-    d = attack_direction;           //  For compatibility with Sargon Z80 asm - maybe a bug in Sargon Z80 asm
-                                    //   (for further investigation)
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
     for(;;)
@@ -1664,42 +1657,10 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
             if( expired )
                 return false;
         }
+        return true;
     }
     return false;
 }
-
-#else
-inline bool PNCK( uint16_t count, int8_t attack_dir ) {
-    callback_zargon_bridge(CB_PNCK);
-    d = attack_dir;                     //  For compatibility with Sargon Z80 asm - maybe a bug in Sargon Z80 asm
-                                        //   (for further investigation)
-    bool first_find=false;              //  Clear flag
-    uint8_t *p = &m.PLISTA[0];          //LD      (hl,addr(PLISTA));      //  Pin list address
-    //Z80_CPIR;                         //  Search list for position
-    bool expired = false;
-    while(!expired)
-    {
-        bool found = false;
-        while( !found )
-        {
-            found = (m.M2 == *p);
-            p++;
-            count--;
-            if( count == 0 )
-                break;
-        }
-        expired = (count==0);
-        if(!found) return false;            //  Return if not found
-        if( first_find ) return true;       //  Is this the first find ?
-        first_find = true;                  //  Set first find flag
-        int8_t dir = (int8_t)*(p+9);
-        if( dir!=attack_dir && (0-dir!=attack_dir)  )  
-            return true;    // Not same as attacking direction 
-    }
-    return false;
-}
-#endif
-
 
 //***********************************************************              //1129: ;***********************************************************
 // PIN FIND ROUTINE                                                        //1130: ; PIN FIND ROUTINE

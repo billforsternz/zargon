@@ -21,7 +21,7 @@ void GENMOV();
 void INCHK();
 void INCHK1();
 bool ATTACK();
-inline void ATKSAV( int8_t dir );
+inline void ATKSAV( uint8_t scan_count, int8_t dir );
 inline bool PNCK( uint16_t pin_count, int8_t attack_direction );
 void PINFND();
 void XCHNG();
