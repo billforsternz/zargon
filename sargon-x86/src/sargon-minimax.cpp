@@ -1311,7 +1311,7 @@ extern "C" {
         if     ( 0 == strcmp(msg,"LDAR") )               cb = CB_LDAR;
         else if( 0 == strcmp(msg,"after GENMOV()") )     cb = CB_AFTER_GENMOV;
         else if( 0 == strcmp(msg,"end of POINTS()") )    cb = CB_END_OF_POINTS;
-        else if( 0 == strcmp(msg,"After FNDMOV()") )     cb = CB_AFTER_FNDMOVE;
+        else if( 0 == strcmp(msg,"After FNDMOV()") )     cb = CB_AFTER_FNDMOV;
         else if( 0 == strcmp(msg,"Yes! Best move") )     cb = CB_YES_BEST_MOVE;
         else if( 0 == strcmp(msg,"No. Best move?") )     cb = CB_NO_BEST_MOVE;
         else if( 0 == strcmp(msg,"Suppress King moves")) cb = CB_SUPPRESS_KING_MOVES;

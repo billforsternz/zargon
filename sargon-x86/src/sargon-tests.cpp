@@ -511,6 +511,10 @@ struct TEST
     */
 static TEST tests[]=
 {
+    // Point of failure sometimes in the whole game tests, easiest to investigate this way
+    { "r2qkb1r/ppp2ppp/4bn2/3p4/3Q4/2N2N2/PPP1PPPP/2KR1B1R w kq - 3 8", 3, "e2e3",
+        75, "e3 Bd6 Be2" },
+
     // Position after 1.Nf3, Black to play book move
     { "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1", 5, "d7d5",
         0, "" },
@@ -727,6 +731,7 @@ bool sargon_position_tests( bool quiet, int comprehensive )
     int nbr_tests_to_run = nbr_tests;
     if( comprehensive < 3 )
         nbr_tests_to_run = comprehensive==2 ? nbr_tests-1 : 10;
+    nbr_tests_to_run = 1;
     for( int i=0; i<nbr_tests_to_run; i++ )
     {
         TEST *pt = &tests[i];

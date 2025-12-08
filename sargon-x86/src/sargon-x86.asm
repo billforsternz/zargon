@@ -544,7 +544,7 @@ cb_end:  popad
 CALLBACK MACRO   txt
          ENDM
          ENDIF
-callback_trace_detailed_enabled EQU 0
+callback_trace_detailed_enabled EQU 1
          IF callback_trace_detailed_enabled
 CALLBACK_TRACE_DETAILED MACRO   txt
 LOCAL    cb_end

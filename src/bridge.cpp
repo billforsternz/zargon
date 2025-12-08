@@ -16,38 +16,52 @@ void bridge_init( const unsigned char *mem_base )
     sargon_mem_base = mem_base;
 }
 
+static uint64_t pnck_count;
+static uint64_t run_count;
+class bridge_exit
+{
+    public:
+    ~bridge_exit() {printf("run_count=%llu\n", run_count );};    
+};
+static bridge_exit bridge_exit_instance;
+
 #ifdef BRIDGE_CALLBACK_TRACE
 void bridge_callback_trace( CB cb, const z80_registers *reg )
 {
-    static bool trigger;
-    static int count = 0;
-    bool detail = true;
-    const char *name = "??";
-    if( (cb==CB_END_OF_POINTS || cb==CB_YES_BEST_MOVE) )
-    {
-        detail = false;
-        count++;
-        if( count == 4859 )
-            trigger = true;
-        if( count == 4862 )
-            exit(0);
-    }
+    
+    // static bool trigger;
+    // static int count = 0;
+    // static bool detail = false;
+    const char *name = 0; //"??";
+    bool pnck = false;
+    const int64_t THRES=-1; // 151000;
+    //if( (cb==CB_END_OF_POINTS || cb==CB_YES_BEST_MOVE) )
+    //{
+    //    detail = false;
+    //    count++;
+    //    if( count == 4859 )
+    //        trigger = true;
+    //    if( count == 4862 )
+    //        exit(0);
+    //}
     switch(cb)
     {
-        case CB_END_OF_POINTS:
-        {
-            printf( "CB_END_OF_POINTS(%u) %s\n", count, reg_dump(reg).c_str() );
-            if( count > 4850 )
-                printf( "%s", mem_dump().c_str() );
-            break;
-        }
-        case CB_YES_BEST_MOVE:
-        {
-            printf( "CB_YES_BEST_MOVE(%u) %s\n", count, reg_dump(reg).c_str() );
-            if( count > 4850 )
-                printf( "%s", mem_dump().c_str() );
-            break;
-        }
+        //case CB_END_OF_POINTS:
+        //{
+        //    name = "END_OF_POINTS";
+        ////    printf( "CB_END_OF_POINTS(%u) %s\n", count, reg_dump(reg).c_str() );
+        ////    if( count > 4850 )
+        ////        printf( "%s", mem_dump().c_str() );
+        //    break;
+        //}
+        //case CB_YES_BEST_MOVE:
+        //{
+        //    name = "YES_BEST_MOVE";
+        ////    printf( "CB_YES_BEST_MOVE(%u) %s\n", count, reg_dump(reg).c_str() );
+        ////    if( count > 4850 )
+        ////        printf( "%s", mem_dump().c_str() );
+        //    break;
+        //}
         case CB_PATH  :  name = "PATH";   break;
         case CB_MPIECE:  name = "MPIECE"; break;
         case CB_ENPSNT:  name = "ENPSNT"; break;
@@ -57,7 +71,9 @@ void bridge_callback_trace( CB cb, const z80_registers *reg )
         case CB_GENMOV:  name = "GENMOV"; break;
         case CB_ATTACK:  name = "ATTACK"; break;
         case CB_ATKSAV:  name = "ATKSAV"; break;
-        case CB_PNCK  :  name = "PNCK";   break;
+        case CB_PNCK  :  name = "PNCK";
+                         pnck = true;
+                         pnck_count++;    break;
         case CB_PINFND:  name = "PINFND"; break;
         case CB_XCHNG :  name = "XCHNG";  break;
         case CB_NEXTAD:  name = "NEXTAD"; break;
@@ -69,17 +85,30 @@ void bridge_callback_trace( CB cb, const z80_registers *reg )
         case CB_FNDMOV:  name = "FNDMOV"; break;
         case CB_ASCEND:  name = "ASCEND"; break;
     }
-    if( detail )
+    if( name )
     {
-        static int second_level_count;
-        if( trigger )
-        {
-            printf( "%s(%u) %s\n", name, ++second_level_count, reg_dump(reg).c_str() );
-            printf( "%s", mem_dump().c_str() );
-            if( second_level_count == 2124 )
-                printf("");
-        }
+        run_count++;
+        //if( run_count == 161 )
+        //    printf("This call to ATTACK() should not set P2 to 0\n" );
+        if( pnck && pnck_count == 5046 )
+            printf("This call to PNCK() should set wact[0] to 1\n" );
+        bool in_range = THRES>=0 && (THRES<=run_count && run_count<=THRES+1000);
+        if( in_range )
+            printf( "%s(%llu) %s\n", name, pnck?pnck_count:run_count, mem_dump().c_str() );
     }
+    // run_count++;
+    // if( detail )
+    // {
+    //       printf( "%s(%llu) %s\n", name, run_count, mem_dump().c_str() );
+    //    static int second_level_count;
+    //    if( trigger )
+    //    {
+    //        printf( "%s(%u) %s\n", name, ++second_level_count, reg_dump(reg).c_str() );
+    //        printf( "%s", mem_dump().c_str() );
+    //        if( second_level_count == 2124 )
+    //            printf("");
+    //    }
+    // }
 }
 #endif
 

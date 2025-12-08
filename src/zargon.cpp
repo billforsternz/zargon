@@ -709,6 +709,7 @@ static inline void path_c()
 //38000+
 inline uint8_t PATH( int8_t dir )
 {
+    callback_zargon_bridge(CB_PATH);
     uint8_t piece = m.BOARDA[m.M2+=dir];
     if( piece == ((uint8_t)-1) )
         return 3;
@@ -1257,7 +1258,7 @@ bool ATTACK()
     //         LD      (val(INDX2),a);         //  Initial direction index
     //         LD      (iy,v16(INDX2));        //  Load index
     callback_zargon_bridge(CB_ATTACK);
-    m.P2 = 0;
+    m.INDX2 = 0;
     const int8_t *dir_ptr = (int8_t *)m.direct;
 
     // Direction loop
@@ -1656,6 +1657,8 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
         {
             if( expired )
                 return false;
+            else
+                continue;
         }
         return true;
     }
