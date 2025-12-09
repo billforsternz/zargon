@@ -19,10 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>16.0</VCProjectVersion>
+    <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{f9b83dcf-1881-498b-a19c-d0667675b02d}</ProjectGuid>
-    <RootNamespace>zargon</RootNamespace>
+    <ProjectGuid>{4a3906c9-c359-436d-b6b2-ba9dcf92bca6}</ProjectGuid>
+    <RootNamespace>zargonuciengine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -70,18 +70,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -105,8 +93,6 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -133,33 +119,30 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\bridge.h" />
-    <ClInclude Include="src\sargon-asm-interface.h" />
-    <ClInclude Include="src\sargon-interface.h" />
-    <ClInclude Include="src\sargon-pv.h" />
-    <ClInclude Include="src\thc.h" />
-    <ClInclude Include="src\util.h" />
-    <ClInclude Include="src\z80_cpu.h" />
-    <ClInclude Include="src\z80_opcodes.h" />
-    <ClInclude Include="src\z80_registers.h" />
-    <ClInclude Include="src\zargon.h" />
-    <ClInclude Include="src\zargon_functions.h" />
+    <ClCompile Include="..\src\bridge.cpp" />
+    <ClCompile Include="..\src\sargon-engine.cpp" />
+    <ClCompile Include="..\src\sargon-interface.cpp" />
+    <ClCompile Include="..\src\sargon-pv.cpp" />
+    <ClCompile Include="..\src\thc.cpp" />
+    <ClCompile Include="..\src\util.cpp" />
+    <ClCompile Include="..\src\zargon.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\bridge.cpp" />
-    <ClCompile Include="src\sargon-interface.cpp" />
-    <ClCompile Include="src\sargon-minimax.cpp" />
-    <ClCompile Include="src\sargon-pv.cpp" />
-    <ClCompile Include="src\sargon-tests.cpp" />
-    <ClCompile Include="src\thc.cpp" />
-    <ClCompile Include="src\util.cpp" />
-    <ClCompile Include="src\zargon.cpp" />
+    <ClInclude Include="..\src\bridge.h" />
+    <ClInclude Include="..\src\sargon-asm-interface.h" />
+    <ClInclude Include="..\src\sargon-interface.h" />
+    <ClInclude Include="..\src\sargon-pv.h" />
+    <ClInclude Include="..\src\select_asm_or_cpp_functions.h" />
+    <ClInclude Include="..\src\thc.h" />
+    <ClInclude Include="..\src\util.h" />
+    <ClInclude Include="..\src\z80_cpu.h" />
+    <ClInclude Include="..\src\z80_opcodes.h" />
+    <ClInclude Include="..\src\z80_registers.h" />
+    <ClInclude Include="..\src\zargon.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -69,9 +69,11 @@ int combine( int argc, const char *argv[] )
     fin1.seekg(0, std::ios::beg); 
     fin2.clear();
     fin2.seekg(0, std::ios::beg); 
+    int intro = 0;
     int line_nbr_in = 0;
     int line_nbr_out = 0;
     size_t isection = 0;
+    int asm_line_nbr = 1;
     while( isection<cpp_identifiers.size() && isection<asm_identifiers.size() )
     {
         Identifier &p = cpp_identifiers[isection];
@@ -83,7 +85,8 @@ int combine( int argc, const char *argv[] )
         }
         if( p.name == "PLYIX" )
             printf( "Debug\n" );
-        
+
+        // Two hints        
         // top    print this many from the top
         // bottom print this many from the bottom
 
@@ -125,7 +128,7 @@ int combine( int argc, const char *argv[] )
         }
 
         // Basically two cases, too many lines or not enough
-        // Not enough first
+        // Case 1: Not enough first
         if( need_total >= have_total )
         {
 
@@ -149,7 +152,9 @@ int combine( int argc, const char *argv[] )
             int icpp=0;
             for( int i=0; i<top; i++ )
             {
-                std::string s = vasm[i];
+                int ln = asm_line_nbr + i;
+                std::string sasm = vasm[i];
+                std::string s = util::sprintf( "%04d: %s", ln, sasm.c_str() );
                 std::string scpp = vcpp[icpp++];
                 util::putline(fout,scpp + "//" + s);
                 line_nbr_out++;
@@ -159,7 +164,10 @@ int combine( int argc, const char *argv[] )
             for( int i=0; i<empty; i++ )
             {
                 std::string scpp = vcpp[icpp++];
-                util::putline(fout,scpp + "//" );
+                util::rtrim(scpp);
+                if( ++intro == 2 )
+                    scpp += "                                 (Numbered lines of original Z80 Sargon code on the right)";
+                util::putline(fout,scpp );
                 line_nbr_out++;
             }
 
@@ -167,14 +175,16 @@ int combine( int argc, const char *argv[] )
             int n = (int)vasm.size();
             for( int i=0; i<bottom; i++ )
             {
-                std::string s = vasm[n-bottom+i];
+                std::string sasm = vasm[n-bottom+i];
+                int ln = asm_line_nbr + (n-bottom+i);
+                std::string s = util::sprintf( "%04d: %s", ln, sasm.c_str() );
                 std::string scpp = vcpp[icpp++];
                 util::putline(fout,scpp + "//" + s);
                 line_nbr_out++;
             }
         }
 
-        // Have too many lines second
+        // Case 2: Have too many lines
         else
         {
 
@@ -196,7 +206,9 @@ int combine( int argc, const char *argv[] )
             int icpp=0;
             for( int i=0; i<top; i++ )
             {
-                std::string s = vasm[i];
+                int ln = asm_line_nbr + i;
+                std::string sasm = vasm[i];
+                std::string s = util::sprintf( "%04d: %s", ln, sasm.c_str() );
                 std::string scpp = vcpp[icpp++];
                 util::putline(fout,scpp + "//" + s);
                 line_nbr_out++;
@@ -206,12 +218,31 @@ int combine( int argc, const char *argv[] )
             int n = (int)vasm.size();
             for( int i=0; i<bottom; i++ )
             {
-                std::string s = vasm[n-bottom+i];
+                std::string sasm = vasm[n-bottom+i];
+                std::string s;
+                int ln = asm_line_nbr + (n-bottom+i);
+                if( i==0 && (n-bottom != top) )     // Discontinuity ?
+                {
+                    s = util::sprintf( " (lines %d-%d omitted) %04d: %s",
+                        asm_line_nbr+top, ln-1, ln,
+                        sasm.c_str() );
+                    if( asm_line_nbr+top == ln-1 )
+                    {
+                        s = util::sprintf( " (line %d omitted) %04d: %s",
+                            ln-1, ln,
+                            sasm.c_str() );
+                    }
+                }
+                else
+                {
+                    s = util::sprintf( "%04d: %s", ln, sasm.c_str() );
+                }
                 std::string scpp = vcpp[icpp++];
                 util::putline(fout,scpp + "//" + s);
                 line_nbr_out++;
             }
         }
+        asm_line_nbr += vasm.size();
     }
 
     // Print the last section
@@ -225,7 +256,8 @@ int combine( int argc, const char *argv[] )
         std::string line2;
         if( !std::getline(fin2, line2) )
             break;
-        util::putline(fout,line1 + "//" + line2);
+        std::string s = util::sprintf( "%04d: %s", asm_line_nbr++, line2.c_str() );
+        util::putline(fout,line1 + "//" + s);
         line_nbr_out++;
     }
     return 0;
