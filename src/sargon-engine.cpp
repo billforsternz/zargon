@@ -38,8 +38,8 @@
 static unsigned long base_time;
 
 // Misc
-#define VERSION "1978 V0.9"
-#define ENGINE_NAME "Zargon"
+#define VERSION "1978 V1.01b 64bit"
+#define ENGINE_NAME "Sargon"
 static int depth_option;    // 0=auto, other values for fixed depth play
 static std::string logfile_name;
 static unsigned long total_callbacks;
@@ -2068,7 +2068,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     // Fixup ptr fields
     ptr = base;
     unsigned int ptr_final_move = ptr;
-    unsigned int ptr_end = ptr + 6*vout.size();
+    unsigned int ptr_end = (unsigned int)(ptr + 6*vout.size());
     second_byte=false;
     for( NativeMove &nm: vout )
     {
