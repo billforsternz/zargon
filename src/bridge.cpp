@@ -23,7 +23,7 @@ class bridge_exit
     public:
     ~bridge_exit() {printf("run_count=%llu\n", run_count );};    
 };
-static bridge_exit bridge_exit_instance;
+//static bridge_exit bridge_exit_instance;
 
 #ifdef BRIDGE_CALLBACK_TRACE
 void bridge_callback_trace( CB cb, const z80_registers *reg )

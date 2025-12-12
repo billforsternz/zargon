@@ -1628,9 +1628,10 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
     callback_zargon_bridge(CB_PNCK);
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
-    for(;;)
+    bool expired = false;
+    while(!expired)
     {
-        // Search list for position (Z80_CPIR)
+        // Search list for position of piece (Z80_CPIR)
         bool found = false;
         while( !found )
         {
@@ -1640,28 +1641,28 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
             if( pin_count == 0 )
                 break;
         }
-        bool expired = (pin_count==0);
+        expired = (pin_count==0);
 
-        //  Return if not found
+        //  If not found, then the attacker is not pinned and invalid
         if( !found )
             return false;
 
-        // Return if not the first find
+        // If it's not the first find, then the attacker is pinned
         if( not_first_find )
             return true;
         not_first_find = true;
 
         // Check whether pin direction is same as attacking direction
         int8_t dir = *(int8_t *)(p+9);
-        if( dir == attack_direction || (0-dir) == attack_direction  )
-        {
-            if( expired )
-                return false;
-            else
-                continue;
-        }
-        return true;
+        if( dir != attack_direction && (0-dir) != attack_direction  )
+
+            // If it's the first find, and pin direction is not
+            //  the attack direction, then the attacker is pinned
+            //  and invalid
+            return true;
     }
+
+    // If expired (end of list), then the attacker is not pinned
     return false;
 }
 
