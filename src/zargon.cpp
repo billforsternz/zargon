@@ -1064,7 +1064,7 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow    //081
 //***********************************************************              //0833: ;***********************************************************
 void GENMOV() {
         callback_zargon_bridge(CB_GENMOV);
-        bool inchk = CALLu(INCHK);      //  Test for King in check         //0834: GENMOV: CALL    INCHK           ; Test for King in check
+        bool inchk = INCHK(m.COLOR);    //  Test for King in check         //0834: GENMOV: CALL    INCHK           ; Test for King in check
         LD      (val(CKFLG),inchk);     //  Save attack count as flag      //0835:         LD      (CKFLG),a       ; Save attack count as flag
         LD      (de,v16(MLNXT));        //  Addr of next avail list space  //0836:         LD      de,(MLNXT)      ; Addr of next avail list space
         LD      (hl,v16(MLPTRI));       //  Ply list pointer index         //0837:         LD      hl,(MLPTRI)     ; Ply list pointer index
@@ -1112,7 +1112,8 @@ GM10:   LD      (a,val(M1));            //  Fetch current board position   //085
 //***********************************************************              //0878: ;***********************************************************
 void INCHK_asm() {
         LD      (a,val(COLOR));         //  Get color                      //0879: INCHK:  LD      a,(COLOR)       ; Get color
-        INCHK1();   // Emulate Z80 fall through
+        void INCHK1_asm();
+        INCHK1_asm();   // Emulate Z80 fall through
 }
 
 void INCHK1_asm() {           // Like INCHK() but takes input in register A
@@ -1131,19 +1132,8 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
         RETu;                           //  Return                         //0892:         RET                     ; Return
 }                                                                          //0893:
 
-inline bool INCHK() {
-	const uint8_t *p = &m.POSK[0];
-	if( m.COLOR != 0 )
-		p++;
-	m.P1 = m.BOARDA[m.M3 = *p];
-	m.T1 = m.P1 & 7;
-	return ATTACK();
-}
-
-inline bool INCHK1() {
-	const uint8_t *p = &m.POSK[0];
-	if( a != 0 )
-		p++;
+inline bool INCHK( uint8_t color ) {
+	const uint8_t *p = &m.POSK[color?1:0];
 	m.P1 = m.BOARDA[m.M3 = *p];
 	m.T1 = m.P1 & 7;
 	return ATTACK();
@@ -2350,7 +2340,7 @@ SR30:   EX      (de,hl);                //  Swap pointers                  //173
 void EVAL() {
         callback_zargon_bridge(CB_EVAL);
         CALLu   (MOVE);                 //  Make move on the board array   //1751: EVAL:   CALL    MOVE            ; Make move on the board array
-        a = CALLu(INCHK);               //  Determine if move is legal     //1752:         CALL    INCHK           ; Determine if move is legal
+        a = INCHK(m.COLOR);             //  Determine if move is legal     //1752:         CALL    INCHK           ; Determine if move is legal
         AND     (a);                    //  Legal move ?                   //1753:         AND     a               ; Legal move ?
         JR      (Z,EV5);                //  Yes - jump                     //1754:         JR      Z,EV5           ; Yes - jump
         XOR     (a);                    //  Score of zero                  //1755:         XOR     a               ; Score of zero
@@ -2441,7 +2431,7 @@ FM15:   LD      (hl,v16(MLPTRJ));       //  Load last move pointer         //182
         CP      (ptr(hl));              //  Compare                        //1836:         CP      (hl)            ; Compare
         JR      (CY,FM18);              //  Jump if not max                //1837:         JR      C,FM18          ; Jump if not max
         CALLu   (MOVE);                 //  Execute move on board array    //1838:         CALL    MOVE            ; Execute move on board array
-        a = CALLu(INCHK);               //  Check for legal move           //1839:         CALL    INCHK           ; Check for legal move
+        a = INCHK(m.COLOR);             //  Check for legal move           //1839:         CALL    INCHK           ; Check for legal move
         AND     (a);                    //  Is move legal                  //1840:         AND     a               ; Is move legal
         JR      (Z,rel017);             //  Yes - jump                     //1841:         JR      Z,rel017        ; Yes - jump
         CALLu   (UNMOVE);               //  Restore board position         //1842:         CALL    UNMOVE          ; Restore board position
@@ -2450,9 +2440,9 @@ rel017: LD      (a,val(NPLY));          //  Get ply counter                //184
         LD      (hl,addr(PLYMAX));      //  Max ply number                 //1845:         LD      hl,PLYMAX       ; Max ply number
         CP      (ptr(hl));              //  Beyond max ply ?               //1846:         CP      (hl)            ; Beyond max ply ?
         JR      (NZ,FM35);              //  Yes - jump                     //1847:         JR      NZ,FM35         ; Yes - jump
-        LD      (a,val(COLOR));         //  Get current COLOR              //1848:         LD      a,(COLOR)       ; Get current color
-        XOR     (0x80);                 //  Get opposite COLOR             //1849:         XOR     80H             ; Get opposite color
-        a = CALLu(INCHK1);              //  Determine if King is in check  //1850:         CALL    INCHK1          ; Determine if King is in check
+        //LD      (a,val(COLOR));       //  Get current COLOR              //1848:         LD      a,(COLOR)       ; Get current color
+        //XOR     (0x80);               //  Get opposite COLOR             //1849:         XOR     80H             ; Get opposite color
+        a = INCHK(m.COLOR^0x80);        //  Determine if King is in check  //1850:         CALL    INCHK1          ; Determine if King is in check
         AND     (a);                    //  In check ?                     //1851:         AND     a               ; In check ?
         JR      (Z,FM35);               //  No - jump                      //1852:         JR      Z,FM35          ; No - jump
         JPu     (FM19);                 //  Jump (One more ply for check)  //1853:         JP      FM19            ; Jump (One more ply for check)
@@ -2704,7 +2694,7 @@ CP1C:   LD      (a,val(COLOR));         //  Should computer call check ?   //237
         LD      (b,a);                                                     //2371:         LD      b,a
         XOR     (0x80);                 //  Toggle color                   //2372:         XOR     80H             ; Toggle color
         LD      (val(COLOR),a);                                            //2373:         LD      (COLOR),a
-        a = CALLu(INCHK);               //  Check for check                //2374:         CALL    INCHK           ; Check for check
+        a = INCHK(m.COLOR);             //  Check for check                //2374:         CALL    INCHK           ; Check for check
         AND     (a);                    //  Is enemy in check ?            //2375:         AND     a               ; Is enemy in check ?
         LD      (a,b);                  //  Restore color                  //2376:         LD      a,b             ; Restore color
         LD      (val(COLOR),a);                                            //2377:         LD      (COLOR),a
@@ -2846,7 +2836,7 @@ VA6:    LD      (e,ptr(ix+MLPTR));      //  Pointer to next list move      //267
         JRu     (VA5);                  //  Jump                           //2677:         JR      VA5             ; Jump
 VA7:    LD      (v16(MLPTRJ),ix);       //  Save opponents move pointer    //2678: VA7:    LD      (MLPTRJ),ix     ; Save opponents move pointer
         CALLu   (MOVE);                 //  Make move on board array       //2679:         CALL    MOVE            ; Make move on board array
-        a = CALLu(INCHK);               //  Was it a legal move ?          //2680:         CALL    INCHK           ; Was it a legal move ?
+        a = INCHK(m.COLOR);             //  Was it a legal move ?          //2680:         CALL    INCHK           ; Was it a legal move ?
         AND     (a);                    //                                 //2681:         AND     a
         JR      (NZ,VA9);               //  No - jump                      //2682:         JR      NZ,VA9          ; No - jump
         POP     (hl);                   //  Restore saved register         //2683: VA8:    POP     hl              ; Restore saved register
