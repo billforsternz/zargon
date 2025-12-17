@@ -701,7 +701,7 @@ static inline void path_c()
         a = 3;
     else if(  0 == (m.T2 = 7&(m.P2 = m.BOARDA[m.M2]))  )
         a = 0;
-    else 
+    else
         a = ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
 }
 #endif
@@ -888,7 +888,7 @@ rel003: CP      (10);                   //  Is difference 10 ?             //065
 //                                                                         //0683: ;
 // ARGUMENTS:  --  None                                                    //0684: ; ARGUMENTS:  --  None
 //***********************************************************              //0685: ;***********************************************************
-void ADJPTR() {
+void ADJPTR_asm() {
         callback_zargon_bridge(CB_ADJPTR);
         LD      (hl,v16(MLLST));        //  Get list pointer               //0686: ADJPTR: LD      hl,(MLLST)      ; Get list pointer
         LD      (de,-6);                //  Size of a move entry           //0687:         LD      de,-6           ; Size of a move entry
@@ -899,6 +899,23 @@ void ADJPTR() {
         LD      (ptr(hl),0);            //  Zero out link, second byte     //0692:         LD      (hl),0          ; Zero out link, second byte
         RETu;                           //  Return                         //0693:         RET                     ; Return
 }                                                                          //0694:
+
+void ADJPTR() {
+        callback_zargon_bridge(CB_ADJPTR);
+        // LD      (hl,v16(MLLST));        //  Get list pointer
+        // LD      (de,-6);                //  Size of a move entry
+        // ADD16   (hl,de);                //  Back up list pointer
+        // LD      (v16(MLLST),hl);        //  Save list pointer
+        // LD      (ptr(hl),0);            //  Zero out link, first byte
+        // INC16   (hl);                   //  Next byte
+        // LD      (ptr(hl),0);            //  Zero out link, second byte
+        // RETu;                           //  Return
+		m.MLLST -= 6;
+		uint8_t  *p = (uint8_t *)&m;
+		p += m.MLLST;
+		uint16_t *q = (uint16_t *)p;
+		*q = 0;
+}
 
 //***********************************************************              //0695: ;***********************************************************
 // CASTLE ROUTINE                                                          //0696: ; CASTLE ROUTINE
