@@ -1896,21 +1896,26 @@ rel009: LD      (b,ptr(hl));            //  Init list counts
         NEXTAD();                       //  Retrieve first attacker       
         RET(Z);                         //  Return if none                
 
-XC10:   LD      (l,a);                  //  Save attacker value            
-        CALLu   (NEXTAD);               //  Get next defender              
-        JR      (Z,XC18);               //  Jump if none                   
-        Z80_EXAF;                       //  Save defender value            
-        LD      (a,b);                  //  Get attacked value             
-        CP      (l);                    //  Attacked less than attacker ?  
-        JR      (NC,XC19);              //  No - jump                      
-        Z80_EXAF;                       //  -Restore defender              
-XC15:   CP      (l);                    //  Defender less than attacker ?  
-        RET     (CY);                   //  Yes - return                   
-        CALLu   (NEXTAD);               //  Retrieve next attacker value   
-        RET     (Z);                    //  Return if none                 
-        LD      (l,a);                  //  Save attacker value            
-        CALLu   (NEXTAD);               //  Retrieve next defender value   
-        JR      (NZ,XC15);              //  Jump if none                   
+    for(;;)
+    {
+        l = a;                          //  Save attacker value            
+        NEXTAD();                       //  Get next defender              
+        if(NZ)                          //  If have a defender
+        {
+            
+            Z80_EXAF;                       //  Save defender value            
+            LD      (a,b);                  //  Get attacked value             
+            CP      (l);                    //  Attacked less than attacker ?  
+            JR      (NC,XC19);              //  No - jump                      
+            Z80_EXAF;                       //  -Restore defender              
+    XC15:   CP      (l);                    //  Defender less than attacker ?  
+            RET     (CY);                   //  Yes - return                   
+            CALLu   (NEXTAD);               //  Retrieve next attacker value   
+            RET     (Z);                    //  Return if none                 
+            LD      (l,a);                  //  Save attacker value            
+            CALLu   (NEXTAD);               //  Retrieve next defender value   
+            JR      (NZ,XC15);              //  Jump if none                   
+        }
 XC18:   Z80_EXAF;                       //  Save Defender                  
         LD      (a,b);                  //  Get value of attacked piece    
 XC19:   BIT     (0,c);                  //  Attacker or defender ?         
@@ -1921,7 +1926,7 @@ rel010: ADD     (a,e);                  //  Total points lost
         Z80_EXAF;                       //  Restore previous defender      
         RET     (Z);                    //  Return if none                 
         LD      (b,l);                  //  Prev attckr becomes defender   
-        JPu     (XC10);                 //  Jump                           
+    }
 }                                                                          
 
 //***********************************************************              //1297: ;***********************************************************
