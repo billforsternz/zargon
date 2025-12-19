@@ -1888,22 +1888,13 @@ rel009: LD      (b,ptr(hl));            //  Init list counts
         #endif
 
         EXX;                            //  Restore regs.                  
-        #if 1
-        LD      (c,0);                  //  Init attacker/defender flag    
-        LD      (e,0);                  //  Init points lost count         
-        LD      (ix,v16(T3));           //  Load piece value index         
-        LD      (d,ptr(ix+PVALUE));     //  Get attacked piece value       
-        SLA     (d);                    //  Double it                      
-        LD      (b,d);                  //  Save                           
-        CALLu   (NEXTAD);               //  Retrieve first attacker        
-        RET     (Z);                    //  Return if none                 
-        #else
-        c = 0;
-        e = 0;
-        b = 2*m.pvalue[m.T3];
-        NEXTAD();
-        RET(Z);
-        #endif
+        c = 0;                          //  Init attacker/defender flag   
+        e = 0;                          //  Init points lost count        
+        d = m.pvalue[m.T3-1];           //  Get attacked piece value      
+        d = d+d;                        //  Double it                     
+        b = d;                          //  Save                          
+        NEXTAD();                       //  Retrieve first attacker       
+        RET(Z);                         //  Return if none                
 
 XC10:   LD      (l,a);                  //  Save attacker value            
         CALLu   (NEXTAD);               //  Get next defender              
@@ -1970,8 +1961,8 @@ NX6:    EXX;                            //  Restore regs.                  //132
         RETu;                           //  Return                         //1329:         RET                     ; Return
 }                                                                          //1330:
 
-
-inline void NEXTAD() {
+inline void NEXTAD()
+{
     callback_zargon_bridge(CB_NEXTAD);
     c++;                            //  Increment side flag         
     EXX;                            //  Swap registers              
@@ -2004,7 +1995,6 @@ inline void NEXTAD() {
     EXX;                            //  Restore regs.               
     RETu;                           //  Return                      
 }                                                                       
-
 
 //***********************************************************              //1331: ;***********************************************************
 // POINT EVALUATION ROUTINE                                                //1332: ; POINT EVALUATION ROUTINE
