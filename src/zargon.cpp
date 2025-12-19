@@ -1971,7 +1971,7 @@ NX6:    EXX;                            //  Restore regs.                  //132
 }                                                                          //1330:
 
 
-void NEXTAD() {
+inline void NEXTAD() {
     callback_zargon_bridge(CB_NEXTAD);
     c++;                            //  Increment side flag         
     EXX;                            //  Swap registers              
@@ -1982,30 +1982,25 @@ void NEXTAD() {
     de = hl;
     hl = temp2;
     a = 0;
-    if( b == 0 )                    //  At end of list ?
-    {
-        Z = true;
-    }
-    else
+    if( b != 0 )                    //  Not at end of list ?
     {
         b--;        //  Decrement list count
+        uint8_t *p = (uint8_t *)((uint8_t *)&m + hl);
         do
         {
-            hl++;                   //  Increment list pointer
-        } while( ptr(hl) == 0 );    //  Keep going if empty
+            p++;                   //  Increment list pointer
+        } while( *p == 0 );    //  Keep going if empty
 
         //  Get value from list
-        uint8_t nib1 =  a&0xf0;
-        uint8_t nib2 =  a&0x0f;
-        uint8_t nib3 =  (ptr(hl))>>4;
-        uint8_t nib4 =  (ptr(hl))&0x0f;
-        a       = nib1 + nib4;             
-        ptr(hl) = (nib2<<4) + nib3;
+        a  = *p &0x0f;
+        *p = *p >> 4;
 
-        a = a+a;    //  Double it                   
-        Z = (a==0);
-        hl--;       //  Decrement list pointer      
+        //  Double it                   
+        a = a+a;
+        p--;        //  Decrement list pointer      
+        hl = (uint16_t)(p - (uint8_t *)&m);
     }
+    Z = (a==0);
     EXX;                            //  Restore regs.               
     RETu;                           //  Return                      
 }                                                                       

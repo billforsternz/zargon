@@ -24,7 +24,7 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir );
 inline bool PNCK( uint16_t pin_count, int8_t attack_direction );
 void PINFND();
 void XCHNG();
-void NEXTAD();
+inline void NEXTAD();
 void POINTS();
 void LIMIT();
 void MOVE();
