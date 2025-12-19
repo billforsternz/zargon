@@ -1815,12 +1815,12 @@ PF27:   JPu     (PF2);                  //  Jump                           //123
 //                                                                         //1247: ;
 // ARGUMENTS:  --  None.                                                   //1248: ; ARGUMENTS:  --  None.
 //***********************************************************              //1249: ;***********************************************************
-void XCHNG() {
+void XCHNG_asm() {
         callback_zargon_bridge(CB_XCHNG);
         EXX;                            //  Swap regs.                     //1250: XCHNG:  EXX                     ; Swap regs.
         LD      (a,(val(P1)));          //  Piece attacked                 //1251:         LD      a,(P1)          ; Piece attacked
-        LD      (hl,WACT);        //  Addr of white attkrs/dfndrs          //1252:         LD      hl,WACT         ; Addr of white attkrs/dfndrs
-        LD      (de,BACT);        //  Addr of black attkrs/dfndrs          //1253:         LD      de,BACT         ; Addr of black attkrs/dfndrs
+        LD      (hl,WACT);              //  Addr of white attkrs/dfndrs    //1252:         LD      hl,WACT         ; Addr of white attkrs/dfndrs
+        LD      (de,BACT);              //  Addr of black attkrs/dfndrs    //1253:         LD      de,BACT         ; Addr of black attkrs/dfndrs
         BIT     (7,a);                  //  Is piece white ?               //1254:         BIT     7,a             ; Is piece white ?
         JR      (Z,rel009);             //  Yes - jump                     //1255:         JR      Z,rel009        ; Yes - jump
         EX      (de,hl);                //  Swap list pointers             //1256:         EX      de,hl           ; Swap list pointers
@@ -1865,6 +1865,74 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
         JPu     (XC10);                 //  Jump                           //1295:         JP      XC10            ; Jump
 }                                                                          //1296:
 
+void XCHNG() {
+        callback_zargon_bridge(CB_XCHNG);
+        EXX;                            //  Swap regs.                     
+
+        #if 1
+        LD      (a,val(P1));            //  Piece attacked                 
+        LD      (hl,WACT);              //  Addr of white attkrs/dfndrs    
+        LD      (de,BACT);              //  Addr of black attkrs/dfndrs    
+        BIT     (7,a);                  //  Is piece white ?               
+        JR      (Z,rel009);             //  Yes - jump                     
+        EX      (de,hl);                //  Swap list pointers             
+rel009: LD      (b,ptr(hl));            //  Init list counts               
+        EX      (de,hl);                                                   
+        LD      (c,ptr(hl));                                               
+        EX      (de,hl);                                                   
+        #else
+        uint8_t *side1 = (m.P1 & 0x80) ? &m.wact[7] : &m.wact[0]; 
+        uint8_t *side2 = (m.P1 & 0x80) ? &m.wact[7] : &m.wact[0]; 
+        b = *side1;
+        c = *side2;
+        #endif
+
+        EXX;                            //  Restore regs.                  
+        #if 1
+        LD      (c,0);                  //  Init attacker/defender flag    
+        LD      (e,0);                  //  Init points lost count         
+        LD      (ix,v16(T3));           //  Load piece value index         
+        LD      (d,ptr(ix+PVALUE));     //  Get attacked piece value       
+        SLA     (d);                    //  Double it                      
+        LD      (b,d);                  //  Save                           
+        CALLu   (NEXTAD);               //  Retrieve first attacker        
+        RET     (Z);                    //  Return if none                 
+        #else
+        c = 0;
+        e = 0;
+        b = 2*m.pvalue[m.T3];
+        NEXTAD();
+        RET(Z);
+        #endif
+
+XC10:   LD      (l,a);                  //  Save attacker value            
+        CALLu   (NEXTAD);               //  Get next defender              
+        JR      (Z,XC18);               //  Jump if none                   
+        Z80_EXAF;                       //  Save defender value            
+        LD      (a,b);                  //  Get attacked value             
+        CP      (l);                    //  Attacked less than attacker ?  
+        JR      (NC,XC19);              //  No - jump                      
+        Z80_EXAF;                       //  -Restore defender              
+XC15:   CP      (l);                    //  Defender less than attacker ?  
+        RET     (CY);                   //  Yes - return                   
+        CALLu   (NEXTAD);               //  Retrieve next attacker value   
+        RET     (Z);                    //  Return if none                 
+        LD      (l,a);                  //  Save attacker value            
+        CALLu   (NEXTAD);               //  Retrieve next defender value   
+        JR      (NZ,XC15);              //  Jump if none                   
+XC18:   Z80_EXAF;                       //  Save Defender                  
+        LD      (a,b);                  //  Get value of attacked piece    
+XC19:   BIT     (0,c);                  //  Attacker or defender ?         
+        JR      (Z,rel010);             //  Jump if defender               
+        NEG;                            //  Negate value for attacker      
+rel010: ADD     (a,e);                  //  Total points lost              
+        LD      (e,a);                  //  Save total                     
+        Z80_EXAF;                       //  Restore previous defender      
+        RET     (Z);                    //  Return if none                 
+        LD      (b,l);                  //  Prev attckr becomes defender   
+        JPu     (XC10);                 //  Jump                           
+}                                                                          
+
 //***********************************************************              //1297: ;***********************************************************
 // NEXT ATTACKER/DEFENDER ROUTINE                                          //1298: ; NEXT ATTACKER/DEFENDER ROUTINE
 //***********************************************************              //1299: ;***********************************************************
@@ -1880,7 +1948,7 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
 //                 Side flag                                               //1309: ;                 Side flag
 //                 Attack list counts                                      //1310: ;                 Attack list counts
 //***********************************************************              //1311: ;***********************************************************
-void NEXTAD() {
+void NEXTAD_asm() {
         callback_zargon_bridge(CB_NEXTAD);
         INC     (c);                    //  Increment side flag            //1312: NEXTAD: INC     c               ; Increment side flag
         EXX;                            //  Swap registers                 //1313:         EXX                     ; Swap registers
@@ -1901,6 +1969,47 @@ back03: INC16   (hl);                   //  Increment list pointer         //132
 NX6:    EXX;                            //  Restore regs.                  //1328: NX6:    EXX                     ; Restore regs.
         RETu;                           //  Return                         //1329:         RET                     ; Return
 }                                                                          //1330:
+
+
+void NEXTAD() {
+    callback_zargon_bridge(CB_NEXTAD);
+    c++;                            //  Increment side flag         
+    EXX;                            //  Swap registers              
+    uint8_t temp1 = b;              //  Swap list counts            
+    b = c;                          //                              
+    c = temp1;                      //                              
+    uint16_t temp2 = de;            //  Swap list pointers          
+    de = hl;
+    hl = temp2;
+    a = 0;
+    if( b == 0 )                    //  At end of list ?
+    {
+        Z = true;
+    }
+    else
+    {
+        b--;        //  Decrement list count
+        do
+        {
+            hl++;                   //  Increment list pointer
+        } while( ptr(hl) == 0 );    //  Keep going if empty
+
+        //  Get value from list
+        uint8_t nib1 =  a&0xf0;
+        uint8_t nib2 =  a&0x0f;
+        uint8_t nib3 =  (ptr(hl))>>4;
+        uint8_t nib4 =  (ptr(hl))&0x0f;
+        a       = nib1 + nib4;             
+        ptr(hl) = (nib2<<4) + nib3;
+
+        a = a+a;    //  Double it                   
+        Z = (a==0);
+        hl--;       //  Decrement list pointer      
+    }
+    EXX;                            //  Restore regs.               
+    RETu;                           //  Return                      
+}                                                                       
+
 
 //***********************************************************              //1331: ;***********************************************************
 // POINT EVALUATION ROUTINE                                                //1332: ; POINT EVALUATION ROUTINE
