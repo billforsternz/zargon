@@ -1900,36 +1900,25 @@ rel009: LD      (b,ptr(hl));            //  Init list counts
     {
         l = a;                          //  Save attacker value            
         NEXTAD();                       //  Get next defender              
-#if 0
-        if(NZ)                          //  If have a defender
-        {
-            Z80_EXAF;                       //  Save defender value            
-            LD      (a,b);                  //  Get attacked value             
-            CP      (l);                    //  Attacked less than attacker ?  
-            JR      (NC,XC19);              //  No - jump                      
-            Z80_EXAF;                       //  -Restore defender              
-#else
         bool attacked_lt_attacker = (b<l);
         if(NZ && attacked_lt_attacker)  //  If have a defender and attacked < attacker
         {
-            
-            // Z80_EXAF;                       //  Save defender value            
-            // LD      (a,b);                  //  Get attacked value             
-            // CP      (l);                    //  Attacked less than attacker ?  
-            // JR      (NC,XC19);              //  No - jump                      
-            // Z80_EXAF;                       //  -Restore defender              
-#endif
-    XC15:   CP      (l);                    //  Defender less than attacker ?  
-            RET     (CY);                   //  Yes - return                   
-            CALLu   (NEXTAD);               //  Retrieve next attacker value   
-            RET     (Z);                    //  Return if none                 
-            LD      (l,a);                  //  Save attacker value            
-            CALLu   (NEXTAD);               //  Retrieve next defender value   
-            JR      (NZ,XC15);              //  Jump if none                   
+            for(;;)
+            {
+                if( l>a )                   //  Defender less than attacker ? 
+                    return;                 //  Yes - return                  
+                NEXTAD();                   //  Retrieve next attacker value   
+                if(Z)
+                    return;                 //  Return if none                 
+                l = a;                      //  Save attacker value            
+                NEXTAD();                   //  Retrieve next defender value   
+                if(Z)
+                    break;                  //  End loop if none                    
+            }
         }
-XC18:   Z80_EXAF;                       //  Save Defender                  
+        Z80_EXAF;                       //  Save Defender                  
         LD      (a,b);                  //  Get value of attacked piece    
-XC19:   BIT     (0,c);                  //  Attacker or defender ?         
+        BIT     (0,c);                  //  Attacker or defender ?         
         JR      (Z,rel010);             //  Jump if defender               
         NEG;                            //  Negate value for attacker      
 rel010: ADD     (a,e);                  //  Total points lost              
