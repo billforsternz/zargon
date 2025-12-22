@@ -1916,16 +1916,14 @@ rel009: LD      (b,ptr(hl));            //  Init list counts
                     break;                  //  End loop if none                    
             }
         }
-        Z80_EXAF;                       //  Save Defender                  
-        LD      (a,b);                  //  Get value of attacked piece    
-        BIT     (0,c);                  //  Attacker or defender ?         
-        JR      (Z,rel010);             //  Jump if defender               
-        NEG;                            //  Negate value for attacker      
-rel010: ADD     (a,e);                  //  Total points lost              
-        LD      (e,a);                  //  Save total                     
-        Z80_EXAF;                       //  Restore previous defender      
-        RET     (Z);                    //  Return if none                 
-        LD      (b,l);                  //  Prev attckr becomes defender   
+        int8_t points = (int8_t)b;      //  Get value of attacked piece    
+        if( c&1 )                       //  Attacker or defender ?
+            points = 0-points;          //  Negate value for attacker
+        points += (int8_t)e;            //  Total points lost
+        e = (uint8_t)points;            //  Save total
+        if(Z)
+            return;                     //  Return if none                 
+        b = l;                          //  Prev attacker becomes defender   
     }
 }                                                                          
 
