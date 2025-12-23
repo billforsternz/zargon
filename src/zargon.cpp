@@ -1866,66 +1866,71 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
 }                                                                          //1296:
 
 void XCHNG() {
-        callback_zargon_bridge(CB_XCHNG);
-        EXX;                            //  Swap regs.                     
-
-        #if 1
-        LD      (a,val(P1));            //  Piece attacked                 
-        LD      (hl,WACT);              //  Addr of white attkrs/dfndrs    
-        LD      (de,BACT);              //  Addr of black attkrs/dfndrs    
-        BIT     (7,a);                  //  Is piece white ?               
-        JR      (Z,rel009);             //  Yes - jump                     
-        EX      (de,hl);                //  Swap list pointers             
-rel009: LD      (b,ptr(hl));            //  Init list counts               
-        EX      (de,hl);                                                   
-        LD      (c,ptr(hl));                                               
-        EX      (de,hl);                                                   
-        #else
-        uint8_t *side1 = (m.P1 & 0x80) ? &m.wact[7] : &m.wact[0]; 
-        uint8_t *side2 = (m.P1 & 0x80) ? &m.wact[7] : &m.wact[0]; 
-        b = *side1;
-        c = *side2;
-        #endif
-
-        EXX;                            //  Restore regs.                  
-        c = 0;                          //  Init attacker/defender flag   
-        e = 0;                          //  Init points lost count        
-        d = m.pvalue[m.T3-1];           //  Get attacked piece value      
-        d = d+d;                        //  Double it                     
-        b = d;                          //  Save                          
-        NEXTAD();                       //  Retrieve first attacker       
-        RET(Z);                         //  Return if none                
+    callback_zargon_bridge(CB_XCHNG);
+    EXX;                            //  Swap regs.
+    if( m.P1 & 0x80 )               //  Piece attacked
+    {
+        hl = BACT;                  //  Addr of black attkrs/dfndrs
+        de = WACT;                  //  Addr of white attkrs/dfndrs
+    }
+    else
+    {
+        hl = WACT;                  //  Addr of white attkrs/dfndrs
+        de = BACT;                  //  Addr of black attkrs/dfndrs
+    }
+    b = ptr(hl);                    //  Init list counts
+    c = ptr(de);
+    EXX;                            //  Restore regs.
+    c = 0;                          //  Init attacker/defender flag
+    e = 0;                          //  Init points lost count
+    d = m.pvalue[m.T3-1];           //  Get attacked piece value
+    d = d+d;                        //  Double it
+    b = d;                          //  Save
+    c++;                            //  Increment side flag
+    EXX;                            //  Swap registers
+    NEXTAD();                       //  Retrieve first attacker
+    EXX;                            //  Restore registers
+    RET(Z);                         //  Return if none
 
     for(;;)
     {
-        l = a;                          //  Save attacker value            
-        NEXTAD();                       //  Get next defender              
+        l = a;                          //  Save attacker value
+        c++;                            //  Increment side flag
+        EXX;                            //  Swap registers
+        NEXTAD();                       //  Get next defender
+        EXX;                            //  Restore registers
         bool attacked_lt_attacker = (b<l);
         if(NZ && attacked_lt_attacker)  //  If have a defender and attacked < attacker
         {
             for(;;)
             {
-                if( l>a )                   //  Defender less than attacker ? 
-                    return;                 //  Yes - return                  
-                NEXTAD();                   //  Retrieve next attacker value   
+                if( l>a )                   //  Defender less than attacker ?
+                    return;                 //  Yes - return
+                c++;                            //  Increment side flag
+                EXX;                            //  Swap registers
+                NEXTAD();                   //  Retrieve next attacker value
+                EXX;                            //  Restore registers
                 if(Z)
-                    return;                 //  Return if none                 
-                l = a;                      //  Save attacker value            
-                NEXTAD();                   //  Retrieve next defender value   
+                    return;                 //  Return if none
+                l = a;                      //  Save attacker value
+                c++;                            //  Increment side flag
+                EXX;                            //  Swap registers
+                NEXTAD();                   //  Retrieve next defender value
+                EXX;                            //  Restore registers
                 if(Z)
-                    break;                  //  End loop if none                    
+                    break;                  //  End loop if none
             }
         }
-        int8_t points = (int8_t)b;      //  Get value of attacked piece    
+        int8_t points = (int8_t)b;      //  Get value of attacked piece
         if( c&1 )                       //  Attacker or defender ?
             points = 0-points;          //  Negate value for attacker
         points += (int8_t)e;            //  Total points lost
         e = (uint8_t)points;            //  Save total
         if(Z)
-            return;                     //  Return if none                 
-        b = l;                          //  Prev attacker becomes defender   
+            return;                     //  Return if none
+        b = l;                          //  Prev attacker becomes defender
     }
-}                                                                          
+}
 
 //***********************************************************              //1297: ;***********************************************************
 // NEXT ATTACKER/DEFENDER ROUTINE                                          //1298: ; NEXT ATTACKER/DEFENDER ROUTINE
@@ -1967,12 +1972,10 @@ NX6:    EXX;                            //  Restore regs.                  //132
 inline void NEXTAD()
 {
     callback_zargon_bridge(CB_NEXTAD);
-    c++;                            //  Increment side flag         
-    EXX;                            //  Swap registers              
-    uint8_t temp1 = b;              //  Swap list counts            
-    b = c;                          //                              
-    c = temp1;                      //                              
-    uint16_t temp2 = de;            //  Swap list pointers          
+    uint8_t temp1 = b;              //  Swap list counts
+    b = c;                          //
+    c = temp1;                      //
+    uint16_t temp2 = de;            //  Swap list pointers
     de = hl;
     hl = temp2;
     a = 0;
@@ -1989,15 +1992,14 @@ inline void NEXTAD()
         a  = *p &0x0f;
         *p = *p >> 4;
 
-        //  Double it                   
+        //  Double it
         a = a+a;
-        p--;        //  Decrement list pointer      
+        p--;        //  Decrement list pointer
         hl = (uint16_t)(p - (uint8_t *)&m);
     }
     Z = (a==0);
-    EXX;                            //  Restore regs.               
-    RETu;                           //  Return                      
-}                                                                       
+    RETu;                           //  Return
+}
 
 //***********************************************************              //1331: ;***********************************************************
 // POINT EVALUATION ROUTINE                                                //1332: ; POINT EVALUATION ROUTINE
