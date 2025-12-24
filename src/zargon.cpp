@@ -1904,14 +1904,12 @@ void XCHNG() {
                 if( l>a )                   //  Defender less than attacker ?
                     return;                 //  Yes - return
                 c++;                            //  Increment side flag
-                if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next defender
-                black = !black;
+                if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next attacker
                 if(Z)
                     return;                 //  Return if none
                 l = a;                      //  Save attacker value
                 c++;                            //  Increment side flag
-                if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next defender
-                black = !black;
+                if( black ) NEXTAD( count_white, p_white ); else NEXTAD( count_black, p_black );                       //  Get next defender
                 if(Z)
                     break;                  //  End loop if none
             }
