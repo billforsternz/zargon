@@ -1871,18 +1871,17 @@ void XCHNG()
 {
     callback_zargon_bridge(CB_XCHNG);
     bool black = (m.P1 & 0x80) != 0;
+    bool side_flag = true;
 
     uint8_t *p_white = (uint8_t *)((uint8_t *)&m + WACT);     
     uint8_t *p_black = (uint8_t *)((uint8_t *)&m + BACT);
     uint8_t count_white = *p_white;
     uint8_t count_black = *p_black;
 
-    uint8_t side_flag = 0;          //  Init attacker/defender flag
     e = 0;                          //  Init points lost count (XCHNG returns registers e + d)
     d = m.pvalue[m.T3-1];           //  Get attacked piece value (XCHNG returns registers e + d)
     d = d+d;                        //  Double it
     uint8_t piece_val = d;          //  Save
-    side_flag++;                    //  Increment side flag
     uint8_t val = black ? NEXTAD( count_white, p_white )
                         : NEXTAD( count_black, p_black );   //  Retrieve first attacker
     if( val==0 )
@@ -1890,10 +1889,10 @@ void XCHNG()
     for(;;)
     {
         uint8_t save_val = val;                 //  Save attacker value
-        side_flag++;                            //  Increment side flag
         val = black ? NEXTAD( count_black, p_black )
                     : NEXTAD( count_white, p_white );   //  Get next defender
         black = !black;
+        side_flag = !side_flag;
         bool attacked_lt_attacker = (piece_val<save_val);
         if( val!=0 && attacked_lt_attacker )  //  If have a defender and attacked < attacker
         {
@@ -1901,13 +1900,11 @@ void XCHNG()
             {
                 if( save_val>val )          //  Defender less than attacker ?
                     return;                 //  Yes - return
-                side_flag++;                //  Increment side flag
                 val = black ? NEXTAD( count_black, p_black )
                             : NEXTAD( count_white, p_white );       //  Get next attacker
                 if( val==0 )
                     return;                 //  Return if none
                 save_val = val;             //  Save attacker value
-                side_flag++;                //  Increment side flag
                 val = black ? NEXTAD( count_white, p_white )
                             : NEXTAD( count_black, p_black );       //  Get next defender
                 if( val==0 )
@@ -1915,7 +1912,7 @@ void XCHNG()
             }
         }
         int8_t points = (int8_t)piece_val;  //  Get value of attacked piece
-        if( side_flag&1 )                   //  Attacker or defender ?
+        if( side_flag )                     //  Attacker or defender ?
             points = 0-points;              //  Negate value for attacker
         points += (int8_t)e;                //  Total points lost
         e = (uint8_t)points;                //  Save total
@@ -1979,7 +1976,7 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
         *p = *p >> 4;
 
         //  Double it
-        val = 2*val;
+        val = val+val;
         p--;        //  Decrement list pointer
     }
     return val;
