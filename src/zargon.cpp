@@ -1876,42 +1876,35 @@ void XCHNG() {
     uint8_t count_white = *p_white;
     uint8_t count_black = *p_black;
 
-    // uint8_t *p_hl = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?BACT:WACT) );     
-    // uint8_t *p_de = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?WACT:BACT) );
-    // uint8_t count_b = *p_hl;
-    // uint8_t count_c = *p_de;
-
     c = 0;                          //  Init attacker/defender flag
     e = 0;                          //  Init points lost count
     d = m.pvalue[m.T3-1];           //  Get attacked piece value
     d = d+d;                        //  Double it
     b = d;                          //  Save
     c++;                            //  Increment side flag
-    if( black ) NEXTAD( count_white, p_white ); else NEXTAD( count_black, p_black );   //  Retrieve first attacker
-    RET(Z);                         //  Return if none
+    uint8_t val = black ? NEXTAD( count_white, p_white ) : NEXTAD( count_black, p_black );   //  Retrieve first attacker
+    if( val==0 ) return;            //  Return if none
 
     for(;;)
     {
-        l = a;                          //  Save attacker value
+        l = val;                          //  Save attacker value
         c++;                            //  Increment side flag
-        if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next defender
+        val = black ? NEXTAD( count_black, p_black ) : NEXTAD( count_white, p_white );                       //  Get next defender
         black = !black;
         bool attacked_lt_attacker = (b<l);
-        if(NZ && attacked_lt_attacker)  //  If have a defender and attacked < attacker
+        if( val!=0 && attacked_lt_attacker )  //  If have a defender and attacked < attacker
         {
             for(;;)
             {
-                if( l>a )                   //  Defender less than attacker ?
+                if( l>val )                 //  Defender less than attacker ?
                     return;                 //  Yes - return
                 c++;                            //  Increment side flag
-                if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next attacker
-                if(Z)
-                    return;                 //  Return if none
-                l = a;                      //  Save attacker value
+                val = black ? NEXTAD( count_black, p_black ) : NEXTAD( count_white, p_white );                       //  Get next attacker
+                if( val==0 ) return;            //  Return if none
+                l = val;                      //  Save attacker value
                 c++;                            //  Increment side flag
-                if( black ) NEXTAD( count_white, p_white ); else NEXTAD( count_black, p_black );                       //  Get next defender
-                if(Z)
-                    break;                  //  End loop if none
+                val = black ? NEXTAD( count_white, p_white ) : NEXTAD( count_black, p_black );                       //  Get next defender
+                if( val==0 ) break;          //  End loop if none
             }
         }
         int8_t points = (int8_t)b;      //  Get value of attacked piece
@@ -1919,8 +1912,7 @@ void XCHNG() {
             points = 0-points;          //  Negate value for attacker
         points += (int8_t)e;            //  Total points lost
         e = (uint8_t)points;            //  Save total
-        if(Z)
-            return;                     //  Return if none
+        if( val==0 ) return;            //  Return if none
         b = l;                          //  Prev attacker becomes defender
     }
 }
@@ -1962,37 +1954,10 @@ NX6:    EXX;                            //  Restore regs.                  //132
         RETu;                           //  Return                         //1329:         RET                     ; Return
 }                                                                          //1330:
 
-inline void NEXTAD( uint8_t& count, uint8_t* &p )
+inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 {
     callback_zargon_bridge(CB_NEXTAD);
-    #ifdef OLD_VERSION
-    uint8_t temp1 = b;              //  Swap list counts
-    b = c;                          //
-    c = temp1;                      //
-    uint16_t temp2 = de;            //  Swap list pointers
-    de = hl;
-    hl = temp2;
-    a = 0;
-    if( b != 0 )                    //  Not at end of list ?
-    {
-        b--;        //  Decrement list count
-        uint8_t *p = (uint8_t *)((uint8_t *)&m + hl);
-        do
-        {
-            p++;                   //  Increment list pointer
-        } while( *p == 0 );    //  Keep going if empty
-
-        //  Get value from list
-        a  = *p &0x0f;
-        *p = *p >> 4;
-
-        //  Double it
-        a = a+a;
-        p--;        //  Decrement list pointer
-        hl = (uint16_t)(p - (uint8_t *)&m);
-    }
-    #else
-    a = 0;
+    uint8_t val = 0;
     if( count != 0 )                    //  Not at end of list ?
     {
         count--;        //  Decrement list count
@@ -2002,16 +1967,14 @@ inline void NEXTAD( uint8_t& count, uint8_t* &p )
         } while( *p == 0 );    //  Keep going if empty
 
         //  Get value from list
-        a  = *p &0x0f;
+        val = *p &0x0f;
         *p = *p >> 4;
 
         //  Double it
-        a = a+a;
+        val = 2*val;
         p--;        //  Decrement list pointer
     }
-    #endif
-    Z = (a==0);
-    RETu;                           //  Return
+    return val;
 }
 
 //***********************************************************              //1331: ;***********************************************************
