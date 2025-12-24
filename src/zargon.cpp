@@ -1869,10 +1869,17 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
 
 void XCHNG() {
     callback_zargon_bridge(CB_XCHNG);
-    uint8_t *p_hl = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?BACT:WACT) );     
-    uint8_t *p_de = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?WACT:BACT) );
-    uint8_t count_b = *p_hl;
-    uint8_t count_c = *p_de;
+    bool black = (m.P1 & 0x80) != 0;
+
+    uint8_t *p_white = (uint8_t *)((uint8_t *)&m + WACT);     
+    uint8_t *p_black = (uint8_t *)((uint8_t *)&m + BACT);
+    uint8_t count_white = *p_white;
+    uint8_t count_black = *p_black;
+
+    // uint8_t *p_hl = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?BACT:WACT) );     
+    // uint8_t *p_de = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?WACT:BACT) );
+    // uint8_t count_b = *p_hl;
+    // uint8_t count_c = *p_de;
 
     c = 0;                          //  Init attacker/defender flag
     e = 0;                          //  Init points lost count
@@ -1880,16 +1887,15 @@ void XCHNG() {
     d = d+d;                        //  Double it
     b = d;                          //  Save
     c++;                            //  Increment side flag
-    NEXTAD( count_c, p_de );   //  Retrieve first attacker
+    if( black ) NEXTAD( count_white, p_white ); else NEXTAD( count_black, p_black );   //  Retrieve first attacker
     RET(Z);                         //  Return if none
 
-    bool b_hl = true;
     for(;;)
     {
         l = a;                          //  Save attacker value
         c++;                            //  Increment side flag
-        if( b_hl ) NEXTAD( count_b, p_hl ); else NEXTAD( count_c, p_de );                       //  Get next defender
-        b_hl = !b_hl;
+        if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next defender
+        black = !black;
         bool attacked_lt_attacker = (b<l);
         if(NZ && attacked_lt_attacker)  //  If have a defender and attacked < attacker
         {
@@ -1898,14 +1904,14 @@ void XCHNG() {
                 if( l>a )                   //  Defender less than attacker ?
                     return;                 //  Yes - return
                 c++;                            //  Increment side flag
-                if( b_hl ) NEXTAD( count_b, p_hl ); else NEXTAD( count_c, p_de );                       //  Get next defender
-                b_hl = !b_hl;
+                if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next defender
+                black = !black;
                 if(Z)
                     return;                 //  Return if none
                 l = a;                      //  Save attacker value
                 c++;                            //  Increment side flag
-                if( b_hl ) NEXTAD( count_b, p_hl ); else NEXTAD( count_c, p_de );                       //  Get next defender
-                b_hl = !b_hl;
+                if( black ) NEXTAD( count_black, p_black ); else NEXTAD( count_white, p_white );                       //  Get next defender
+                black = !black;
                 if(Z)
                     break;                  //  End loop if none
             }
