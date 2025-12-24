@@ -1867,33 +1867,12 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
 }                                                                          //1296:
 #endif
 
-static uint32_t tracker;
-//#define OLD_VERSION
-#define LIMIT_END 1000000
-
 void XCHNG() {
     callback_zargon_bridge(CB_XCHNG);
-    #ifdef OLD_VERSION
-    EXX;                            //  Swap regs.
-    if( m.P1 & 0x80 )               //  Piece attacked
-    {
-        hl = BACT;                  //  Addr of black attkrs/dfndrs
-        de = WACT;                  //  Addr of white attkrs/dfndrs
-    }
-    else
-    {
-        hl = WACT;                  //  Addr of white attkrs/dfndrs
-        de = BACT;                  //  Addr of black attkrs/dfndrs
-    }
-    b = ptr(hl);                    //  Init list counts
-    c = ptr(de);
-    EXX;                            //  Restore regs.
-    #else
     uint8_t *p_hl = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?BACT:WACT) );     
     uint8_t *p_de = (uint8_t *)((uint8_t *)&m + ((m.P1 & 0x80)?WACT:BACT) );
     uint8_t count_b = *p_hl;
     uint8_t count_c = *p_de;
-    #endif
 
     c = 0;                          //  Init attacker/defender flag
     e = 0;                          //  Init points lost count
@@ -1901,16 +1880,7 @@ void XCHNG() {
     d = d+d;                        //  Double it
     b = d;                          //  Save
     c++;                            //  Increment side flag
-    #ifdef OLD_VERSION
-    EXX;                            //  Swap registers
-    uint8_t dummy=0, *pdummy = &dummy;
-    NEXTAD( dummy, pdummy );   //  Retrieve first attacker
-    // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (1) count=%02x, p=%04x\n", ++tracker, b, hl );
-    EXX;                            //  Restore registers
-    #else
     NEXTAD( count_c, p_de );   //  Retrieve first attacker
-    // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (1) count=%02x, p=%04x\n", ++tracker, count_c, (unsigned int)(p_de-(uint8_t *)&m) );
-    #endif
     RET(Z);                         //  Return if none
 
     bool b_hl = true;
@@ -1918,16 +1888,8 @@ void XCHNG() {
     {
         l = a;                          //  Save attacker value
         c++;                            //  Increment side flag
-        #ifdef OLD_VERSION
-        EXX;                            //  Swap registers
-        NEXTAD( dummy, pdummy );                       //  Get next defender
-        // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (2) count=%02x, p=%04x\n", ++tracker, b, hl );
-        EXX;                            //  Restore registers
-        #else
         if( b_hl ) NEXTAD( count_b, p_hl ); else NEXTAD( count_c, p_de );                       //  Get next defender
         b_hl = !b_hl;
-        // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (2) count=%02x, p=%04x\n", ++tracker, count_b, (unsigned int)(p_hl-(uint8_t *)&m) );
-        #endif
         bool attacked_lt_attacker = (b<l);
         if(NZ && attacked_lt_attacker)  //  If have a defender and attacked < attacker
         {
@@ -1936,30 +1898,14 @@ void XCHNG() {
                 if( l>a )                   //  Defender less than attacker ?
                     return;                 //  Yes - return
                 c++;                            //  Increment side flag
-                #ifdef OLD_VERSION
-                EXX;                            //  Swap registers
-                NEXTAD( dummy, pdummy );                   //  Retrieve next attacker value
-                // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (3) count=%02x, p=%04x\n", ++tracker, b, hl );
-                EXX;                            //  Restore registers
-                #else
                 if( b_hl ) NEXTAD( count_b, p_hl ); else NEXTAD( count_c, p_de );                       //  Get next defender
                 b_hl = !b_hl;
-                // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (3) count=%02x, p=%04x\n", ++tracker, count_c, (unsigned int)(p_de-(uint8_t *)&m) );
-                #endif
                 if(Z)
                     return;                 //  Return if none
                 l = a;                      //  Save attacker value
                 c++;                            //  Increment side flag
-                #ifdef OLD_VERSION
-                EXX;                            //  Swap registers
-                NEXTAD( dummy, pdummy );                   //  Retrieve next defender value
-                // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (4) count=%02x, p=%04x\n", ++tracker, b, hl );
-                EXX;                            //  Restore registers
-                #else
                 if( b_hl ) NEXTAD( count_b, p_hl ); else NEXTAD( count_c, p_de );                       //  Get next defender
                 b_hl = !b_hl;
-                // if( tracker>LIMIT_END ) exit(0); else printf( "%lu: (4) count=%02x, p=%04x\n", ++tracker, count_b, (unsigned int)(p_hl-(uint8_t *)&m) );
-                #endif
                 if(Z)
                     break;                  //  End loop if none
             }
