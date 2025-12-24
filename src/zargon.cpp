@@ -2986,7 +2986,7 @@ RY0C:   LD      (a,val(M1));            //  Current position               //296
 //   inputs hi=A lo=D, divide by E                                         //3191: ;   inputs hi=A lo=D, divide by E
 //   output D, remainder in A                                              //3192: ;   output D, remainder in A
 //***********************************************************              //3193: ;***********************************************************
-void DIVIDE() {
+void DIVIDE_asm() {
         PUSH    (bc);                   //                                 //3194: DIVIDE: PUSH    bc
         LD      (b,8);                  //                                 //3195:         LD      b,8
 DD04:   SLA     (d);                    //                                 //3196: DD04:   SLA     d
@@ -3001,12 +3001,22 @@ rel024: DJNZ    (DD04);                 //                                 //320
         RETu;                           //                                 //3205:         RET
 }                                                                          //3206:
 
+void DIVIDE()
+{
+    uint16_t x = (uint16_t)a;
+    x = x<<8;
+    x += d;
+    uint16_t y = (uint16_t)e;
+    d = (uint8_t) (x/y);
+    a = (uint8_t) (x%y);
+}
+
 //***********************************************************              //3207: ;***********************************************************
 // POSITIVE INTEGER MULTIPLICATION                                         //3208: ; POSITIVE INTEGER MULTIPLICATION
 //   inputs D, E                                                           //3209: ;   inputs D, E
 //   output hi=A lo=D                                                      //3210: ;   output hi=A lo=D
 //***********************************************************              //3211: ;***********************************************************
-void MLTPLY() {
+void MLTPLY_asm() {
         PUSH    (bc);                   //                                 //3212: MLTPLY: PUSH    bc
         SUB     (a);                    //                                 //3213:         SUB     a
         LD      (b,8);                  //                                 //3214:         LD      b,8
@@ -3019,6 +3029,15 @@ rel025: SRA     (a);                    //                                 //321
         POP     (bc);                   //                                 //3221:         POP     bc
         RETu;                           //                                 //3222:         RET
 }                                                                          //3223:
+
+void MLTPLY()
+{
+    uint16_t x = (uint16_t)d;
+    uint16_t y = (uint16_t)e;
+    uint16_t xy = x*y;
+    a = (xy>>8);
+    d = xy&0xff;
+}
 
 //
 //  Omit some more Z80 user interface stuff, function
