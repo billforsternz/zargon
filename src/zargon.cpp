@@ -3035,8 +3035,8 @@ void MLTPLY()
     uint16_t x = (uint16_t)d;
     uint16_t y = (uint16_t)e;
     uint16_t xy = x*y;
-    a = (xy>>8);
-    d = xy&0xff;
+    a = (uint8_t) (xy>>8);
+    d = (uint8_t) (xy&0xff);
 }
 
 //

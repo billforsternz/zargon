@@ -76,6 +76,7 @@ static std::string cmd_go( const std::vector<std::string> &fields );
 static void        cmd_go_infinite();
 static void        cmd_setoption( const std::vector<std::string> &fields );
 static void        cmd_position( const std::string &whole_cmd_line, const std::vector<std::string> &fields );
+static void        cmd_game( const std::vector<std::string> &fields );
 
 // Misc
 static bool is_new_game();
@@ -144,7 +145,7 @@ int main( int argc, char *argv[] )
 #ifdef _DEBUG
     static const std::vector<std::string> test_sequence =
     {
-#if 1
+#if 0
         "setoption name FixedDepth value 6",
         "position fen 8/3R2pk/4Np1p/5r2/8/1P2PK2/5PPP/8 w - - 9 41 moves f3e2 h7h8 d7d8 h8h7\n",
         "go\n"
@@ -245,13 +246,16 @@ int main( int argc, char *argv[] )
     };
     //bool ok = repetition_test();
     //printf( "repetition test %s\n", ok?"passed":"failed" );
-    for( std::string s: test_sequence )
+    if( test_sequence.size() > 0 )
     {
-        util::rtrim(s);
-        log( "cmd>%s\n", s.c_str() );
-        process(s);
+        for( std::string s: test_sequence )
+        {
+            util::rtrim(s);
+            log( "cmd>%s\n", s.c_str() );
+            process(s);
+        }
+        return 0;
     }
-    return 0;
 #endif
     std::thread first(read_stdin);
     std::thread second(write_stdout);
@@ -432,6 +436,8 @@ static bool process( const std::string &s )
         cmd_setoption(fields);
     else if( cmd=="position" )
         cmd_position( s, fields );
+    else if( cmd=="game" )
+        cmd_game( fields );
     if( rsp != "" )
     {
         log( "rsp>%s\n", rsp.c_str() );
@@ -688,6 +694,54 @@ static void cmd_position( const std::string &whole_cmd_line, const std::vector<s
 
     // For next time
     prev_position = the_position;
+}
+
+static void cmd_game( const std::vector<std::string> &fields )
+{
+    if( fields.size() < 2 )
+        return;
+    bool ran_ok = false;
+    std::string parm = fields[1];
+    if( parm == "go" )
+    {
+        printf( "Thinking...." );
+        thc::Move bestmove = calculate_next_move( true, 10000, 10000, 2 );
+        printf( "\b\b\b\b\b\b\b\b\b\b\b\b" );
+        if( bestmove.Valid() )
+        {
+            printf( "Sargon plays %s\n", bestmove.NaturalOut(&the_position).c_str() );
+            //printf( "%s", the_position.ToDebugStr("before Sargon move").c_str() );
+            the_position.PlayMove( bestmove );
+            ran_ok = true;
+        }
+    }
+    else
+    {
+        thc::Move move;
+        //printf( "%s", the_position.ToDebugStr("before Human move").c_str() );
+        bool okay = move.NaturalIn(&the_position,parm.c_str());
+        if( okay )
+        {
+            the_position.PlayMove( move );
+            ran_ok = true;
+        }
+        else if( parm.length() > 0 && parm[0]>='a' && parm[0]<='z' )
+        {
+            std::string up = parm;
+            up[0] = parm[0]-' ';
+            okay = move.NaturalIn(&the_position,up.c_str());
+            if( okay )
+            {
+                the_position.PlayMove( move );
+                ran_ok = true;
+            }
+        }
+    }
+    if( ran_ok || parm=="show" )
+    {
+        printf( "%s\n",
+            the_position.ToDebugStr().c_str() );
+    }
 }
 
 // Return true if PV has us (the engine) forcing mate
