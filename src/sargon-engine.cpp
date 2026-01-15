@@ -76,7 +76,9 @@ static std::string cmd_go( const std::vector<std::string> &fields );
 static void        cmd_go_infinite();
 static void        cmd_setoption( const std::vector<std::string> &fields );
 static void        cmd_position( const std::string &whole_cmd_line, const std::vector<std::string> &fields );
-static void        cmd_game( const std::vector<std::string> &fields );
+static bool        cmd_interactive_go();
+static bool        cmd_interactive_move( const std::vector<std::string> &fields );
+
 
 // Misc
 static bool is_new_game();
@@ -408,6 +410,7 @@ static bool run_sargon( int plymax, bool avoid_book )
 // Command line top level handler
 static bool process( const std::string &s )
 {
+    static bool interactive=false;
     bool quit=false;
     std::string rsp;
     std::vector<std::string> fields_raw, fields;
@@ -418,26 +421,66 @@ static bool process( const std::string &s )
         return false;
     std::string cmd = fields[0];
     std::string parm1 = fields.size()<=1 ? "" : fields[1];
-    if( cmd == "timeout" )
-        log( "TIMEOUT event\n" );
-    else if( cmd == "quit" )
-        quit = true;
-    else if( cmd == "uci" )
-        rsp = cmd_uci();
-    else if( cmd == "isready" )
-        rsp = cmd_isready();
-    else if( cmd == "stop" )
-        rsp = cmd_stop();
-    else if( cmd=="go" && parm1=="infinite" )
-        cmd_go_infinite();
-    else if( cmd=="go" )
-        rsp = cmd_go(fields);
-    else if( cmd=="setoption" )
-        cmd_setoption(fields);
-    else if( cmd=="position" )
-        cmd_position( s, fields );
-    else if( cmd=="game" )
-        cmd_game( fields );
+    if( !interactive )
+    {
+        if( cmd == "quit" ) // special command because read_stdin() tests it
+            quit = true;
+        else if( cmd == "timeout" )
+            log( "TIMEOUT event\n" );
+        else if( cmd == "uci" )
+            rsp = cmd_uci();
+        else if( cmd == "isready" )
+            rsp = cmd_isready();
+        else if( cmd == "stop" )
+            rsp = cmd_stop();
+        else if( cmd=="go" && parm1=="infinite" )
+            cmd_go_infinite();
+        else if( cmd=="go" )
+            rsp = cmd_go(fields);
+        else if( cmd=="setoption" )
+            cmd_setoption(fields);
+        else if( cmd=="position" )
+            cmd_position( s, fields );
+        else if( cmd=="interactive" )
+        {
+            interactive = true;
+            printf( "cmd>" );
+            fflush( stdout );
+        }
+    }
+    else if( !quit )
+    {
+        bool show_position = false;
+        if( cmd=="exit" || cmd=="quit" )
+        {
+            if( cmd == "quit" ) // special command because read_stdin() tests it
+                quit = true;
+            interactive = false;
+            printf( "Leaving interactive mode\n" );
+        }
+        else if( cmd=="show" )
+            show_position = true;
+        else if( cmd=="go" )
+            show_position = cmd_interactive_go();
+        else
+        {
+            bool ok = cmd_interactive_move( fields );
+            if( ok )
+                show_position = true;
+            else
+                printf( "Unknown command\n" );
+        }
+        if( show_position )
+        {
+            printf( "%s\n",
+                the_position.ToDebugStr().c_str() );
+        }
+        if( interactive )
+        {
+            printf( "cmd>" );
+            fflush( stdout );
+        }
+    }
     if( rsp != "" )
     {
         log( "rsp>%s\n", rsp.c_str() );
@@ -696,52 +739,48 @@ static void cmd_position( const std::string &whole_cmd_line, const std::vector<s
     prev_position = the_position;
 }
 
-static void cmd_game( const std::vector<std::string> &fields )
+static bool cmd_interactive_go()
 {
-    if( fields.size() < 2 )
-        return;
-    bool ran_ok = false;
-    std::string parm = fields[1];
-    if( parm == "go" )
+    bool ok = false;
+    printf( "Thinking...." );
+    thc::Move bestmove = calculate_next_move( true, 10000, 10000, 2 );
+    printf( "\b\b\b\b\b\b\b\b\b\b\b\b" );
+    ok = bestmove.Valid();
+    if( ok )
     {
-        printf( "Thinking...." );
-        thc::Move bestmove = calculate_next_move( true, 10000, 10000, 2 );
-        printf( "\b\b\b\b\b\b\b\b\b\b\b\b" );
-        if( bestmove.Valid() )
-        {
-            printf( "Sargon plays %s\n", bestmove.NaturalOut(&the_position).c_str() );
-            //printf( "%s", the_position.ToDebugStr("before Sargon move").c_str() );
-            the_position.PlayMove( bestmove );
-            ran_ok = true;
-        }
+        printf( "Sargon plays %s\n", bestmove.NaturalOut(&the_position).c_str() );
+        //printf( "%s", the_position.ToDebugStr("before Sargon move").c_str() );
+        the_position.PlayMove( bestmove );
     }
-    else
+    return ok;
+}
+
+static bool cmd_interactive_move( const std::vector<std::string> &fields )
+{
+    bool ok = false;
+    if( fields.size() < 1 )
+        return ok;
+    std::string parm = fields[0];
+    thc::Move move;
+    //printf( "%s", the_position.ToDebugStr("before Human move").c_str() );
+    bool okay = move.NaturalIn(&the_position,parm.c_str());
+    if( okay )
     {
-        thc::Move move;
-        //printf( "%s", the_position.ToDebugStr("before Human move").c_str() );
-        bool okay = move.NaturalIn(&the_position,parm.c_str());
+        the_position.PlayMove( move );
+        ok = true;
+    }
+    else if( parm.length() > 0 && parm[0]>='a' && parm[0]<='z' )
+    {
+        std::string up = parm;
+        up[0] = parm[0]-' ';
+        okay = move.NaturalIn(&the_position,up.c_str());
         if( okay )
         {
             the_position.PlayMove( move );
-            ran_ok = true;
-        }
-        else if( parm.length() > 0 && parm[0]>='a' && parm[0]<='z' )
-        {
-            std::string up = parm;
-            up[0] = parm[0]-' ';
-            okay = move.NaturalIn(&the_position,up.c_str());
-            if( okay )
-            {
-                the_position.PlayMove( move );
-                ran_ok = true;
-            }
+            ok = true;
         }
     }
-    if( ran_ok || parm=="show" )
-    {
-        printf( "%s\n",
-            the_position.ToDebugStr().c_str() );
-    }
+    return ok;
 }
 
 // Return true if PV has us (the engine) forcing mate
