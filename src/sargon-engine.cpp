@@ -69,7 +69,7 @@ static std::vector<thc::Move> the_repetition_moves;
 
 // Command line interface
 static std::string ascii_board( thc::ChessPosition const &cp);
-static bool process( const std::string &s );
+static bool process( const std::string &s, bool first=false );
 static std::string cmd_uci();
 static std::string cmd_isready();
 static std::string cmd_stop();
@@ -386,6 +386,7 @@ static void read_stdin()
 static void write_stdout()
 {
     bool quit=false;
+    process("",true);
     while(!quit)
     {
         std::string s = async_queue.dequeue();
@@ -409,20 +410,65 @@ static bool run_sargon( int plymax, bool avoid_book )
 }
 
 // Command line top level handler
-static bool process( const std::string &s )
+static bool process( const std::string &s, bool first )
 {
-    static bool interactive=false;
+    static std::deque<std::string> right_panel;
+    static int nbr_lines = 0;
+    if( first )
+    {
+        std::string pos = ascii_board(the_position);
+        size_t offset = pos.find('\n');
+        while( offset != std::string::npos )
+        {
+            nbr_lines++;
+            offset = pos.find('\n',offset+1);
+        }
+    }
+    static bool interactive=true;
     bool quit=false;
     std::string rsp;
     std::vector<std::string> fields_raw, fields;
     util::split( s, fields_raw );
     for( std::string f: fields_raw )
         fields.push_back( util::tolower(f) ); 
-    if( fields.size() == 0 )
-        return false;
-    std::string cmd = fields[0];
+    std::string cmd;
+    if( fields.size() > 0 )
+        cmd = fields[0];
+    else
+    {
+        if( !first )
+            return false;
+    }
     std::string parm1 = fields.size()<=1 ? "" : fields[1];
-    if( !interactive )
+    if( interactive )
+    {
+        bool show_position = false;
+        if( cmd=="uci" || cmd=="quit" )
+        {
+            fprintf( stderr, "Leaving interactive mode\n" );
+            if( cmd == "uci" )
+                rsp = cmd_uci();
+            if( cmd == "quit" ) // special command because read_stdin() tests it
+                quit = true;
+            interactive = false;
+        }
+        else if( cmd=="show" )
+            show_position = true;
+        else if( cmd=="go" )
+            show_position = cmd_interactive_go();
+        else
+        {
+            bool ok = cmd_interactive_move( fields );
+            if( ok )
+            {
+                show_position = true;
+                cmd_interactive_go();
+            }
+            else if( !first )
+                right_panel.push_back( "Unknown command" );
+        }
+    }
+    else
     {
         if( cmd == "quit" ) // special command because read_stdin() tests it
             quit = true;
@@ -445,41 +491,7 @@ static bool process( const std::string &s )
         else if( cmd=="interactive" )
         {
             interactive = true;
-            printf( "cmd>" );
-            fflush( stdout );
-        }
-    }
-    else
-    {
-        bool show_position = false;
-        if( cmd=="exit" || cmd=="quit" )
-        {
-            if( cmd == "quit" ) // special command because read_stdin() tests it
-                quit = true;
-            interactive = false;
-            printf( "Leaving interactive mode\n" );
-        }
-        else if( cmd=="show" )
-            show_position = true;
-        else if( cmd=="go" )
-            show_position = cmd_interactive_go();
-        else
-        {
-            bool ok = cmd_interactive_move( fields );
-            if( ok )
-                show_position = true;
-            else
-                printf( "Unknown command\n" );
-        }
-        if( show_position )
-        {
-            printf( "%s\n",
-                ascii_board(the_position).c_str() );
-        }
-        if( interactive )
-        {
-            printf( "cmd>" );
-            fflush( stdout );
+            right_panel.clear();
         }
     }
     if( rsp != "" )
@@ -499,6 +511,33 @@ static bool process( const std::string &s )
             genmov_callbacks,
             end_of_points_callbacks );
     log( "%s\n", sargon_pv_report_stats().c_str() );
+    if( interactive )
+    {
+        for( int i=0; i<nbr_lines; i++ )
+            right_panel.push_front("");
+        right_panel.push_back("cmd>");
+        while( right_panel.size() > nbr_lines )
+            right_panel.pop_front();
+        size_t offset=0;
+        std::string pos = ascii_board(the_position);
+        for( std::string &right: right_panel )
+        {
+            size_t offset2 = pos.find('\n');
+            if( offset != 0 )
+                offset2 = pos.find('\n',offset+1);
+            if( offset2 != std::string::npos )
+            {
+                std::string s = pos.substr(offset,offset2);
+                if( offset != 0 )
+                    s = pos.substr(offset+1,offset2-offset-1);
+                offset = offset2;
+                fprintf( stderr, "\n%s  %s",
+                    s.c_str(), right.c_str() );
+            }
+        }
+        fflush( stderr );
+        right_panel.pop_back(); // remove "cmd>"
+    }
     return quit;
 }
 
@@ -517,15 +556,15 @@ static std::string ascii_board( thc::ChessPosition const &cp)
     const char *light_pawn        = "|     ";
     const char *light_blank       = "|     ";
 
-    const char *dark_base_white   = "|./ \\.";
-    const char *dark_base_black   = "|./@\\.";
-    const char *dark_knight       = "|.\\\\..";
-    const char *dark_king         = "|.+++.";
-    const char *dark_queen        = "|.QQQ.";
-    const char *dark_bishop       = "|..o..";
-    const char *dark_rook         = "|.###.";
-    const char *dark_pawn         = "|.....";
-    const char *dark_blank        = "|.....";
+    const char *dark_base_white   = "|:/ \\:";
+    const char *dark_base_black   = "|:/@\\:";
+    const char *dark_knight       = "|:\\\\::";
+    const char *dark_king         = "|:+++:";
+    const char *dark_queen        = "|:QQQ:";
+    const char *dark_bishop       = "|::o::";
+    const char *dark_rook         = "|:###:";
+    const char *dark_pawn         = "|:::::";
+    const char *dark_blank        = "|:::::";
 
     const char *scaf         = "+-----";
 
