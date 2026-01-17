@@ -68,6 +68,7 @@ static MATING mating;
 static std::vector<thc::Move> the_repetition_moves;
 
 // Command line interface
+static std::string ascii_board( thc::ChessPosition const &cp);
 static bool process( const std::string &s );
 static std::string cmd_uci();
 static std::string cmd_isready();
@@ -448,7 +449,7 @@ static bool process( const std::string &s )
             fflush( stdout );
         }
     }
-    else if( !quit )
+    else
     {
         bool show_position = false;
         if( cmd=="exit" || cmd=="quit" )
@@ -473,7 +474,7 @@ static bool process( const std::string &s )
         if( show_position )
         {
             printf( "%s\n",
-                the_position.ToDebugStr().c_str() );
+                ascii_board(the_position).c_str() );
         }
         if( interactive )
         {
@@ -499,6 +500,94 @@ static bool process( const std::string &s )
             end_of_points_callbacks );
     log( "%s\n", sargon_pv_report_stats().c_str() );
     return quit;
+}
+
+static std::string ascii_board( thc::ChessPosition const &cp)
+{
+    std::string s;
+    const char *p = cp.squares;
+
+    const char *light_base_white  = "| / \\ ";
+    const char *light_base_black  = "| /@\\ ";
+    const char *light_knight      = "| \\\\  ";
+    const char *light_king        = "| +++ ";
+    const char *light_queen       = "| QQQ ";
+    const char *light_bishop      = "|  o  ";
+    const char *light_rook        = "| ### ";
+    const char *light_pawn        = "|     ";
+    const char *light_blank       = "|     ";
+
+    const char *dark_base_white   = "|./ \\.";
+    const char *dark_base_black   = "|./@\\.";
+    const char *dark_knight       = "|.\\\\..";
+    const char *dark_king         = "|.+++.";
+    const char *dark_queen        = "|.QQQ.";
+    const char *dark_bishop       = "|..o..";
+    const char *dark_rook         = "|.###.";
+    const char *dark_pawn         = "|.....";
+    const char *dark_blank        = "|.....";
+
+    const char *scaf         = "+-----";
+
+    // First line of text is a little anomalous
+    for( int i=0; i<8; i++ )
+        s += scaf;
+    s += "+\n";
+
+    // Then 8 * 3 = 24 lines for 25 line total
+    for( int rank='8'; rank>='1'; rank-- )
+    {
+        bool dark = (rank=='7'||rank=='5'||rank=='3'||rank=='1');
+        for( int row=0; row<3; row++ )
+        {
+            for( int file='a'; file<='h'; file++ )
+            {
+                char piece = *(p + (file-'a'));
+                bool blank = piece==' ' || piece=='.';
+                bool white = true;
+                if( piece >= 'a' )
+                {
+                    white = false;
+                    piece -= ' ';
+                }
+                switch(row)
+                {
+                    case 0:
+                    {
+                        switch(piece)
+                        {
+                            default:    s += (dark ? dark_blank  : light_blank  );    break;
+                            case 'K':   s += (dark ? dark_king   : light_king   );    break;
+                            case 'Q':   s += (dark ? dark_queen  : light_queen  );    break;
+                            case 'B':   s += (dark ? dark_bishop : light_bishop );    break;
+                            case 'N':   s += (dark ? dark_knight : light_knight );    break;
+                            case 'R':   s += (dark ? dark_rook   : light_rook   );    break;
+                            case 'P':   s += (dark ? dark_pawn   : light_pawn   );    break;
+                        }
+                        break;
+                    }
+                    case 1:
+                    {
+                        if( !blank )
+                            s += white ? (dark?dark_base_white:light_base_white) : (dark?dark_base_black:light_base_black);
+                        else
+                            s += (dark ? dark_blank  : light_blank  );
+                        break;
+                    }
+                    case 2:
+                    {
+                        s += scaf;
+                        break;
+                    }
+                }
+                if( file == 'h' )
+                    s += row==2 ? "+\n" : "|\n";
+                dark = !dark;
+            }
+        }
+        p += 8;
+    }
+    return s;
 }
 
 static std::string cmd_uci()
