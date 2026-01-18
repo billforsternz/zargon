@@ -546,35 +546,45 @@ static std::string ascii_board( thc::ChessPosition const &cp)
     std::string s;
     const char *p = cp.squares;
 
-    const char *light_base_white  = "| / \\ ";
-    const char *light_base_black  = "| /@\\ ";
-    const char *light_knight      = "| \\\\  ";
-    const char *light_king        = "| +++ ";
-    const char *light_queen       = "| QQQ ";
-    const char *light_bishop      = "|  o  ";
-    const char *light_rook        = "| ### ";
-    const char *light_pawn        = "|     ";
-    const char *light_blank       = "|     ";
+    const char *light_top_king        = "  +++  ";
+    const char *light_top_queen       = "  ~~~  ";
 
-    const char *dark_base_white   = "|:/ \\:";
-    const char *dark_base_black   = "|:/@\\:";
-    const char *dark_knight       = "|:\\\\::";
-    const char *dark_king         = "|:+++:";
-    const char *dark_queen        = "|:QQQ:";
-    const char *dark_bishop       = "|::o::";
-    const char *dark_rook         = "|:###:";
-    const char *dark_pawn         = "|:::::";
-    const char *dark_blank        = "|:::::";
+    const char *dark_top_king         = "::+++::";
+    const char *dark_top_queen        = "::~~~::";
+
+    const char *light_base_white  = "  / \\  ";
+    const char *light_base_black  = "  /@\\  ";
+    const char *light_knight      = "  o\\\\  ";
+    const char *light_king_white  = "  ( )  ";
+    const char *light_queen_white = "  ( )  ";
+    const char *light_king_black  = "  (@)  ";
+    const char *light_queen_black = "  (@)  ";
+    const char *light_bishop      = "  (/)  ";
+    const char *light_rook        = " [===] ";
+    const char *light_pawn        = "   -   ";
+    const char *light_blank       = "       ";
+
+    const char *dark_base_white   = "::/ \\::";
+    const char *dark_base_black   = "::/@\\::";
+    const char *dark_knight       = "::o\\\\::";
+    const char *dark_king_white   = "::( )::";
+    const char *dark_queen_white  = "::( )::";
+    const char *dark_king_black   = "::(@)::";
+    const char *dark_queen_black  = "::(@)::";
+    const char *dark_bishop       = "::(/)::";
+    const char *dark_rook         = ":[===]:";
+    const char *dark_pawn         = ":::-:::";
+    const char *dark_blank        = ":::::::";
 
     const char *scaf         = "+-----";
 
     // First line of text is a little anomalous
-    for( int i=0; i<8; i++ )
-        s += scaf;
-    s += "+\n";
+//    for( int i=0; i<8; i++ )
+//        s += scaf;
+//    s += "+\n";
 
     // Then 8 * 3 = 24 lines for 25 line total
-    for( int rank='8'; rank>='1'; rank-- )
+    for( int rank='8'; rank>='1'; rank--, p+=8 )
     {
         bool dark = (rank=='7'||rank=='5'||rank=='3'||rank=='1');
         for( int row=0; row<3; row++ )
@@ -595,9 +605,27 @@ static std::string ascii_board( thc::ChessPosition const &cp)
                     {
                         switch(piece)
                         {
+                            default:    s += (dark ? dark_blank     : light_blank     );    break;
+                            case 'K':   s += (dark ? dark_top_king  : light_top_king  );    break;
+                            case 'Q':   s += (dark ? dark_top_queen : light_top_queen );    break;
+                        }
+                        break;
+                    }
+                    case 1:
+                    {
+                        switch(piece)
+                        {
                             default:    s += (dark ? dark_blank  : light_blank  );    break;
-                            case 'K':   s += (dark ? dark_king   : light_king   );    break;
-                            case 'Q':   s += (dark ? dark_queen  : light_queen  );    break;
+                            case 'K':   if( white )
+                                            s += (dark ? dark_king_white : light_king_white );
+                                        else
+                                            s += (dark ? dark_king_black : light_king_black );
+                                        break;
+                            case 'Q':   if( white )
+                                            s += (dark ? dark_queen_white : light_queen_white );
+                                        else
+                                            s += (dark ? dark_queen_black : light_queen_black );
+                                        break;
                             case 'B':   s += (dark ? dark_bishop : light_bishop );    break;
                             case 'N':   s += (dark ? dark_knight : light_knight );    break;
                             case 'R':   s += (dark ? dark_rook   : light_rook   );    break;
@@ -605,7 +633,7 @@ static std::string ascii_board( thc::ChessPosition const &cp)
                         }
                         break;
                     }
-                    case 1:
+                    case 2:
                     {
                         if( !blank )
                             s += white ? (dark?dark_base_white:light_base_white) : (dark?dark_base_black:light_base_black);
@@ -613,18 +641,17 @@ static std::string ascii_board( thc::ChessPosition const &cp)
                             s += (dark ? dark_blank  : light_blank  );
                         break;
                     }
-                    case 2:
-                    {
-                        s += scaf;
-                        break;
-                    }
+                    // case 2:
+                    // {
+                    //     s += scaf;
+                    //     break;
+                    // }
                 }
                 if( file == 'h' )
-                    s += row==2 ? "+\n" : "|\n";
+                    s += "\n"; // row==2 ? "+\n" : "|\n";
                 dark = !dark;
             }
         }
-        p += 8;
     }
     return s;
 }
