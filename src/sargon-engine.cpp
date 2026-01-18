@@ -46,9 +46,12 @@ static unsigned long total_callbacks;
 static unsigned long genmov_callbacks;
 static unsigned long bestmove_callbacks;
 static unsigned long end_of_points_callbacks;
+static std::vector<thc::Move> the_game;
+static int the_level=3;
 
 // The current 'Master' postion
 static thc::ChessRules the_position;
+static thc::ChessRules the_position_base;
 
 // The current 'Master' PV
 static PV the_pv;
@@ -78,6 +81,7 @@ static void        cmd_go_infinite();
 static void        cmd_setoption( const std::vector<std::string> &fields );
 static void        cmd_position( const std::string &whole_cmd_line, const std::vector<std::string> &fields );
 static bool        cmd_interactive_go();
+static bool        cmd_interactive_level( const std::vector<std::string> &fields );
 static bool        cmd_interactive_move( const std::vector<std::string> &fields );
 
 
@@ -409,11 +413,42 @@ static bool run_sargon( int plymax, bool avoid_book )
     return aborted;
 }
 
+static const char * help[] =
+{
+    "                       ",
+    " Sargon 1978 64 bit    ",
+    " By Dan and Kathe      ",
+    "  Spracklen            ",
+    " C Conversion by       ",
+    "  Bill Forster         ",
+    "  billforsternz@gmail  ",
+    "                 .com  ",
+    " UCI engine with bonus ",
+    "  interactive shell    ",
+    "                       ",
+    " Commands are;         ",
+    " go    ;start game     ",
+    " stop  ;stop game      ",
+    " uci   ;exit to UCI    ",
+    " quit  ;exit program   ",
+    " Nf3   ;(etc) make move",
+    " undo  ;undo move      ",
+    " pos x ;enter position ",
+    "       (x is valid FEN)",
+    " level n ;set level    ",
+    "                       ",
+    " Use -? on command line",
+    " for more information  ",
+    "                       "
+};
+
 // Command line top level handler
 static bool process( const std::string &s, bool first )
 {
     static std::deque<std::string> right_panel;
     static int nbr_lines = 0;
+    static bool auto_play = false;
+    bool show_help = false;
     if( first )
     {
         std::string pos = ascii_board(the_position);
@@ -452,17 +487,32 @@ static bool process( const std::string &s, bool first )
                 quit = true;
             interactive = false;
         }
-        else if( cmd=="show" )
-            show_position = true;
+        else if( cmd=="stop" )
+            auto_play = false;
+        else if( cmd=="level" )
+        {
+            show_position = cmd_interactive_level( fields );
+        }
+        else if( cmd=="reset" )
+        {
+            show_help = true;
+            the_position.Init();
+            the_position_base.Init();
+            the_game.clear();
+        }
         else if( cmd=="go" )
+        {
+            auto_play = true;
             show_position = cmd_interactive_go();
+        }
         else
         {
             bool ok = cmd_interactive_move( fields );
             if( ok )
             {
                 show_position = true;
-                cmd_interactive_go();
+                if( auto_play )
+                    cmd_interactive_go();
             }
             else if( !first )
                 right_panel.push_back( "Unknown command" );
@@ -513,11 +563,41 @@ static bool process( const std::string &s, bool first )
     log( "%s\n", sargon_pv_report_stats().c_str() );
     if( interactive )
     {
-        for( int i=0; i<nbr_lines; i++ )
-            right_panel.push_front("");
-        right_panel.push_back("cmd>");
+        right_panel.clear();
+        if( first || show_help || the_game.size()==0 )
+        {
+            int sz = sizeof(help)/sizeof(help[0]);
+            for( int i=0; i<sz; i++ )
+                right_panel.push_back(help[i]);
+        }
+        else
+        {
+            thc::ChessRules cr = the_position_base;
+            int sz = (int)the_game.size();
+            std::string s;
+            for( int i=0; i<sz; i++ )
+            {
+                thc::Move mv = the_game[i];
+                std::string t = mv.NaturalOut(&cr);
+                if( i==0 || cr.WhiteToPlay() )
+                {
+                    s = util::sprintf( "%2d%s %s", cr.full_move_count, cr.WhiteToPlay()?".":"...", t.c_str() );
+                }
+                else
+                {
+                    s += util::sprintf( " %s", t.c_str() );
+                    right_panel.push_back(s);
+                    s.clear();
+                }
+                cr.PlayMove(mv);         
+            }
+            if( s.length() > 0 )
+                right_panel.push_back(s);
+        }
         while( right_panel.size() > nbr_lines )
             right_panel.pop_front();
+        while( right_panel.size() < nbr_lines )
+            right_panel.push_back("");
         size_t offset=0;
         std::string pos = ascii_board(the_position);
         for( std::string &right: right_panel )
@@ -535,8 +615,8 @@ static bool process( const std::string &s, bool first )
                     s.c_str(), right.c_str() );
             }
         }
+        fprintf( stderr, "\ncmd>" );
         fflush( stderr );
-        right_panel.pop_back(); // remove "cmd>"
     }
     return quit;
 }
@@ -554,26 +634,30 @@ static std::string ascii_board( thc::ChessPosition const &cp)
 
     const char *light_base_white  = "  / \\  ";
     const char *light_base_black  = "  /@\\  ";
-    const char *light_knight      = "  o\\\\  ";
+    const char *light_base_pawn_white  = "  | |  ";
+    const char *light_base_pawn_black  = "  |@|  ";
+    const char *light_knight      = "  =o\\  ";
     const char *light_king_white  = "  ( )  ";
     const char *light_queen_white = "  ( )  ";
     const char *light_king_black  = "  (@)  ";
     const char *light_queen_black = "  (@)  ";
     const char *light_bishop      = "  (/)  ";
     const char *light_rook        = " [===] ";
-    const char *light_pawn        = "   -   ";
+    const char *light_pawn        = "   _   ";
     const char *light_blank       = "       ";
 
     const char *dark_base_white   = "::/ \\::";
     const char *dark_base_black   = "::/@\\::";
-    const char *dark_knight       = "::o\\\\::";
+    const char *dark_base_pawn_white   = "::| |::";
+    const char *dark_base_pawn_black   = "::|@|::";
+    const char *dark_knight       = "::=o\\::";
     const char *dark_king_white   = "::( )::";
     const char *dark_queen_white  = "::( )::";
     const char *dark_king_black   = "::(@)::";
     const char *dark_queen_black  = "::(@)::";
     const char *dark_bishop       = "::(/)::";
     const char *dark_rook         = ":[===]:";
-    const char *dark_pawn         = ":::-:::";
+    const char *dark_pawn         = ":::_:::";
     const char *dark_blank        = ":::::::";
 
     const char *scaf         = "+-----";
@@ -635,10 +719,16 @@ static std::string ascii_board( thc::ChessPosition const &cp)
                     }
                     case 2:
                     {
-                        if( !blank )
-                            s += white ? (dark?dark_base_white:light_base_white) : (dark?dark_base_black:light_base_black);
-                        else
-                            s += (dark ? dark_blank  : light_blank  );
+                        switch( piece )
+                        {
+                            default:    if( !blank )
+                                            s += white ? (dark?dark_base_white:light_base_white) : (dark?dark_base_black:light_base_black);
+                                        else
+                                            s += (dark ? dark_blank  : light_blank  );
+                                        break;
+                            case 'P':   s += white ? (dark?dark_base_pawn_white:light_base_pawn_white) : (dark?dark_base_pawn_black:light_base_pawn_black);
+                                        break;
+                        }
                         break;
                     }
                     // case 2:
@@ -892,20 +982,37 @@ static void cmd_position( const std::string &whole_cmd_line, const std::vector<s
 
     // For next time
     prev_position = the_position;
+    the_position_base = the_position;
 }
 
 static bool cmd_interactive_go()
 {
     bool ok = false;
-    printf( "Thinking...." );
-    thc::Move bestmove = calculate_next_move( true, 10000, 10000, 2 );
-    printf( "\b\b\b\b\b\b\b\b\b\b\b\b" );
+    fprintf( stderr, "Thinking...." );
+    thc::Move bestmove = calculate_next_move( true, 10000, 10000, the_level );
+    fprintf( stderr, "\b\b\b\b\b\b\b\b\b\b\b\b" );
     ok = bestmove.Valid();
     if( ok )
     {
-        printf( "Sargon plays %s\n", bestmove.NaturalOut(&the_position).c_str() );
+        //printf( "Sargon plays %s\n", bestmove.NaturalOut(&the_position).c_str() );
         //printf( "%s", the_position.ToDebugStr("before Sargon move").c_str() );
         the_position.PlayMove( bestmove );
+        the_game.push_back(bestmove);
+    }
+    return ok;
+}
+
+static bool cmd_interactive_level( const std::vector<std::string> &fields )
+{
+    bool ok = false;
+    if( fields.size() < 2 )
+        return ok;
+    std::string parm = fields[1];
+    int n = atol(parm.c_str());
+    if( 1<=n && n<=6 )
+    {
+        the_level = n;
+        ok = true;
     }
     return ok;
 }
@@ -922,6 +1029,7 @@ static bool cmd_interactive_move( const std::vector<std::string> &fields )
     if( okay )
     {
         the_position.PlayMove( move );
+        the_game.push_back(move);
         ok = true;
     }
     else if( parm.length() > 0 && parm[0]>='a' && parm[0]<='z' )
@@ -932,6 +1040,7 @@ static bool cmd_interactive_move( const std::vector<std::string> &fields )
         if( okay )
         {
             the_position.PlayMove( move );
+            the_game.push_back(move);
             ok = true;
         }
     }
