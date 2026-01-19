@@ -49,6 +49,7 @@ static unsigned long end_of_points_callbacks;
 static std::vector<thc::Move> the_game;
 static int the_level=3;
 static bool gbl_interactive=true;
+static bool gbl_orientation;
 
 // The current 'Master' postion
 static thc::ChessRules the_position;
@@ -83,9 +84,11 @@ static void        cmd_go_infinite();
 static void        cmd_setoption( const std::vector<std::string> &fields );
 static void        cmd_position( const std::string &whole_cmd_line, const std::vector<std::string> &fields );
 static bool        cmd_interactive_go( int nbr_lines );
-static bool        cmd_interactive_level( const std::vector<std::string> &fields );
-static bool        cmd_interactive_move( const std::vector<std::string> &fields );
-
+static bool        cmd_interactive_move( const std::string &raw_cmd );
+static bool        cmd_interactive_position( const std::string &raw_cmd_line );
+static bool        cmd_interactive_level( const std::string &parm );
+static bool        cmd_interactive_flip();
+static bool        cmd_interactive_undo();
 
 // Misc
 static bool is_new_game();
@@ -450,7 +453,7 @@ static bool process( const std::string &s, bool first )
     static int nbr_lines = 0;
     static bool auto_play = false;
     bool show_help = false;
-    bool err = false;
+    bool ok = true;
     std::string err_msg;
     if( first )
     {
@@ -465,12 +468,17 @@ static bool process( const std::string &s, bool first )
     bool quit=false;
     std::string rsp;
     std::vector<std::string> fields_raw, fields;
+    std::string raw_cmd_line = s;
     util::split( s, fields_raw );
     for( std::string f: fields_raw )
         fields.push_back( util::tolower(f) ); 
+    std::string raw_cmd;
     std::string cmd;
-    if( fields.size() > 0 )
+    if( fields_raw.size() > 0 )
+    {
+        raw_cmd = fields_raw[0];
         cmd = fields[0];
+    }
     else
     {
         if( !first )
@@ -479,7 +487,6 @@ static bool process( const std::string &s, bool first )
     std::string parm1 = fields.size()<=1 ? "" : fields[1];
     if( gbl_interactive )
     {
-        bool show_position = false;
         if( cmd=="uci" || cmd=="quit" )
         {
             gbl_interactive = false;
@@ -489,33 +496,66 @@ static bool process( const std::string &s, bool first )
             auto_play = false;
         else if( cmd=="level" )
         {
-            show_position = cmd_interactive_level( fields );
+            if( fields.size() == 1 )
+            {
+                ok = false;
+                err_msg = util::sprintf( "Level is currently %d, valid range is 1-20", the_level );
+            }
+            else
+            {
+                ok = cmd_interactive_level( parm1 );
+                if( !ok )
+                    err_msg = "Level out of range, valid range is 1-20";
+            }
+        }
+        else if( cmd=="undo" )
+        {
+            ok = cmd_interactive_undo();
+            auto_play = false;
+            if( !ok )
+                err_msg = "Error: No move to undo";
         }
         else if( cmd=="reset" )
         {
             show_help = true;
+            auto_play = false;
             the_position.Init();
             the_position_base.Init();
             the_game.clear();
         }
+        else if( cmd=="flip" )
+        {
+            gbl_orientation = !gbl_orientation;
+        }
+        else if( cmd=="show" )
+        {
+            ; // just redraw
+        }
+        else if( cmd=="help" || cmd=="?" || cmd=="-?" )
+        {
+            show_help = true;
+        }
         else if( cmd=="go" )
         {
             auto_play = true;
-            show_position = cmd_interactive_go( nbr_lines );
+            cmd_interactive_go( nbr_lines );
         }
-        else
+        else if( !first )
         {
-            bool ok = cmd_interactive_move( fields );
-            if( ok )
+            bool is_position = cmd_interactive_position( raw_cmd_line );
+            if( !is_position )
             {
-                show_position = true;
-                if( auto_play )
-                    cmd_interactive_go( nbr_lines );
-            }
-            else if( !first )
-            {
-                err = true;
-                err_msg = "Not a valid command or a legal move, ? for help";
+                bool is_move = cmd_interactive_move( raw_cmd );
+                if( is_move )
+                {
+                    if( auto_play )
+                        cmd_interactive_go( nbr_lines );
+                }
+                else
+                {
+                    ok = false;
+                    err_msg = "Not a valid command, move or position. type ? for help, show to redraw";
+                }
             }
         }
     }
@@ -559,7 +599,7 @@ static bool process( const std::string &s, bool first )
     }
     if( gbl_interactive )
     {
-        if( err )
+        if( !ok )
             fprintf( stderr, "%s\ncmd>", err_msg.c_str() );
         else
         {
@@ -630,21 +670,29 @@ static std::string interactive_screen( bool help_screen, int nbr_lines )
     return ret;
 }
 
-static std::string ascii_board( thc::ChessPosition const &cp)
+static std::string ascii_board( thc::ChessPosition const &cp )
 {
     std::string s;
+    char reverse_orientation[64];
     const char *p = cp.squares;
+    if( gbl_orientation )
+    {
+        char *dst = &reverse_orientation[63];
+        for( int i=0; i<64; i++ )
+            *dst-- =  *p++;
+        p = reverse_orientation;
+    }
 
     const char *light_top_king        = "  +++  ";
     const char *light_top_queen       = "  www  ";
 
-    const char *dark_top_king         = "::+++::";
-    const char *dark_top_queen        = "::www::";
+    const char *dark_top_king         = "..+++..";
+    const char *dark_top_queen        = "..www..";
 
     const char *light_base_white  = "  / \\  ";
     const char *light_base_black  = "  /@\\  ";
-    const char *light_base_pawn_white  = "  ^ ^  ";
-    const char *light_base_pawn_black  = "  ^@^  ";
+    const char *light_base_pawn_white  = "   O   ";
+    const char *light_base_pawn_black  = "   @   ";
     const char *light_knight      = "  =o\\  ";
     const char *light_king_white  = "  ( )  ";
     const char *light_queen_white = "  ( )  ";
@@ -655,28 +703,21 @@ static std::string ascii_board( thc::ChessPosition const &cp)
     const char *light_pawn        = "   _   ";
     const char *light_blank       = "       ";
 
-    const char *dark_base_white   = "::/ \\::";
-    const char *dark_base_black   = "::/@\\::";
-    const char *dark_base_pawn_white   = "::^ ^::";
-    const char *dark_base_pawn_black   = "::^@^::";
-    const char *dark_knight       = "::=o\\::";
-    const char *dark_king_white   = "::( )::";
-    const char *dark_queen_white  = "::( )::";
-    const char *dark_king_black   = "::(@)::";
-    const char *dark_queen_black  = "::(@)::";
-    const char *dark_bishop       = "::(/)::";
-    const char *dark_rook         = ":[===]:";
+    const char *dark_base_white   = "../ \\..";
+    const char *dark_base_black   = "../@\\..";
+    const char *dark_base_pawn_white   = ":: O ::";
+    const char *dark_base_pawn_black   = ":: @ ::";
+    const char *dark_knight       = "..=o\\..";
+    const char *dark_king_white   = "..( )..";
+    const char *dark_queen_white  = "..( )..";
+    const char *dark_king_black   = "..(@)..";
+    const char *dark_queen_black  = "..(@)..";
+    const char *dark_bishop       = "..(/)..";
+    const char *dark_rook         = ".[===].";
     const char *dark_pawn         = ":::_:::";
     const char *dark_blank        = ":::::::";
 
-    const char *scaf         = "+-----";
-
-    // First line of text is a little anomalous
-//    for( int i=0; i<8; i++ )
-//        s += scaf;
-//    s += "+\n";
-
-    // Then 8 * 3 = 24 lines for 25 line total
+    // 8 * 3 = 24 lines
     for( int rank='8'; rank>='1'; rank--, p+=8 )
     {
         bool dark = (rank=='7'||rank=='5'||rank=='3'||rank=='1');
@@ -752,7 +793,7 @@ static std::string ascii_board( thc::ChessPosition const &cp)
             }
         }
     }
-    util::replace_all(s,":",".");
+    // util::replace_all(s,":",".");
     return s;
 }
 
@@ -1014,12 +1055,17 @@ static bool cmd_interactive_go( int nbr_lines )
     return ok;
 }
 
-static bool cmd_interactive_level( const std::vector<std::string> &fields )
+static bool cmd_interactive_position( const std::string &raw_cmd_line )
+{
+    bool ok = the_position.Forsyth(raw_cmd_line.c_str());
+    if( ok )
+        the_position_base = the_position;
+    return ok;
+}
+
+static bool cmd_interactive_level( const std::string &parm )
 {
     bool ok = false;
-    if( fields.size() < 2 )
-        return ok;
-    std::string parm = fields[1];
     int n = atol(parm.c_str());
     if( 1<=n && n<=20 )
     {
@@ -1029,25 +1075,40 @@ static bool cmd_interactive_level( const std::vector<std::string> &fields )
     return ok;
 }
 
-static bool cmd_interactive_move( const std::vector<std::string> &fields )
+static bool cmd_interactive_undo()
 {
+    bool ok = the_game.size() > 0;
+    if( ok )
+    {
+        the_game.pop_back();
+        thc::ChessRules cr = the_position_base;
+        int sz = (int)the_game.size();
+        for( int i=0; i<sz; i++ )
+        {
+            thc::Move mv = the_game[i];
+            cr.PlayMove(mv);         
+        }
+        the_position = cr;
+    }
+    return ok;
+}
+
+static bool cmd_interactive_move( const std::string &raw_cmd )
+{
+    std::string move_txt = raw_cmd;
     bool ok = false;
-    if( fields.size() < 1 )
-        return ok;
-    std::string parm = fields[0];
     thc::Move move;
-    //printf( "%s", the_position.ToDebugStr("before Human move").c_str() );
-    bool okay = move.NaturalIn(&the_position,parm.c_str());
+    bool okay = move.NaturalIn(&the_position,move_txt.c_str());
     if( okay )
     {
         the_position.PlayMove( move );
         the_game.push_back(move);
         ok = true;
     }
-    else if( parm.length() > 0 && parm[0]>='a' && parm[0]<='z' )
+    else if( move_txt.length() > 0 && move_txt[0]>='a' && move_txt[0]<='z' )
     {
-        std::string up = parm;
-        up[0] = parm[0]-' ';
+        std::string up = move_txt;
+        up[0] = move_txt[0]-' ';
         okay = move.NaturalIn(&the_position,up.c_str());
         if( okay )
         {
