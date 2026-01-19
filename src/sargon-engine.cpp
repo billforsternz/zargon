@@ -48,6 +48,7 @@ static unsigned long bestmove_callbacks;
 static unsigned long end_of_points_callbacks;
 static std::vector<thc::Move> the_game;
 static int the_level=3;
+static bool gbl_interactive=true;
 
 // The current 'Master' postion
 static thc::ChessRules the_position;
@@ -71,6 +72,7 @@ static MATING mating;
 static std::vector<thc::Move> the_repetition_moves;
 
 // Command line interface
+static std::string interactive_screen( bool help_screen, int nbr_lines );
 static std::string ascii_board( thc::ChessPosition const &cp);
 static bool process( const std::string &s, bool first=false );
 static std::string cmd_uci();
@@ -80,7 +82,7 @@ static std::string cmd_go( const std::vector<std::string> &fields );
 static void        cmd_go_infinite();
 static void        cmd_setoption( const std::vector<std::string> &fields );
 static void        cmd_position( const std::string &whole_cmd_line, const std::vector<std::string> &fields );
-static bool        cmd_interactive_go();
+static bool        cmd_interactive_go( int nbr_lines );
 static bool        cmd_interactive_level( const std::vector<std::string> &fields );
 static bool        cmd_interactive_move( const std::vector<std::string> &fields );
 
@@ -419,23 +421,23 @@ static const char * help[] =
     " Sargon 1978 64 bit    ",
     " By Dan and Kathe      ",
     "  Spracklen            ",
-    " C Conversion by       ",
-    "  Bill Forster         ",
-    "  billforsternz@gmail  ",
-    "                 .com  ",
+    "                       ",
     " UCI engine with bonus ",
     "  interactive shell    ",
     "                       ",
     " Commands are;         ",
+    " Nf3   ;(eg) make move ",
     " go    ;start game     ",
     " stop  ;stop game      ",
+    " flip  ;flip board     ",
+    " undo  ;undo move      ",
+    " reset ;start position ",
     " uci   ;exit to UCI    ",
     " quit  ;exit program   ",
-    " Nf3   ;(etc) make move",
-    " undo  ;undo move      ",
-    " pos x ;enter position ",
-    "       (x is valid FEN)",
     " level n ;set level    ",
+    " r3k2r/8/8/8/8/8/8/4K2R",
+    "  w Kkq - 0 1 ;(eg)    ",
+    "  (to set FEN position)",
     "                       ",
     " Use -? on command line",
     " for more information  ",
@@ -445,10 +447,11 @@ static const char * help[] =
 // Command line top level handler
 static bool process( const std::string &s, bool first )
 {
-    static std::deque<std::string> right_panel;
     static int nbr_lines = 0;
     static bool auto_play = false;
     bool show_help = false;
+    bool err = false;
+    std::string err_msg;
     if( first )
     {
         std::string pos = ascii_board(the_position);
@@ -459,7 +462,6 @@ static bool process( const std::string &s, bool first )
             offset = pos.find('\n',offset+1);
         }
     }
-    static bool interactive=true;
     bool quit=false;
     std::string rsp;
     std::vector<std::string> fields_raw, fields;
@@ -475,17 +477,13 @@ static bool process( const std::string &s, bool first )
             return false;
     }
     std::string parm1 = fields.size()<=1 ? "" : fields[1];
-    if( interactive )
+    if( gbl_interactive )
     {
         bool show_position = false;
         if( cmd=="uci" || cmd=="quit" )
         {
+            gbl_interactive = false;
             fprintf( stderr, "Leaving interactive mode\n" );
-            if( cmd == "uci" )
-                rsp = cmd_uci();
-            if( cmd == "quit" ) // special command because read_stdin() tests it
-                quit = true;
-            interactive = false;
         }
         else if( cmd=="stop" )
             auto_play = false;
@@ -503,7 +501,7 @@ static bool process( const std::string &s, bool first )
         else if( cmd=="go" )
         {
             auto_play = true;
-            show_position = cmd_interactive_go();
+            show_position = cmd_interactive_go( nbr_lines );
         }
         else
         {
@@ -512,13 +510,16 @@ static bool process( const std::string &s, bool first )
             {
                 show_position = true;
                 if( auto_play )
-                    cmd_interactive_go();
+                    cmd_interactive_go( nbr_lines );
             }
             else if( !first )
-                right_panel.push_back( "Unknown command" );
+            {
+                err = true;
+                err_msg = "Not a valid command or a legal move, ? for help";
+            }
         }
     }
-    else
+    if( !gbl_interactive )
     {
         if( cmd == "quit" ) // special command because read_stdin() tests it
             quit = true;
@@ -538,87 +539,95 @@ static bool process( const std::string &s, bool first )
             cmd_setoption(fields);
         else if( cmd=="position" )
             cmd_position( s, fields );
-        else if( cmd=="interactive" )
+        if( rsp != "" )
         {
-            interactive = true;
-            right_panel.clear();
+            log( "rsp>%s\n", rsp.c_str() );
+            fprintf( stdout, "%s", rsp.c_str() );
+            fflush( stdout );
         }
+        log( "function process() returns, cmd=%s\n"
+             "total callbacks=%lu\n"
+             "bestmove callbacks=%lu\n"
+             "genmov callbacks=%lu\n"
+             "end of points callbacks=%lu\n",
+                cmd.c_str(),
+                total_callbacks,
+                bestmove_callbacks,
+                genmov_callbacks,
+                end_of_points_callbacks );
+        log( "%s\n", sargon_pv_report_stats().c_str() );
     }
-    if( rsp != "" )
+    if( gbl_interactive )
     {
-        log( "rsp>%s\n", rsp.c_str() );
-        fprintf( stdout, "%s", rsp.c_str() );
-        fflush( stdout );
-    }
-    log( "function process() returns, cmd=%s\n"
-         "total callbacks=%lu\n"
-         "bestmove callbacks=%lu\n"
-         "genmov callbacks=%lu\n"
-         "end of points callbacks=%lu\n",
-            cmd.c_str(),
-            total_callbacks,
-            bestmove_callbacks,
-            genmov_callbacks,
-            end_of_points_callbacks );
-    log( "%s\n", sargon_pv_report_stats().c_str() );
-    if( interactive )
-    {
-        right_panel.clear();
-        if( first || show_help || the_game.size()==0 )
-        {
-            int sz = sizeof(help)/sizeof(help[0]);
-            for( int i=0; i<sz; i++ )
-                right_panel.push_back(help[i]);
-        }
+        if( err )
+            fprintf( stderr, "%s\ncmd>", err_msg.c_str() );
         else
         {
-            thc::ChessRules cr = the_position_base;
-            int sz = (int)the_game.size();
-            std::string s;
-            for( int i=0; i<sz; i++ )
-            {
-                thc::Move mv = the_game[i];
-                std::string t = mv.NaturalOut(&cr);
-                if( i==0 || cr.WhiteToPlay() )
-                {
-                    s = util::sprintf( "%2d%s %s", cr.full_move_count, cr.WhiteToPlay()?".":"...", t.c_str() );
-                }
-                else
-                {
-                    s += util::sprintf( " %s", t.c_str() );
-                    right_panel.push_back(s);
-                    s.clear();
-                }
-                cr.PlayMove(mv);         
-            }
-            if( s.length() > 0 )
-                right_panel.push_back(s);
+            bool help_screen = first || show_help || the_game.size()==0;
+            std::string s = interactive_screen( help_screen , nbr_lines );
+            fprintf( stderr, "%s\ncmd>", s.c_str() );
         }
-        while( right_panel.size() > nbr_lines )
-            right_panel.pop_front();
-        while( right_panel.size() < nbr_lines )
-            right_panel.push_back("");
-        size_t offset=0;
-        std::string pos = ascii_board(the_position);
-        for( std::string &right: right_panel )
-        {
-            size_t offset2 = pos.find('\n');
-            if( offset != 0 )
-                offset2 = pos.find('\n',offset+1);
-            if( offset2 != std::string::npos )
-            {
-                std::string s = pos.substr(offset,offset2);
-                if( offset != 0 )
-                    s = pos.substr(offset+1,offset2-offset-1);
-                offset = offset2;
-                fprintf( stderr, "\n%s  %s",
-                    s.c_str(), right.c_str() );
-            }
-        }
-        fprintf( stderr, "\ncmd>" );
         fflush( stderr );
     }
     return quit;
+}
+
+static std::string interactive_screen( bool help_screen, int nbr_lines )
+{
+    std::string ret;
+    std::deque<std::string> right_panel;
+    if( help_screen )
+    {
+        int sz = sizeof(help)/sizeof(help[0]);
+        for( int i=0; i<sz; i++ )
+            right_panel.push_back(help[i]);
+    }
+    else
+    {
+        thc::ChessRules cr = the_position_base;
+        int sz = (int)the_game.size();
+        std::string s;
+        for( int i=0; i<sz; i++ )
+        {
+            thc::Move mv = the_game[i];
+            std::string t = mv.NaturalOut(&cr);
+            if( i==0 || cr.WhiteToPlay() )
+            {
+                s = util::sprintf( "%2d%s %s", cr.full_move_count, cr.WhiteToPlay()?".":"...", t.c_str() );
+            }
+            else
+            {
+                s += util::sprintf( " %s", t.c_str() );
+                right_panel.push_back(s);
+                s.clear();
+            }
+            cr.PlayMove(mv);         
+        }
+        if( s.length() > 0 )
+            right_panel.push_back(s);
+    }
+    while( right_panel.size() > nbr_lines )
+        right_panel.pop_front();
+    while( right_panel.size() < nbr_lines )
+        right_panel.push_back("");
+    size_t offset=0;
+    std::string pos = ascii_board(the_position);
+    for( std::string &right: right_panel )
+    {
+        size_t offset2 = pos.find('\n');
+        if( offset != 0 )
+            offset2 = pos.find('\n',offset+1);
+        if( offset2 != std::string::npos )
+        {
+            std::string s = pos.substr(offset,offset2);
+            if( offset != 0 )
+                s = pos.substr(offset+1,offset2-offset-1);
+            offset = offset2;
+            ret += util::sprintf( "\n%s  %s",
+                s.c_str(), right.c_str() );
+        }
+    }
+    return ret;
 }
 
 static std::string ascii_board( thc::ChessPosition const &cp)
@@ -627,15 +636,15 @@ static std::string ascii_board( thc::ChessPosition const &cp)
     const char *p = cp.squares;
 
     const char *light_top_king        = "  +++  ";
-    const char *light_top_queen       = "  ~~~  ";
+    const char *light_top_queen       = "  www  ";
 
     const char *dark_top_king         = "::+++::";
-    const char *dark_top_queen        = "::~~~::";
+    const char *dark_top_queen        = "::www::";
 
     const char *light_base_white  = "  / \\  ";
     const char *light_base_black  = "  /@\\  ";
-    const char *light_base_pawn_white  = "  | |  ";
-    const char *light_base_pawn_black  = "  |@|  ";
+    const char *light_base_pawn_white  = "  ^ ^  ";
+    const char *light_base_pawn_black  = "  ^@^  ";
     const char *light_knight      = "  =o\\  ";
     const char *light_king_white  = "  ( )  ";
     const char *light_queen_white = "  ( )  ";
@@ -648,8 +657,8 @@ static std::string ascii_board( thc::ChessPosition const &cp)
 
     const char *dark_base_white   = "::/ \\::";
     const char *dark_base_black   = "::/@\\::";
-    const char *dark_base_pawn_white   = "::| |::";
-    const char *dark_base_pawn_black   = "::|@|::";
+    const char *dark_base_pawn_white   = "::^ ^::";
+    const char *dark_base_pawn_black   = "::^@^::";
     const char *dark_knight       = "::=o\\::";
     const char *dark_king_white   = "::( )::";
     const char *dark_queen_white  = "::( )::";
@@ -743,6 +752,7 @@ static std::string ascii_board( thc::ChessPosition const &cp)
             }
         }
     }
+    util::replace_all(s,":",".");
     return s;
 }
 
@@ -985,12 +995,14 @@ static void cmd_position( const std::string &whole_cmd_line, const std::vector<s
     the_position_base = the_position;
 }
 
-static bool cmd_interactive_go()
+static bool cmd_interactive_go( int nbr_lines )
 {
     bool ok = false;
-    fprintf( stderr, "Thinking...." );
+    std::string s = interactive_screen( false, nbr_lines );
+    fprintf( stderr, "%s\n", s.c_str() );
+    fprintf( stderr, "Thinking [level %d]....", the_level );
+    fflush( stderr );
     thc::Move bestmove = calculate_next_move( true, 10000, 10000, the_level );
-    fprintf( stderr, "\b\b\b\b\b\b\b\b\b\b\b\b" );
     ok = bestmove.Valid();
     if( ok )
     {
@@ -1009,7 +1021,7 @@ static bool cmd_interactive_level( const std::vector<std::string> &fields )
         return ok;
     std::string parm = fields[1];
     int n = atol(parm.c_str());
-    if( 1<=n && n<=6 )
+    if( 1<=n && n<=20 )
     {
         the_level = n;
         ok = true;
@@ -1478,8 +1490,11 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
                     mating.active = false;
                     state = (state==PLAYING_OUT_MATE_ADAPTIVE ? ADAPTIVE_NO_TARGET_YET : FIXED);
                 }
-                fprintf( stdout, out.c_str() );
-                fflush( stdout );
+                if(!gbl_interactive)
+                {
+                    fprintf( stdout, out.c_str() );
+                    fflush( stdout );
+                }
                 log( "rsp>%s\n", out.c_str() );
                 log( "(%s mating line)\n", mating.nbr<=1 ? "Finishing" : "Continuing" );
                 stop_rsp = util::sprintf( "bestmove %s\n", mating_move.TerseOut().c_str() ); 
@@ -1599,8 +1614,11 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
             bool repeating = (state==REPEATING_ADAPTIVE || state==REPEATING_FIXED || state==REPEATING_FIXED_WITH_LOOPING);
             if( (!repeating||we_are_forcing_mate) && info.length() > 0 )
             {
-                fprintf( stdout, info.c_str() );
-                fflush( stdout );
+                if( !gbl_interactive )
+                {
+                    fprintf( stdout, info.c_str() );
+                    fflush( stdout );
+                }
                 log( "rsp>%s\n", info.c_str() );
                 stop_rsp = util::sprintf( "bestmove %s\n", the_pv.variation[0].TerseOut().c_str() ); 
                 info.clear();
@@ -1787,8 +1805,11 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
                     the_pv = repetition_fallback_pv;
                 else if( info.length() > 0 )
                 {
-                    fprintf( stdout, info.c_str() );
-                    fflush( stdout );
+                    if(!gbl_interactive)
+                    {
+                        fprintf( stdout, info.c_str() );
+                        fflush( stdout );
+                    }
                     log( "rsp>%s\n", info.c_str() );
                     stop_rsp = util::sprintf( "bestmove %s\n", the_pv.variation[0].TerseOut().c_str() ); 
                     info.clear();
