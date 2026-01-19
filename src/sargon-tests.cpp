@@ -515,6 +515,10 @@ static TEST tests[]=
 //    { "r2qkb1r/ppp2ppp/4bn2/3p4/3Q4/2N2N2/PPP1PPPP/2KR1B1R w kq - 3 8", 3, "e2e3",
 //        75, "e3 Bd6 Be2" },
 
+    // // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE
+    // { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
+    //     50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },
+    //                
     // Position after 1.Nf3, Black to play book move
     { "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1", 5, "d7d5",
         0, "" },

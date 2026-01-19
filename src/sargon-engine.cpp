@@ -47,7 +47,7 @@ static unsigned long genmov_callbacks;
 static unsigned long bestmove_callbacks;
 static unsigned long end_of_points_callbacks;
 static std::vector<thc::Move> the_game;
-static int the_level=3;
+static int the_level=6;
 static bool gbl_interactive=true;
 static bool gbl_orientation;
 
@@ -517,10 +517,10 @@ static bool process( const std::string &s, bool first )
         }
         else if( cmd=="reset" )
         {
-            show_help = true;
             auto_play = false;
-            the_position.Init();
-            the_position_base.Init();
+            thc::ChessRules init;
+            the_position = init;
+            the_position_base = init;
             the_game.clear();
         }
         else if( cmd=="flip" )
@@ -699,7 +699,7 @@ static std::string ascii_board( thc::ChessPosition const &cp )
     const char *light_king_black  = "  (@)  ";
     const char *light_queen_black = "  (@)  ";
     const char *light_bishop      = "  (/)  ";
-    const char *light_rook        = " [===] ";
+    const char *light_rook        = " [#=#] ";
     const char *light_pawn        = "   _   ";
     const char *light_blank       = "       ";
 
@@ -713,9 +713,10 @@ static std::string ascii_board( thc::ChessPosition const &cp )
     const char *dark_king_black   = "..(@)..";
     const char *dark_queen_black  = "..(@)..";
     const char *dark_bishop       = "..(/)..";
-    const char *dark_rook         = ".[===].";
+    const char *dark_rook         = ".[#=#].";
     const char *dark_pawn         = ":::_:::";
     const char *dark_blank        = ":::::::";
+    const char *dark_empty        = ":::::::";
 
     // 8 * 3 = 24 lines
     for( int rank='8'; rank>='1'; rank--, p+=8 )
@@ -727,6 +728,8 @@ static std::string ascii_board( thc::ChessPosition const &cp )
             {
                 char piece = *(p + (file-'a'));
                 bool blank = piece==' ' || piece=='.';
+                if( blank )
+                    piece = '.';
                 bool white = true;
                 if( piece >= 'a' )
                 {
@@ -740,6 +743,7 @@ static std::string ascii_board( thc::ChessPosition const &cp )
                         switch(piece)
                         {
                             default:    s += (dark ? dark_blank     : light_blank     );    break;
+                            case '.':   s += (dark ? dark_empty     : light_blank     );    break;
                             case 'K':   s += (dark ? dark_top_king  : light_top_king  );    break;
                             case 'Q':   s += (dark ? dark_top_queen : light_top_queen );    break;
                         }
@@ -750,6 +754,7 @@ static std::string ascii_board( thc::ChessPosition const &cp )
                         switch(piece)
                         {
                             default:    s += (dark ? dark_blank  : light_blank  );    break;
+                            case '.':   s += (dark ? dark_empty     : light_blank     );    break;
                             case 'K':   if( white )
                                             s += (dark ? dark_king_white : light_king_white );
                                         else
@@ -776,6 +781,7 @@ static std::string ascii_board( thc::ChessPosition const &cp )
                                         else
                                             s += (dark ? dark_blank  : light_blank  );
                                         break;
+                            case '.':   s += (dark ? dark_empty     : light_blank     );    break;
                             case 'P':   s += white ? (dark?dark_base_pawn_white:light_base_pawn_white) : (dark?dark_base_pawn_black:light_base_pawn_black);
                                         break;
                         }
@@ -1043,7 +1049,7 @@ static bool cmd_interactive_go( int nbr_lines )
     fprintf( stderr, "%s\n", s.c_str() );
     fprintf( stderr, "Thinking [level %d]....", the_level );
     fflush( stderr );
-    thc::Move bestmove = calculate_next_move( true, 10000, 10000, the_level );
+    thc::Move bestmove = calculate_next_move( true, 1000000, 1000000, the_level );
     ok = bestmove.Valid();
     if( ok )
     {
