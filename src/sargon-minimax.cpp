@@ -1364,7 +1364,7 @@ class for_destructor
 };
 // for_destructor inst;  // just an instance to make the destructor run after main()
 
-void callback_zargon( CB cb )
+void callback_zargon_tests( CB cb )
 {
     //if( cb <= CB_ASCEND )
     //    cb_counts[cb]++;

@@ -38,8 +38,6 @@
 static unsigned long base_time;
 
 // Misc
-#define VERSION "1978 V1.01b 64bit"
-#define ENGINE_NAME "Sargon"
 static int depth_option;    // 0=auto, other values for fixed depth play
 static std::string logfile_name;
 static unsigned long total_callbacks;
@@ -151,7 +149,7 @@ static void timer_end();            // End the timer subsystem system
 static void timer_set( int ms );    // Set a timeout event, ms millisecs into the future (0 and -1 are special values)
 
 // main()
-int main( int argc, char *argv[] )
+int main_uci( int argc, const char *argv[] )
 {
     logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
 #ifdef _DEBUG
@@ -2557,7 +2555,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     //show();
 }
 
-void callback_zargon( CB cb )
+void callback_zargon_uci( CB cb )
 {
     total_callbacks++;
     if( cb == CB_AFTER_GENMOV )

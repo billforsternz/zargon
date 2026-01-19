@@ -153,6 +153,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bridge.cpp" />
+    <ClCompile Include="src\sargon-engine.cpp" />
     <ClCompile Include="src\sargon-interface.cpp" />
     <ClCompile Include="src\sargon-minimax.cpp" />
     <ClCompile Include="src\sargon-pv.cpp" />

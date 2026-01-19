@@ -15,6 +15,8 @@
 #include <string>
 #include "sargon-pv.h"
 #include "thc.h"
+#define VERSION "1978 V1.01b 64bit"
+#define ENGINE_NAME "Sargon"
 
 // Read a square value out of Sargon
 bool sargon_export_square( unsigned int sargon_square, thc::Square &sq );

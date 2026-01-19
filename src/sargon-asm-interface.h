@@ -15,7 +15,9 @@ void sargon( int api_command_code, z80_registers *registers=NULL );
 
 // Sargon core calls back to calling code use gb_z80_cpu to inspect
 //  and/or change registers
-extern void callback_zargon( CB cb );
+extern void (*callback_zargon)( CB cb );    // fn ptr
+extern void callback_zargon_uci( CB cb );   // redirect callback here ...
+extern void callback_zargon_tests( CB cb ); // .. or here
 
 // Data offsets for peeking and poking
 const int BOARDA = 0x0134; // (0x0134 in sargon_x86.asm)

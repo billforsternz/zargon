@@ -33,8 +33,19 @@ extern bool sargon_minimax_regression_test( bool quiet);
 static std::string timing_calibration_game("e4 e5 Nf3 Nc6 Bb5 Qf6 Nc3 a6 Nd5 Qd6 Bc4 Nf6 O-O b5 Bb3 Nxe4 Re1 Nf6 d4 Nxd5 dxe5 Qg6 Nh4 Qe6 Bxd5 Qe7 Nf5 Qb4 c3 Qc5 Be3 g6 Bxc5 gxf5 e6 Bxc5 exf7+ Kf8 Qh5 Kg7 Qg5+ Kf8 Qh6#");
 
 // main()
+extern int main_uci( int argc, const char *argv[] );
+void (*callback_zargon)( CB cb );    // fn ptr
 int main( int argc, const char *argv[] )
 {
+
+    // If no arguments, run UCI engine
+    callback_zargon = callback_zargon_tests;
+    if( argc == 1 )
+    {
+        callback_zargon = callback_zargon_uci;
+        int ret = main_uci( argc, argv );
+        return ret;
+    }
 #ifdef _DEBUG
     const char *test_args[] =
     {
@@ -46,10 +57,18 @@ int main( int argc, const char *argv[] )
     argv = test_args;
 #endif
     const char *usage =
-    "Sargon test suite\n"
+    ENGINE_NAME " " VERSION " UCI engine and test suite\n"
+    "by Dan and Kathe Spracklin\n"
+    "Zargon C++ port by Bill Forster billforsternz@gmail.com\n"
     "\n"
     "Usage:\n"
-    "sargon-tests tests [-1|-2|-3] [-v] [-doc]\n"
+    "zargon\n"
+    "\n"
+    "With no command line arguments, run a UCI engine, with a bonus interactive\n"
+    "shell to optionally exercise and play with Sargon without the need for a GUI.\n"
+    "Use command line arguments as follows for Sargon development tests.\n"
+    "\n"
+    "zargon tests [-1|-2|-3] [-v] [-doc]\n"
     "\n"
     "tests = combine 'p' for position tests, 'g' for whole game tests, 'm' for\n"
     "        minimax tests, 't' for timing tests, 'c' for calibrated timing test\n"
@@ -62,13 +81,13 @@ int main( int argc, const char *argv[] )
     "     in the form of documentation\n"
     "\n"
     "Examples:\n"
-    " sargon-tests pg -3 -v\n"
+    " zargon pg -3 -v\n"
     "    Run a comprehensive, verbose set of position and whole game tests\n"
-    " sargon-tests c -3\n"
+    " zargon c -3\n"
     "    Run the calibration test, -3 specifies many iterations for accuracy\n"
-    " sargon-tests t\n"
+    " zargon t\n"
     "    Run original timing tests (but note improved calibration timing test)\n"
-    " sargon-tests -doc\n"        
+    " zargon -doc\n"        
     "    Run the minimax models and print out the results as documentation\n";
     bool ok = false, minimax_doc=false, quiet=true;
     std::string test_types;
@@ -515,7 +534,7 @@ static TEST tests[]=
 //    { "r2qkb1r/ppp2ppp/4bn2/3p4/3Q4/2N2N2/PPP1PPPP/2KR1B1R w kq - 3 8", 3, "e2e3",
 //        75, "e3 Bd6 Be2" },
 
-    // // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE
+    // // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE)
     // { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
     //     50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },
     //                
