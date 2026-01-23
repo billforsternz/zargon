@@ -681,42 +681,37 @@ static std::string ascii_board( thc::ChessPosition const &cp )
         p = reverse_orientation;
     }
 
-    const char *light_top_king        = "  +++  ";
-    const char *light_top_queen       = "  www  ";
+    const char *graphics[] =
+    {
+        "       :::::::       :.www.:  +++  :::::::       :::::::",
+        " [#=#] :.=o\\.:  (/)  :.(@).:  (@)  :.(/).:  =o\\  :[#=#]:",
+        "  /@\\  :./@\\.:  /@\\  :./@\\.:  /@\\  :./@\\.:  /@\\  :./@\\.:",
+        ":::::::       :::::::       :::::::       :::::::       ",
+        "::@@@::  @@@  ::@@@::  @@@  ::@@@::  @@@  ::@@@::  @@@  ",
+        ":::::::       :::::::       :::::::       :::::::       ",
+        "       :::::::       :::::::       :::::::       :::::::",
+        "       :::::::       :::::::       :::::::       :::::::",
+        "       :::::::       :::::::       :::::::       :::::::",
+        ":.+++.:  www  :::::::       :::::::       :::::::       ",
+        ":.(@).:  (@)  :::::::       :::::::       :::::::       ",
+        ":./@\\.:  /@\\  :::::::       :::::::       :::::::       ",
+        "  +++  :.www.:       :::::::       :::::::       :::::::",
+        "  ( )  :.( ).:       :::::::       :::::::       :::::::",
+        "  / \\  :./ \\.:       :::::::       :::::::       :::::::",
+        ":::::::       :::::::       :::::::       :::::::       ",
+        ":::::::       :::::::       :::::::       :::::::       ",
+        ":::::::       :::::::       :::::::       :::::::       ",
+        "       :.....:       :.....:       :.....:       :.....:",
+        "  OOO  :.OOO.:  OOO  :.OOO.:  OOO  :.OOO.:  OOO  :.OOO.:",
+        "       :.....:       :.....:       :.....:       :.....:",
+        ":.....:       :.....:  www  :.+++.:       :.....:       ",
+        ".[#=#].  =o\\  :.(/).:  ( )  :.( ).:  (/)  :.=o\\.: [#=#] ",
+        ":./ \\.:  / \\  :./ \\.:  / \\  :./ \\.:  / \\  :./ \\.:  / \\  ",
+    };
 
-    const char *dark_top_king         = "..+++..";
-    const char *dark_top_queen        = "..www..";
-
-    const char *light_base_white  = "  / \\  ";
-    const char *light_base_black  = "  /@\\  ";
-    const char *light_base_pawn_white  = "   O   ";
-    const char *light_base_pawn_black  = "   @   ";
-    const char *light_knight      = "  =o\\  ";
-    const char *light_king_white  = "  ( )  ";
-    const char *light_queen_white = "  ( )  ";
-    const char *light_king_black  = "  (@)  ";
-    const char *light_queen_black = "  (@)  ";
-    const char *light_bishop      = "  (/)  ";
-    const char *light_rook        = " [#=#] ";
-    const char *light_pawn        = "   _   ";
-    const char *light_blank       = "       ";
-
-    const char *dark_base_white   = "../ \\..";
-    const char *dark_base_black   = "../@\\..";
-    const char *dark_base_pawn_white   = ":: O ::";
-    const char *dark_base_pawn_black   = ":: @ ::";
-    const char *dark_knight       = "..=o\\..";
-    const char *dark_king_white   = "..( )..";
-    const char *dark_queen_white  = "..( )..";
-    const char *dark_king_black   = "..(@)..";
-    const char *dark_queen_black  = "..(@)..";
-    const char *dark_bishop       = "..(/)..";
-    const char *dark_rook         = ".[#=#].";
-    const char *dark_pawn         = ":::_:::";
-    const char *dark_blank        = ":::::::";
-    const char *dark_empty        = ":::::::";
 
     // 8 * 3 = 24 lines
+    int snip = 0;
     for( int rank='8'; rank>='1'; rank--, p+=8 )
     {
         bool dark = (rank=='7'||rank=='5'||rank=='3'||rank=='1');
@@ -725,74 +720,36 @@ static std::string ascii_board( thc::ChessPosition const &cp )
             for( int file='a'; file<='h'; file++ )
             {
                 char piece = *(p + (file-'a'));
-                bool blank = piece==' ' || piece=='.';
-                if( blank )
-                    piece = '.';
-                bool white = true;
-                if( piece >= 'a' )
+                thc::Square square = thc::a1;
+                switch( piece )
                 {
-                    white = false;
-                    piece -= ' ';
+                    default:
+                    case '.':   square = dark ? thc::a3 : thc::b3;   break;
+                    case 'r':   square = dark ? thc::h8 : thc::a8;   break;
+                    case 'n':   square = dark ? thc::b8 : thc::g8;   break;
+                    case 'b':   square = dark ? thc::f8 : thc::c8;   break;
+                    case 'q':   square = dark ? thc::d8 : thc::b5;   break;
+                    case 'k':   square = dark ? thc::a5 : thc::e8;   break;
+                    case 'p':   square = dark ? thc::a7 : thc::b7;   break;
+                    case 'P':   square = dark ? thc::b2 : thc::a2;   break;
+                    case 'R':   square = dark ? thc::a1 : thc::h1;   break;
+                    case 'N':   square = dark ? thc::g1 : thc::b1;   break;
+                    case 'B':   square = dark ? thc::c1 : thc::f1;   break;
+                    case 'Q':   square = dark ? thc::b4 : thc::d1;   break;
+                    case 'K':   square = dark ? thc::e1 : thc::a4;   break;
                 }
-                switch(row)
-                {
-                    case 0:
-                    {
-                        switch(piece)
-                        {
-                            default:    s += (dark ? dark_blank     : light_blank     );    break;
-                            case '.':   s += (dark ? dark_empty     : light_blank     );    break;
-                            case 'K':   s += (dark ? dark_top_king  : light_top_king  );    break;
-                            case 'Q':   s += (dark ? dark_top_queen : light_top_queen );    break;
-                        }
-                        break;
-                    }
-                    case 1:
-                    {
-                        switch(piece)
-                        {
-                            default:    s += (dark ? dark_blank  : light_blank  );    break;
-                            case '.':   s += (dark ? dark_empty     : light_blank     );    break;
-                            case 'K':   if( white )
-                                            s += (dark ? dark_king_white : light_king_white );
-                                        else
-                                            s += (dark ? dark_king_black : light_king_black );
-                                        break;
-                            case 'Q':   if( white )
-                                            s += (dark ? dark_queen_white : light_queen_white );
-                                        else
-                                            s += (dark ? dark_queen_black : light_queen_black );
-                                        break;
-                            case 'B':   s += (dark ? dark_bishop : light_bishop );    break;
-                            case 'N':   s += (dark ? dark_knight : light_knight );    break;
-                            case 'R':   s += (dark ? dark_rook   : light_rook   );    break;
-                            case 'P':   s += (dark ? dark_pawn   : light_pawn   );    break;
-                        }
-                        break;
-                    }
-                    case 2:
-                    {
-                        switch( piece )
-                        {
-                            default:    if( !blank )
-                                            s += white ? (dark?dark_base_white:light_base_white) : (dark?dark_base_black:light_base_black);
-                                        else
-                                            s += (dark ? dark_blank  : light_blank  );
-                                        break;
-                            case '.':   s += (dark ? dark_empty     : light_blank     );    break;
-                            case 'P':   s += white ? (dark?dark_base_pawn_white:light_base_pawn_white) : (dark?dark_base_pawn_black:light_base_pawn_black);
-                                        break;
-                        }
-                        break;
-                    }
-                    // case 2:
-                    // {
-                    //     s += scaf;
-                    //     break;
-                    // }
-                }
+                int offset = (int)square;
+                int array_row = 3 * (offset/8) + row;
+                int array_col = 7 * (offset%8);
+                const char *src = &graphics[array_row][array_col];
+                for( int i=0; i<7; i++ ) // next 7 characters from src
+                    s += *src++;
+                // char slice[8];  // next 7 characters from src
+                // memset(slice,0,sizeof(slice));
+                // memcpy(slice,src,sizeof(slice)-1);
+                // s += slice;
                 if( file == 'h' )
-                    s += "\n"; // row==2 ? "+\n" : "|\n";
+                    s += "\n";
                 dark = !dark;
             }
         }
