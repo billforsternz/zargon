@@ -2667,61 +2667,59 @@ for(;;) {
         m.MLPTRJ = m.MLPTRI;            //  last move pointer = oad ply index pointer
         }
         prelim = false;
-        LD      (hl,v16(MLPTRJ));       //  Load last move pointer
-        LD      (e,ptr(hl));            //  Get next move pointer
-        INC16   (hl);
-        LD      (d,ptr(hl));
-        LD      (a,d);
-        AND     (a);                    //  End of move list ?
-        JR      (Z,FM25);               //  Yes - jump
-        LD      (v16(MLPTRJ),de);       //  Save current move pointer
-        LD      (hl,v16(MLPTRI));       //  Save in ply pointer list
-        LD      (ptr(hl),e);
-        INC16   (hl);
-        LD      (ptr(hl),d);
-        LD      (a,val(NPLY));          //  Current ply counter
-        LD      (hl,addr(PLYMAX));      //  Maximum ply number ?
-        CP      (ptr(hl));              //  Compare
-        JR      (CY,FM18);              //  Jump if not max
-        CALLu   (MOVE);                 //  Execute move on board array
-        a = INCHK(m.COLOR);             //  Check for legal move
-        AND     (a);                    //  Is move legal
-        JR      (Z,rel017);             //  Yes - jump
-        CALLu   (UNMOVE);               //  Restore board position
-        continue;
-rel017: LD      (a,val(NPLY));          //  Get ply counter
-        LD      (hl,addr(PLYMAX));      //  Max ply number
-        CP      (ptr(hl));              //  Beyond max ply ?
-        JR      (NZ,FM35);              //  Yes - jump
-        //LD      (a,val(COLOR));       //  Get current COLOR
-        //XOR     (0x80);               //  Get opposite COLOR
-        a = INCHK(m.COLOR^0x80);        //  Determine if King is in check
-        AND     (a);                    //  In check ?
-        JR      (Z,FM35);               //  No - jump
-        JPu     (FM19);                 //  Jump (One more ply for check)
-FM18:   LD      (ix,v16(MLPTRJ));       //  Load move pointer
-        LD      (a,ptr(ix+MLVAL));      //  Get move score
-        AND     (a);                    //  Is it zero (illegal move) ?
-        if(Z) { continue; }
-        CALLu   (MOVE);                 //  Execute move on board array
-FM19:   LD      (hl,addr(COLOR));       //  Toggle color
-        LD      (a,0x80);
-        XOR     (ptr(hl));
-        LD      (ptr(hl),a);            //  Save new color
-        BIT     (7,a);                  //  Is it white ?
-        JR      (NZ,rel018);            //  No - jump
-        LD      (hl,addr(MOVENO));      //  Increment move number
-        INC     (ptr(hl));
-rel018: LD      (hl,v16(SCRIX));        //  Load score table pointer
-        LD      (a,ptr(hl));            //  Get score two plys above
-        INC16   (hl);                   //  Increment to current ply
-        INC16   (hl);
-        LD      (ptr(hl),a);            //  Save score as initial value
-        DEC16   (hl);                   //  Decrement pointer
-        LD      (v16(SCRIX),hl);        //  Save it
-        prelim = true;
-        continue;
-FM25:   LD      (a,val(MATEF));         //  Get mate flag
+        p = GET_PTR(m.MLPTRJ);       //  Load last move pointer
+        uint8_t lo = *p++;            //  Get next move pointer
+        uint8_t hi = *p;
+        if( hi != 0 )                   //  End of move list ?
+        {
+            MK_U16(hi,lo,m.MLPTRJ); //  Save current move pointer
+            p = GET_PTR(m.MLPTRI);       //  Save in ply pointer list
+            *p++ = lo;
+            *p   = hi;
+            LD      (a,val(NPLY));          //  Current ply counter
+            LD      (hl,addr(PLYMAX));      //  Maximum ply number ?
+            CP      (ptr(hl));              //  Compare
+            JR      (CY,FM18);              //  Jump if not max
+            CALLu   (MOVE);                 //  Execute move on board array
+            a = INCHK(m.COLOR);             //  Check for legal move
+            AND     (a);                    //  Is move legal
+            JR      (Z,rel017);             //  Yes - jump
+            CALLu   (UNMOVE);               //  Restore board position
+            continue;
+    rel017: LD      (a,val(NPLY));          //  Get ply counter
+            LD      (hl,addr(PLYMAX));      //  Max ply number
+            CP      (ptr(hl));              //  Beyond max ply ?
+            JR      (NZ,FM35);              //  Yes - jump
+            //LD      (a,val(COLOR));       //  Get current COLOR
+            //XOR     (0x80);               //  Get opposite COLOR
+            a = INCHK(m.COLOR^0x80);        //  Determine if King is in check
+            AND     (a);                    //  In check ?
+            JR      (Z,FM35);               //  No - jump
+            JPu     (FM19);                 //  Jump (One more ply for check)
+    FM18:   LD      (ix,v16(MLPTRJ));       //  Load move pointer
+            LD      (a,ptr(ix+MLVAL));      //  Get move score
+            AND     (a);                    //  Is it zero (illegal move) ?
+            if(Z) { continue; }
+            CALLu   (MOVE);                 //  Execute move on board array
+    FM19:   LD      (hl,addr(COLOR));       //  Toggle color
+            LD      (a,0x80);
+            XOR     (ptr(hl));
+            LD      (ptr(hl),a);            //  Save new color
+            BIT     (7,a);                  //  Is it white ?
+            JR      (NZ,rel018);            //  No - jump
+            LD      (hl,addr(MOVENO));      //  Increment move number
+            INC     (ptr(hl));
+    rel018: LD      (hl,v16(SCRIX));        //  Load score table pointer
+            LD      (a,ptr(hl));            //  Get score two plys above
+            INC16   (hl);                   //  Increment to current ply
+            INC16   (hl);
+            LD      (ptr(hl),a);            //  Save score as initial value
+            DEC16   (hl);                   //  Decrement pointer
+            LD      (v16(SCRIX),hl);        //  Save it
+            prelim = true;
+            continue;
+        }
+        LD      (a,val(MATEF));         //  Get mate flag
         AND     (a);                    //  Checkmate or stalemate ?
         JR      (NZ,FM30);              //  No - jump
         LD      (a,val(CKFLG));         //  Get check flag
