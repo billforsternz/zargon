@@ -2417,7 +2417,7 @@ SR30:   EX      (de,hl);                //  Swap pointers                  //173
 //                                                                         //1748: ;
 // ARGUMENTS:  --  None                                                    //1749: ; ARGUMENTS:  --  None
 //***********************************************************              //1750: ;***********************************************************
-void EVAL() {
+void EVAL_asm() {
         callback_zargon_bridge(CB_EVAL);
         CALLu   (MOVE);                 //  Make move on the board array   //1751: EVAL:   CALL    MOVE            ; Make move on the board array
         a = INCHK(m.COLOR);             //  Determine if move is legal     //1752:         CALL    INCHK           ; Determine if move is legal
@@ -2431,6 +2431,20 @@ EV5:    CALLu   (PINFND);               //  Compile pinned list            //175
 EV10:   CALLu   (UNMOVE);               //  Restore board array            //1760: EV10:   CALL    UNMOVE          ; Restore board array
         RETu;                           //  Return                         //1761:         RET                     ; Return
 }                                                                          //1762:
+
+void EVAL() {
+    callback_zargon_bridge(CB_EVAL);
+    MOVE();                         //  Make move on the board array
+    bool inchk = INCHK(m.COLOR);    //  Determine if move is legal
+    if( inchk )
+        m.VALM = 0;                 // Score of zero for illegal move
+    else
+    {
+        PINFND();                   //  Compile pinned list
+        POINTS();                   //  Assign points to move
+    }
+    UNMOVE();                       //  Restore board array
+}
 
 //***********************************************************              //1763: ;***********************************************************
 // FIND MOVE ROUTINE                                                       //1764: ; FIND MOVE ROUTINE
