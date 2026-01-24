@@ -2705,13 +2705,13 @@ for(;;) {
             bool white = (hi==0x00 );       //  Is new colour white ?
             if( white )
                 m.MOVENO++;      //  Increment move number
-            LD      (hl,v16(SCRIX));        //  Load score table pointer
-            LD      (a,ptr(hl));            //  Get score two plys above
-            INC16   (hl);                   //  Increment to current ply
-            INC16   (hl);
-            LD      (ptr(hl),a);            //  Save score as initial value
-            DEC16   (hl);                   //  Decrement pointer
-            LD      (v16(SCRIX),hl);        //  Save it
+            p = GET_PTR(m.SCRIX);        //  Load score table pointer
+            uint8_t score = *p;            //  Get score two plys above
+            p++;                   //  Increment to current ply
+            p++;
+            *p = score;            //  Save score as initial value
+            p--;                   //  Decrement pointer
+            m.SCRIX = SAV_PTR(p);        //  Save it
             prelim = true;
             continue;
         }
