@@ -30,6 +30,11 @@ emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
 
+// Misc
+#define GET_PTR(val)        ((uint8_t*) (val + ((uint8_t*)(&m))))
+#define SAV_PTR(p)          (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
+#define MK_U16(hi,lo,u16)   do { u16 = hi; u16<<=8; u16+=lo; } while(0)
+
 //***********************************************************              //0012: ;***********************************************************
 // EQUATES                                                                 //0013: ; EQUATES
 //***********************************************************              //0014: ;***********************************************************
@@ -2464,7 +2469,7 @@ void EVAL() {
 //                                                                         //1778: ;
 // ARGUMENTS:  --  None                                                    //1779: ; ARGUMENTS:  --  None
 //***********************************************************              //1780: ;***********************************************************
-void FNDMOV() {
+void FNDMOV_asm() {
         callback_zargon_bridge(CB_FNDMOV);
         LD      (a,val(MOVENO));        //  Current move number            //1781: FNDMOV: LD      a,(MOVENO)      ; Current move number
         CP      (1);                    //  First move ?                   //1782:         CP      1               ; First move ?
@@ -2624,6 +2629,161 @@ FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree         //193
 tobook: BOOK(); // emulate Z80 call to BOOK() with exit from FNDMOV()
 }                                                                          //1933:
 
+void FNDMOV() {
+        callback_zargon_bridge(CB_FNDMOV);
+        if( m.MOVENO == 1 )
+        {
+            BOOK();
+            return;
+        }
+        m.NPLY  = 0;                    //  Initialize ply number to zero
+        m.BESTM = 0;                    //  Initialize best move to zero
+                                        //  Initialize ply list pointers
+        uint8_t *p = (uint8_t *)(&m.MLIST[0]);
+        m.MLNXT = SAV_PTR(p);
+        p = (uint8_t *)(&m.PLYIX);
+        p -= 2;
+        m.MLPTRI = SAV_PTR(p);
+        m.COLOR = m.KOLOR;               // Initialise color
+        p = (uint8_t *)(&m.SCORE);       // Initialize score index
+        m.SCRIX = SAV_PTR(p);
+        for( int i=0; i<m.PLYMAX+2; i++ )   //  Zero out score table
+            *p++ = 0;
+        m.BC0 = 0;                      //  Zero ply 0 board control
+        m.MV0 = 0;                      //  Zero ply 0 material
+        PINFND();                       //  Compile pin list
+        POINTS();                       //  Evaluate board at ply 0
+        LD      (a,val(BRDC));          //  Get board control points
+        LD      (val(BC0),a);           //  Save
+        LD      (a,val(MTRL));          //  Get material count
+        LD      (val(MV0),a);           //  Save
+FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter
+        INC     (ptr(hl));              //  Increment ply count
+        XOR     (a);                    //  Initialize mate flag
+        LD      (val(MATEF),a);
+        CALLu   (GENMOV);               //  Generate list of moves
+        callback_zargon(CB_AFTER_GENMOV);
+        LD      (a,val(NPLY));          //  Current ply counter
+        LD      (hl,addr(PLYMAX));      //  Address of maximum ply number
+        CP      (ptr(hl));              //  At max ply ?
+        CALL    (CY,SORTM);             //  No - call sort
+        LD      (hl,v16(MLPTRI));       //  Load ply index pointer
+        LD      (v16(MLPTRJ),hl);       //  Save as last move pointer
+FM15:   LD      (hl,v16(MLPTRJ));       //  Load last move pointer
+        LD      (e,ptr(hl));            //  Get next move pointer
+        INC16   (hl);
+        LD      (d,ptr(hl));
+        LD      (a,d);
+        AND     (a);                    //  End of move list ?
+        JR      (Z,FM25);               //  Yes - jump
+        LD      (v16(MLPTRJ),de);       //  Save current move pointer
+        LD      (hl,v16(MLPTRI));       //  Save in ply pointer list
+        LD      (ptr(hl),e);
+        INC16   (hl);
+        LD      (ptr(hl),d);
+        LD      (a,val(NPLY));          //  Current ply counter
+        LD      (hl,addr(PLYMAX));      //  Maximum ply number ?
+        CP      (ptr(hl));              //  Compare
+        JR      (CY,FM18);              //  Jump if not max
+        CALLu   (MOVE);                 //  Execute move on board array
+        a = INCHK(m.COLOR);             //  Check for legal move
+        AND     (a);                    //  Is move legal
+        JR      (Z,rel017);             //  Yes - jump
+        CALLu   (UNMOVE);               //  Restore board position
+        JPu     (FM15);                 //  Jump
+rel017: LD      (a,val(NPLY));          //  Get ply counter
+        LD      (hl,addr(PLYMAX));      //  Max ply number
+        CP      (ptr(hl));              //  Beyond max ply ?
+        JR      (NZ,FM35);              //  Yes - jump
+        //LD      (a,val(COLOR));       //  Get current COLOR
+        //XOR     (0x80);               //  Get opposite COLOR
+        a = INCHK(m.COLOR^0x80);        //  Determine if King is in check
+        AND     (a);                    //  In check ?
+        JR      (Z,FM35);               //  No - jump
+        JPu     (FM19);                 //  Jump (One more ply for check)
+FM18:   LD      (ix,v16(MLPTRJ));       //  Load move pointer
+        LD      (a,ptr(ix+MLVAL));      //  Get move score
+        AND     (a);                    //  Is it zero (illegal move) ?
+        JR      (Z,FM15);               //  Yes - jump
+        CALLu   (MOVE);                 //  Execute move on board array
+FM19:   LD      (hl,addr(COLOR));       //  Toggle color
+        LD      (a,0x80);
+        XOR     (ptr(hl));
+        LD      (ptr(hl),a);            //  Save new color
+        BIT     (7,a);                  //  Is it white ?
+        JR      (NZ,rel018);            //  No - jump
+        LD      (hl,addr(MOVENO));      //  Increment move number
+        INC     (ptr(hl));
+rel018: LD      (hl,v16(SCRIX));        //  Load score table pointer
+        LD      (a,ptr(hl));            //  Get score two plys above
+        INC16   (hl);                   //  Increment to current ply
+        INC16   (hl);
+        LD      (ptr(hl),a);            //  Save score as initial value
+        DEC16   (hl);                   //  Decrement pointer
+        LD      (v16(SCRIX),hl);        //  Save it
+        JPu     (FM5);                  //  Jump
+FM25:   LD      (a,val(MATEF));         //  Get mate flag
+        AND     (a);                    //  Checkmate or stalemate ?
+        JR      (NZ,FM30);              //  No - jump
+        LD      (a,val(CKFLG));         //  Get check flag
+        AND     (a);                    //  Was King in check ?
+        LD      (a,0x80);               //  Pre-set stalemate score
+        JR      (Z,FM36);               //  No - jump (stalemate)
+        LD      (a,val(MOVENO));        //  Get move number
+        LD      (val(PMATE),a);         //  Save
+        LD      (a,0xFF);               //  Pre-set checkmate score
+        JPu     (FM36);                 //  Jump
+FM30:   LD      (a,val(NPLY));          //  Get ply counter
+        CP      (1);                    //  At top of tree ?
+        RET     (Z);                    //  Yes - return
+        CALLu   (ASCEND);               //  Ascend one ply in tree
+        LD      (hl,v16(SCRIX));        //  Load score table pointer
+        INC16   (hl);                   //  Increment to current ply
+        INC16   (hl);                   //
+        LD      (a,ptr(hl));            //  Get score
+        DEC16   (hl);                   //  Restore pointer
+        DEC16   (hl);                   //
+        JPu     (FM37);                 //  Jump
+FM35:   CALLu   (PINFND);               //  Compile pin list
+        CALLu   (POINTS);               //  Evaluate move
+        CALLu   (UNMOVE);               //  Restore board position
+        LD      (a,val(VALM));          //  Get value of move
+FM36:   LD      (hl,addr(MATEF));       //  Set mate flag
+        SET     (0,ptr(hl));            //
+        LD      (hl,v16(SCRIX));        //  Load score table pointer
+FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);
+        CP      (ptr(hl));              //  Compare to score 2 ply above
+        JR      (CY,FM40);              //  Jump if less
+        JR      (Z,FM40);               //  Jump if equal
+        NEG;                            //  Negate score
+        INC16   (hl);                   //  Incr score table pointer
+        CP      (ptr(hl));              //  Compare to score 1 ply above
+        callback_zargon(CB_NO_BEST_MOVE);
+        JP      (CY,FM15);              //  Jump if less than
+        JP      (Z,FM15);               //  Jump if equal
+        LD      (ptr(hl),a);            //  Save as new score 1 ply above
+        callback_zargon(CB_YES_BEST_MOVE);
+        LD      (a,val(NPLY));          //  Get current ply counter
+        CP      (1);                    //  At top of tree ?
+        JP      (NZ,FM15);              //  No - jump
+        LD      (hl,v16(MLPTRJ));       //  Load current move pointer
+        LD      (v16(BESTM),hl);        //  Save as best move pointer
+        LD      (a,val_offset(SCORE,1));//  Get best move score
+        CP      (0xff);                 //  Was it a checkmate ?
+        JP      (NZ,FM15);              //  No - jump
+        LD      (hl,addr(PLYMAX));      //  Get maximum ply number
+        DEC     (ptr(hl));              //  Subtract 2
+        DEC     (ptr(hl));
+        LD      (a,val(KOLOR));         //  Get computer's color
+        BIT     (7,a);                  //  Is it white ?
+        RET     (Z);                    //  Yes - return
+        LD      (hl,addr(PMATE));       //  Checkmate move number
+        DEC     (ptr(hl));              //  Decrement
+        RETu;                           //  Return
+FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree
+        JPu     (FM15);                 //  Jump
+}
+
 //***********************************************************              //1934: ;***********************************************************
 // ASCEND TREE ROUTINE                                                     //1935: ; ASCEND TREE ROUTINE
 //***********************************************************              //1936: ;***********************************************************
@@ -2667,10 +2827,6 @@ rel019: LD      (hl,v16(SCRIX));        //  Load score table index         //195
         RETu;                           //  Return                         //1972:         RET                     ; Return
 }                                                                          //1973:
 
-
-#define GET_PTR(val)        ((uint8_t*) (val + ((uint8_t*)(&m))))
-#define SAV_PTR(p8)         (p8 - (uint8_t*)(&m))
-#define MK_U16(hi,lo,u16)   do { u16 = hi; u16<<=8; u16+=lo; } while(0)
 void ASCEND() {
     callback_zargon_bridge(CB_ASCEND);
     uint8_t hi = m.COLOR & 0x80;    //  Toggle color
