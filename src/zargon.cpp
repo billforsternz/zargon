@@ -2653,23 +2653,21 @@ void FNDMOV() {
         m.MV0 = 0;                      //  Zero ply 0 material
         PINFND();                       //  Compile pin list
         POINTS();                       //  Evaluate board at ply 0
-        LD      (a,val(BRDC));          //  Get board control points
-        LD      (val(BC0),a);           //  Save
-        LD      (a,val(MTRL));          //  Get material count
-        LD      (val(MV0),a);           //  Save
-FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter
-        INC     (ptr(hl));              //  Increment ply count
-        XOR     (a);                    //  Initialize mate flag
-        LD      (val(MATEF),a);
-        CALLu   (GENMOV);               //  Generate list of moves
+        m.BC0 = m.BRDC;                 //  Board control points
+        m.MV0 = m.MTRL;                 //  Material count
+bool prelim = true;
+for(;;) {
+        if(prelim) {
+        m.NPLY++;                   //  Increment ply count
+        m.MATEF = 0;                //  Initialize mate flag
+        GENMOV();                   //  Generate list of moves
         callback_zargon(CB_AFTER_GENMOV);
-        LD      (a,val(NPLY));          //  Current ply counter
-        LD      (hl,addr(PLYMAX));      //  Address of maximum ply number
-        CP      (ptr(hl));              //  At max ply ?
-        CALL    (CY,SORTM);             //  No - call sort
-        LD      (hl,v16(MLPTRI));       //  Load ply index pointer
-        LD      (v16(MLPTRJ),hl);       //  Save as last move pointer
-FM15:   LD      (hl,v16(MLPTRJ));       //  Load last move pointer
+        if( m.PLYMAX > m.NPLY )
+            SORTM();                    // Not at max ply, so call sort
+        m.MLPTRJ = m.MLPTRI;            //  last move pointer = oad ply index pointer
+        }
+        prelim = false;
+        LD      (hl,v16(MLPTRJ));       //  Load last move pointer
         LD      (e,ptr(hl));            //  Get next move pointer
         INC16   (hl);
         LD      (d,ptr(hl));
@@ -2690,7 +2688,7 @@ FM15:   LD      (hl,v16(MLPTRJ));       //  Load last move pointer
         AND     (a);                    //  Is move legal
         JR      (Z,rel017);             //  Yes - jump
         CALLu   (UNMOVE);               //  Restore board position
-        JPu     (FM15);                 //  Jump
+        continue;
 rel017: LD      (a,val(NPLY));          //  Get ply counter
         LD      (hl,addr(PLYMAX));      //  Max ply number
         CP      (ptr(hl));              //  Beyond max ply ?
@@ -2704,7 +2702,7 @@ rel017: LD      (a,val(NPLY));          //  Get ply counter
 FM18:   LD      (ix,v16(MLPTRJ));       //  Load move pointer
         LD      (a,ptr(ix+MLVAL));      //  Get move score
         AND     (a);                    //  Is it zero (illegal move) ?
-        JR      (Z,FM15);               //  Yes - jump
+        if(Z) { continue; }
         CALLu   (MOVE);                 //  Execute move on board array
 FM19:   LD      (hl,addr(COLOR));       //  Toggle color
         LD      (a,0x80);
@@ -2721,7 +2719,8 @@ rel018: LD      (hl,v16(SCRIX));        //  Load score table pointer
         LD      (ptr(hl),a);            //  Save score as initial value
         DEC16   (hl);                   //  Decrement pointer
         LD      (v16(SCRIX),hl);        //  Save it
-        JPu     (FM5);                  //  Jump
+        prelim = true;
+        continue;
 FM25:   LD      (a,val(MATEF));         //  Get mate flag
         AND     (a);                    //  Checkmate or stalemate ?
         JR      (NZ,FM30);              //  No - jump
@@ -2759,18 +2758,17 @@ FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);
         INC16   (hl);                   //  Incr score table pointer
         CP      (ptr(hl));              //  Compare to score 1 ply above
         callback_zargon(CB_NO_BEST_MOVE);
-        JP      (CY,FM15);              //  Jump if less than
-        JP      (Z,FM15);               //  Jump if equal
+        if( CY || Z ) continue;         //  Jump if less than or equal
         LD      (ptr(hl),a);            //  Save as new score 1 ply above
         callback_zargon(CB_YES_BEST_MOVE);
         LD      (a,val(NPLY));          //  Get current ply counter
         CP      (1);                    //  At top of tree ?
-        JP      (NZ,FM15);              //  No - jump
+        if(NZ ) continue;               //  No - jump
         LD      (hl,v16(MLPTRJ));       //  Load current move pointer
         LD      (v16(BESTM),hl);        //  Save as best move pointer
         LD      (a,val_offset(SCORE,1));//  Get best move score
         CP      (0xff);                 //  Was it a checkmate ?
-        JP      (NZ,FM15);              //  No - jump
+        if(NZ ) continue;               //  No - jump
         LD      (hl,addr(PLYMAX));      //  Get maximum ply number
         DEC     (ptr(hl));              //  Subtract 2
         DEC     (ptr(hl));
@@ -2781,7 +2779,7 @@ FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);
         DEC     (ptr(hl));              //  Decrement
         RETu;                           //  Return
 FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree
-        JPu     (FM15);                 //  Jump
+    }
 }
 
 //***********************************************************              //1934: ;***********************************************************
