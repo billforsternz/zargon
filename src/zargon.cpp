@@ -2700,7 +2700,7 @@ void FNDMOV()
         uint8_t hi = *p;
 
         //  End of move list ?
-        bool our_goto = false;
+        bool points_needed = false;
         if( hi != 0 )                   
         {
             MK_U16(hi,lo,m.MLPTRJ);     //  Save current move pointer
@@ -2719,18 +2719,18 @@ void FNDMOV()
                 bool inchk = INCHK(m.COLOR);             //  Check for legal move
 
                 //  If move not legal, restore board position and continue looping
-                if( inchk )                   //  Is move legal
+                if( inchk )       //  Is move legal
                 {
                     CALLu   (UNMOVE);               
                     continue;
                 }
 
-                // If beyond max ply or king not in check GOTO (to be resolved)
+                // If beyond max ply or king not in check time to calculate points
                 if( m.NPLY != m.PLYMAX )
-                    our_goto = true;
+                    points_needed = true;
                 inchk = INCHK(m.COLOR^0x80);
                 if( !inchk )
-                    our_goto = true;
+                    points_needed = true;
             }
             else
             {
@@ -2745,87 +2745,126 @@ void FNDMOV()
                 //  Execute move on board array
                 MOVE();
             }
-            if( !our_goto )
+
+            // points_needed flag avoids a goto from where the flag is set
+            if( !points_needed )
             {
-                hi = m.COLOR & 0x80;    //  Toggle color
+
+                // Toggle color
+                hi = m.COLOR & 0x80;
                 hi = (hi==0x80 ? 0 : 0x80);
                 m.COLOR = (m.COLOR&0x7f) | hi;
-                bool white = (hi==0x00 );       //  Is new colour white ?
+
+                // If new colour is white increment move number
+                bool white = (hi==0x00 );
                 if( white )
-                    m.MOVENO++;      //  Increment move number
-                p = GET_PTR(m.SCRIX);        //  Load score table pointer
-                score = *p;            //  Get score two plys above
-                p++;                   //  Increment to current ply
+                    m.MOVENO++;      
+
+                //  Load score table pointer
+                p = GET_PTR(m.SCRIX);
+
+                //  Get score two plys above
+                score = *p;            
+                p++;                   // increment to current ply
                 p++;
-                *p = score;            //  Save score as initial value
-                p--;                   //  Decrement pointer
-                m.SCRIX = SAV_PTR(p);        //  Save it
-                genmove_needed = true;
+
+                // Save score as initial value
+                *p = score;            
+                p--;                   // decrement pointer
+                m.SCRIX = SAV_PTR(p);  // save it
+                genmove_needed = true; // go to top of loop
                 continue;
             }
         }
+
+
+        // Common case, don't evaluate yet, not mate or stalemate
         score = 0;
-        if( our_goto )
+        if( !points_needed && m.MATEF!=0 )
         {
-            PINFND();               //  Compile pin list
-            POINTS();               //  Evaluate move
-            UNMOVE();               //  Restore board position
-            score = m.VALM;         //  Get value of move
-            m.MATEF |= 1;                  //  Set mate flag
-            p = GET_PTR(m.SCRIX);        //  Load score table pointer
-        }
-        else
-        {
-            if( m.MATEF == 0 )              //  Checkmate or stalemate ?
-            {
-                score = 0x80;               //  Pre-set stalemate score
-                if( m.CKFLG != 0 )        //  Get check flag
-                {
-                    score = 0xff;               //  Pre-set checkmate score
-                    m.PMATE= m.MOVENO;
-                }
-                m.MATEF |= 1;                  //  Set mate flag
-                p = GET_PTR(m.SCRIX);        //  Load score table pointer
-            }
-            else
-            {
-                if( m.NPLY == 1 )    //  At top of tree ?
-                    return;             // yes
-                ASCEND();               //  Ascend one ply in tree
-                p = GET_PTR(m.SCRIX);        //  Load score table pointer
-                p++;                   //  Increment to current ply
-                p++;                   //
-                score = *p;            //  Get score
-                p--;                   //  Restore pointer
-                p--;                   //
-            }
-        }
-        callback_zargon(CB_ALPHA_BETA_CUTOFF);
-        if( score <= *p )               //  Compare to score 2 ply above
-        {
+            if( m.NPLY == 1 )    //  At top of tree ?
+                return;             // yes
             ASCEND();               //  Ascend one ply in tree
+            p = GET_PTR(m.SCRIX);        //  Load score table pointer
+            p++;                   //  Increment to current ply
+            p++;                   //
+            score = *p;            //  Get score
+            p--;                   //  Restore pointer
+            p--;                   //
+        }
+
+        // Time to evaluate points ?
+        else if( points_needed )
+        {
+
+            //  Compile pin list
+            PINFND();
+
+            // Evaluate move
+            POINTS();
+
+            // Restore board position
+            UNMOVE();
+            score = m.VALM;         // get value of move
+            m.MATEF |= 1;           // set mate flag
+            p = GET_PTR(m.SCRIX);   // load score table pointer
+        }
+
+        // Else if terminal position ?
+        else if( m.MATEF == 0 )   // checkmate or stalemate ?
+        {
+            score = 0x80;  // stalemate             //  Pre-set stalemate score
+            if( m.CKFLG != 0 )  // test check flag
+            {
+                score = 0xff;   // if in check, then checkmate
+                m.PMATE= m.MOVENO;
+            }
+            m.MATEF |= 1;           // set mate flag
+            p = GET_PTR(m.SCRIX);   // load score table pointer
+        }
+
+        // Alpa Beta cuttoff ?
+        callback_zargon(CB_ALPHA_BETA_CUTOFF);
+        if( score <= *p )  // compare to score 2 ply above
+        {
+            ASCEND();  // ascend one ply in tree
             continue;
         }
-        iscore = (int8_t)score;  //  Negate score
+
+        //  Negate score
+        iscore = (int8_t)score;  
         iscore = 0-iscore;
         score = (uint8_t) iscore;
-        p++;                            //  Incr score table pointer
-        CY = (*p > score);                //  Compare to score 1 ply above
+
+        // Compare to score 1 ply above
+        p++;  
+        CY = (*p > score);                
         Z  = (*p == score);
         callback_zargon(CB_NO_BEST_MOVE);
         if( CY || Z ) continue;         //  Jump if less than or equal
-        *p = score;                     //  Save as new score 1 ply above
+        *p = score; // save as new score 1 ply above
         callback_zargon(CB_YES_BEST_MOVE);
-        if( m.NPLY != 1 )           //  At top of tree ?
-            continue;               //  No - jump
-        m.BESTM = m.MLPTRJ;             //  best move pointer =  current move pointer
-        p = 1 + (uint8_t *)&m.SCORE;    //  Get best move score
-        if( *p != 0xff )                //  Was it a checkmate ?
-            continue;                   //  No - jump
-        m.PLYMAX -= 2;                  //  Subtract 2 from maximum ply number
-        if( (m.KOLOR&0x80 ) == 0 )      //  If computer's color is white, return
-            return;
-        m.PMATE--;                      //  Checkmate move number
+
+        // At top of tree ?
+        if( m.NPLY != 1 )
+            continue;   //  no - loop
+
+        // Set best move pointer = current move pointer
+        m.BESTM = m.MLPTRJ;
+
+        // Point to best move score
+        p = 1 + (uint8_t *)&m.SCORE;
+
+        //  Was it a checkmate ?
+        if( *p != 0xff )
+            continue;   //  no - loop
+
+        // Subtract 2 from maximum ply number
+        m.PLYMAX -= 2;
+
+        // Calculate checkmate move number and return
+        if( (m.KOLOR&0x80 ) != 0 )  // If computer's color is not white decrement
+            m.PMATE--;
         return;
     }
 }
