@@ -2666,6 +2666,8 @@ for(;;) {
             SORTM();                    // Not at max ply, so call sort
         m.MLPTRJ = m.MLPTRI;            //  last move pointer = oad ply index pointer
         }
+        uint8_t score = 0;
+        int8_t iscore = 0;
         prelim = false;
         p = GET_PTR(m.MLPTRJ);       //  Load last move pointer
         uint8_t lo = *p++;            //  Get next move pointer
@@ -2706,7 +2708,7 @@ for(;;) {
             if( white )
                 m.MOVENO++;      //  Increment move number
             p = GET_PTR(m.SCRIX);        //  Load score table pointer
-            uint8_t score = *p;            //  Get score two plys above
+            score = *p;            //  Get score two plys above
             p++;                   //  Increment to current ply
             p++;
             *p = score;            //  Save score as initial value
@@ -2715,45 +2717,47 @@ for(;;) {
             prelim = true;
             continue;
         }
-        LD      (a,val(MATEF));         //  Get mate flag
-        AND     (a);                    //  Checkmate or stalemate ?
-        JR      (NZ,FM30);              //  No - jump
-        LD      (a,val(CKFLG));         //  Get check flag
-        AND     (a);                    //  Was King in check ?
-        LD      (a,0x80);               //  Pre-set stalemate score
-        JR      (Z,FM36);               //  No - jump (stalemate)
-        LD      (a,val(MOVENO));        //  Get move number
-        LD      (val(PMATE),a);         //  Save
-        LD      (a,0xFF);               //  Pre-set checkmate score
-        JPu     (FM36);                 //  Jump
-FM30:   LD      (a,val(NPLY));          //  Get ply counter
-        CP      (1);                    //  At top of tree ?
-        RET     (Z);                    //  Yes - return
-        CALLu   (ASCEND);               //  Ascend one ply in tree
-        LD      (hl,v16(SCRIX));        //  Load score table pointer
-        INC16   (hl);                   //  Increment to current ply
-        INC16   (hl);                   //
-        LD      (a,ptr(hl));            //  Get score
-        DEC16   (hl);                   //  Restore pointer
-        DEC16   (hl);                   //
-        JPu     (FM37);                 //  Jump
-FM35:   CALLu   (PINFND);               //  Compile pin list
-        CALLu   (POINTS);               //  Evaluate move
-        CALLu   (UNMOVE);               //  Restore board position
-        LD      (a,val(VALM));          //  Get value of move
-FM36:   LD      (hl,addr(MATEF));       //  Set mate flag
-        SET     (0,ptr(hl));            //
-        LD      (hl,v16(SCRIX));        //  Load score table pointer
+        score = 0;
+        if( m.MATEF == 0 )              //  Checkmate or stalemate ?
+        {
+            score = 0x80;               //  Pre-set stalemate score
+            if( m.CKFLG != 0 )        //  Get check flag
+            {
+                score = 0xff;               //  Pre-set checkmate score
+                m.PMATE= m.MOVENO;
+            }
+        }
+        else
+        {
+            if( m.NPLY == 1 )    //  At top of tree ?
+                return;             // yes
+            ASCEND();               //  Ascend one ply in tree
+            p = GET_PTR(m.SCRIX);        //  Load score table pointer
+            p++;                   //  Increment to current ply
+            p++;                   //
+            score = *p;            //  Get score
+            p--;                   //  Restore pointer
+            p--;                   //
+            goto FM37;                 //  Jump
+    FM35:   PINFND();               //  Compile pin list
+            POINTS();               //  Evaluate move
+            UNMOVE();               //  Restore board position
+            score = m.VALM;         //  Get value of move
+        }
+FM36:   m.MATEF |= 1;                  //  Set mate flag
+        p = GET_PTR(m.SCRIX);        //  Load score table pointer
 FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);
-        CP      (ptr(hl));              //  Compare to score 2 ply above
-        JR      (CY,FM40);              //  Jump if less
-        JR      (Z,FM40);               //  Jump if equal
-        NEG;                            //  Negate score
-        INC16   (hl);                   //  Incr score table pointer
-        CP      (ptr(hl));              //  Compare to score 1 ply above
+        if( score <= *p )               //  Compare to score 2 ply above
+            goto FM40;              //  Jump if less or equal
+        iscore = (int8_t)score;  //  Negate score
+        iscore = 0-iscore;
+        score = (uint8_t) iscore;
+        p++;                            //  Incr score table pointer
+        CY = (*p > score);                //  Compare to score 1 ply above
+        Z  = (*p == score);
         callback_zargon(CB_NO_BEST_MOVE);
         if( CY || Z ) continue;         //  Jump if less than or equal
-        LD      (ptr(hl),a);            //  Save as new score 1 ply above
+        *p = score;                     //  Save as new score 1 ply above
         callback_zargon(CB_YES_BEST_MOVE);
         LD      (a,val(NPLY));          //  Get current ply counter
         CP      (1);                    //  At top of tree ?
