@@ -2710,30 +2710,39 @@ void FNDMOV()
             // Max depth reached ?
             if( m.NPLY >= m.PLYMAX )
             {
-                MOVE();                 //  Execute move on board array
+
+                //  Execute move on board array
+                MOVE();
+
+                // Check move legality
                 bool inchk = INCHK(m.COLOR);             //  Check for legal move
+
+                //  If move not legal, restore board position and continue looping
                 if( inchk )                   //  Is move legal
                 {
-                    CALLu   (UNMOVE);               //  Not legal, Restore board position
+                    CALLu   (UNMOVE);               
                     continue;
                 }
-                if( m.NPLY != m.PLYMAX )        //  Beyond max ply ?
+
+                // If beyond max ply or king not in check GOTO (to be resolved)
+                if( m.NPLY != m.PLYMAX )
                     goto FM35;
-                inchk = INCHK(m.COLOR^0x80);        //  Determine if King is in check
-                if( !inchk )                  //  In check ?
-                    goto FM35;                 //  No - jump
+                inchk = INCHK(m.COLOR^0x80);
+                if( !inchk )
+                    goto FM35;
             }
             else
             {
+
+                //  Load move pointer
                 p = GET_PTR(m.MLPTRJ);
+
+                //  If score is zero (illegal move) continue looping
                 if( *(p+MLVAL) == 0 )
                     continue;
+
+                //  Execute move on board array
                 MOVE();
-                // LD      (ix,v16(MLPTRJ));       //  Load move pointer
-                // LD      (a,ptr(ix+MLVAL));      //  Get move score
-                // AND     (a);                    //  Is it zero (illegal move) ?
-                // if(Z) { continue; }
-                // CALLu   (MOVE);                 //  Execute move on board array
             }
             hi = m.COLOR & 0x80;    //  Toggle color
             hi = (hi==0x80 ? 0 : 0x80);
