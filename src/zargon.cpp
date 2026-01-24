@@ -2678,21 +2678,18 @@ for(;;) {
             *p   = hi;
             if( m.NPLY >= m.PLYMAX ) // if at max
             {
-                CALLu   (MOVE);                 //  Execute move on board array
-                a = INCHK(m.COLOR);             //  Check for legal move
-                AND     (a);                    //  Is move legal
-                JR      (Z,rel017);             //  Yes - jump
-                CALLu   (UNMOVE);               //  Restore board position
-                continue;
-        rel017: LD      (a,val(NPLY));          //  Get ply counter
-                LD      (hl,addr(PLYMAX));      //  Max ply number
-                CP      (ptr(hl));              //  Beyond max ply ?
-                JR      (NZ,FM35);              //  Yes - jump
-                //LD      (a,val(COLOR));       //  Get current COLOR
-                //XOR     (0x80);               //  Get opposite COLOR
-                a = INCHK(m.COLOR^0x80);        //  Determine if King is in check
-                AND     (a);                    //  In check ?
-                JR      (Z,FM35);               //  No - jump
+                MOVE();                 //  Execute move on board array
+                bool inchk = INCHK(m.COLOR);             //  Check for legal move
+                if( inchk )                   //  Is move legal
+                {
+                    CALLu   (UNMOVE);               //  Not legal, Restore board position
+                    continue;
+                }
+                if( m.NPLY != m.PLYMAX )        //  Beyond max ply ?
+                    goto FM35;
+                inchk = INCHK(m.COLOR^0x80);        //  Determine if King is in check
+                if( !inchk )                  //  In check ?
+                    goto FM35;                 //  No - jump
             }
             else
             {
@@ -2702,15 +2699,13 @@ for(;;) {
                 if(Z) { continue; }
                 CALLu   (MOVE);                 //  Execute move on board array
             }
-            LD      (hl,addr(COLOR));       //  Toggle color
-            LD      (a,0x80);
-            XOR     (ptr(hl));
-            LD      (ptr(hl),a);            //  Save new color
-            BIT     (7,a);                  //  Is it white ?
-            JR      (NZ,rel018);            //  No - jump
-            LD      (hl,addr(MOVENO));      //  Increment move number
-            INC     (ptr(hl));
-    rel018: LD      (hl,v16(SCRIX));        //  Load score table pointer
+            hi = m.COLOR & 0x80;    //  Toggle color
+            hi = (hi==0x80 ? 0 : 0x80);
+            m.COLOR = (m.COLOR&0x7f) | hi;
+            bool white = (hi==0x00 );       //  Is new colour white ?
+            if( white )
+                m.MOVENO++;      //  Increment move number
+            LD      (hl,v16(SCRIX));        //  Load score table pointer
             LD      (a,ptr(hl));            //  Get score two plys above
             INC16   (hl);                   //  Increment to current ply
             INC16   (hl);
