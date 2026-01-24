@@ -2744,11 +2744,14 @@ for(;;) {
             UNMOVE();               //  Restore board position
             score = m.VALM;         //  Get value of move
         }
-FM36:   m.MATEF |= 1;                  //  Set mate flag
+        m.MATEF |= 1;                  //  Set mate flag
         p = GET_PTR(m.SCRIX);        //  Load score table pointer
 FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);
         if( score <= *p )               //  Compare to score 2 ply above
-            goto FM40;              //  Jump if less or equal
+        {
+            ASCEND();               //  Ascend one ply in tree
+            continue;
+        }
         iscore = (int8_t)score;  //  Negate score
         iscore = 0-iscore;
         score = (uint8_t) iscore;
@@ -2759,24 +2762,17 @@ FM37:   callback_zargon(CB_ALPHA_BETA_CUTOFF);
         if( CY || Z ) continue;         //  Jump if less than or equal
         *p = score;                     //  Save as new score 1 ply above
         callback_zargon(CB_YES_BEST_MOVE);
-        LD      (a,val(NPLY));          //  Get current ply counter
-        CP      (1);                    //  At top of tree ?
-        if(NZ ) continue;               //  No - jump
-        LD      (hl,v16(MLPTRJ));       //  Load current move pointer
-        LD      (v16(BESTM),hl);        //  Save as best move pointer
-        LD      (a,val_offset(SCORE,1));//  Get best move score
-        CP      (0xff);                 //  Was it a checkmate ?
-        if(NZ ) continue;               //  No - jump
-        LD      (hl,addr(PLYMAX));      //  Get maximum ply number
-        DEC     (ptr(hl));              //  Subtract 2
-        DEC     (ptr(hl));
-        LD      (a,val(KOLOR));         //  Get computer's color
-        BIT     (7,a);                  //  Is it white ?
-        RET     (Z);                    //  Yes - return
-        LD      (hl,addr(PMATE));       //  Checkmate move number
-        DEC     (ptr(hl));              //  Decrement
-        RETu;                           //  Return
-FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree
+        if( m.NPLY != 1 )           //  At top of tree ?
+            continue;               //  No - jump
+        m.BESTM = m.MLPTRJ;             //  best move pointer =  current move pointer
+        p = 1 + (uint8_t *)&m.SCORE;    //  Get best move score
+        if( *p != 0xff )                //  Was it a checkmate ?
+            continue;                   //  No - jump
+        m.PLYMAX -= 2;                  //  Subtract 2 from maximum ply number
+        if( (m.KOLOR&0x80 ) == 0 )      //  If computer's color is white, return
+            return;
+        m.PMATE--;                      //  Checkmate move number
+        return;
     }
 }
 
