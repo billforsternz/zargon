@@ -2676,32 +2676,33 @@ for(;;) {
             p = GET_PTR(m.MLPTRI);       //  Save in ply pointer list
             *p++ = lo;
             *p   = hi;
-            LD      (a,val(NPLY));          //  Current ply counter
-            LD      (hl,addr(PLYMAX));      //  Maximum ply number ?
-            CP      (ptr(hl));              //  Compare
-            JR      (CY,FM18);              //  Jump if not max
-            CALLu   (MOVE);                 //  Execute move on board array
-            a = INCHK(m.COLOR);             //  Check for legal move
-            AND     (a);                    //  Is move legal
-            JR      (Z,rel017);             //  Yes - jump
-            CALLu   (UNMOVE);               //  Restore board position
-            continue;
-    rel017: LD      (a,val(NPLY));          //  Get ply counter
-            LD      (hl,addr(PLYMAX));      //  Max ply number
-            CP      (ptr(hl));              //  Beyond max ply ?
-            JR      (NZ,FM35);              //  Yes - jump
-            //LD      (a,val(COLOR));       //  Get current COLOR
-            //XOR     (0x80);               //  Get opposite COLOR
-            a = INCHK(m.COLOR^0x80);        //  Determine if King is in check
-            AND     (a);                    //  In check ?
-            JR      (Z,FM35);               //  No - jump
-            JPu     (FM19);                 //  Jump (One more ply for check)
-    FM18:   LD      (ix,v16(MLPTRJ));       //  Load move pointer
-            LD      (a,ptr(ix+MLVAL));      //  Get move score
-            AND     (a);                    //  Is it zero (illegal move) ?
-            if(Z) { continue; }
-            CALLu   (MOVE);                 //  Execute move on board array
-    FM19:   LD      (hl,addr(COLOR));       //  Toggle color
+            if( m.NPLY >= m.PLYMAX ) // if at max
+            {
+                CALLu   (MOVE);                 //  Execute move on board array
+                a = INCHK(m.COLOR);             //  Check for legal move
+                AND     (a);                    //  Is move legal
+                JR      (Z,rel017);             //  Yes - jump
+                CALLu   (UNMOVE);               //  Restore board position
+                continue;
+        rel017: LD      (a,val(NPLY));          //  Get ply counter
+                LD      (hl,addr(PLYMAX));      //  Max ply number
+                CP      (ptr(hl));              //  Beyond max ply ?
+                JR      (NZ,FM35);              //  Yes - jump
+                //LD      (a,val(COLOR));       //  Get current COLOR
+                //XOR     (0x80);               //  Get opposite COLOR
+                a = INCHK(m.COLOR^0x80);        //  Determine if King is in check
+                AND     (a);                    //  In check ?
+                JR      (Z,FM35);               //  No - jump
+            }
+            else
+            {
+                LD      (ix,v16(MLPTRJ));       //  Load move pointer
+                LD      (a,ptr(ix+MLVAL));      //  Get move score
+                AND     (a);                    //  Is it zero (illegal move) ?
+                if(Z) { continue; }
+                CALLu   (MOVE);                 //  Execute move on board array
+            }
+            LD      (hl,addr(COLOR));       //  Toggle color
             LD      (a,0x80);
             XOR     (ptr(hl));
             LD      (ptr(hl),a);            //  Save new color
