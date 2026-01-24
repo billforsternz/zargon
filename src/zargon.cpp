@@ -2622,7 +2622,7 @@ tobook: BOOK(); // emulate Z80 call to BOOK() with exit from FNDMOV()
 //                                                                         //1943: ;
 // ARGUMENTS: --  None                                                     //1944: ; ARGUMENTS: --  None
 //***********************************************************              //1945: ;***********************************************************
-void ASCEND() {
+void ASCEND_asm() {
         callback_zargon_bridge(CB_ASCEND);
         LD      (hl,addr(COLOR));       //  Toggle color                   //1946: ASCEND: LD      hl,COLOR        ; Toggle color
         LD      (a,0x80);               //                                 //1947:         LD      a,80H
@@ -2652,6 +2652,32 @@ rel019: LD      (hl,v16(SCRIX));        //  Load score table index         //195
         CALLu   (UNMOVE);               //  Restore board to previous ply  //1971:         CALL    UNMOVE          ; Restore board to previous ply
         RETu;                           //  Return                         //1972:         RET                     ; Return
 }                                                                          //1973:
+
+
+#define GET_PTR(val)        ((uint8_t*) (val + ((uint8_t*)(&m))))
+#define SAV_PTR(p8)         (p8 - (uint8_t*)(&m))
+#define MK_U16(hi,lo,u16)   do { u16 = hi; u16<<=8; u16+=lo; } while(0)
+void ASCEND() {
+    callback_zargon_bridge(CB_ASCEND);
+    uint8_t hi = m.COLOR & 0x80;    //  Toggle color
+    hi = (hi==0x80 ? 0 : 0x80);
+    m.COLOR = (m.COLOR&0x7f) | hi;
+    bool white = (hi==0x00 );       //  Is new colour white ?
+    if( !white )
+        m.MOVENO--;
+    m.SCRIX--;                      //  Decrement score table index
+    m.NPLY--;                       //  Decrement ply counter
+    uint8_t *p = GET_PTR(m.MLPTRI); //  Get ply list pointer       
+    p--;                            //  Load pointer to move list top
+    hi = *p--;
+    uint8_t lo = *p--;
+    MK_U16(hi,lo,m.MLNXT);          //  Update move list avail ptr
+    hi = *p--;                      //  Get ptr to next move to undo
+    lo = *p;
+    m.MLPTRI = (uint16_t)SAV_PTR(p); //  Save new ply list pointer
+    MK_U16(hi,lo,m.MLPTRJ);
+    UNMOVE();                       //  Restore board to previous ply
+}
 
 //***********************************************************                      ;***********************************************************
 // ONE MOVE BOOK OPENING                                                   //1974: ; ONE MOVE BOOK OPENING

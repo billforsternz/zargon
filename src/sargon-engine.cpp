@@ -711,7 +711,6 @@ static std::string ascii_board( thc::ChessPosition const &cp )
 
 
     // 8 * 3 = 24 lines
-    int snip = 0;
     for( int rank='8'; rank>='1'; rank--, p+=8 )
     {
         bool dark = (rank=='7'||rank=='5'||rank=='3'||rank=='1');
