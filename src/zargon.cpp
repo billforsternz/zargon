@@ -2629,56 +2629,86 @@ FM40:   CALLu   (ASCEND);               //  Ascend one ply in tree         //193
 tobook: BOOK(); // emulate Z80 call to BOOK() with exit from FNDMOV()
 }                                                                          //1933:
 
-void FNDMOV() {
-        callback_zargon_bridge(CB_FNDMOV);
-        if( m.MOVENO == 1 )
+void FNDMOV()
+{
+    callback_zargon_bridge(CB_FNDMOV);
+
+    // Book move ?
+    if( m.MOVENO == 1 )
+    {
+        BOOK();
+        return;
+    }
+
+    //  Initialize ply number, best move
+    m.NPLY  = 0;
+    m.BESTM = 0;
+
+    //  Initialize ply list pointers
+    uint8_t *p = (uint8_t *)(&m.MLIST[0]);
+    m.MLNXT = SAV_PTR(p);
+    p = (uint8_t *)(&m.PLYIX);
+    p -= 2;
+    m.MLPTRI = SAV_PTR(p);
+
+    // Initialise color
+    m.COLOR = m.KOLOR;               
+
+    // Initialize score index and clear table
+    p = (uint8_t *)(&m.SCORE);       
+    m.SCRIX = SAV_PTR(p);
+    for( int i=0; i<m.PLYMAX+2; i++ )
+        *p++ = 0;
+
+    // Init board control and material
+    m.BC0 = 0;
+    m.MV0 = 0;
+
+    //  Compile pin list
+    PINFND();
+
+    //  Evaluate board at ply 0
+    POINTS();                       
+
+    // Update board control and material
+    m.BC0 = m.BRDC;
+    m.MV0 = m.MTRL;
+
+    // Loop
+    bool genmove_needed = true;
+    for(;;)
+    {
+
+        // Generate moves
+        if( genmove_needed )
         {
-            BOOK();
-            return;
+            genmove_needed = false;
+            m.NPLY++;                   //  Increment ply count
+            m.MATEF = 0;                //  Initialize mate flag
+            GENMOV();                   //  Generate list of moves
+            callback_zargon(CB_AFTER_GENMOV);
+            if( m.PLYMAX > m.NPLY )
+                SORTM();                    // Not at max ply, so call sort
+            m.MLPTRJ = m.MLPTRI;            //  last move pointer = oad ply index pointer
         }
-        m.NPLY  = 0;                    //  Initialize ply number to zero
-        m.BESTM = 0;                    //  Initialize best move to zero
-                                        //  Initialize ply list pointers
-        uint8_t *p = (uint8_t *)(&m.MLIST[0]);
-        m.MLNXT = SAV_PTR(p);
-        p = (uint8_t *)(&m.PLYIX);
-        p -= 2;
-        m.MLPTRI = SAV_PTR(p);
-        m.COLOR = m.KOLOR;               // Initialise color
-        p = (uint8_t *)(&m.SCORE);       // Initialize score index
-        m.SCRIX = SAV_PTR(p);
-        for( int i=0; i<m.PLYMAX+2; i++ )   //  Zero out score table
-            *p++ = 0;
-        m.BC0 = 0;                      //  Zero ply 0 board control
-        m.MV0 = 0;                      //  Zero ply 0 material
-        PINFND();                       //  Compile pin list
-        POINTS();                       //  Evaluate board at ply 0
-        m.BC0 = m.BRDC;                 //  Board control points
-        m.MV0 = m.MTRL;                 //  Material count
-bool prelim = true;
-for(;;) {
-        if(prelim) {
-        m.NPLY++;                   //  Increment ply count
-        m.MATEF = 0;                //  Initialize mate flag
-        GENMOV();                   //  Generate list of moves
-        callback_zargon(CB_AFTER_GENMOV);
-        if( m.PLYMAX > m.NPLY )
-            SORTM();                    // Not at max ply, so call sort
-        m.MLPTRJ = m.MLPTRI;            //  last move pointer = oad ply index pointer
-        }
+
+        // Traverse move list
         uint8_t score = 0;
         int8_t iscore = 0;
-        prelim = false;
         p = GET_PTR(m.MLPTRJ);       //  Load last move pointer
         uint8_t lo = *p++;            //  Get next move pointer
         uint8_t hi = *p;
-        if( hi != 0 )                   //  End of move list ?
+
+        //  End of move list ?
+        if( hi != 0 )                   
         {
-            MK_U16(hi,lo,m.MLPTRJ); //  Save current move pointer
-            p = GET_PTR(m.MLPTRI);       //  Save in ply pointer list
+            MK_U16(hi,lo,m.MLPTRJ);     //  Save current move pointer
+            p = GET_PTR(m.MLPTRI);      //  Save in ply pointer list
             *p++ = lo;
             *p   = hi;
-            if( m.NPLY >= m.PLYMAX ) // if at max
+
+            // Max depth reached ?
+            if( m.NPLY >= m.PLYMAX )
             {
                 MOVE();                 //  Execute move on board array
                 bool inchk = INCHK(m.COLOR);             //  Check for legal move
@@ -2695,11 +2725,15 @@ for(;;) {
             }
             else
             {
-                LD      (ix,v16(MLPTRJ));       //  Load move pointer
-                LD      (a,ptr(ix+MLVAL));      //  Get move score
-                AND     (a);                    //  Is it zero (illegal move) ?
-                if(Z) { continue; }
-                CALLu   (MOVE);                 //  Execute move on board array
+                p = GET_PTR(m.MLPTRJ);
+                if( *(p+MLVAL) == 0 )
+                    continue;
+                MOVE();
+                // LD      (ix,v16(MLPTRJ));       //  Load move pointer
+                // LD      (a,ptr(ix+MLVAL));      //  Get move score
+                // AND     (a);                    //  Is it zero (illegal move) ?
+                // if(Z) { continue; }
+                // CALLu   (MOVE);                 //  Execute move on board array
             }
             hi = m.COLOR & 0x80;    //  Toggle color
             hi = (hi==0x80 ? 0 : 0x80);
@@ -2714,7 +2748,7 @@ for(;;) {
             *p = score;            //  Save score as initial value
             p--;                   //  Decrement pointer
             m.SCRIX = SAV_PTR(p);        //  Save it
-            prelim = true;
+            genmove_needed = true;
             continue;
         }
         score = 0;
