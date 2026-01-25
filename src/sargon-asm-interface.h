@@ -11,7 +11,8 @@ extern unsigned char *sargon_base_address;
 // Call Sargon core (original z80 code, now translated, call selected
 //  functions, optionally can set input registers (and/or inspect
 //  returned registers)
-void sargon( int api_command_code, z80_registers *registers=NULL );
+// Returns bool ok (used for api_VALMOV only)
+bool sargon( int api_command_code, z80_registers *registers=NULL );
 
 // Sargon core calls back to calling code use gb_z80_cpu to inspect
 //  and/or change registers

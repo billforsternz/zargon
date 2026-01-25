@@ -37,7 +37,7 @@ void BOOK();
 void CPTRMV();
 uint16_t BITASN( uint8_t idx );
 void ASNTBI();
-void VALMOV();
+bool VALMOV();
 void ROYALT();
 void DIVIDE();
 void MLTPLY();

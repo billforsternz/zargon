@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (15)
+// Functions converted to C (17)
 
 // PATH
 // ADJPTR
@@ -52,8 +52,10 @@ zargon_data_defs_check_and_regen regen;
 // DIVIDE (not actually needed any more)
 // MLTPLY
 // BITASN 
+// VALMOV 
+// ROYALT 
 // 
-// Functions not yet converted to C (17)
+// Functions not yet converted to C (15)
 // 
 // INITBD
 // MPIECE
@@ -69,8 +71,6 @@ zargon_data_defs_check_and_regen regen;
 // BOOK()
 // CPTRMV 
 // ASNTBI 
-// VALMOV 
-// ROYALT 
 // EXECMV 
 // 
 
@@ -3272,8 +3272,11 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move      //268
         RETu;                           //  Return                         //2689:         RET                     ; Return
 }                                                                          //2690:
 
-void VALMOV()
+bool VALMOV()
 {
+    // Return bool ok
+    bool ok=false;
+
     //  Save last move pointer
     uint16_t mlptrj_save = m.MLPTRJ;
 
@@ -3309,12 +3312,10 @@ void VALMOV()
         p = BIN_TO_PTR(bin);
         if( HI(bin) == 0 ) // At end of list ?
         {
-            //  Yes, return invalid move
-            a = 1;
 
-            //  Restore last move pointer
+            // Invalid move, restore last move pointer
             m.MLPTRJ = mlptrj_save;
-            return;
+            return ok;  // false
         }
     }
 
@@ -3326,22 +3327,17 @@ void VALMOV()
 
     //  Was it a legal move ?
     bool inchk = INCHK(m.COLOR);
-    if( inchk )
+    ok = !inchk;
+    if( !ok )
     {
 
         // Not legal Undo move on board array
         UNMOVE();
 
-        //  Return invalid move
-        a = 1;
-
         //  Restore last move pointer
         m.MLPTRJ = mlptrj_save;
     }
-
-    // Legal move
-    a = 0;
-    return;
+    return ok;
 }
 
 //

@@ -262,8 +262,7 @@ bool sargon_play_move( thc::Move &mv )
     }
     if( ok )
     {
-        sargon( api_VALMOV, &regs );
-        ok = ((regs.af & 0xff) == 0);  // ok if reg A eq 0
+        ok = sargon( api_VALMOV, &regs );
         if( ok )
             sargon( api_EXECMV, &regs );
     }
@@ -711,12 +710,13 @@ std::string algebraic( unsigned int sq )
     return s;
 }
 
-void sargon( int api_command_code, z80_registers *registers )
+bool sargon( int api_command_code, z80_registers *registers )
 {
+    bool ok = true;
     extern void INITBD();
     extern void ROYALT();
     extern void CPTRMV();
-    extern void VALMOV();
+    extern bool VALMOV();
     extern void ASNTBI();
     extern void EXECMV();
     if( registers )
@@ -733,7 +733,7 @@ void sargon( int api_command_code, z80_registers *registers )
         case api_INITBD: INITBD(); break;
         case api_ROYALT: ROYALT(); break;
         case api_CPTRMV: CPTRMV(); break;
-        case api_VALMOV: VALMOV(); break;
+        case api_VALMOV: ok = VALMOV(); break;
         case api_ASNTBI: ASNTBI(); break;
         case api_EXECMV: EXECMV(); break;
     }
@@ -746,4 +746,5 @@ void sargon( int api_command_code, z80_registers *registers )
         registers->ix = gbl_z80_cpu.IX;
         registers->iy = gbl_z80_cpu.IY;
     }
+    return ok;
 }
