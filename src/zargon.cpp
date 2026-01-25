@@ -2412,66 +2412,7 @@ SR30:   EX      (de,hl);                //  Swap pointers                  //173
 }                                                                          //1732:
 
 //
-//  This works, but it's very ugly
-//
-void SORTM_works() {
-    uint16_t bin_bc;
-    uint16_t bin_de;
-    uint16_t bin_hl;
-
-    uint8_t *p;
-    uint8_t *q;
-        callback_zargon_bridge(CB_SORTM);
-        bin_bc = v16(MLPTRI);       //  Move list begin pointer 
-        bin_de = 0;                 //  Initialize working point
-SR5:    bin_hl = bin_bc; //LD      (h,b);                  //                          
-                         //LD      (l,c);                  //                          
-        p = BIN_TO_PTR(bin_hl);
-        bin_bc = RD_BIN(p);
-        //LD      (c,ptr(bin_hl));            //  Link to next move       
-        //INC16   (bin_hl);                   //                          
-        //LD      (b,ptr(bin_hl));            //                          
-        WR_BIN(p,bin_de);
-        //LD      (ptr(bin_hl),d);            //  Store to link in list   
-        //DEC16   (bin_hl);                   //                          
-        //LD      (ptr(bin_hl),e);            //                          
-
-        // Return if end of list
-        if( HI(bin_bc) == 0 )
-            return;
-
-        m.MLPTRJ = bin_bc;       //  Save list pointer       
-        EVAL();                 //  Evaluate move           
-        bin_hl = m.MLPTRI;       //  Begining of move list   
-        bin_bc = m.MLPTRJ;       //  Restore list pointer    
-SR15:   p = BIN_TO_PTR(bin_hl);
-        bin_de = RD_BIN(p);
-        //LD      (e,ptr(bin_hl));            //  Next move for compare   
-        //INC16   (bin_hl);                   //                          
-        //LD      (d,ptr(bin_hl));            //                          
-        //bin_hl++;
-
-        // End of list ?
-        if( HI(bin_de) == 0 )
-            goto SR25;
-
-        // Compare value to list value
-        q = BIN_TO_PTR(bin_de);
-        if( m.VALM >= *(q+MLVAL) )
-            goto SR30;
-
-SR25:   //bin_hl--;
-        WR_BIN(p,bin_bc);
-        //LD      (ptr(bin_hl),b);            //  Link new move into list 
-        //DEC16   (bin_hl);                   //                          
-        //LD      (ptr(bin_hl),c);            //                          
-        JPu     (SR5);                  //  Jump                    
-SR30:   EX      (bin_de,bin_hl);                //  Swap pointers           
-        JPu     (SR15);                 //  Jump                    
-}                                                                   
-
-//
-//  This  should be and now is equivalent to above, now works
+//  This works, but uses ugly gotos
 //
 void SORTM()
 {
@@ -2485,7 +2426,9 @@ void SORTM()
     uint8_t *q;
 
     // Loop
-SR5:
+    for(;;)
+    {
+
         uint16_t bin_hl = bin_bc;
 
         // Get link to next move
@@ -2519,20 +2462,18 @@ SR15:
         // Compare value to list value
         q = BIN_TO_PTR(bin_de);
         if( m.VALM >= *(q+MLVAL) )
-            goto SR30;
-
+        {
+            //  Swap pointers if value not less than list value
+            uint16_t swap = bin_de;
+            bin_de = bin_hl;
+            bin_hl = swap;
+            goto SR15;
+        }
 SR25:
         //  Link new move into list
         p = BIN_TO_PTR(bin_hl);
         WR_BIN(p,bin_bc);
-        goto SR5;
-
-SR30:
-        //  Swap pointers if value not less than list value
-        uint16_t swap = bin_de;
-        bin_de = bin_hl;
-        bin_hl = swap;
-        goto SR15;
+    }
 }
 
 //
