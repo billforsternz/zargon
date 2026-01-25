@@ -2421,8 +2421,8 @@ void SORTM() {
 
     uint8_t *p;
         callback_zargon_bridge(CB_SORTM);
-        LD      (bin_bc,v16(MLPTRI));       //  Move list begin pointer 
-        LD      (bin_de,0);                 //  Initialize working point
+        bin_bc = v16(MLPTRI);       //  Move list begin pointer 
+        bin_de = 0;                 //  Initialize working point
 SR5:    bin_hl = bin_bc; //LD      (h,b);                  //                          
                          //LD      (l,c);                  //                          
         p = BIN_TO_PTR(bin_hl);
@@ -2434,28 +2434,34 @@ SR5:    bin_hl = bin_bc; //LD      (h,b);                  //
         //LD      (ptr(bin_hl),d);            //  Store to link in list   
         //DEC16   (bin_hl);                   //                          
         //LD      (ptr(bin_hl),e);            //                          
-        XOR     (a);                    //  End of list ?           
-        CP      (HI(bin_bc));                    //                          
-        RET     (Z);                    //  Yes - return            
-        LD      (v16(MLPTRJ),bin_bc);       //  Save list pointer       
-        CALLu   (EVAL);                 //  Evaluate move           
-        LD      (bin_hl,v16(MLPTRI));       //  Begining of move list   
-        LD      (bin_bc,v16(MLPTRJ));       //  Restore list pointer    
+
+        // Return if end of list
+        if( HI(bin_bc) == 0 )
+            return;
+
+        m.MLPTRJ = bin_bc;       //  Save list pointer       
+        EVAL();                 //  Evaluate move           
+        bin_hl = m.MLPTRI;       //  Begining of move list   
+        bin_bc = m.MLPTRJ;       //  Restore list pointer    
 SR15:   p = BIN_TO_PTR(bin_hl);
         bin_de = RD_BIN(p);
         //LD      (e,ptr(bin_hl));            //  Next move for compare   
         //INC16   (bin_hl);                   //                          
         //LD      (d,ptr(bin_hl));            //                          
-        bin_hl++;
-        XOR     (a);                    //  At end of list ?        
-        CP      (HI(bin_de));                    //                          
-        JR      (Z,SR25);               //  Yes - jump              
+        //bin_hl++;
+        // XOR     (a);                    //  At end of list ?        
+        // CP      (HI(bin_de));                    //                          
+        // JR      (Z,SR25);               //  Yes - jump              
+        // End of list ?
+        if( HI(bin_de) == 0 )
+            goto SR25;
+
         PUSH    (bin_de);                   //  Transfer move pointer   
         POP     (ix);                   //                          
         LD      (a,val(VALM));          //  Get new move value      
         CP      (ptr(ix+MLVAL));        //  Less than list value ?  
         JR      (NC,SR30);              //  No - jump               
-SR25:   bin_hl--;
+SR25:   //bin_hl--;
         WR_BIN(p,bin_bc);
         //LD      (ptr(bin_hl),b);            //  Link new move into list 
         //DEC16   (bin_hl);                   //                          
