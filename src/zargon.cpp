@@ -3232,7 +3232,7 @@ AT04:   LD      (b,a);                  //  Invalid flag                   //263
 // ARGUMENTS:  --  Returns flag in register A, 0 for valid                 //2650: ; ARGUMENTS:  --  Returns flag in register A, 0 for valid
 //                 and 1 for invalid move.                                 //2651: ;                 and 1 for invalid move.
 //***********************************************************              //2652: ;***********************************************************
-void VALMOV() {
+void VALMOV_asm() {
         LD      (hl,v16(MLPTRJ));       //  Save last move pointer         //2653: VALMOV: LD      hl,(MLPTRJ)     ; Save last move pointer
         PUSH    (hl);                   //  Save register                  //2654:         PUSH    hl              ; Save register
         LD      (a,val(KOLOR));         //  Computers color                //2655:         LD      a,(KOLOR)       ; Computers color
@@ -3271,6 +3271,57 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move      //268
         LD      (v16(MLPTRJ),hl);       //  Save move pointer              //2688:         LD      (MLPTRJ),hl     ; Save move pointer
         RETu;                           //  Return                         //2689:         RET                     ; Return
 }                                                                          //2690:
+
+void VALMOV()
+{
+        //  Save last move pointer
+        uint16_t mlptrj_save = m.MLPTRJ;
+
+        // Toggle computer's color
+        uint8_t temp = m.KOLOR & 0x80;
+        temp = (temp==0x80 ? 0 : 0x80);
+        m.COLOR = (m.KOLOR&0x7f) | temp;    // store as current COLOR
+
+        // Load move list index
+        uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
+        p -= 2;
+        m.MLPTRI = PTR_TO_BIN(p);
+
+        // Next available list pointer
+        p = (uint8_t *)(&m.MLIST[0]);
+        p += 1024;
+        m.MLNXT = PTR_TO_BIN(p);
+
+        // Generate opponents moves
+        GENMOV();
+
+        // LD      (ix,addr(MLIST)+1024);  //  Index to start of moves
+VA5:    uint8_t *q = (uint8_t *)&m.MVEMSG;         //  "From" position
+        if( *q != *(p+MLFRP) )        //  Is it in list ?
+            goto VA6;               //  No - jump
+        if( *(q+1) == *(p+MLTOP) )        // "To" position, is it in list ?
+            goto VA7;               //  Yes - jump
+VA6:    uint16_t bin_de; bin_de = RD_BIN(p+MLPTR);  //  Pointer to next list move
+        if( HI(bin_de) == 0 )           //  At end of list ?
+            goto VA10;              //  Yes - jump
+        p = BIN_TO_PTR(bin_de);         //  update ptr
+        goto VA5;
+
+VA7:    m.MLPTRJ = PTR_TO_BIN(p);       //  Save opponents move pointer
+        MOVE();                 //  Make move on board array
+        bool inchk; inchk = INCHK(m.COLOR);             //  Was it a legal move ?
+        if( inchk )
+            goto VA9;   // No - jump
+        a = 0; // Clear flag for invalid move
+        return;
+        // POP     (hl);                   //  Restore saved register
+        // RETu;                           //  Return
+VA9:    UNMOVE();               //  Un-do move on board array
+VA10:   a = 1; // Set flag for invalid move
+
+        //  Restore last move pointer
+        m.MLPTRJ = mlptrj_save;
+}
 
 //
 //  Omit some more Z80 user interface stuff, functions
