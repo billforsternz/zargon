@@ -2442,6 +2442,7 @@ void SORTM()
         EVAL();
         bin_hl = m.MLPTRI;       //  Beginning of move list
         bin_bc = m.MLPTRJ;       //  Restore list pointer
+
         // Next move loop
         for(;;)
         {
@@ -2456,15 +2457,11 @@ void SORTM()
 
             // Compare value to list value
             uint8_t *q = BIN_TO_PTR(bin_de);
-            if( m.VALM >= *(q+MLVAL) )
-            {
+            if( m.VALM < *(q+MLVAL) )
+                break;
 
-                //  Swap pointers if value not less than list value
-                uint16_t swap = bin_de;
-                bin_de = bin_hl;
-                bin_hl = swap;
-            }
-            else break;
+            //  Swap pointers if value not less than list value
+            bin_hl = bin_de;
         }
 
         //  Link new move into list
