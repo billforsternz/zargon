@@ -3295,8 +3295,42 @@ void VALMOV()
         // Generate opponents moves
         GENMOV();
 
-        // LD      (ix,addr(MLIST)+1024);  //  Index to start of moves
-VA5:    uint8_t *q = (uint8_t *)&m.MVEMSG;         //  "From" position
+#if 1
+for(;;)
+{
+        uint8_t *q = (uint8_t *)&m.MVEMSG;         //  "From" position (offset 0)
+        if( *q != *(p+MLFRP) ||       //  Is it in list ?
+         // goto VA6;               //  No - jump
+            *(q+1) != *(p+MLTOP) )        // "To" position, is it in list ?
+         // goto VA7;               //  Yes - jump
+    {       uint16_t bin_de; bin_de = RD_BIN(p+MLPTR);  //  Pointer to next list move
+            if( HI(bin_de) == 0 )           //  At end of list ?
+            {
+                //  Yes
+                a = 1; // Set flag for invalid move
+
+                //  Restore last move pointer
+                m.MLPTRJ = mlptrj_save;
+                return;
+            }
+            p = BIN_TO_PTR(bin_de);         //  update ptr
+            continue;
+    }
+    break;
+}
+        m.MLPTRJ = PTR_TO_BIN(p);       //  Save opponents move pointer
+        MOVE();                 //  Make move on board array
+        bool inchk; inchk = INCHK(m.COLOR);             //  Was it a legal move ?
+        if( inchk )
+            goto VA9;   // No - jump
+        a = 0; // Clear flag for invalid move
+        return;
+        // POP     (hl);                   //  Restore saved register
+        // RETu;                           //  Return
+VA9:    UNMOVE();               //  Un-do move on board array
+        a = 1; // Set flag for invalid move
+#else
+VA5:    uint8_t *q = (uint8_t *)&m.MVEMSG;         //  "From" position (offset 0)
         if( *q != *(p+MLFRP) )        //  Is it in list ?
             goto VA6;               //  No - jump
         if( *(q+1) == *(p+MLTOP) )        // "To" position, is it in list ?
@@ -3318,6 +3352,7 @@ VA7:    m.MLPTRJ = PTR_TO_BIN(p);       //  Save opponents move pointer
         // RETu;                           //  Return
 VA9:    UNMOVE();               //  Un-do move on board array
 VA10:   a = 1; // Set flag for invalid move
+#endif
 
         //  Restore last move pointer
         m.MLPTRJ = mlptrj_save;
