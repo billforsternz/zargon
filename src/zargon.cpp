@@ -30,6 +30,50 @@ emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
 
+//
+// Currently converting from hybrid ASM / C to normal C
+//   
+//  Progress report:
+
+// Functions converted to C (14)
+
+// PATH
+// ADJPTR
+// INCHK
+// ATTACK
+// ATKSAV
+// PNCK
+// XCHNG
+// NEXTAD
+// SORTM
+// EVAL
+// FNDMOV
+// ASCEND
+// DIVIDE
+// MLTPLY
+// 
+// Functions not yet converted to C (18)
+// 
+// INITBD
+// MPIECE
+// ENPSNT
+// CASTLE
+// ADMOVE
+// GENMOV
+// PINFND
+// POINTS
+// LIMIT 
+// MOVE 
+// UNMOVE 
+// BOOK()
+// CPTRMV 
+// BITASN 
+// ASNTBI 
+// VALMOV 
+// ROYALT 
+// EXECMV 
+// 
+
 // Transitional (maybe) pointer manipulation macros
 //  Note: a "bin" for our purposes is the binary representation of
 //        a Sargon pointer, it is a uint16_t offset from the start
@@ -644,81 +688,6 @@ PA2:    LD      (a,3);                  //  Set off board flag             //052
 pa3:    return a;                       //  Return                         //0523:         RET                     ; Return
 }                                                                          //0524:
 
-// Recode as a "native" C++ routine
-#if 0
-static inline void path2_c()
-{
-    //callback_zargon_bridge(CB_PATH);
-    //        LD      (hl,addr(M2));          //  Get previous position
-    //        LD      (a,ptr(hl));            //
-    //        ADD     (a,c);                  //  Add direction constant
-    //        LD      (ptr(hl),a);            //  Save new position
-    //        LD      (ix,v16(M2));           //  Load board index
-    //        LD      (a,ptr(ix+BOARD));      //  Get contents of board
-    m.M2 += c;
-    uint8_t temp = m.BOARDA[m.M2];
-
-    //        CP      (-1);            //  In border area ?
-    //        JR      (Z,PA2);         //  Yes - jump
-    //        LD      (val(P2),a);     //  Save piece
-    //        AND     (7);             //  Clear flags
-    //        LD      (val(T2),a);     //  Save piece type
-    //        RET     (Z);             //  Return if empty
-    if( temp == (uint8_t)(-1) )
-    {
-        a = 3;
-        return;
-    }
-    m.P2 = temp;
-    temp &= 0x07;
-    m.T2 = temp;
-    if( temp == 0 )
-    {
-        a = 0;
-        return;
-    }
-
-    //        LD      (a,val(P2));     //  Get piece encountered
-    //        LD      (hl,addr(P1));   //  Get moving piece address
-    //        XOR     (ptr(hl));       //  Compare
-    //        BIT     (7,a);           //  Do colors match ?
-    //        JR      (Z,PA1);         //  Yes - jump
-    //        LD      (a,1);           //  Set different color flag
-    //        RETu;                    //  Return
-    //PA1:    LD      (a,2);           //  Set same color flag
-    //        RETu;                    //  Return
-    a = ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
-}
-#endif
-
-#if 0
-//37300
-static inline void path_c()
-{
-    a = m.BOARDA[m.M2+=c] == ((uint8_t)-1) ? 3 :
-        (
-            0 == (m.T2 = 7&(m.P2 = m.BOARDA[m.M2])) ? 0 :
-                (
-                    (m.P2 ^ m.P1)&0x80 ? 1 : 2
-                )
-        );
-}
-#endif
-
-#if 0
-//37300
-static inline void path_c()
-{
-    if( m.BOARDA[m.M2+=c] == ((uint8_t)-1) )
-        a = 3;
-    else if(  0 == (m.T2 = 7&(m.P2 = m.BOARDA[m.M2]))  )
-        a = 0;
-    else
-        a = ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
-}
-#endif
-
-//38000+
 inline uint8_t PATH( int8_t dir )
 {
     callback_zargon_bridge(CB_PATH);
@@ -1827,7 +1796,6 @@ PF27:   JPu     (PF2);                  //  Jump                           //123
 //                                                                         //1247: ;
 // ARGUMENTS:  --  None.                                                   //1248: ; ARGUMENTS:  --  None.
 //***********************************************************              //1249: ;***********************************************************
-#if 0
 void XCHNG_asm() {
         callback_zargon_bridge(CB_XCHNG);
         EXX;                            //  Swap regs.                     //1250: XCHNG:  EXX                     ; Swap regs.
@@ -1877,7 +1845,6 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
         LD      (b,l);                  //  Prev attckr becomes defender   //1294:         LD      b,l             ; Prev attckr becomes defender
         JPu     (XC10);                 //  Jump                           //1295:         JP      XC10            ; Jump
 }                                                                          //1296:
-#endif
 
 void XCHNG()
 {
