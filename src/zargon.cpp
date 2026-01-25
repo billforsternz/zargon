@@ -2414,12 +2414,13 @@ SR30:   EX      (de,hl);                //  Swap pointers                  //173
 //
 //  This works, but it's very ugly
 //
-void SORTM() {
+void SORTM_works() {
     uint16_t bin_bc;
     uint16_t bin_de;
     uint16_t bin_hl;
 
     uint8_t *p;
+    uint8_t *q;
         callback_zargon_bridge(CB_SORTM);
         bin_bc = v16(MLPTRI);       //  Move list begin pointer 
         bin_de = 0;                 //  Initialize working point
@@ -2449,18 +2450,16 @@ SR15:   p = BIN_TO_PTR(bin_hl);
         //INC16   (bin_hl);                   //                          
         //LD      (d,ptr(bin_hl));            //                          
         //bin_hl++;
-        // XOR     (a);                    //  At end of list ?        
-        // CP      (HI(bin_de));                    //                          
-        // JR      (Z,SR25);               //  Yes - jump              
+
         // End of list ?
         if( HI(bin_de) == 0 )
             goto SR25;
 
-        PUSH    (bin_de);                   //  Transfer move pointer   
-        POP     (ix);                   //                          
-        LD      (a,val(VALM));          //  Get new move value      
-        CP      (ptr(ix+MLVAL));        //  Less than list value ?  
-        JR      (NC,SR30);              //  No - jump               
+        // Compare value to list value
+        q = BIN_TO_PTR(bin_de);
+        if( m.VALM >= *(q+MLVAL) )
+            goto SR30;
+
 SR25:   //bin_hl--;
         WR_BIN(p,bin_bc);
         //LD      (ptr(bin_hl),b);            //  Link new move into list 
@@ -2472,9 +2471,9 @@ SR30:   EX      (bin_de,bin_hl);                //  Swap pointers
 }                                                                   
 
 //
-//  This doesnt work
+//  This  should be and now is equivalent to above, now works
 //
-void SORTM_fail2()
+void SORTM()
 {
     callback_zargon_bridge(CB_SORTM);
 
@@ -2518,7 +2517,7 @@ SR15:
             goto SR25;
 
         // Compare value to list value
-        q = BIN_TO_PTR(de);
+        q = BIN_TO_PTR(bin_de);
         if( m.VALM >= *(q+MLVAL) )
             goto SR30;
 
@@ -2583,7 +2582,7 @@ void SORTM_doesnt_work()
                 break;
 
             // Compare value to list value
-            uint8_t *q = BIN_TO_PTR(de);
+            uint8_t *q = BIN_TO_PTR(bin_de);
             if( m.VALM >= *(q+MLVAL) )
             {
 
