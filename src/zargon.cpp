@@ -317,11 +317,11 @@ uint8_t     plistd[10];     // corresponding directions                    //020
 //                                                                         //0208: ;
 // POSQ    --  Position of Queens. Like POSK,but for queens.               //0209: ; POSQ    --  Position of Queens. Like POSK,but for queens.
 //***********************************************************              //0210: ;***********************************************************
-uint8_t     POSK[2] = {                                                    //0211: POSK    DB      24,95
-    24,95                                                                  //0212: POSQ    DB      14,94
+uint8_t     POSK[2] = {                                                    //0211: POSK    DB      25,95
+    25,95                                                                  //0212: POSQ    DB      24,94
 };                                                                         //0213:         DB      -1
 uint8_t     POSQ[2] = {                                                    //0214:
-    14,94
+    24,94
 };
 int8_t padding2 = -1;
 
@@ -3149,14 +3149,14 @@ void BITASN_asm() {
 //
 //  xxxxxxxxxx
 //  xxxxxxxxxx
+//  xssssssssx    <--- offset of a1, first s = 21 
 //  xssssssssx
 //  xssssssssx
 //  xssssssssx
 //  xssssssssx
 //  xssssssssx
 //  xssssssssx
-//  xssssssssx
-//  xssssssssx
+//  xssssssssx    <--- offset of h8, last s = 98
 //  xxxxxxxxxx
 //  xxxxxxxxxx
 
@@ -3290,7 +3290,7 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move      //268
 //                                                                         //2941: ;
 // ARGUMENTS:  --  None                                                    //2942: ; ARGUMENTS:  --  None
 //***********************************************************              //2943: ;***********************************************************
-void ROYALT() {
+void ROYALT_asm() {
         LD      (hl,addr(POSK));        //  Start of Royalty array         //2944: ROYALT: LD      hl,POSK         ; Start of Royalty array
         LD      (b,4);                  //  Clear all four positions       //2945:         LD      b,4             ; Clear all four positions
 back06: LD      (ptr(hl),0);            //                                 //2946: back06: LD      (hl),0
@@ -3319,6 +3319,47 @@ RY0C:   LD      (a,val(M1));            //  Current position               //296
         JR      (NZ,RY04);              //  No - jump                      //2969:         JR      NZ,RY04         ; No - jump
         RETu;                           //  Return                         //2970:         RET                     ; Return
 }                                                                          //2971:
+
+void ROYALT()
+{
+
+    // Clear royalty array
+    uint8_t *p = &m.POSK[0];
+    for( int i=0; i<4; i++ )
+        *p++ = 0;
+
+    // Board idx = a1 to h8 inclusive
+    for( int idx=21; idx<=98; idx++ )
+    {
+        //  Address of White king position
+        p = &m.POSK[0];
+        uint8_t piece = m.BOARDA[idx];
+
+        // Is it a black piece ?
+        if( (piece&0x80) != 0 ) 
+            p++;    // yes, increment to address of Black king position
+
+        // Delete flags, leave piece
+        piece &= 7;
+        
+        // Update king or queen position if king or queen found
+        if( piece == KING )
+            *p = idx;
+        else if( piece == QUEEN )
+        {
+
+            // Queen position is 2 bytes after corresponding king position
+            p++;  
+            p++;
+            *p = idx;  // Update Queen position
+        }
+    }
+
+    // leave M1 at h8, not padding beyond h8 [probably not needed]
+    //m.M1 = 98 + TBASE;
+    p = &m.M1;
+    *p = 98;
+}
 
 //
 //  Omit some more Z80 user interface stuff, functions

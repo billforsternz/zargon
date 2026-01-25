@@ -227,11 +227,11 @@ uint8_t     plistd[10];     // corresponding directions                    //020
 //                                                                         //0208: ;
 // POSQ    --  Position of Queens. Like POSK,but for queens.               //0209: ; POSQ    --  Position of Queens. Like POSK,but for queens.
 //***********************************************************              //0210: ;***********************************************************
-uint8_t     POSK[2] = {                                                    //0211: POSK    DB      24,95
-    24,95                                                                  //0212: POSQ    DB      14,94
+uint8_t     POSK[2] = {                                                    //0211: POSK    DB      25,95
+    25,95                                                                  //0212: POSQ    DB      24,94
 };                                                                         //0213:         DB      -1
 uint8_t     POSQ[2] = {                                                    //0214:
-    14,94
+    24,94
 };
 int8_t padding2 = -1;
 
