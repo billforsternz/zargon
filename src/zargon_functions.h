@@ -35,7 +35,7 @@ void FNDMOV();
 void ASCEND();
 void BOOK();
 void CPTRMV();
-void BITASN();
+uint16_t BITASN( uint8_t idx );
 void ASNTBI();
 void VALMOV();
 void ROYALT();

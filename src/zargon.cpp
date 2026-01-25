@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (14)
+// Functions converted to C (15)
 
 // PATH
 // ADJPTR
@@ -49,10 +49,11 @@ zargon_data_defs_check_and_regen regen;
 // EVAL
 // FNDMOV
 // ASCEND
-// DIVIDE
+// DIVIDE (not actually needed any more)
 // MLTPLY
+// BITASN 
 // 
-// Functions not yet converted to C (18)
+// Functions not yet converted to C (17)
 // 
 // INITBD
 // MPIECE
@@ -67,7 +68,6 @@ zargon_data_defs_check_and_regen regen;
 // UNMOVE 
 // BOOK()
 // CPTRMV 
-// BITASN 
 // ASNTBI 
 // VALMOV 
 // ROYALT 
@@ -1796,6 +1796,7 @@ PF27:   JPu     (PF2);                  //  Jump                           //123
 //                                                                         //1247: ;
 // ARGUMENTS:  --  None.                                                   //1248: ; ARGUMENTS:  --  None.
 //***********************************************************              //1249: ;***********************************************************
+#if 0
 void XCHNG_asm() {
         callback_zargon_bridge(CB_XCHNG);
         EXX;                            //  Swap regs.                     //1250: XCHNG:  EXX                     ; Swap regs.
@@ -1845,6 +1846,7 @@ rel010: ADD     (a,e);                  //  Total points lost              //129
         LD      (b,l);                  //  Prev attckr becomes defender   //1294:         LD      b,l             ; Prev attckr becomes defender
         JPu     (XC10);                 //  Jump                           //1295:         JP      XC10            ; Jump
 }                                                                          //1296:
+#endif
 
 void XCHNG()
 {
@@ -3067,11 +3069,12 @@ CP0C:   CALLu   (MOVE);                 //  Produce move on board array    //234
         AND     (a);                    //  Special ?                      //2351:         AND     a               ; Special ?
         JR      (NZ,CP10);              //  Yes - jump                     //2352:         JR      NZ,CP10         ; Yes - jump
         LD      (d,e);                  //  "To" position of the move      //2353:         LD      d,e             ; "To" position of the move
-        CALLu   (BITASN);               //  Convert to Ascii               //2354:         CALL    BITASN          ; Convert to Ascii
-        LD   (v16_offset(MVEMSG,3),hl); //  Put in move message            //2355:         LD      (MVEMSG+3),hl   ; Put in move message
+        uint16_t asc;
+        asc = BITASN(d);                //  Convert to Ascii               //2354:         CALL    BITASN          ; Convert to Ascii
+        LD  (v16_offset(MVEMSG,3),asc); //  Put in move message            //2355:         LD      (MVEMSG+3),hl   ; Put in move message
         LD      (d,c);                  //  "From" position of the move    //2356:         LD      d,c             ; "From" position of the move
-        CALLu   (BITASN);               //  Convert to Ascii               //2357:         CALL    BITASN          ; Convert to Ascii
-        LD      (v16(MVEMSG),hl);       //  Put in move message            //2358:         LD      (MVEMSG),hl     ; Put in move message
+        asc =   BITASN(d);              //  Convert to Ascii               //2357:         CALL    BITASN          ; Convert to Ascii
+        LD      (v16(MVEMSG),asc);      //  Put in move message            //2358:         LD      (MVEMSG),hl     ; Put in move message
         //PRTBLK  (MVEMSG,5);           //  Output text of move            //2359:         PRTBLK  MVEMSG,5        ; Output text of move
         JRu     (CP1C);                 //  Jump                           //2360:         JR      CP1C            ; Jump
 CP10:   BIT     (1,b);                  //  King side castle ?             //2361: CP10:   BIT     1,b             ; King side castle ?
@@ -3127,7 +3130,7 @@ CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates          //238
 //                 Ascii square name is output in register                 //2532: ;                 Ascii square name is output in register
 //                 pair HL.                                                //2533: ;                 pair HL.
 //***********************************************************              //2534: ;***********************************************************
-void BITASN() {
+void BITASN_asm() {
         SUB     (a);                    //  Get ready for division         //2535: BITASN: SUB     a               ; Get ready for division
         LD      (e,10);                 //                                 //2536:         LD      e,10
         CALLu   (DIVIDE);               //  Divide                         //2537:         CALL    DIVIDE          ; Divide
@@ -3139,6 +3142,34 @@ void BITASN() {
         LD      (h,a);                  //  Save                           //2543:         LD      h,a             ; Save
         RETu;                           //  Return                         //2544:         RET                     ; Return
 }                                                                          //2545:
+
+//
+// Board size is 120 bytes, 12 rows of 10
+// x is padding, s is square
+//
+//  xxxxxxxxxx
+//  xxxxxxxxxx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xxxxxxxxxx
+//  xxxxxxxxxx
+
+uint16_t BITASN( uint8_t idx )
+{
+    uint8_t rank = idx/10;         // rank 2-9
+    uint8_t file = idx%10;         // file 1-8
+    rank = (rank-2) + '1';         // ascii '1'-'8'
+    file = (file-1) + 'a';         // ascii 'a'-'h'
+    uint16_t temp = rank;
+    temp = (temp<<8) + file;
+    return temp;
+}
 
 //
 //  Omit some more Z80 user interface stuff, function
