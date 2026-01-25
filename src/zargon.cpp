@@ -2414,7 +2414,7 @@ SR30:   EX      (de,hl);                //  Swap pointers                  //173
 //
 //  This works, but uses ugly gotos
 //
-void SORTM()
+void SORTM_ugly()
 {
     callback_zargon_bridge(CB_SORTM);
 
@@ -2477,9 +2477,76 @@ SR25:
 }
 
 //
+//  This works, but uses ugly gotos
+//
+void SORTM_works()
+{
+    callback_zargon_bridge(CB_SORTM);
+
+    // Init working pointers
+    uint16_t bin_bc = m.MLPTRI;       //  Move list begin pointer
+    uint16_t bin_de = 0;
+
+    uint8_t *p;
+    uint8_t *q;
+
+    // Loop
+    for(;;)
+    {
+
+        uint16_t bin_hl = bin_bc;
+
+        // Get link to next move
+        p = BIN_TO_PTR(bin_hl);
+        bin_bc = RD_BIN(p);
+
+        // Make linked list
+        WR_BIN( p, bin_de );
+
+        // Return if end of list
+        if( HI(bin_bc) == 0 )
+            return;
+
+        // Save list pointer
+        m.MLPTRJ = bin_bc;
+
+        // Evaluate move
+        EVAL();
+        bin_hl = m.MLPTRI;       //  Beginning of move list
+        bin_bc = m.MLPTRJ;       //  Restore list pointer
+
+        // Get next move
+        for(;;)
+        {
+            p = BIN_TO_PTR(bin_hl);
+            bin_de = RD_BIN(p);
+
+            // End of list ?
+            if( HI(bin_de) == 0 )
+                break;
+
+            // Compare value to list value
+            q = BIN_TO_PTR(bin_de);
+            if( m.VALM >= *(q+MLVAL) )
+            {
+                //  Swap pointers if value not less than list value
+                uint16_t swap = bin_de;
+                bin_de = bin_hl;
+                bin_hl = swap;
+            }
+            else break;
+        }
+
+        //  Link new move into list
+        p = BIN_TO_PTR(bin_hl);
+        WR_BIN(p,bin_bc);
+    }
+}
+
+//
 //  This doesnt work
 //
-void SORTM_doesnt_work()
+void SORTM()
 {
     callback_zargon_bridge(CB_SORTM);
 
@@ -2532,6 +2599,7 @@ void SORTM_doesnt_work()
                 bin_de = bin_hl;
                 bin_hl = swap;
             }
+            else break;
         }
 
         //  Link new move into list
