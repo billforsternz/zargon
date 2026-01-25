@@ -30,10 +30,17 @@ emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
 
-// Misc
-#define GET_PTR(val)        ((uint8_t*) (val + ((uint8_t*)(&m))))
-#define SAV_PTR(p)          (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
-#define MK_U16(hi,lo,u16)   do { u16 = hi; u16<<=8; u16+=lo; } while(0)
+// Transitional (maybe) pointer manipulation macros
+//  Note: a "bin" for our purposes is the binary representation of
+//        a Sargon pointer, it is a uint16_t offset from the start
+//        of Sargon's memory
+#define BIN_TO_PTR(bin)     ((uint8_t*) (bin + ((uint8_t*)(&m))))
+#define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
+#define MK_U16(hi,lo,bin)   do { bin = hi; bin<<=8; bin+=lo; } while(0)
+#define HI(bin)             ((bin>>8)&0xff)
+#define LO(bin)             (bin&0xff)
+inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
+inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
 
 //***********************************************************              //0012: ;***********************************************************
 // EQUATES                                                                 //0013: ; EQUATES
@@ -2366,7 +2373,7 @@ UM40:   LD      (hl,v16(MLPTRJ));       //  Load move list pointer         //168
 //                                                                         //1695: ;
 // ARGUMENTS:  --  None                                                    //1696: ; ARGUMENTS:  --  None
 //***********************************************************              //1697: ;***********************************************************
-void SORTM() {
+void SORTM_asm() {
         callback_zargon_bridge(CB_SORTM);
         LD      (bc,v16(MLPTRI));       //  Move list begin pointer        //1698: SORTM:  LD      bc,(MLPTRI)     ; Move list begin pointer
         LD      (de,0);                 //  Initialize working pointers    //1699:         LD      de,0            ; Initialize working pointers
@@ -2403,6 +2410,189 @@ SR25:   LD      (ptr(hl),b);            //  Link new move into list        //172
 SR30:   EX      (de,hl);                //  Swap pointers                  //1730: SR30:   EX      de,hl           ; Swap pointers
         JPu     (SR15);                 //  Jump                           //1731:         JP      SR15            ; Jump
 }                                                                          //1732:
+
+//
+//  This works, but it's very ugly
+//
+void SORTM() {
+    uint16_t bin_bc;
+    uint16_t bin_de;
+    uint16_t bin_hl;
+
+    uint8_t *p;
+        callback_zargon_bridge(CB_SORTM);
+        LD      (bin_bc,v16(MLPTRI));       //  Move list begin pointer 
+        LD      (bin_de,0);                 //  Initialize working point
+SR5:    bin_hl = bin_bc; //LD      (h,b);                  //                          
+                         //LD      (l,c);                  //                          
+        p = BIN_TO_PTR(bin_hl);
+        bin_bc = RD_BIN(p);
+        //LD      (c,ptr(bin_hl));            //  Link to next move       
+        //INC16   (bin_hl);                   //                          
+        //LD      (b,ptr(bin_hl));            //                          
+        WR_BIN(p,bin_de);
+        //LD      (ptr(bin_hl),d);            //  Store to link in list   
+        //DEC16   (bin_hl);                   //                          
+        //LD      (ptr(bin_hl),e);            //                          
+        XOR     (a);                    //  End of list ?           
+        CP      (HI(bin_bc));                    //                          
+        RET     (Z);                    //  Yes - return            
+        LD      (v16(MLPTRJ),bin_bc);       //  Save list pointer       
+        CALLu   (EVAL);                 //  Evaluate move           
+        LD      (bin_hl,v16(MLPTRI));       //  Begining of move list   
+        LD      (bin_bc,v16(MLPTRJ));       //  Restore list pointer    
+SR15:   p = BIN_TO_PTR(bin_hl);
+        bin_de = RD_BIN(p);
+        //LD      (e,ptr(bin_hl));            //  Next move for compare   
+        //INC16   (bin_hl);                   //                          
+        //LD      (d,ptr(bin_hl));            //                          
+        bin_hl++;
+        XOR     (a);                    //  At end of list ?        
+        CP      (HI(bin_de));                    //                          
+        JR      (Z,SR25);               //  Yes - jump              
+        PUSH    (bin_de);                   //  Transfer move pointer   
+        POP     (ix);                   //                          
+        LD      (a,val(VALM));          //  Get new move value      
+        CP      (ptr(ix+MLVAL));        //  Less than list value ?  
+        JR      (NC,SR30);              //  No - jump               
+SR25:   bin_hl--;
+        WR_BIN(p,bin_bc);
+        //LD      (ptr(bin_hl),b);            //  Link new move into list 
+        //DEC16   (bin_hl);                   //                          
+        //LD      (ptr(bin_hl),c);            //                          
+        JPu     (SR5);                  //  Jump                    
+SR30:   EX      (bin_de,bin_hl);                //  Swap pointers           
+        JPu     (SR15);                 //  Jump                    
+}                                                                   
+
+//
+//  This doesnt work
+//
+void SORTM_fail2()
+{
+    callback_zargon_bridge(CB_SORTM);
+
+    // Init working pointers
+    uint16_t bin_bc = m.MLPTRI;       //  Move list begin pointer
+    uint16_t bin_de = 0;
+
+    uint8_t *p;
+    uint8_t *q;
+
+    // Loop
+SR5:
+        uint16_t bin_hl = bin_bc;
+
+        // Get link to next move
+        p = BIN_TO_PTR(bin_hl);
+        bin_bc = RD_BIN(p);
+
+        // Make linked list
+        WR_BIN( p, bin_de );
+
+        // Return if end of list
+        if( HI(bin_bc) == 0 )
+            return;
+
+        // Save list pointer
+        m.MLPTRJ = bin_bc;
+
+        // Evaluate move
+        EVAL();
+        bin_hl = m.MLPTRI;       //  Beginning of move list
+        bin_bc = m.MLPTRJ;       //  Restore list pointer
+
+SR15:
+        // Get next move
+        p = BIN_TO_PTR(bin_hl);
+        bin_de = RD_BIN(p);
+
+        // End of list ?
+        if( HI(bin_de) == 0 )
+            goto SR25;
+
+        // Compare value to list value
+        q = BIN_TO_PTR(de);
+        if( m.VALM >= *(q+MLVAL) )
+            goto SR30;
+
+SR25:
+        //  Link new move into list
+        p = BIN_TO_PTR(bin_hl);
+        WR_BIN(p,bin_bc);
+        goto SR5;
+
+SR30:
+        //  Swap pointers if value not less than list value
+        uint16_t swap = bin_de;
+        bin_de = bin_hl;
+        bin_hl = swap;
+        goto SR15;
+}
+
+//
+//  This doesnt work
+//
+void SORTM_doesnt_work()
+{
+    callback_zargon_bridge(CB_SORTM);
+
+    // Init working pointers
+    uint16_t bin_bc = m.MLPTRI;       //  Move list begin pointer
+    uint16_t bin_de = 0;
+
+    // Loop
+    for(;;)
+    {    
+        uint16_t bin_hl = bin_bc;
+
+        // Get link to next move
+        uint8_t *p = BIN_TO_PTR(bin_hl);
+        bin_bc = RD_BIN(p);
+
+        // Make linked list
+        WR_BIN( p, bin_de );
+
+        // Return if end of list
+        if( HI(bin_bc) == 0 )
+            return;
+
+        // Save list pointer
+        m.MLPTRJ = bin_bc;
+
+        // Evaluate move
+        EVAL();
+        bin_hl = m.MLPTRI;       //  Beginning of move list
+        bin_bc = m.MLPTRJ;       //  Restore list pointer
+        // Next move loop
+        for(;;)
+        {
+
+            // Get next move
+            p = BIN_TO_PTR(bin_hl);
+            bin_de = RD_BIN(p);
+
+            // End of list ?
+            if( HI(bin_de) == 0 )
+                break;
+
+            // Compare value to list value
+            uint8_t *q = BIN_TO_PTR(de);
+            if( m.VALM >= *(q+MLVAL) )
+            {
+
+                //  Swap pointers if value not less than list value
+                uint16_t swap = bin_de;
+                bin_de = bin_hl;
+                bin_hl = swap;
+            }
+        }
+
+        //  Link new move into list
+        WR_BIN(p,bin_bc);
+    }
+}
+
 
 //***********************************************************              //1733: ;***********************************************************
 // EVALUATION ROUTINE                                                      //1734: ; EVALUATION ROUTINE
@@ -2646,17 +2836,17 @@ void FNDMOV()
 
     //  Initialize ply list pointers
     uint8_t *p = (uint8_t *)(&m.MLIST[0]);
-    m.MLNXT = SAV_PTR(p);
+    m.MLNXT = PTR_TO_BIN(p);
     p = (uint8_t *)(&m.PLYIX);
     p -= 2;
-    m.MLPTRI = SAV_PTR(p);
+    m.MLPTRI = PTR_TO_BIN(p);
 
     // Initialise color
     m.COLOR = m.KOLOR;               
 
     // Initialize score index and clear table
     p = (uint8_t *)(&m.SCORE);       
-    m.SCRIX = SAV_PTR(p);
+    m.SCRIX = PTR_TO_BIN(p);
     for( int i=0; i<m.PLYMAX+2; i++ )
         *p++ = 0;
 
@@ -2695,7 +2885,7 @@ void FNDMOV()
         // Traverse move list
         uint8_t score = 0;
         int8_t iscore = 0;
-        p = GET_PTR(m.MLPTRJ);       //  Load last move pointer
+        p = BIN_TO_PTR(m.MLPTRJ);       //  Load last move pointer
         uint8_t lo = *p++;            //  Get next move pointer
         uint8_t hi = *p;
 
@@ -2704,7 +2894,7 @@ void FNDMOV()
         if( hi != 0 )                   
         {
             MK_U16(hi,lo,m.MLPTRJ);     //  Save current move pointer
-            p = GET_PTR(m.MLPTRI);      //  Save in ply pointer list
+            p = BIN_TO_PTR(m.MLPTRI);      //  Save in ply pointer list
             *p++ = lo;
             *p   = hi;
 
@@ -2736,7 +2926,7 @@ void FNDMOV()
             {
 
                 //  Load move pointer
-                p = GET_PTR(m.MLPTRJ);
+                p = BIN_TO_PTR(m.MLPTRJ);
 
                 //  If score is zero (illegal move) continue looping
                 if( *(p+MLVAL) == 0 )
@@ -2761,7 +2951,7 @@ void FNDMOV()
                     m.MOVENO++;      
 
                 //  Load score table pointer
-                p = GET_PTR(m.SCRIX);
+                p = BIN_TO_PTR(m.SCRIX);
 
                 //  Get score two plys above
                 score = *p;            
@@ -2771,21 +2961,21 @@ void FNDMOV()
                 // Save score as initial value
                 *p = score;            
                 p--;                   // decrement pointer
-                m.SCRIX = SAV_PTR(p);  // save it
+                m.SCRIX = PTR_TO_BIN(p);  // save it
                 genmove_needed = true; // go to top of loop
                 continue;
             }
         }
 
 
-        // Common case, don't evaluate yet, not mate or stalemate
+        // Common case, don't evaluate points yet, not mate or stalemate
         score = 0;
         if( !points_needed && m.MATEF!=0 )
         {
             if( m.NPLY == 1 )    //  At top of tree ?
                 return;             // yes
             ASCEND();               //  Ascend one ply in tree
-            p = GET_PTR(m.SCRIX);        //  Load score table pointer
+            p = BIN_TO_PTR(m.SCRIX);        //  Load score table pointer
             p++;                   //  Increment to current ply
             p++;                   //
             score = *p;            //  Get score
@@ -2807,7 +2997,7 @@ void FNDMOV()
             UNMOVE();
             score = m.VALM;         // get value of move
             m.MATEF |= 1;           // set mate flag
-            p = GET_PTR(m.SCRIX);   // load score table pointer
+            p = BIN_TO_PTR(m.SCRIX);   // load score table pointer
         }
 
         // Else if terminal position ?
@@ -2820,7 +3010,7 @@ void FNDMOV()
                 m.PMATE= m.MOVENO;
             }
             m.MATEF |= 1;           // set mate flag
-            p = GET_PTR(m.SCRIX);   // load score table pointer
+            p = BIN_TO_PTR(m.SCRIX);   // load score table pointer
         }
 
         // Alpa Beta cuttoff ?
@@ -2922,14 +3112,14 @@ void ASCEND() {
         m.MOVENO--;
     m.SCRIX--;                      //  Decrement score table index
     m.NPLY--;                       //  Decrement ply counter
-    uint8_t *p = GET_PTR(m.MLPTRI); //  Get ply list pointer       
+    uint8_t *p = BIN_TO_PTR(m.MLPTRI); //  Get ply list pointer       
     p--;                            //  Load pointer to move list top
     hi = *p--;
     uint8_t lo = *p--;
     MK_U16(hi,lo,m.MLNXT);          //  Update move list avail ptr
     hi = *p--;                      //  Get ptr to next move to undo
     lo = *p;
-    m.MLPTRI = (uint16_t)SAV_PTR(p); //  Save new ply list pointer
+    m.MLPTRI = (uint16_t)PTR_TO_BIN(p); //  Save new ply list pointer
     MK_U16(hi,lo,m.MLPTRJ);
     UNMOVE();                       //  Restore board to previous ply
 }
