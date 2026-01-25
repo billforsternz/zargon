@@ -3274,109 +3274,74 @@ VA10:   LD      (a,1);                  //  Set flag for invalid move      //268
 
 void VALMOV()
 {
-        //  Save last move pointer
-        uint16_t mlptrj_save = m.MLPTRJ;
+    //  Save last move pointer
+    uint16_t mlptrj_save = m.MLPTRJ;
 
-        // Toggle computer's color
-        uint8_t temp = m.KOLOR & 0x80;
-        temp = (temp==0x80 ? 0 : 0x80);
-        m.COLOR = (m.KOLOR&0x7f) | temp;    // store as current COLOR
+    // Toggle computer's color
+    uint8_t temp = m.KOLOR & 0x80;
+    temp = (temp==0x80 ? 0 : 0x80);
+    m.COLOR = (m.KOLOR&0x7f) | temp;    // store as current COLOR
 
-        // Load move list index
-        uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
-        p -= 2;
-        m.MLPTRI = PTR_TO_BIN(p);
+    // Load move list index
+    uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
+    p -= 2;
+    m.MLPTRI = PTR_TO_BIN(p);
 
-        // Next available list pointer
-        p = (uint8_t *)(&m.MLIST[0]);
-        p += 1024;
-        m.MLNXT = PTR_TO_BIN(p);
+    // Next available list pointer
+    p = (uint8_t *)(&m.MLIST[0]);
+    p += 1024;
+    m.MLNXT = PTR_TO_BIN(p);
 
-        // Generate opponents moves
-        GENMOV();
+    // Generate opponent's moves
+    GENMOV();
 
-#if 1
+    // Search for move, "From" position (offset 0) "To" position (offset 1)
+    uint8_t *q = (uint8_t *)&m.MVEMSG;
+    for(;;)
+    {
 
-        // Search for move
-        for(;;)
+        // Move found ?
+        if( *q == *(p+MLFRP) && *(q+1) == *(p+MLTOP) )
+            break;  // yes
+
+        //  Pointer to next list move
+        uint16_t bin = RD_BIN(p+MLPTR);
+        p = BIN_TO_PTR(bin);
+        if( HI(bin) == 0 ) // At end of list ?
         {
-            // ptr to move, "From" position (offset 0) "To" position (offset 1)
-            uint8_t *q = (uint8_t *)&m.MVEMSG;
+            //  Yes, return invalid move
+            a = 1;
 
-            // Move found ?
-            if( *q == *(p+MLFRP) && *(q+1) == *(p+MLTOP) )
-                break;  // yes
-
-            //  Pointer to next list move
-            uint16_t bin_de = RD_BIN(p+MLPTR);
-            if( HI(bin_de) == 0 ) // At end of list ?
-            {
-                //  Yes
-                a = 1; // Set flag for invalid move
-
-                //  Restore last move pointer
-                m.MLPTRJ = mlptrj_save;
-                return;
-            }
-            p = BIN_TO_PTR(bin_de);         //  update ptr
-        }
-        m.MLPTRJ = PTR_TO_BIN(p);       //  Save opponents move pointer
-        MOVE();                 //  Make move on board array
-        bool inchk = INCHK(m.COLOR);             //  Was it a legal move ?
-        if( !inchk )
-        {
-            // Legal move
-            a = 0; // Clear flag for invalid move
+            //  Restore last move pointer
+            m.MLPTRJ = mlptrj_save;
             return;
         }
+    }
 
-        // Undo move on board array
+    //  Save opponents move pointer
+    m.MLPTRJ = PTR_TO_BIN(p);
+
+    //  Make move on board array
+    MOVE();
+
+    //  Was it a legal move ?
+    bool inchk = INCHK(m.COLOR);
+    if( inchk )
+    {
+
+        // Not legal Undo move on board array
         UNMOVE();
 
-        a = 1; // Set flag for invalid move
+        //  Return invalid move
+        a = 1;
 
         //  Restore last move pointer
         m.MLPTRJ = mlptrj_save;
-#else
-for(;;)
-{
-        uint8_t *q = (uint8_t *)&m.MVEMSG;         //  "From" position (offset 0)
-        if( *q != *(p+MLFRP) ||       //  Is it in list ?
-         // goto VA6;               //  No - jump
-            *(q+1) != *(p+MLTOP) )        // "To" position, is it in list ?
-         // goto VA7;               //  Yes - jump
-    {       uint16_t bin_de; bin_de = RD_BIN(p+MLPTR);  //  Pointer to next list move
-            if( HI(bin_de) == 0 )           //  At end of list ?
-            {
-                //  Yes
-                a = 1; // Set flag for invalid move
-
-                //  Restore last move pointer
-                m.MLPTRJ = mlptrj_save;
-                return;
-            }
-            p = BIN_TO_PTR(bin_de);         //  update ptr
-            continue;
     }
-    break;
-}
-        m.MLPTRJ = PTR_TO_BIN(p);       //  Save opponents move pointer
-        MOVE();                 //  Make move on board array
-        bool inchk; inchk = INCHK(m.COLOR);             //  Was it a legal move ?
-        if( !inchk )
-        {
-            // Legal move
-            a = 0; // Clear flag for invalid move
-            return;
-        }
-        // POP     (hl);                   //  Restore saved register
-        // RETu;                           //  Return
-        UNMOVE();               //  Un-do move on board array
-        a = 1; // Set flag for invalid move
 
-        //  Restore last move pointer
-        m.MLPTRJ = mlptrj_save;
-#endif
+    // Legal move
+    a = 0;
+    return;
 }
 
 //
