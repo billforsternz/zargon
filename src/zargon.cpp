@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (17)
+// Functions converted to C (18)
 
 // PATH
 // ADJPTR
@@ -52,10 +52,11 @@ zargon_data_defs_check_and_regen regen;
 // DIVIDE (not actually needed any more)
 // MLTPLY
 // BITASN 
+// ASNTBI 
 // VALMOV 
 // ROYALT 
 // 
-// Functions not yet converted to C (15)
+// Functions not yet converted to C (14)
 // 
 // INITBD
 // MPIECE
@@ -70,7 +71,6 @@ zargon_data_defs_check_and_regen regen;
 // UNMOVE 
 // BOOK()
 // CPTRMV 
-// ASNTBI 
 // EXECMV 
 // 
 
@@ -3193,7 +3193,7 @@ uint16_t BITASN( uint8_t idx )
 //                 Register B = 0 if ok. Register B = Register             //2613: ;                 Register B = 0 if ok. Register B = Register
 //                 A if invalid.                                           //2614: ;                 A if invalid.
 //***********************************************************              //2615: ;***********************************************************
-void ASNTBI() {
+void ASNTBI_asm() {
         LD      (a,l);                  //  Ascii rank (1 - 8)             //2616: ASNTBI: LD      a,l             ; Ascii rank (1 - 8)
         SUB     (0x30);                 //  Rank 1 - 8                     //2617:         SUB     30H             ; Rank 1 - 8
         CP      (1);                    //  Check lower bound              //2618:         CP      1               ; Check lower bound
@@ -3216,6 +3216,28 @@ void ASNTBI() {
 AT04:   LD      (b,a);                  //  Invalid flag                   //2635: AT04:   LD      b,a             ; Invalid flag
         RETu;                           //  Return                         //2636:         RET                     ; Return
 }                                                                          //2637:
+
+// TODO, give this proper C parameters and return code
+
+void ASNTBI()
+{
+    uint8_t file = h;       // 'A' - 'H'
+    uint8_t rank = l;       // '1' - '8'
+    bool ok = ('1'<=rank && rank<='8' && 'A'<=file && file<='H' );
+    if( !ok )
+    {
+        a = 1;
+        b = 1;
+        return;
+    }
+    rank -= '0';            // 1 - 8
+    rank++;                 // 2 - 9
+    file -= 'A';            // 0 - 7
+    file++;                 // 1 - 8
+    uint8_t offset = rank*10 + file;    // 21-98
+    a = offset;
+    b = 0;  //ok
+}
 
 //***********************************************************              //2638: ;***********************************************************
 // VALIDATE MOVE SUBROUTINE                                                //2639: ; VALIDATE MOVE SUBROUTINE
