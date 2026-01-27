@@ -35,8 +35,9 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (18)
+// Functions converted to C (19)
 
+// INITBD
 // PATH
 // ADJPTR
 // INCHK
@@ -56,9 +57,8 @@ zargon_data_defs_check_and_regen regen;
 // VALMOV 
 // ROYALT 
 // 
-// Functions not yet converted to C (14)
+// Functions not yet converted to C (13)
 // 
-// INITBD
 // MPIECE
 // ENPSNT
 // CASTLE
@@ -606,7 +606,7 @@ void CARRET()  {}
 //                                                                         //0446: ;
 // ARGUMENTS:  None                                                        //0447: ; ARGUMENTS:  None
 //***********************************************************              //0448: ;***********************************************************
-void INITBD() {
+void INITBD_asm() {
         LD      (b,120);                //  Pre-fill board with -1's       //0449: INITBD: LD      b,120           ; Pre-fill board with -1's
         LD      (hl,addr(BOARDA));                                         //0450:         LD      hl,BOARDA
 back01: LD      (ptr(hl),-1);                                              //0451: back01: LD      (hl),-1
@@ -633,6 +633,36 @@ IB2:    LD      (a,ptr(ix-8));          //  Fill non-border squares        //045
         LD      (ptr(ix+0),24);                                            //0472:         LD      (ix+3),94
         LD      (ptr(ix+1),94);                                            //0473:         RET
         RETu;                                                              //0474:
+}
+
+void INITBD()
+{
+
+    // Pre-fill board with -1's
+    memset( &m.BOARDA[0], -1, sizeof(m.BOARDA) );
+
+    // Init the 64 squares within the 120 byte BOARD[] array
+    uint8_t *dst = &m.BOARDA[21];
+    uint8_t *src = &m.pieces[0];
+    for( int i=0; i<8; i++ )
+    {
+        *dst      = *src;               // White RNBQKBNR
+        *(dst+10) = PAWN;
+        *(dst+20) = 0;                  // empty squares  
+        *(dst+30) = 0;    
+        *(dst+40) = 0;    
+        *(dst+50) = 0;    
+        *(dst+60) = BPAWN;
+        *(dst+70) = (BLACK | *src);     // Black RNBQKBNR
+        src++;
+        dst++;
+    }
+
+    //  Init King/Queen position list
+    m.POSK[0] = 25;
+    m.POSK[1] = 95;
+    m.POSQ[0] = 24;
+    m.POSQ[1] = 94;
 }
 
 //***********************************************************              //0475: ;***********************************************************
