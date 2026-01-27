@@ -1030,7 +1030,7 @@ inline void ADJPTR() {
 //                                                                         //0707: ;
 // ARGUMENTS:  --  None                                                    //0708: ; ARGUMENTS:  --  None
 //***********************************************************              //0709: ;***********************************************************
-void CASTLE() {
+void CASTLE_asm() {
         callback_zargon_bridge(CB_CASTLE);
         LD      (a,val(P1));            //  Get King                       //0710: CASTLE: LD      a,(P1)          ; Get King
         BIT     (3,a);                  //  Has it moved ?                 //0711:         BIT     3,a             ; Has it moved ?
@@ -1091,6 +1091,137 @@ CA20:   LD      (a,b);                  //  Scan Index                     //076
         LD      (bc,0x01FC);            //  Set Queen-side initial values  //0766:         LD      bc,01FCH        ; Set Queen-side initial values
         JPu     (CA5);                  //  Jump                           //0767:         JP      CA5             ; Jump
 }                                                                          //0768:
+
+#if 1
+void CASTLE()
+{
+    callback_zargon_bridge(CB_CASTLE);
+
+    uint8_t pos;
+    uint8_t piece;
+    uint8_t idx;
+    uint8_t register_c;
+
+    // If king has moved return
+    if( m.P1 & 0x08 )
+        return;
+
+    // If king is in check return
+    if( m.CKFLG != 0 )
+        return;
+
+    uint8_t offset = (uint8_t)(-1);
+    uint8_t side   = 3;
+CA5:
+
+    m.M3 = m.M1 + side;
+    register_c = m.M3;
+    piece = m.BOARDA[m.M3];
+    piece &= 0x7f;
+    if( piece != ROOK ) goto CA20;
+    pos = register_c;
+    goto CA15;
+CA10:
+    piece = m.BOARDA[pos=m.M3];
+    if( piece != 0 )
+        goto CA20;
+    if( m.M3 == 22 || m.M3 == 92 )
+        goto CA15;
+    if( ATTACK() ) goto CA20;       //  Look for attack on square
+    pos = m.M3;
+CA15:
+    pos += offset;                 //  Next position
+    m.M3 = pos;
+    if( m.M3 != m.M1 ) goto CA10;
+    m.M2 = m.M3;
+    m.M2 -= offset;
+    m.M2 -= offset;
+    m.P2 = 0x40;         //  Set double move flag
+    ADMOVE();            //  Put king move in list
+
+    idx = m.M1 - offset;   // King "from" position -> Rook "to" position
+    m.M1 = register_c;     // Rook "from" position
+    m.M2 = idx;            // Rook "to" position
+    m.P2 = 0;              // Zero move flags
+    ADMOVE();              // Put Rook move in list
+    ADJPTR();              // Re-adjust move list pointer
+
+    m.M1 = m.M3;          //  Restore King position
+CA20:
+    if( offset == 1 )
+        return;
+
+    //  Set Queen-side initial values
+    offset = 1;
+    side   = 0xfc;
+    goto CA5;
+}
+
+#else
+
+void CASTLE()
+{
+        callback_zargon_bridge(CB_CASTLE);
+
+        uint8_t pos;
+        uint8_t piece;
+        uint8_t idx;
+        uint8_t register_c;
+
+        // If king has moved return
+        if( m.P1 & 0x08 )
+            return;
+
+        // If king is in check return
+        if( m.CKFLG != 0 )
+            return;
+
+        uint8_t offset = (uint8_t)(-1);
+        uint8_t side   = 3;
+CA5:
+
+        m.M3 = m.M1 + side;
+        register_c = m.M3;
+        piece = m.BOARDA[m.M3];
+        piece &= 0x7f;
+        if( piece != ROOK ) goto CA20;
+        pos = register_c;
+        goto CA15;
+CA10:   piece = m.BOARDA[pos=m.M3];
+        if( piece != 0 )
+            goto CA20;
+        if( m.M3 == 22 || m.M3 == 92 )
+            goto CA15;
+        if( ATTACK() ) goto CA20;       //  Look for attack on square
+        pos = m.M3;
+CA15:   pos += offset;                 //  Next position
+        m.M3 = pos;
+        if( m.M3 != m.M1 ) goto CA10;
+        m.M2 = m.M3;
+        m.M2 -= offset;
+        m.M2 -= offset;
+        m.P2 = 0x40;         //  Set double move flag
+        ADMOVE();            //  Put king move in list
+
+        idx = m.M1 - offset;   // King "from" position -> Rook "to" position
+        m.M1 = register_c;     // Rook "from" position
+        m.M2 = idx;            // Rook "to" position
+        m.P2 = 0;              // Zero move flags
+        ADMOVE();              // Put Rook move in list
+        ADJPTR();              // Re-adjust move list pointer
+
+        m.M1 = m.M3;          //  Restore King position
+CA20:   if( offset == 1 )
+            return;
+
+        //  Set Queen-side initial values
+        offset = 1;
+        side   = 0xfc;
+        goto CA5;
+}
+
+
+#endif
 
 //***********************************************************              //0769: ;***********************************************************
 // ADMOVE ROUTINE                                                          //0770: ; ADMOVE ROUTINE
