@@ -1092,15 +1092,9 @@ CA20:   LD      (a,b);                  //  Scan Index                     //076
         JPu     (CA5);                  //  Jump                           //0767:         JP      CA5             ; Jump
 }                                                                          //0768:
 
-#if 1
 void CASTLE()
 {
     callback_zargon_bridge(CB_CASTLE);
-
-    uint8_t pos;
-    uint8_t piece;
-    uint8_t idx;
-    uint8_t register_c;
 
     // If king has moved return
     if( m.P1 & 0x08 )
@@ -1110,140 +1104,67 @@ void CASTLE()
     if( m.CKFLG != 0 )
         return;
 
-    // Check both sides
+    // Check both sides, kingside first
     for( uint8_t i=0; i<2; i++ )
     {
-        uint8_t offset = (uint8_t)(i==0 ? (-1) : 1);
-        uint8_t side   = (uint8_t)(i==0 ?   3  : -4);
 
-        m.M3 = m.M1 + side;
-        register_c = m.M3;
-        piece = m.BOARDA[m.M3];
+        // King rook is king+3, Queen rook is king-4        
+        m.M3 = (uint8_t)(i==0 ? m.M1+3 : m.M1-4);
+
+        // Check that it is an unmoved rook
+        uint8_t piece = m.BOARDA[m.M3];
         piece &= 0x7f;
-        pos = register_c;
-        bool need_check_squares_between = false;
         if( piece == ROOK )
         {
+
+            // Step from king rook left towards king, queen rook right towards king
+            uint8_t step = (uint8_t)(i==0 ? (-1) : 1);
+
+            // Save start rook position
+            uint8_t starting_rook_pos = m.M3;
+
+            // Step from the rook to the king, checking each square between
             for(;;)
             {
 
-                // Check squares between rook and king
-                if( !need_check_squares_between )
-                    need_check_squares_between = true;
-                else
-                {
-                    piece = m.BOARDA[pos=m.M3];
+                // Use M3 as a rover, from rook to king
+                m.M3 += step;                 
+                piece = m.BOARDA[m.M3];
 
-                    // Must be empty
-                    if( piece != 0 )
-                        break;
-
-                    // Must not be under attack (except for b1 and b8)
-                    if( m.M3 != 22 && m.M3 != 92 && ATTACK() )
-                        break;       
-                }
-                pos += offset;                 //  Next position
-                m.M3 = pos;
-                if( m.M3 == m.M1 )
-                {
-                    m.M2 = m.M3;
-                    m.M2 -= offset;
-                    m.M2 -= offset;
-                    m.P2 = 0x40;         //  Set double move flag
-                    ADMOVE();            //  Put king move in list
-
-                    idx = m.M1 - offset;   // King "from" position -> Rook "to" position
-                    m.M1 = register_c;     // Rook "from" position
-                    m.M2 = idx;            // Rook "to" position
-                    m.P2 = 0;              // Zero move flags
-                    ADMOVE();              // Put Rook move in list
-                    ADJPTR();              // Re-adjust move list pointer
-
-                    m.M1 = m.M3;          //  Restore King position
+                // Must be empty (this will always stop loop when we reach the king)
+                if( piece != 0 )
                     break;
-                }
+
+                // Must not be under attack (except for b1 and b8)
+                if( m.M3 != 22 && m.M3 != 92 && ATTACK() )
+                    break;       
             }
-        }
-    }
-}
 
-#else
-
-void CASTLE()
-{
-    callback_zargon_bridge(CB_CASTLE);
-
-    uint8_t pos;
-    uint8_t piece;
-    uint8_t idx;
-    uint8_t register_c;
-
-    // If king has moved return
-    if( m.P1 & 0x08 )
-        return;
-
-    // If king is in check return
-    if( m.CKFLG != 0 )
-        return;
-
-    // Check both sides
-    for( uint8_t i=0; i<2; i++ )
-    {
-        uint8_t offset = (uint8_t)(i==0 ? (-1) : 1);
-        uint8_t side   = (uint8_t)(i==0 ?   3  : -4);
-
-        m.M3 = m.M1 + side;
-        register_c = m.M3;
-        piece = m.BOARDA[m.M3];
-        piece &= 0x7f;
-        pos = register_c;
-        bool need_check_squares_between = false;
-        if( piece == ROOK )
-        {
-            for(;;)
+            // If we didn't stop *BEFORE* reaching king, we have found a legal
+            //  castling move, represent it as a double move, king then rook
+            if( m.M3 == m.M1 )
             {
 
-                // Check squares between rook and king
-                if( need_check_squares_between )
-                {
-                    piece = m.BOARDA[pos=m.M3];
-
-                    // Must be empty
-                    if( piece != 0 )
-                        break;
-
-                    // Must not be under attack (except for b1 and b8)
-                    if( m.M3 != 22 && m.M3 != 92 && ATTACK() )
-                        break;       
-                }
-                pos += offset;                 //  Next position
-                m.M3 = pos;
-                if( m.M3 != m.M1 )
-                {
-                    need_check_squares_between = true;
-                    continue;
-                }
+                // M1 is king "from" position, M2 is the king "to" position
                 m.M2 = m.M3;
-                m.M2 -= offset;
-                m.M2 -= offset;
-                m.P2 = 0x40;         //  Set double move flag
-                ADMOVE();            //  Put king move in list
+                m.M2 -= step;
+                m.M2 -= step;
+                m.P2 = 0x40;    // set double move flag
+                ADMOVE();       // add to list
 
-                idx = m.M1 - offset;   // King "from" position -> Rook "to" position
-                m.M1 = register_c;     // Rook "from" position
-                m.M2 = idx;            // Rook "to" position
-                m.P2 = 0;              // Zero move flags
-                ADMOVE();              // Put Rook move in list
-                ADJPTR();              // Re-adjust move list pointer
+                // M1 is rook "from" position, M2 is rook "to" position, one step from king
+                m.M1 = starting_rook_pos;    
+                m.M2 = m.M3 - step;
+                m.P2 = 0;       // clear move flags
+                ADMOVE();       // add to list
+                ADJPTR();       // re-adjust move list pointer
 
-                m.M1 = m.M3;          //  Restore King position
-                break;
+                // Restore King position
+                m.M1 = m.M3;
             }
         }
     }
 }
-
-#endif
 
 //***********************************************************              //0769: ;***********************************************************
 // ADMOVE ROUTINE                                                          //0770: ; ADMOVE ROUTINE
