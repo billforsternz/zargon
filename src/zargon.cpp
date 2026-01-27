@@ -1105,7 +1105,7 @@ CA20:   LD      (a,b);                  //  Scan Index                     //076
 //                                                                         //0779: ;
 // ARGUMENT:  --  None                                                     //0780: ; ARGUMENT:  --  None
 //***********************************************************              //0781: ;***********************************************************
-void ADMOVE() {
+void ADMOVE_asm() {
         callback_zargon_bridge(CB_ADMOVE);
         LD      (de,v16(MLNXT));        //  Addr of next loc in move list  //0782: ADMOVE: LD      de,(MLNXT)      ; Addr of next loc in move list
         LD      (hl,addr(MLEND));       //  Address of list end            //0783:         LD      hl,MLEND        ; Address of list end
@@ -1146,6 +1146,78 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow    //081
         DEC16   (hl);                   //       check actually work?      //0818:         DEC     hl              ;      check actually work?
         RETu;                                                              //0819:         RET
 }                                                                          //0820:
+
+#if  1
+
+void ADMOVE()
+{
+    callback_zargon_bridge(CB_ADMOVE);
+    uint16_t bin = v16(MLNXT);        //  Addr of next loc in move list
+    uint8_t *p = BIN_TO_PTR(bin);
+    uint8_t *q = &m.MLEND;       //  Address of list end
+    if( p > q )
+    {
+
+        // TODO - Maybe this is probably what was intended in the original code,
+        //  certainly writing 0 to the *difference* of two pointers makes no sense
+        m.MLNXT = 0;
+        return;
+    }
+    p = BIN_TO_PTR(m.MLLST);        //  Addr of prev. list area
+    m.MLLST = bin;        //  Save next as previous
+    WR_BIN( p, bin );            //  Store link address
+    p = &m.P1;          //  Address of moved piece
+    if( (*p & 0x08) == 0 )            //  Has it moved before ?
+    {
+        q = &m.P2;          //  Address of move flags
+        *q |= 0x10;         //  Set first move flag
+    }
+    p = BIN_TO_PTR(bin);            //  Address of move area
+    WR_BIN(p,0);            //  Store zero in link address
+    p += 2;                 
+    *p++ = m.M1;            //  Store "from" move position
+    *p++ = m.M2;            //  Store "to" move position
+    *p++ = m.P2;                    //  Store move flags/capt. piece
+    *p++ = 0;             //  Store initial move value
+    m.MLNXT = PTR_TO_BIN(p);//  Save address for next move
+}
+
+#else
+
+void ADMOVE() {
+    callback_zargon_bridge(CB_ADMOVE);
+    uint16_t bin = v16(MLNXT);        //  Addr of next loc in move list
+    uint8_t *p = BIN_TO_PTR(bin);
+    uint8_t *q = &m.MLEND;       //  Address of list end
+    if( p > q )
+    {
+
+        // TODO - Maybe this is probably what was intended in the original code,
+        //  certainly writing 0 to the *difference* of two pointers makes no sense
+        m.MLNXT = 0;
+        return;
+    }
+    p = BIN_TO_PTR(m.MLLST);        //  Addr of prev. list area
+    m.MLLST = bin;        //  Save next as previous
+    WR_BIN( p, bin );            //  Store link address
+    p = &m.P1;          //  Address of moved piece
+    if( (*p & 0x08) == 0 )            //  Has it moved before ?
+    {
+        q = &m.P2;          //  Address of move flags
+        *q |= 0x10;         //  Set first move flag
+    }
+    p = BIN_TO_PTR(bin);            //  Address of move area
+    WR_BIN(p,0);            //  Store zero in link address
+    p += 2;                 
+    *p++ = m.M1;            //  Store "from" move position
+    *p++ = m.M2;            //  Store "to" move position
+    *p++ = m.P2;                    //  Store move flags/capt. piece
+    *p++ = 0;             //  Store initial move value
+    m.MLNXT = PTR_TO_BIN(p);//  Save address for next move
+}
+
+#endif
+
 
 //***********************************************************              //0821: ;***********************************************************
 // GENERATE MOVE ROUTINE                                                   //0822: ; GENERATE MOVE ROUTINE
