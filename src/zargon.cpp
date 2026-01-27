@@ -35,11 +35,13 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (20)
+// Functions converted to C (22)
 
 // INITBD
 // PATH
+// ENPSNT
 // ADJPTR
+// CASTLE
 // ADMOVE
 // INCHK
 // ATTACK
@@ -58,11 +60,9 @@ zargon_data_defs_check_and_regen regen;
 // VALMOV 
 // ROYALT 
 // 
-// Functions not yet converted to C (12)
+// Functions not yet converted to C (10)
 // 
 // MPIECE
-// ENPSNT
-// CASTLE
 // GENMOV
 // PINFND
 // POINTS
@@ -908,7 +908,6 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture
         JPu     (MP15);                 //  Jump
 }
 #endif
-
                                                                            //0614:
 //***********************************************************              //0615: ;***********************************************************
 // EN PASSANT ROUTINE                                                      //0616: ; EN PASSANT ROUTINE
@@ -924,7 +923,7 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture
 //                                                                         //0626: ;
 // ARGUMENTS:  --  None                                                    //0627: ; ARGUMENTS:  --  None
 //***********************************************************              //0628: ;***********************************************************
-void ENPSNT() {
+void ENPSNT_asm() {
         callback_zargon_bridge(CB_ENPSNT);
         LD      (a,val(M1));            //  Set position of Pawn           //0629: ENPSNT: LD      a,(M1)          ; Set position of Pawn
         LD      (hl,addr(P1));          //  Check color                    //0630:         LD      hl,P1           ; Check color
@@ -968,6 +967,60 @@ rel003: CP      (10);                   //  Is difference 10 ?             //065
         LD      (a,val(M3));            //  Restore "from" position        //0668:         LD      a,(M3)          ; Restore "from" position
         LD      (val(M1),a);            //                                 //0669:         LD      (M1),a
         ADJPTR();  // emulate Z80 fall through
+}
+
+void ENPSNT()
+{
+    callback_zargon_bridge(CB_ENPSNT);
+
+    // Pawn position
+    uint8_t idx = m.M1;
+
+    // Add 10 for black  
+    if( m.P1 & 0x80 )
+        idx += 10;
+
+    // Check on en-passant capture rank
+    if( idx<61 || 68<idx )  // fifth rank a5-h5 ? So white captures black pawn
+        return;
+
+    // Test pointer to previous move
+    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
+
+    // Must be first move for that piece
+    if( (*(p+MLFLG) & 0x10) == 0)
+        return;
+
+    // Get "to" position for previous move
+    m.M4 = *(p+MLTOP);
+    p = BIN_TO_PTR(m.M4);
+    uint8_t piece = m.BOARDA[m.M4];
+    m.P3 = piece;
+
+    // Check that previous move was a pawn move
+    piece &= 7;
+    if( piece != PAWN )
+        return;
+
+    // Compare "to" position for previous and current moves 
+    int8_t diff = m.M4-m.M2;
+    if( diff!=10 && diff!=-10) // should be one rank different
+        return;
+
+    // Set double move flag and add en-passant move in two steps
+    m.P2 |= 0x40;
+    ADMOVE();       // first step, move the pawn
+    m.M3 = m.M1;    // save initial pawn position
+
+    // Dummy pawn move as second part of move    
+    m.M1 = m.M4;    // dummy pawn move "from"
+    m.M2 = m.M4;    // dummy pawn move "to"
+    m.P2 = m.P3;    // captured pawn
+    ADMOVE();       // second step capture the pawn
+
+    // Restore "from" position
+    m.M1 = m.M3;
+    ADJPTR();
 }
 
                                                                            //0670:
