@@ -1128,7 +1128,9 @@ void CASTLE()
             {
 
                 // Check squares between rook and king
-                if( need_check_squares_between )
+                if( !need_check_squares_between )
+                    need_check_squares_between = true;
+                else
                 {
                     piece = m.BOARDA[pos=m.M3];
 
@@ -1142,26 +1144,24 @@ void CASTLE()
                 }
                 pos += offset;                 //  Next position
                 m.M3 = pos;
-                if( m.M3 != m.M1 )
+                if( m.M3 == m.M1 )
                 {
-                    need_check_squares_between = true;
-                    continue;
+                    m.M2 = m.M3;
+                    m.M2 -= offset;
+                    m.M2 -= offset;
+                    m.P2 = 0x40;         //  Set double move flag
+                    ADMOVE();            //  Put king move in list
+
+                    idx = m.M1 - offset;   // King "from" position -> Rook "to" position
+                    m.M1 = register_c;     // Rook "from" position
+                    m.M2 = idx;            // Rook "to" position
+                    m.P2 = 0;              // Zero move flags
+                    ADMOVE();              // Put Rook move in list
+                    ADJPTR();              // Re-adjust move list pointer
+
+                    m.M1 = m.M3;          //  Restore King position
+                    break;
                 }
-                m.M2 = m.M3;
-                m.M2 -= offset;
-                m.M2 -= offset;
-                m.P2 = 0x40;         //  Set double move flag
-                ADMOVE();            //  Put king move in list
-
-                idx = m.M1 - offset;   // King "from" position -> Rook "to" position
-                m.M1 = register_c;     // Rook "from" position
-                m.M2 = idx;            // Rook "to" position
-                m.P2 = 0;              // Zero move flags
-                ADMOVE();              // Put Rook move in list
-                ADJPTR();              // Re-adjust move list pointer
-
-                m.M1 = m.M3;          //  Restore King position
-                break;
             }
         }
     }
