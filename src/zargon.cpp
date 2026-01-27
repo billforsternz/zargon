@@ -1161,6 +1161,7 @@ void CASTLE()
                 ADJPTR();              // Re-adjust move list pointer
 
                 m.M1 = m.M3;          //  Restore King position
+                break;
             }
         }
     }
@@ -1236,6 +1237,7 @@ void CASTLE()
                 ADJPTR();              // Re-adjust move list pointer
 
                 m.M1 = m.M3;          //  Restore King position
+                break;
             }
         }
     }
