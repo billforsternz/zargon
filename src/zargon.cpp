@@ -744,7 +744,7 @@ inline uint8_t PATH( int8_t dir )
 //                                                                         //0537: ;
 // ARGUMENTS:  The piece to be moved.                                      //0538: ; ARGUMENTS:  The piece to be moved.
 //***********************************************************              //0539: ;***********************************************************
-void MPIECE() {
+void MPIECE_asm() {
         callback_zargon_bridge(CB_MPIECE);
         XOR     (ptr(hl));              //  Piece to move                  //0540: MPIECE: XOR     (hl)            ; Piece to move
         AND     (0x87);                 //  Clear flag bit                 //0541:         AND     87H             ; Clear flag bit
@@ -822,6 +822,93 @@ MP37:   LD      (hl,addr(P2));          //  Get flag address               //060
 MP36:   CALLu   (ENPSNT);               //  Try en passant capture         //0612: MP36:   CALL    ENPSNT          ; Try en passant capture
         JPu     (MP15);                 //  Jump                           //0613:         JP      MP15            ; Jump
 }
+
+#if 1
+void MPIECE()
+{
+        callback_zargon_bridge(CB_MPIECE);
+    uint8_t *p = BIN_TO_PTR(hl);        // color
+    uint8_t piece = a;
+    piece = piece ^ *p;                         // change colour of piece to move ?
+    piece &= 0x87;   //  Clear flag bits
+
+    //  Decrement black pawns
+    if( piece == BPAWN )
+        piece--;
+    piece &= 7;         // Isolate piece type
+    m.T1 = piece;
+
+        LD      (iy,v16(T1));           //  Load index to DCOUNT/DPOINT
+        LD      (b,ptr(iy+DCOUNT));     //  Get direction count
+        LD      (a,ptr(iy+DPOINT));     //  Get direction pointer
+        LD      (val(INDX2),a);         //  Save as index to direct
+        LD      (iy,v16(INDX2));        //  Load index
+MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction
+        LD      (a,val(M1));            //  From position
+        LD      (val(M2),a);            //  Initialize to position
+MP10:   a =     PATH(c);                //  Calculate next position
+        callback_zargon(CB_SUPPRESS_KING_MOVES);
+        CP      (2);                    //  Ready for new direction ?
+        JR      (NC,MP15);              //  Yes - Jump
+        AND     (a);                    //  Test for empty square
+        Z80_EXAF;                       //  Save result
+        LD      (a,val(T1));            //  Get piece moved
+        CP      (PAWN+1);               //  Is it a Pawn ?
+        JR      (CY,MP20);              //  Yes - Jump
+        CALLu   (ADMOVE);               //  Add move to list
+        Z80_EXAF;                       //  Empty square ?
+        JR      (NZ,MP15);              //  No - Jump
+        LD      (a,val(T1));            //  Piece type
+        CP      (KING);                 //  King ?
+        JR      (Z,MP15);               //  Yes - Jump
+        CP      (BISHOP);               //  Bishop, Rook, or Queen ?
+        JR      (NC,MP10);              //  Yes - Jump
+MP15:   INC16   (iy);                   //  Increment direction index
+        DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
+        LD      (a,val(T1));            //  Piece type
+        CP      (KING);                 //  King ?
+        CALL    (Z,CASTLE);             //  Yes - Try Castling
+        RETu;                           //  Return
+// ***** PAWN LOGIC *****
+MP20:   LD      (a,b);                  //  Counter for direction
+        CP      (3);                    //  On diagonal moves ?
+        JR      (CY,MP35);              //  Yes - Jump
+        JR      (Z,MP30);               //  -or-jump if on 2 square move
+        Z80_EXAF;                       //  Is forward square empty?
+        JR      (NZ,MP15);              //  No - jump
+        LD      (a,val(M2));            //  Get "to" position
+        CP      (91);                   //  Promote white Pawn ?
+        JR      (NC,MP25);              //  Yes - Jump
+        CP      (29);                   //  Promote black Pawn ?
+        JR      (NC,MP26);              //  No - Jump
+MP25:   LD      (hl,addr(P2));          //  Flag address
+        SET     (5,ptr(hl));            //  Set promote flag
+MP26:   CALLu   (ADMOVE);               //  Add to move list
+        INC16   (iy);                   //  Adjust to two square move
+        DEC     (b);                    //
+        LD      (hl,addr(P1));          //  Check Pawn moved flag
+        BIT     (3,ptr(hl));            //  Has it moved before ?
+        JR      (Z,MP10);               //  No - Jump
+        JPu     (MP15);                 //  Jump
+MP30:   Z80_EXAF;                       //  Is forward square empty ?
+        JR      (NZ,MP15);              //  No - Jump
+MP31:   CALLu   (ADMOVE);               //  Add to move list
+        JPu     (MP15);                 //  Jump
+MP35:   Z80_EXAF;                       //  Is diagonal square empty ?
+        JR      (Z,MP36);               //  Yes - Jump
+        LD      (a,val(M2));            //  Get "to" position
+        CP      (91);                   //  Promote white Pawn ?
+        JR      (NC,MP37);              //  Yes - Jump
+        CP      (29);                   //  Black Pawn promotion ?
+        JR      (NC,MP31);              //  No- Jump
+MP37:   LD      (hl,addr(P2));          //  Get flag address
+        SET     (5,ptr(hl));            //  Set promote flag
+        JRu     (MP31);                 //  Jump
+MP36:   CALLu   (ENPSNT);               //  Try en passant capture
+        JPu     (MP15);                 //  Jump
+}
+#endif
+
                                                                            //0614:
 //***********************************************************              //0615: ;***********************************************************
 // EN PASSANT ROUTINE                                                      //0616: ; EN PASSANT ROUTINE
