@@ -35,11 +35,12 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (19)
+// Functions converted to C (20)
 
 // INITBD
 // PATH
 // ADJPTR
+// ADMOVE
 // INCHK
 // ATTACK
 // ATKSAV
@@ -57,12 +58,11 @@ zargon_data_defs_check_and_regen regen;
 // VALMOV 
 // ROYALT 
 // 
-// Functions not yet converted to C (13)
+// Functions not yet converted to C (12)
 // 
 // MPIECE
 // ENPSNT
 // CASTLE
-// ADMOVE
 // GENMOV
 // PINFND
 // POINTS
@@ -1147,14 +1147,16 @@ AM10:   LD      (ptr(hl),0);            //  Abort entry on table ovflow    //081
         RETu;                                                              //0819:         RET
 }                                                                          //0820:
 
-#if  1
-
 void ADMOVE()
 {
     callback_zargon_bridge(CB_ADMOVE);
-    uint16_t bin = v16(MLNXT);        //  Addr of next loc in move list
+
+    // Address of next location in move list
+    uint16_t bin = v16(MLNXT);
     uint8_t *p = BIN_TO_PTR(bin);
-    uint8_t *q = &m.MLEND;       //  Address of list end
+
+    // Check that we haven't run out of memory
+    uint8_t *q = &m.MLEND;
     if( p > q )
     {
 
@@ -1163,61 +1165,38 @@ void ADMOVE()
         m.MLNXT = 0;
         return;
     }
-    p = BIN_TO_PTR(m.MLLST);        //  Addr of prev. list area
-    m.MLLST = bin;        //  Save next as previous
-    WR_BIN( p, bin );            //  Store link address
-    p = &m.P1;          //  Address of moved piece
-    if( (*p & 0x08) == 0 )            //  Has it moved before ?
+
+    // Address of previous list area
+    p = BIN_TO_PTR(m.MLLST);
+
+    // Save next as previous
+    m.MLLST = bin;        
+
+    // Store as link address
+    WR_BIN( p, bin );
+
+    // Address of moved piece
+    p = &m.P1;
+    
+    // If it hasn't moved before set first move flag
+    if( (*p & 0x08) == 0 )            
     {
         q = &m.P2;          //  Address of move flags
         *q |= 0x10;         //  Set first move flag
     }
-    p = BIN_TO_PTR(bin);            //  Address of move area
-    WR_BIN(p,0);            //  Store zero in link address
+
+    // Now write move details
+    p = BIN_TO_PTR(bin);
+    WR_BIN(p,0);                // store zero in link address
     p += 2;                 
-    *p++ = m.M1;            //  Store "from" move position
-    *p++ = m.M2;            //  Store "to" move position
-    *p++ = m.P2;                    //  Store move flags/capt. piece
-    *p++ = 0;             //  Store initial move value
-    m.MLNXT = PTR_TO_BIN(p);//  Save address for next move
+    *p++ = m.M1;                // store "from" move position
+    *p++ = m.M2;                // store "to" move position
+    *p++ = m.P2;                // store move flags/capt. piece
+    *p++ = 0;                   // store initial move value
+
+    // Save next slot address
+    m.MLNXT = PTR_TO_BIN(p);
 }
-
-#else
-
-void ADMOVE() {
-    callback_zargon_bridge(CB_ADMOVE);
-    uint16_t bin = v16(MLNXT);        //  Addr of next loc in move list
-    uint8_t *p = BIN_TO_PTR(bin);
-    uint8_t *q = &m.MLEND;       //  Address of list end
-    if( p > q )
-    {
-
-        // TODO - Maybe this is probably what was intended in the original code,
-        //  certainly writing 0 to the *difference* of two pointers makes no sense
-        m.MLNXT = 0;
-        return;
-    }
-    p = BIN_TO_PTR(m.MLLST);        //  Addr of prev. list area
-    m.MLLST = bin;        //  Save next as previous
-    WR_BIN( p, bin );            //  Store link address
-    p = &m.P1;          //  Address of moved piece
-    if( (*p & 0x08) == 0 )            //  Has it moved before ?
-    {
-        q = &m.P2;          //  Address of move flags
-        *q |= 0x10;         //  Set first move flag
-    }
-    p = BIN_TO_PTR(bin);            //  Address of move area
-    WR_BIN(p,0);            //  Store zero in link address
-    p += 2;                 
-    *p++ = m.M1;            //  Store "from" move position
-    *p++ = m.M2;            //  Store "to" move position
-    *p++ = m.P2;                    //  Store move flags/capt. piece
-    *p++ = 0;             //  Store initial move value
-    m.MLNXT = PTR_TO_BIN(p);//  Save address for next move
-}
-
-#endif
-
 
 //***********************************************************              //0821: ;***********************************************************
 // GENERATE MOVE ROUTINE                                                   //0822: ; GENERATE MOVE ROUTINE
