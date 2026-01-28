@@ -849,48 +849,58 @@ void MPIECE()
     piece &= 7;         // Isolate piece type
     m.T1 = piece;
 
-    //uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
-        m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
-    //    uint8_t dir_idx = m.INDX2;      // get direction
-for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
-{
+    // Loop through the direction vectors for the given piece
+    m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
+    for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
+    {
         uint8_t move_dir = m.direct[dir_idx];     //  Get move direction
         m.M2 = m.M1;            //  From position
-                                        //  Initialize to position
-MP10:   uint8_t path_result = PATH( move_dir );                //  Calculate next position
-// 0  --  New position is empty      
-// 1  --  Encountered a piece of the 
-//        opposite color             
-// 2  --  Encountered a piece of the 
-//        same color                 
-// 3  --  New position is off the    
-//        board                      
+
+        // Loop through steps in each direction vector
+        MP10:
+        uint8_t path_result = PATH( move_dir );   //  Calculate next position
+        // 0  --  New position is empty      
+        // 1  --  Encountered a piece of the 
+        //        opposite color             
+        // 2  --  Encountered a piece of the 
+        //        same color                 
+        // 3  --  New position is off the    
+        //        board                      
 
         callback_zargon(CB_SUPPRESS_KING_MOVES);
-        if( path_result >= 2 )                     //  Ready for new direction ?
-         continue;              //  Yes - Jump
-        empty = (path_result==0);                       //  Save result
-        piece = m.T1;            //  Get piece moved
-        if( PAWN+1 > piece )               //  Is it a Pawn ?
-        {
 
-    // ***** PAWN LOGIC *****
-           if( dir_count < 3 )                  //  Counter for direction
-                                            //  On diagonal moves ?
-                goto MP35;              //  Yes - Jump
-            if( dir_count == 3 )                  //  Counter for direction
-                goto MP30;               //  -or-jump if on 2 square move
-            //Z80_EXAF;                       //  Is forward square empty?
+        // Hit our own piece or off the board
+        if( path_result >= 2 )                     //  Ready for new direction ?
+            continue;              //  Yes - Jump
+
+        // Empty destination ?
+        empty = (path_result==0);
+
+        //  Is it a Pawn ?
+        piece = m.T1;            
+        if( PAWN+1 > piece )               
+        {
+            // for pawns, dir_count 1 and 2 are diagonal moves
+            if( dir_count < 3 )
+                goto MP35;  // diagonal
+
+            // for pawns, dir_count 3 is double step
+            if( dir_count == 3 )
+                goto MP30;  // double step
+
+            // dir count 4 is single square, is destination available?
             if( !empty)
-                continue;              //  No - jump
-            if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
-                                            //  Promote white Pawn ?
-                goto MP25;              //  Yes - Jump
-            if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
-                                            //  Promote black Pawn ?
-                goto MP26;              //  No - Jump
+                continue;   // no
+
+            // Check promotion
+            if( m.M2 >= 91 )    // destination on 8th rank?
+                goto MP25;              // yes promote white Pawn
+            if( m.M2 > 28 )     // destination not on 1st rank ?
+                goto MP26;              // yes not a promotion
     MP25:   m.P2 |= 0x20;         //  Set promote flag
-    MP26:   ADMOVE();              //  Add to move list
+
+            //  Add to move list
+    MP26:   ADMOVE();              
             dir_idx++;                   //  Adjust to two square move
             dir_count--;                   //
             if( m.P1 & 0x08 )          //  Check Pawn moved flag
