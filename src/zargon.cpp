@@ -869,16 +869,34 @@ void MPIECE()
 
         callback_zargon(CB_SUPPRESS_KING_MOVES);
 
-        // Hit our own piece or off the board
-        if( path_result >= 2 )                     //  Ready for new direction ?
-            continue;              //  Yes - Jump
+        // Hit our own piece or off the board ?
+        if( path_result >= 2 )
+            continue;  //  Yes - Jump
 
         // Empty destination ?
         empty = (path_result==0);
 
-        //  Is it a Pawn ?
+        //  Is it a Piece or a Pawn ?
         piece = m.T1;            
-        if( PAWN+1 > piece )               
+
+        // Pieces are easy!
+        if( piece > PAWN )
+        {
+
+            //  Add move to list
+            ADMOVE();
+
+            // If it's a capture stop stepping
+            if( !empty )
+                continue;
+
+            //  Keep stepping if Bishop, Rook, or Queen
+            if( piece == BISHOP ||  piece == ROOK ||  piece == QUEEN )
+                goto MP10;
+        }
+
+        // Pawns are more complicated
+        else
         {
             // for pawns, dir_count 1 and 2 are diagonal moves
             if( dir_count < 3 )
@@ -928,11 +946,6 @@ void MPIECE()
     MP36:   ENPSNT();               //  Try en passant capture
             continue;                 //  Jump
         }
-        ADMOVE();               //  Add move to list
-        if( !empty ) continue;              //  No - Jump
-        piece = m.T1;            //  Piece type
-        if( piece == BISHOP ||  piece == ROOK ||  piece == QUEEN )               //  Bishop, Rook, or Queen ?
-            goto MP10;              //  Yes - Jump
     }
     piece = m.T1;            //  Piece type
     if( piece ==  KING )                 //  King ?
