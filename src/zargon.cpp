@@ -849,96 +849,135 @@ void MPIECE()
     piece &= 7;         // Isolate piece type
     m.T1 = piece;
 
+    /*
+
+    How the piece moving tables work by example
+    
+    The tables:
+
+        int8_t direct[24] = {   // idx: type of row
+            +9,+11,-11,-9,      // 0:  diagonals
+            +10,-10,+1,-1,      // 4:  ranks and files
+            -21,-12,+8,+19,     // 8:  knight moves
+            +21,+12,-8,-19,     // 12: knight moves
+            +10,+10,+11,+9,     // 16: white pawn moves
+            -10,-10,-11,-9      // 20: black pawn moves
+        };
+
+        uint8_t dpoint[7] = { 
+            20,16,8,0,4,0,0     // black pawn->20, white pawn->16, knight->8 etc  
+        };
+
+        uint8_t dcount[7] = { 
+            4,4,8,4,4,8,8       // knights, queens and kings 2 rows,
+                                //  pawns, bishops and rooks 1 row
+        };
+
+    
+    */
+
     // Loop through the direction vectors for the given piece
+    //  eg Black pawn dir_idx   = 20,21,22,23
+    //                dir_count =  4, 3, 2, 1
+    //                move_dir  = -10, -10, -11, -9
+
     m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
     for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
     {
-        uint8_t move_dir = m.direct[dir_idx];     //  Get move direction
-        m.M2 = m.M1;            //  From position
+        uint8_t move_dir = m.direct[dir_idx];
+
+        // From position
+        m.M2 = m.M1;
 
         // Loop through steps in each direction vector
-        MP10:
-        uint8_t path_result = PATH( move_dir );   //  Calculate next position
-        // 0  --  New position is empty      
-        // 1  --  Encountered a piece of the 
-        //        opposite color             
-        // 2  --  Encountered a piece of the 
-        //        same color                 
-        // 3  --  New position is off the    
-        //        board                      
-
-        callback_zargon(CB_SUPPRESS_KING_MOVES);
-
-        // Hit our own piece or off the board ?
-        if( path_result >= 2 )
-            continue;  //  Yes - Jump
-
-        // Empty destination ?
-        empty = (path_result==0);
-
-        //  Is it a Piece or a Pawn ?
-        piece = m.T1;            
-
-        // Pieces are easy!
-        if( piece > PAWN )
+        for(;;)
         {
 
-            //  Add move to list
-            ADMOVE();
+            uint8_t path_result = PATH( move_dir );   //  Calculate next position
+            // 0  --  New position is empty      
+            // 1  --  Encountered a piece of the 
+            //        opposite color             
+            // 2  --  Encountered a piece of the 
+            //        same color                 
+            // 3  --  New position is off the    
+            //        board                      
 
-            // If it's a capture stop stepping
-            if( !empty )
-                continue;
+            callback_zargon(CB_SUPPRESS_KING_MOVES);
 
-            //  Keep stepping if Bishop, Rook, or Queen
-            if( piece == BISHOP ||  piece == ROOK ||  piece == QUEEN )
-                goto MP10;
-        }
+            // Hit our own piece or off the board ?
+            if( path_result >= 2 )
+                break;  //  Yes - this vector is done
 
-        // Pawns are more complicated
-        else
-        {
-            // For pawns, dir_count 1 and 2 are diagonal moves
-            if( dir_count < 3 )
+            // Empty destination ?
+            empty = (path_result==0);
+
+            //  Is it a Piece or a Pawn ?
+            piece = m.T1;            
+
+            // Pieces are easy!
+            if( piece >= KNIGHT )
             {
-                if( empty )
-                    ENPSNT();               //  Try en passant capture
-                else
+
+                //  Add move to list
+                ADMOVE();
+
+                // If it's a capture stop stepping
+                if( !empty )
+                    break;  // this vector is done
+
+                //  Keep stepping only if Bishop, Rook, or Queen
+                if( piece==KNIGHT || piece==KING )
+                    break;
+            }
+
+            // Pawns are more complicated
+            else
+            {
+                // For pawns, dir count 4 is single square
+                if( dir_count == 4 )
                 {
+
+                    // Is destination available?
+                    if( !empty)
+                        break;     // this vector is done
+
+                    // Check promotion
                     if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
                         m.P2 |= 0x20;         //  Set promote flag
-                    ADMOVE();               //  Add to move list
+
+                    // Add single step move to move list
+                    ADMOVE();              
+                    dir_idx++;        //  Adjust to two square move
+                    dir_count--;      //
+
+                    // Check Pawn moved flag, for double step
+                    if( m.P1 & 0x08 )          
+                        break;  // Moved before,  this vector is done
                 }
-                continue;                 //  Jump
+
+                // For pawns, dir_count 3 is double step
+                else if( dir_count == 3 )
+                {
+                    // Is forward square empty ?
+                    if( empty )
+                        ADMOVE();
+                    break;    // this vector is done
+                }
+
+                // For pawns, dir_count 1 and 2 are diagonal moves
+                else if( dir_count < 3 )
+                {
+                    if( empty )
+                        ENPSNT();               //  Try en passant capture
+                    else
+                    {
+                        if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                            m.P2 |= 0x20;         //  Set promote flag
+                        ADMOVE();               //  Add to move list
+                    }
+                    break;  // this vector is done
+                }
             }
-
-            // For pawns, dir_count 3 is double step
-            if( dir_count == 3 )
-            {
-                // Is forward square empty ?
-                if( empty )
-                    ADMOVE();
-                continue;
-            }
-
-            // For pawns, dir count 4 is single square, is destination available?
-            if( !empty)
-                continue;   // no
-
-            // Check promotion
-            if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
-                m.P2 |= 0x20;         //  Set promote flag
-
-            // Add single step move to move list
-            ADMOVE();              
-            dir_idx++;        //  Adjust to two square move
-            dir_count--;      //
-
-            // Check Pawn moved flag, for double step
-            if( m.P1 & 0x08 )          
-                continue;  // Moved before
-            else
-                goto MP10; // Hasn't moved
         }
     }
     piece = m.T1;            //  Piece type
@@ -965,86 +1004,141 @@ void MPIECE()
     piece &= 7;         // Isolate piece type
     m.T1 = piece;
 
-    //uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
-        m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
-    //    uint8_t dir_idx = m.INDX2;      // get direction
-for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
-{
-        uint8_t move_dir = m.direct[dir_idx];     //  Get move direction
-        m.M2 = m.M1;            //  From position
-                                        //  Initialize to position
-MP10:   uint8_t path_result = PATH( move_dir );                //  Calculate next position
-// 0  --  New position is empty      
-// 1  --  Encountered a piece of the 
-//        opposite color             
-// 2  --  Encountered a piece of the 
-//        same color                 
-// 3  --  New position is off the    
-//        board                      
+    /*
 
-        callback_zargon(CB_SUPPRESS_KING_MOVES);
-        if( path_result >= 2 )                     //  Ready for new direction ?
-         continue;              //  Yes - Jump
-        empty = (path_result==0);                       //  Save result
-        piece = m.T1;            //  Get piece moved
-        if( PAWN+1 > piece )               //  Is it a Pawn ?
+    How the piece moving tables work by example
+    
+    The tables:
+
+        int8_t direct[24] = {   // idx: type of row
+            +9,+11,-11,-9,      // 0:  diagonals
+            +10,-10,+1,-1,      // 4:  ranks and files
+            -21,-12,+8,+19,     // 8:  knight moves
+            +21,+12,-8,-19,     // 12: knight moves
+            +10,+10,+11,+9,     // 16: white pawn moves
+            -10,-10,-11,-9      // 20: black pawn moves
+        };
+
+        uint8_t dpoint[7] = { 
+            20,16,8,0,4,0,0     // black pawn->20, white pawn->16, knight->8 etc  
+        };
+
+        uint8_t dcount[7] = { 
+            4,4,8,4,4,8,8       // knights, queens and kings 2 rows,
+                                //  pawns, bishops and rooks 1 row
+        };
+
+    
+    */
+
+    // Loop through the direction vectors for the given piece
+    //  eg Black pawn dir_idx   = 20,21,22,23
+    //                dir_count =  4, 3, 2, 1
+    //                move_dir  = -10, -10, -11, -9
+
+    m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
+    for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
+    {
+        uint8_t move_dir = m.direct[dir_idx];
+
+        // From position
+        m.M2 = m.M1;
+
+        // Loop through steps in each direction vector
+        for(;;)
         {
 
-    // ***** PAWN LOGIC *****
-           if( dir_count < 3 )                  //  Counter for direction
-                                            //  On diagonal moves ?
-                goto MP35;              //  Yes - Jump
-            if( dir_count == 3 )                  //  Counter for direction
-                goto MP30;               //  -or-jump if on 2 square move
-            //Z80_EXAF;                       //  Is forward square empty?
-            if( !empty)
-                continue;              //  No - jump
-            if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
-                                            //  Promote white Pawn ?
-                goto MP25;              //  Yes - Jump
-            if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
-                                            //  Promote black Pawn ?
-                goto MP26;              //  No - Jump
-    MP25:   m.P2 |= 0x20;         //  Set promote flag
-    MP26:   ADMOVE();              //  Add to move list
-            dir_idx++;                   //  Adjust to two square move
-            dir_count--;                   //
-            if( m.P1 & 0x08 )          //  Check Pawn moved flag
-                                            //  Has it moved before ?
-                continue;                 //  Yes
-            else
-                goto MP10;               //  No
+            uint8_t path_result = PATH( move_dir );   //  Calculate next position
+            // 0  --  New position is empty      
+            // 1  --  Encountered a piece of the 
+            //        opposite color             
+            // 2  --  Encountered a piece of the 
+            //        same color                 
+            // 3  --  New position is off the    
+            //        board                      
 
-    MP30:   //  Is forward square empty ?
-            if( !empty )
-                continue;              //  No - Jump
-    MP31:   ADMOVE();               //  Add to move list
-            continue;                 //  Jump
-    MP35:   //  Is diagonal square empty ?
-            if( empty )
-                goto MP36;               //  Yes - Jump
-            if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
-                                            //  Promote white Pawn ?
-                goto MP37;              //  Yes - Jump
-            if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
-                                            //  Promote black Pawn ?
-                goto MP31;              //  No - Jump
-    MP37:   m.P2 |= 0x20;         //  Set promote flag
-            goto MP31;                 //  Jump
-    MP36:   ENPSNT();               //  Try en passant capture
-            continue;                 //  Jump
+            callback_zargon(CB_SUPPRESS_KING_MOVES);
+
+            // Hit our own piece or off the board ?
+            if( path_result >= 2 )
+                break;  //  Yes - this vector is done
+
+            // Empty destination ?
+            empty = (path_result==0);
+
+            //  Is it a Piece or a Pawn ?
+            piece = m.T1;            
+
+            // Pieces are easy!
+            if( piece >= KNIGHT )
+            {
+
+                //  Add move to list
+                ADMOVE();
+
+                // If it's a capture stop stepping
+                if( !empty )
+                    break;  // this vector is done
+
+                //  Keep stepping only if Bishop, Rook, or Queen
+                if( piece==KNIGHT || piece==KING )
+                    break;
+            }
+
+            // Pawns are more complicated
+            else
+            {
+                // For pawns, dir count 4 is single square
+                if( dir_count == 4 )
+                {
+
+                    // Is destination available?
+                    if( !empty)
+                        break;     // this vector is done
+
+                    // Check promotion
+                    if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                        m.P2 |= 0x20;         //  Set promote flag
+
+                    // Add single step move to move list
+                    ADMOVE();              
+                    dir_idx++;        //  Adjust to two square move
+                    dir_count--;      //
+
+                    // Check Pawn moved flag, for double step
+                    if( m.P1 & 0x08 )          
+                        break;  // Moved before,  this vector is done
+                }
+
+                // For pawns, dir_count 3 is double step
+                else if( dir_count == 3 )
+                {
+                    // Is forward square empty ?
+                    if( empty )
+                        ADMOVE();
+                    break;    // this vector is done
+                }
+
+                // For pawns, dir_count 1 and 2 are diagonal moves
+                else if( dir_count < 3 )
+                {
+                    if( empty )
+                        ENPSNT();               //  Try en passant capture
+                    else
+                    {
+                        if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                            m.P2 |= 0x20;         //  Set promote flag
+                        ADMOVE();               //  Add to move list
+                    }
+                    break;  // this vector is done
+                }
+            }
         }
-        ADMOVE();               //  Add move to list
-        if( !empty ) continue;              //  No - Jump
-        piece = m.T1;            //  Piece type
-        if( piece == BISHOP ||  piece == ROOK ||  piece == QUEEN )               //  Bishop, Rook, or Queen ?
-            goto MP10;              //  Yes - Jump
     }
     piece = m.T1;            //  Piece type
     if( piece ==  KING )                 //  King ?
         CASTLE();             //  Yes - Try Castling
  }
-
 
 #endif
                                                                            //0614:
