@@ -898,53 +898,47 @@ void MPIECE()
         // Pawns are more complicated
         else
         {
-            // for pawns, dir_count 1 and 2 are diagonal moves
+            // For pawns, dir_count 1 and 2 are diagonal moves
             if( dir_count < 3 )
-                goto MP35;  // diagonal
+            {
+                if( empty )
+                    ENPSNT();               //  Try en passant capture
+                else
+                {
+                    if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                        m.P2 |= 0x20;         //  Set promote flag
+                    ADMOVE();               //  Add to move list
+                }
+                continue;                 //  Jump
+            }
 
-            // for pawns, dir_count 3 is double step
+            // For pawns, dir_count 3 is double step
             if( dir_count == 3 )
-                goto MP30;  // double step
+            {
+                // Is forward square empty ?
+                if( empty )
+                    ADMOVE();
+                continue;
+            }
 
-            // dir count 4 is single square, is destination available?
+            // For pawns, dir count 4 is single square, is destination available?
             if( !empty)
                 continue;   // no
 
             // Check promotion
-            if( m.M2 >= 91 )    // destination on 8th rank?
-                goto MP25;              // yes promote white Pawn
-            if( m.M2 > 28 )     // destination not on 1st rank ?
-                goto MP26;              // yes not a promotion
-    MP25:   m.P2 |= 0x20;         //  Set promote flag
+            if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                m.P2 |= 0x20;         //  Set promote flag
 
-            //  Add to move list
-    MP26:   ADMOVE();              
-            dir_idx++;                   //  Adjust to two square move
-            dir_count--;                   //
-            if( m.P1 & 0x08 )          //  Check Pawn moved flag
-                                            //  Has it moved before ?
-                continue;                 //  Yes
+            // Add single step move to move list
+            ADMOVE();              
+            dir_idx++;        //  Adjust to two square move
+            dir_count--;      //
+
+            // Check Pawn moved flag, for double step
+            if( m.P1 & 0x08 )          
+                continue;  // Moved before
             else
-                goto MP10;               //  No
-
-    MP30:   //  Is forward square empty ?
-            if( !empty )
-                continue;              //  No - Jump
-    MP31:   ADMOVE();               //  Add to move list
-            continue;                 //  Jump
-    MP35:   //  Is diagonal square empty ?
-            if( empty )
-                goto MP36;               //  Yes - Jump
-            if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
-                                            //  Promote white Pawn ?
-                goto MP37;              //  Yes - Jump
-            if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
-                                            //  Promote black Pawn ?
-                goto MP31;              //  No - Jump
-    MP37:   m.P2 |= 0x20;         //  Set promote flag
-            goto MP31;                 //  Jump
-    MP36:   ENPSNT();               //  Try en passant capture
-            continue;                 //  Jump
+                goto MP10; // Hasn't moved
         }
     }
     piece = m.T1;            //  Piece type
