@@ -823,7 +823,15 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture         //061
         JPu     (MP15);                 //  Jump                           //0613:         JP      MP15            ; Jump
 }
 
+#if 0
+    //    LD      (a,ptr(iy+DPOINT));     //  Get direction pointer
+    m.INDX2 = m.dpoint[m.T1];         //  Save as index to direct
+    //    LD      (iy,v16(INDX2));        //  Load index
+MP5: c =  m.direct[m.INDX2];     //  Get move direction
+#endif
+
 #if 1
+
 void MPIECE()
 {
         callback_zargon_bridge(CB_MPIECE);
@@ -840,10 +848,10 @@ void MPIECE()
 
         LD      (iy,v16(T1));           //  Load index to DCOUNT/DPOINT
     uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
-        LD      (a,ptr(iy+DPOINT));     //  Get direction pointer
-        LD      (val(INDX2),a);         //  Save as index to direct
-        LD      (iy,v16(INDX2));        //  Load index
-MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction
+        m.INDX2 = m.dpoint[m.T1];    //  Get direction pointer
+        //LD      (val(INDX2),a);         //  Save as index to direct
+        uint8_t dir_idx = m.INDX2;              //  Load index
+MP5:    LD      (c,m.direct[dir_idx]);     //  Get move direction
         LD      (a,val(M1));            //  From position
         LD      (val(M2),a);            //  Initialize to position
 MP10:   a =     PATH(c);                //  Calculate next position
@@ -863,7 +871,7 @@ MP10:   a =     PATH(c);                //  Calculate next position
         JR      (Z,MP15);               //  Yes - Jump
         CP      (BISHOP);               //  Bishop, Rook, or Queen ?
         JR      (NC,MP10);              //  Yes - Jump
-MP15:   INC16   (iy);                   //  Increment direction index
+MP15:   dir_idx++;                   //  Increment direction index
     dir_count--; if(dir_count != 0) goto MP5; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
         LD      (a,val(T1));            //  Piece type
         CP      (KING);                 //  King ?
@@ -884,7 +892,7 @@ MP20:   LD      (a,dir_count);                  //  Counter for direction
 MP25:   LD      (hl,addr(P2));          //  Flag address
         SET     (5,ptr(hl));            //  Set promote flag
 MP26:   CALLu   (ADMOVE);               //  Add to move list
-        INC16   (iy);                   //  Adjust to two square move
+        dir_idx++;                   //  Adjust to two square move
         DEC     (dir_count);                    //
         LD      (hl,addr(P1));          //  Check Pawn moved flag
         BIT     (3,ptr(hl));            //  Has it moved before ?
@@ -909,7 +917,6 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture
 }
 
 #else
-
 void MPIECE()
 {
         callback_zargon_bridge(CB_MPIECE);
@@ -925,11 +932,11 @@ void MPIECE()
     m.T1 = piece;
 
         LD      (iy,v16(T1));           //  Load index to DCOUNT/DPOINT
-        LD      (b,ptr(iy+DCOUNT));     //  Get direction count
-        LD      (a,ptr(iy+DPOINT));     //  Get direction pointer
-        LD      (val(INDX2),a);         //  Save as index to direct
-        LD      (iy,v16(INDX2));        //  Load index
-MP5:    LD      (c,ptr(iy+DIRECT));     //  Get move direction
+    uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
+        m.INDX2 = m.dpoint[m.T1];    //  Get direction pointer
+        //LD      (val(INDX2),a);         //  Save as index to direct
+        uint8_t dir_idx = m.INDX2;              //  Load index
+MP5:    LD      (c,m.direct[dir_idx]);     //  Get move direction
         LD      (a,val(M1));            //  From position
         LD      (val(M2),a);            //  Initialize to position
 MP10:   a =     PATH(c);                //  Calculate next position
@@ -949,14 +956,14 @@ MP10:   a =     PATH(c);                //  Calculate next position
         JR      (Z,MP15);               //  Yes - Jump
         CP      (BISHOP);               //  Bishop, Rook, or Queen ?
         JR      (NC,MP10);              //  Yes - Jump
-MP15:   INC16   (iy);                   //  Increment direction index
-        DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
+MP15:   dir_idx++;                   //  Increment direction index
+    dir_count--; if(dir_count != 0) goto MP5; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
         LD      (a,val(T1));            //  Piece type
         CP      (KING);                 //  King ?
         CALL    (Z,CASTLE);             //  Yes - Try Castling
         RETu;                           //  Return
 // ***** PAWN LOGIC *****
-MP20:   LD      (a,b);                  //  Counter for direction
+MP20:   LD      (a,dir_count);                  //  Counter for direction
         CP      (3);                    //  On diagonal moves ?
         JR      (CY,MP35);              //  Yes - Jump
         JR      (Z,MP30);               //  -or-jump if on 2 square move
@@ -970,8 +977,8 @@ MP20:   LD      (a,b);                  //  Counter for direction
 MP25:   LD      (hl,addr(P2));          //  Flag address
         SET     (5,ptr(hl));            //  Set promote flag
 MP26:   CALLu   (ADMOVE);               //  Add to move list
-        INC16   (iy);                   //  Adjust to two square move
-        DEC     (b);                    //
+        dir_idx++;                   //  Adjust to two square move
+        DEC     (dir_count);                    //
         LD      (hl,addr(P1));          //  Check Pawn moved flag
         BIT     (3,ptr(hl));            //  Has it moved before ?
         JR      (Z,MP10);               //  No - Jump
