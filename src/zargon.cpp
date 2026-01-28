@@ -861,28 +861,31 @@ MP10:   a =     PATH(c);                //  Calculate next position
         AND     (a);                    //  Test for empty square
         Z80_EXAF;
         //bool save_nz; save_nz = NZ;                       //  Save result
-        LD      (a,val(T1));            //  Get piece moved
-        CP      (PAWN+1);               //  Is it a Pawn ?
-        JR      (CY,MP20);              //  Yes - Jump
-        CALLu   (ADMOVE);               //  Add move to list
+        piece = m.T1;            //  Get piece moved
+        if( PAWN+1 > piece )               //  Is it a Pawn ?
+            goto MP20;              //  Yes - Jump
+        ADMOVE();               //  Add move to list
         Z80_EXAF;                       //  Empty square ?
         if( NZ /*save_nz*/ ) goto MP15;              //  No - Jump
-        LD      (a,val(T1));            //  Piece type
-        CP      (KING);                 //  King ?
-        JR      (Z,MP15);               //  Yes - Jump
-        CP      (BISHOP);               //  Bishop, Rook, or Queen ?
-        JR      (NC,MP10);              //  Yes - Jump
+        piece = m.T1;            //  Piece type
+        if( piece == KING)                 //  King ?
+            goto MP15;               //  Yes - Jump
+        if( piece >= BISHOP)               //  Bishop, Rook, or Queen ?
+            goto MP10;              //  Yes - Jump
 MP15:   dir_idx++;                   //  Increment direction index
-    dir_count--; if(dir_count != 0) goto MP5; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
-        LD      (a,val(T1));            //  Piece type
-        CP      (KING);                 //  King ?
-        CALL    (Z,CASTLE);             //  Yes - Try Castling
-        RETu;                           //  Return
+        dir_count--;
+        if( dir_count != 0 )
+            goto MP5; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
+        piece = m.T1;            //  Piece type
+        if( piece ==  KING )                 //  King ?
+            CASTLE();             //  Yes - Try Castling
+        return;                           //  Return
 // ***** PAWN LOGIC *****
-MP20:   LD      (a,dir_count);                  //  Counter for direction
-        CP      (3);                    //  On diagonal moves ?
-        JR      (CY,MP35);              //  Yes - Jump
-        JR      (Z,MP30);               //  -or-jump if on 2 square move
+MP20:   if( dir_count < 3 )                  //  Counter for direction
+                                        //  On diagonal moves ?
+            goto MP35;              //  Yes - Jump
+        if( dir_count == 3 )                  //  Counter for direction
+            goto MP30;               //  -or-jump if on 2 square move
         Z80_EXAF;                       //  Is forward square empty?
         JR      (NZ,MP15);              //  No - jump
         LD      (a,val(M2));            //  Get "to" position
@@ -948,28 +951,31 @@ MP10:   a =     PATH(c);                //  Calculate next position
         AND     (a);                    //  Test for empty square
         Z80_EXAF;
         //bool save_nz; save_nz = NZ;                       //  Save result
-        LD      (a,val(T1));            //  Get piece moved
-        CP      (PAWN+1);               //  Is it a Pawn ?
-        JR      (CY,MP20);              //  Yes - Jump
-        CALLu   (ADMOVE);               //  Add move to list
+        piece = m.T1;            //  Get piece moved
+        if( PAWN+1 > piece )               //  Is it a Pawn ?
+            goto MP20;              //  Yes - Jump
+        ADMOVE();               //  Add move to list
         Z80_EXAF;                       //  Empty square ?
         if( NZ /*save_nz*/ ) goto MP15;              //  No - Jump
-        LD      (a,val(T1));            //  Piece type
-        CP      (KING);                 //  King ?
-        JR      (Z,MP15);               //  Yes - Jump
-        CP      (BISHOP);               //  Bishop, Rook, or Queen ?
-        JR      (NC,MP10);              //  Yes - Jump
+        piece = m.T1;            //  Piece type
+        if( piece == KING)                 //  King ?
+            goto MP15;               //  Yes - Jump
+        if( piece >= BISHOP)               //  Bishop, Rook, or Queen ?
+            goto MP10;              //  Yes - Jump
 MP15:   dir_idx++;                   //  Increment direction index
-    dir_count--; if(dir_count != 0) goto MP5; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
-        LD      (a,val(T1));            //  Piece type
-        CP      (KING);                 //  King ?
-        CALL    (Z,CASTLE);             //  Yes - Try Castling
-        RETu;                           //  Return
+        dir_count--;
+        if( dir_count != 0 )
+            goto MP5; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
+        piece = m.T1;            //  Piece type
+        if( piece ==  KING )                 //  King ?
+            CASTLE();             //  Yes - Try Castling
+        return;                           //  Return
 // ***** PAWN LOGIC *****
-MP20:   LD      (a,dir_count);                  //  Counter for direction
-        CP      (3);                    //  On diagonal moves ?
-        JR      (CY,MP35);              //  Yes - Jump
-        JR      (Z,MP30);               //  -or-jump if on 2 square move
+MP20:   if( dir_count < 3 )                  //  Counter for direction
+                                        //  On diagonal moves ?
+            goto MP35;              //  Yes - Jump
+        if( dir_count == 3 )                  //  Counter for direction
+            goto MP30;               //  -or-jump if on 2 square move
         Z80_EXAF;                       //  Is forward square empty?
         JR      (NZ,MP15);              //  No - jump
         LD      (a,val(M2));            //  Get "to" position
