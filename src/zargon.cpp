@@ -852,20 +852,21 @@ void MPIECE()
         //LD      (val(INDX2),a);         //  Save as index to direct
         uint8_t dir_idx = m.INDX2;              //  Load index
 MP5:    LD      (c,m.direct[dir_idx]);     //  Get move direction
-        LD      (a,val(M1));            //  From position
-        LD      (val(M2),a);            //  Initialize to position
+        m.M2 = m.M1;            //  From position
+                                        //  Initialize to position
 MP10:   a =     PATH(c);                //  Calculate next position
         callback_zargon(CB_SUPPRESS_KING_MOVES);
-        CP      (2);                    //  Ready for new direction ?
-        JR      (NC,MP15);              //  Yes - Jump
+        if( a >= 2 )                     //  Ready for new direction ?
+         goto MP15;              //  Yes - Jump
         AND     (a);                    //  Test for empty square
-        Z80_EXAF;                       //  Save result
+        Z80_EXAF;
+        //bool save_nz; save_nz = NZ;                       //  Save result
         LD      (a,val(T1));            //  Get piece moved
         CP      (PAWN+1);               //  Is it a Pawn ?
         JR      (CY,MP20);              //  Yes - Jump
         CALLu   (ADMOVE);               //  Add move to list
         Z80_EXAF;                       //  Empty square ?
-        JR      (NZ,MP15);              //  No - Jump
+        if( NZ /*save_nz*/ ) goto MP15;              //  No - Jump
         LD      (a,val(T1));            //  Piece type
         CP      (KING);                 //  King ?
         JR      (Z,MP15);               //  Yes - Jump
@@ -917,6 +918,7 @@ MP36:   CALLu   (ENPSNT);               //  Try en passant capture
 }
 
 #else
+
 void MPIECE()
 {
         callback_zargon_bridge(CB_MPIECE);
@@ -937,20 +939,21 @@ void MPIECE()
         //LD      (val(INDX2),a);         //  Save as index to direct
         uint8_t dir_idx = m.INDX2;              //  Load index
 MP5:    LD      (c,m.direct[dir_idx]);     //  Get move direction
-        LD      (a,val(M1));            //  From position
-        LD      (val(M2),a);            //  Initialize to position
+        m.M2 = m.M1;            //  From position
+                                        //  Initialize to position
 MP10:   a =     PATH(c);                //  Calculate next position
         callback_zargon(CB_SUPPRESS_KING_MOVES);
-        CP      (2);                    //  Ready for new direction ?
-        JR      (NC,MP15);              //  Yes - Jump
+        if( a >= 2 )                     //  Ready for new direction ?
+         goto MP15;              //  Yes - Jump
         AND     (a);                    //  Test for empty square
-        Z80_EXAF;                       //  Save result
+        Z80_EXAF;
+        //bool save_nz; save_nz = NZ;                       //  Save result
         LD      (a,val(T1));            //  Get piece moved
         CP      (PAWN+1);               //  Is it a Pawn ?
         JR      (CY,MP20);              //  Yes - Jump
         CALLu   (ADMOVE);               //  Add move to list
         Z80_EXAF;                       //  Empty square ?
-        JR      (NZ,MP15);              //  No - Jump
+        if( NZ /*save_nz*/ ) goto MP15;              //  No - Jump
         LD      (a,val(T1));            //  Piece type
         CP      (KING);                 //  King ?
         JR      (Z,MP15);               //  Yes - Jump
