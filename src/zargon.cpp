@@ -849,10 +849,10 @@ void MPIECE()
     piece &= 7;         // Isolate piece type
     m.T1 = piece;
 
-    uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
+    //uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
         m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
-        uint8_t dir_idx = m.INDX2;      // get direction
-for(;;)
+    //    uint8_t dir_idx = m.INDX2;      // get direction
+for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
 {
         uint8_t move_dir = m.direct[dir_idx];     //  Get move direction
         m.M2 = m.M1;            //  From position
@@ -868,21 +868,21 @@ MP10:   uint8_t path_result = PATH( move_dir );                //  Calculate nex
 
         callback_zargon(CB_SUPPRESS_KING_MOVES);
         if( path_result >= 2 )                     //  Ready for new direction ?
-         goto MP15;              //  Yes - Jump
+         continue;              //  Yes - Jump
         empty = (path_result==0);                       //  Save result
         piece = m.T1;            //  Get piece moved
         if( PAWN+1 > piece )               //  Is it a Pawn ?
         {
 
     // ***** PAWN LOGIC *****
-    MP20:   if( dir_count < 3 )                  //  Counter for direction
+           if( dir_count < 3 )                  //  Counter for direction
                                             //  On diagonal moves ?
                 goto MP35;              //  Yes - Jump
             if( dir_count == 3 )                  //  Counter for direction
                 goto MP30;               //  -or-jump if on 2 square move
             //Z80_EXAF;                       //  Is forward square empty?
             if( !empty)
-                goto MP15;              //  No - jump
+                continue;              //  No - jump
             if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
                                             //  Promote white Pawn ?
                 goto MP25;              //  Yes - Jump
@@ -895,16 +895,16 @@ MP10:   uint8_t path_result = PATH( move_dir );                //  Calculate nex
             dir_count--;                   //
             if( m.P1 & 0x08 )          //  Check Pawn moved flag
                                             //  Has it moved before ?
-                goto MP15;                 //  Yes
+                continue;                 //  Yes
             else
                 goto MP10;               //  No
 
-    MP30:   //Z80_EXAF;                       //  Is forward square empty ?
+    MP30:   //  Is forward square empty ?
             if( !empty )
-                goto MP15;              //  No - Jump
+                continue;              //  No - Jump
     MP31:   ADMOVE();               //  Add to move list
-                goto MP15;                 //  Jump
-    MP35:   //Z80_EXAF;                       //  Is diagonal square empty ?
+            continue;                 //  Jump
+    MP35:   //  Is diagonal square empty ?
             if( empty )
                 goto MP36;               //  Yes - Jump
             if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
@@ -916,25 +916,17 @@ MP10:   uint8_t path_result = PATH( move_dir );                //  Calculate nex
     MP37:   m.P2 |= 0x20;         //  Set promote flag
             goto MP31;                 //  Jump
     MP36:   ENPSNT();               //  Try en passant capture
-            goto MP15;                 //  Jump
+            continue;                 //  Jump
         }
         ADMOVE();               //  Add move to list
-        //Z80_EXAF;                       //  Empty square ?
-        if( !empty ) goto MP15;              //  No - Jump
+        if( !empty ) continue;              //  No - Jump
         piece = m.T1;            //  Piece type
-        if( piece == KING)                 //  King ?
-            goto MP15;               //  Yes - Jump
-        if( piece >= BISHOP)               //  Bishop, Rook, or Queen ?
+        if( piece == BISHOP ||  piece == ROOK ||  piece == QUEEN )               //  Bishop, Rook, or Queen ?
             goto MP10;              //  Yes - Jump
-MP15:   dir_idx++;                   //  Increment direction index
-        dir_count--;
-        if( dir_count != 0 )
-            continue; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
-        piece = m.T1;            //  Piece type
-        if( piece ==  KING )                 //  King ?
-            CASTLE();             //  Yes - Try Castling
-        return;
     }
+    piece = m.T1;            //  Piece type
+    if( piece ==  KING )                 //  King ?
+        CASTLE();             //  Yes - Try Castling
  }
 
 #else
@@ -948,7 +940,7 @@ void MPIECE()
     uint8_t piece = a;
     piece = piece ^ *p;                         // change colour of piece to move ?
     piece &= 0x87;   //  Clear flag bits
-
+    bool empty = false;
     //  Decrement black pawns (so pawns, the only directional type, are 0 black and 1 white
     //   from now on in this function)
     if( piece == BPAWN )
@@ -956,10 +948,12 @@ void MPIECE()
     piece &= 7;         // Isolate piece type
     m.T1 = piece;
 
-    uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
+    //uint8_t dir_count = m.dcount[m.T1]; //    LD      (b,ptr(iy+DCOUNT));     //  Get direction count
         m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
-        uint8_t dir_idx = m.INDX2;      // get direction
-MP5:    uint8_t move_dir = m.direct[dir_idx];     //  Get move direction
+    //    uint8_t dir_idx = m.INDX2;      // get direction
+for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
+{
+        uint8_t move_dir = m.direct[dir_idx];     //  Get move direction
         m.M2 = m.M1;            //  From position
                                         //  Initialize to position
 MP10:   uint8_t path_result = PATH( move_dir );                //  Calculate next position
@@ -973,71 +967,67 @@ MP10:   uint8_t path_result = PATH( move_dir );                //  Calculate nex
 
         callback_zargon(CB_SUPPRESS_KING_MOVES);
         if( path_result >= 2 )                     //  Ready for new direction ?
-         goto MP15;              //  Yes - Jump
-        bool empty; empty = (path_result==0);                       //  Save result
+         continue;              //  Yes - Jump
+        empty = (path_result==0);                       //  Save result
         piece = m.T1;            //  Get piece moved
         if( PAWN+1 > piece )               //  Is it a Pawn ?
-            goto MP20;              //  Yes - Jump
-        ADMOVE();               //  Add move to list
-        //Z80_EXAF;                       //  Empty square ?
-        if( !empty ) goto MP15;              //  No - Jump
-        piece = m.T1;            //  Piece type
-        if( piece == KING)                 //  King ?
-            goto MP15;               //  Yes - Jump
-        if( piece >= BISHOP)               //  Bishop, Rook, or Queen ?
-            goto MP10;              //  Yes - Jump
-MP15:   dir_idx++;                   //  Increment direction index
-        dir_count--;
-        if( dir_count != 0 )
-            goto MP5; //     DJNZ    (MP5);                  //  Decr. count-jump if non-zerc
-        piece = m.T1;            //  Piece type
-        if( piece ==  KING )                 //  King ?
-            CASTLE();             //  Yes - Try Castling
-        return;                           //  Return
-// ***** PAWN LOGIC *****
-MP20:   if( dir_count < 3 )                  //  Counter for direction
-                                        //  On diagonal moves ?
-            goto MP35;              //  Yes - Jump
-        if( dir_count == 3 )                  //  Counter for direction
-            goto MP30;               //  -or-jump if on 2 square move
-        //Z80_EXAF;                       //  Is forward square empty?
-        if( !empty)
-            goto MP15;              //  No - jump
-        if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
-                                        //  Promote white Pawn ?
-            goto MP25;              //  Yes - Jump
-        if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
-                                        //  Promote black Pawn ?
-            goto MP26;              //  No - Jump
-MP25:   m.P2 |= 0x20;         //  Set promote flag
-MP26:   ADMOVE();              //  Add to move list
-        dir_idx++;                   //  Adjust to two square move
-        dir_count--;                   //
-        if( m.P1 & 0x08 )          //  Check Pawn moved flag
-                                        //  Has it moved before ?
-            goto MP15;                 //  Yes
-        else
-            goto MP10;               //  No
+        {
 
-MP30:   //Z80_EXAF;                       //  Is forward square empty ?
-        if( !empty )
-            goto MP15;              //  No - Jump
-MP31:   ADMOVE();               //  Add to move list
-            goto MP15;                 //  Jump
-MP35:   //Z80_EXAF;                       //  Is diagonal square empty ?
-        if( empty )
-            goto MP36;               //  Yes - Jump
-        if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
-                                        //  Promote white Pawn ?
-            goto MP37;              //  Yes - Jump
-        if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
-                                        //  Promote black Pawn ?
-            goto MP31;              //  No - Jump
-MP37:   m.P2 |= 0x20;         //  Set promote flag
-        goto MP31;                 //  Jump
-MP36:   ENPSNT();               //  Try en passant capture
-        goto MP15;                 //  Jump
-}
+    // ***** PAWN LOGIC *****
+           if( dir_count < 3 )                  //  Counter for direction
+                                            //  On diagonal moves ?
+                goto MP35;              //  Yes - Jump
+            if( dir_count == 3 )                  //  Counter for direction
+                goto MP30;               //  -or-jump if on 2 square move
+            //Z80_EXAF;                       //  Is forward square empty?
+            if( !empty)
+                continue;              //  No - jump
+            if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
+                                            //  Promote white Pawn ?
+                goto MP25;              //  Yes - Jump
+            if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
+                                            //  Promote black Pawn ?
+                goto MP26;              //  No - Jump
+    MP25:   m.P2 |= 0x20;         //  Set promote flag
+    MP26:   ADMOVE();              //  Add to move list
+            dir_idx++;                   //  Adjust to two square move
+            dir_count--;                   //
+            if( m.P1 & 0x08 )          //  Check Pawn moved flag
+                                            //  Has it moved before ?
+                continue;                 //  Yes
+            else
+                goto MP10;               //  No
+
+    MP30:   //  Is forward square empty ?
+            if( !empty )
+                continue;              //  No - Jump
+    MP31:   ADMOVE();               //  Add to move list
+            continue;                 //  Jump
+    MP35:   //  Is diagonal square empty ?
+            if( empty )
+                goto MP36;               //  Yes - Jump
+            if( m.M2 >= 91 )            //  Is "to" position on 8th rank?
+                                            //  Promote white Pawn ?
+                goto MP37;              //  Yes - Jump
+            if( m.M2 > 28 )             // Is "to" position not on 1st rank ?
+                                            //  Promote black Pawn ?
+                goto MP31;              //  No - Jump
+    MP37:   m.P2 |= 0x20;         //  Set promote flag
+            goto MP31;                 //  Jump
+    MP36:   ENPSNT();               //  Try en passant capture
+            continue;                 //  Jump
+        }
+        ADMOVE();               //  Add move to list
+        if( !empty ) continue;              //  No - Jump
+        piece = m.T1;            //  Piece type
+        if( piece == BISHOP ||  piece == ROOK ||  piece == QUEEN )               //  Bishop, Rook, or Queen ?
+            goto MP10;              //  Yes - Jump
+    }
+    piece = m.T1;            //  Piece type
+    if( piece ==  KING )                 //  King ?
+        CASTLE();             //  Yes - Try Castling
+ }
+
 
 #endif
                                                                            //0614:
