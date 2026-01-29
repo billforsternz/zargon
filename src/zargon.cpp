@@ -2206,6 +2206,7 @@ PF27:   JPu     (PF2);                  //  Jump                           //123
 
 void PINFND()
 {
+        int8_t dir;
         uint8_t dir_count=0;
         int8_t *y;
         int8_t path_result;
@@ -2227,8 +2228,8 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
         y = &m.direct[m.INDX2];
 PF2:    m.M2 = m.M3;            //  Get King/Queen position
         m.M4 = 0;         //  Clear pinned piece saved pos
-        c = *y;     //  Get direction of scan
-PF5:    path_result =     PATH(c);                //  Compute next position
+        dir = *y;     //  Get direction of scan
+PF5:    path_result =     PATH(dir);                //  Compute next position
         if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
         if( path_result == 3 ) goto PF25;    //  Off board ?
         //CP      (2);                    
@@ -2259,9 +2260,9 @@ PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
         //AND     (7);                    //  Clear flags
         //CP      (QUEEN);                //  Queen ?
             goto PF20;              //  No - jump
-        PUSH    (bc);                   //  Save regs.
-        PUSH    (de);
-        PUSH    (iy);
+        // PUSH    (bc);                   //  Save regs.
+        // PUSH    (de);
+        // PUSH    (iy);
         XOR     (a);                    //  Zero out attack list
         LD      (b,14);
         LD      (hl,addr(ATKLST));
@@ -2281,14 +2282,14 @@ rel008: LD      (a,ptr(hl));            //  Number of defenders
         EX      (de,hl);                //  Reverse for attackers
         SUB     (ptr(hl));              //  Defenders minus attackers
         DEC     (a);                    //  Less 1
-        POP     (iy);                   //  Restore regs.
-        POP     (de);
-        POP     (bc);
+        // POP     (iy);                   //  Restore regs.
+        // POP     (de);
+        // POP     (bc);
         JP      (P,PF25);               //  Jump if pin not valid
 PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         INC     (ptr(hl));              //  Increment
         LD      (ix,v16(NPINS));        //  Load pin list index
-        LD      (ptr(ix+PLISTD),c);     //  Save direction of pin
+        LD      (ptr(ix+PLISTD),dir);     //  Save direction of pin
         LD      (a,val(M4));            //  Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list
 PF25:   y++;                            //  Increment direction index
