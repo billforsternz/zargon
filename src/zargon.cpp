@@ -2234,12 +2234,12 @@ void PINFND()
                 m.M4 = 0;         //  Clear pinned piece saved pos
         PF5:    path_result =     PATH(dir);                //  Compute next position
                 if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
-                if( path_result == 3 ) goto PF25;    //  Off board ?
+                if( path_result == 3 ) continue;    //  Off board ?
                 //CP      (2);                    
                 //LD      (a,val(M4));            //  Load pinned piece position
                 if( path_result == 2 ) goto PF15;    //  Piece of same color?
                 //AND     (a);                    //  Possible pin ?
-                if( m.M4 ==0 ) goto PF25;              //  No - jump
+                if( m.M4 ==0 ) continue;              //  No - jump
                 if(m.T2 == QUEEN )            //  Piece type encountered
                 //CP      (QUEEN);                //  Queen ?
                     goto PF19;               //  Yes - jump
@@ -2249,14 +2249,14 @@ void PINFND()
                     goto PF10;              //  Yes - jump
                 //LD      (a,l);                  //  Piece type
                 if(m.T2 != BISHOP )               //  Bishop ?
-                    goto PF25;              //  No - jump
+                    continue;              //  No - jump
                 goto PF20;                 //  Jump
         PF10:   //LD      (a,l);                  //  Piece type
                 if(m.T2 != ROOK )                 //  Rook ?
-                    goto PF25;              //  No - jump
+                    continue;              //  No - jump
                 goto PF20;                 //  Jump
         PF15:                        //  Possible pin ?
-                if( m.M4 !=0 ) goto PF25;              //  No - jump
+                if( m.M4 !=0 ) continue;              //  No - jump
                 m.M4 = m.M2;            //  Save possible pin position
                 goto PF5;                  //  Jump
         PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
@@ -2282,7 +2282,7 @@ void PINFND()
                     defenders_minus_attackers = *wact - *bact;
                 }
                 if( defenders_minus_attackers-1 >= 0 )
-                    goto PF25;
+                    continue;
 
         // #define PLIST (addr(PLISTA)-TBASE-1)    ///TODO -1 why?                 //0199: PLIST   EQU     $-TBASE-1
         // #define PLISTD (PLIST+10)                                               //0200: PLISTD  EQU     PLIST+10
@@ -2295,8 +2295,6 @@ void PINFND()
                 m.plistd[m.NPINS-1] = dir;     //  Save direction of pin
                 //LD      (a,val(M4));            //  Position of pinned piece
                 m.PLISTA[m.NPINS-1] = m.M4;      //  Save in list
-        PF25:
-            ;//y++;                            //  Increment direction index
         }
     }
 }
