@@ -2235,7 +2235,13 @@ void PINFND()
         PF5:    path_result =     PATH(dir);                //  Compute next position
                 if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
                 if( path_result == 3 ) continue;    //  Off board ?
-                if( path_result == 2 ) goto PF15;    //  Piece of same color?
+                if( path_result == 2 ) //  Piece of same color?
+                {
+                    //  Possible pin ?
+                    if( m.M4 !=0 ) continue;              //  No - jump
+                    m.M4 = m.M2;            //  Save possible pin position
+                    goto PF5;                  //  Jump
+                }
                 if( m.M4 ==0 ) continue;             //  If no possible pin jump
                 if(m.T2 == QUEEN )            //  Piece type encountered
                 {
@@ -2285,10 +2291,6 @@ void PINFND()
                     }
                     continue;
                 }
-        PF15:                        //  Possible pin ?
-                if( m.M4 !=0 ) continue;              //  No - jump
-                m.M4 = m.M2;            //  Save possible pin position
-                goto PF5;                  //  Jump
         }
     }
 }
