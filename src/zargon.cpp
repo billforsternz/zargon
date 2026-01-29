@@ -2738,7 +2738,7 @@ rel015: LD      (hl,addr(MTRL));        //  Net material on board          //147
         SUB     (ptr(hl));              //  Subtract from current          //1480:         SUB     (hl)            ; Subtract from current
         //LD      (b,a);                  //  Save                           //1481:         LD      b,a             ; Save
         //LD      (a,30);                 //  Load material limit            //1482:         LD      a,30            ; Load material limit
-        a = LIMIT_asm(30,a); //e = LIMIT(b,30);                //  Limit to plus or minus value   //1483:         CALL    LIMIT           ; Limit to plus or minus value
+        a = LIMIT(30,a); //e = LIMIT(b,30);                //  Limit to plus or minus value   //1483:         CALL    LIMIT           ; Limit to plus or minus value
         LD      (e,a);                  //  Save limited value             //1484:         LD      e,a             ; Save limited value
         LD      (a,val(BRDC));          //  Get board control points       //1485:         LD      a,(BRDC)        ; Get board control points
         LD      (hl,addr(BC0));         //  Board control at ply zero      //1486:         LD      hl,BC0          ; Board control at ply zero
@@ -2748,8 +2748,8 @@ rel015: LD      (hl,addr(MTRL));        //  Net material on board          //147
         AND     (a);                    //  Is it zero ?                   //1490:         AND     a               ; Is it zero ?
         JR      (Z,rel026);             //  Yes - jump                     //1491:         JR      Z,rel026        ; Yes - jump
         LD      (b,0);                  //  Zero board control points      //1492:         LD      b,0             ; Zero board control points
-rel026: LD      (a,6);                  //  Load board control limit       //1493: rel026: LD      a,6             ; Load board control limit
-        a = LIMIT_asm(a,b); //d = LIMIT(b,6);                //  Limit to plus or minus value   //1494:         CALL    LIMIT           ; Limit to plus or minus value
+rel026: //LD      (a,6);                  //  Load board control limit       //1493: rel026: LD      a,6             ; Load board control limit
+        a = LIMIT(6,b); //d = LIMIT(b,6);                //  Limit to plus or minus value   //1494:         CALL    LIMIT           ; Limit to plus or minus value
         LD      (d,a);                  //  Save limited value             //1495:         LD      d,a             ; Save limited value
         LD      (a,e);                  //  Get material points            //1496:         LD      a,e             ; Get material points
         ADD     (a,a);                  //  Multiply by 4                  //1497:         ADD     a,a             ; Multiply by 4
@@ -2782,54 +2782,52 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //150
 //                        - Value to limit to in the A register            //1522: ;                        - Value to limit to in the A register
 //                 Output - Limited value in the A register.               //1523: ;                 Output - Limited value in the A register.
 //***********************************************************              //1524: ;***********************************************************
-int8_t LIMIT_asm(int8_t val_a, int8_t val_b) { a= val_a;
-        BIT     (7,val_b);                  //  Is value negative ?            //1525: LIMIT:  BIT     7,b             ; Is value negative ?
+int8_t LIMIT_asm( int8_t limit, int8_t val) { a= limit;
+        BIT     (7,val);                //  Is value negative ?            //1525: LIMIT:  BIT     7,b             ; Is value negative ?
         JP      (Z,LIM10);              //  No - jump                      //1526:         JP      Z,LIM10         ; No - jump
         NEG;                            //  Make positive                  //1527:         NEG                     ; Make positive
-        CP      (val_b);                    //  Compare to limit               //1528:         CP      b               ; Compare to limit
-        if     (NC) return a;                   //  Return if outside limit        //1529:         RET     NC              ; Return if outside limit
-        LD      (a,val_b);                  //  Output value as is             //1530:         LD      a,b             ; Output value as is
-        return a;                           //  Return                         //1531:         RET                     ; Return
-LIM10:  CP      (val_b);                    //  Compare to limit               //1532: LIM10:  CP      b               ; Compare to limit
-        if     (CY) return a;                   //  Return if outside limit        //1533:         RET     C               ; Return if outside limit
-        LD      (a,val_b);                  //  Output value as is             //1534:         LD      a,b             ; Output value as is
-        return a;                           //  Return                         //1535:         RET                     ; Return
+        CP      (val);                  //  Compare to limit               //1528:         CP      b               ; Compare to limit
+        if     (NC) return a;           //  Return if outside limit        //1529:         RET     NC              ; Return if outside limit
+        LD      (a,val);                //  Output value as is             //1530:         LD      a,b             ; Output value as is
+        return a;                       //  Return                         //1531:         RET                     ; Return
+LIM10:  CP      (val);                  //  Compare to limit               //1532: LIM10:  CP      b               ; Compare to limit
+        if     (CY) return a;           //  Return if outside limit        //1533:         RET     C               ; Return if outside limit
+        LD      (a,val);                //  Output value as is             //1534:         LD      a,b             ; Output value as is
+        return a;                       //  Return                         //1535:         RET                     ; Return
 }                                                                          //1536:
 
 #if 1
 
-int8_t LIMIT( int8_t val_b, int8_t limit_a )
-{
-        a = limit_a;
-        BIT     (7,val_b);                  //  Is value negative ?
+int8_t LIMIT( int8_t limit, int8_t val) { a= limit;
+        BIT     (7,val);                //  Is value negative ?
         JP      (Z,LIM10);              //  No - jump
         NEG;                            //  Make positive
-        CP      (val_b);                    //  Compare to limit
-        if(NC) return a;                   //  Return if outside limit
-        return val_b;                  //  Output value as is
-        //RETu;                           //  Return
-LIM10:  CP      (val_b);                    //  Compare to limit
-        if     (CY) return a;                   //  Return if outside limit
-        return val_b;                  //  Output value as is
-        //RETu;                           //  Return
+        CP      (val);                  //  Compare to limit
+        if     (NC) return a;           //  Return if outside limit
+        LD      (a,val);                //  Output value as is
+        return a;                       //  Return
+LIM10:  CP      (val);                  //  Compare to limit
+        if     (CY) return a;           //  Return if outside limit
+        LD      (a,val);                //  Output value as is
+        return a;                       //  Return
 }
 
 #else
 
-void LIMIT()
-{
-        BIT     (7,b);                  //  Is value negative ?
+int8_t LIMIT( int8_t limit, int8_t val) { a= limit;
+        BIT     (7,val);                //  Is value negative ?
         JP      (Z,LIM10);              //  No - jump
         NEG;                            //  Make positive
-        CP      (b);                    //  Compare to limit
-        RET     (NC);                   //  Return if outside limit
-        LD      (a,b);                  //  Output value as is
-        RETu;                           //  Return
-LIM10:  CP      (b);                    //  Compare to limit
-        RET     (CY);                   //  Return if outside limit
-        LD      (a,b);                  //  Output value as is
-        RETu;                           //  Return
+        CP      (val);                  //  Compare to limit
+        if     (NC) return a;           //  Return if outside limit
+        LD      (a,val);                //  Output value as is
+        return a;                       //  Return
+LIM10:  CP      (val);                  //  Compare to limit
+        if     (CY) return a;           //  Return if outside limit
+        LD      (a,val);                //  Output value as is
+        return a;                       //  Return
 }
+
 #endif
 
 
