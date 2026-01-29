@@ -1089,7 +1089,7 @@ void ENPSNT()
     ADMOVE();       // first step, move the pawn
     m.M3 = m.M1;    // save initial pawn position
 
-    // Dummy pawn move as second part of move    
+    // Dummy pawn move, to effect capture, as second part of move    
     m.M1 = m.M4;    // dummy pawn move "from"
     m.M2 = m.M4;    // dummy pawn move "to"
     m.P2 = m.P3;    // captured pawn
@@ -1415,7 +1415,7 @@ void ADMOVE()
 //                                                                         //0831: ;
 // ARGUMENTS: --  None                                                     //0832: ; ARGUMENTS: --  None
 //***********************************************************              //0833: ;***********************************************************
-void GENMOV() {
+void GENMOV_asm() {
         callback_zargon_bridge(CB_GENMOV);
         bool inchk = INCHK(m.COLOR);    //  Test for King in check         //0834: GENMOV: CALL    INCHK           ; Test for King in check
         LD      (val(CKFLG),inchk);     //  Save attack count as flag      //0835:         LD      (CKFLG),a       ; Save attack count as flag
@@ -1448,6 +1448,116 @@ GM10:   LD      (a,val(M1));            //  Fetch current board position   //085
         JP      (NZ,GM5);               //  No - Jump                      //0862:         JP      NZ,GM5          ; No - Jump
         RETu;                           //  Return                         //0863:         RET                     ; Return
 }                                                                          //0864:
+
+#if 1
+
+void GENMOV()
+{
+    callback_zargon_bridge(CB_GENMOV);
+
+    // Test for King in check
+    bool inchk = INCHK(m.COLOR);
+    m.CKFLG = inchk;
+
+    // Setup move list pointers
+    uint16_t bin_de = m.MLNXT;  // addr of next avail list space
+    uint16_t bin_hl = m.MLPTRI; // ply list pointer index
+    bin_hl += 2;                // increment to next ply
+
+    //  Save move list pointer
+    uint8_t *p = BIN_TO_PTR(bin_hl);
+    WR_BIN(p,bin_de);
+    bin_hl += 2;
+    m.MLPTRI = bin_hl;   // save new index
+    m.MLLST  = bin_hl;   // last pointer for chain init.
+
+#if 0
+    // Loop through the board
+    for( uint8_t pos=21; pos<=98; pos++ )
+    {
+        m.M1 = pos;
+        uint8_t piece = m.BOARDA[pos];
+
+        // If piece not empty or border
+        if( piece!=0 && piece!=0xff )
+        {
+            m.P1 = piece;
+
+            // if piece color is side to move, gen moves
+            if( (m.COLOR&0x80) == (piece&0x80) )
+            {
+
+                hl = PTR_TO_BIN(&m.COLOR);       // color
+                a  = piece;
+                MPIECE();
+            }
+        }
+    }
+
+#else
+    // Loop through the board
+    for( uint8_t pos=21; pos<=98; pos++ )
+    {
+        m.M1 = pos;
+        uint8_t piece = m.BOARDA[pos];
+
+        a = piece;
+
+        AND     (a);                    //  Is it empty ?
+        JR      (Z,GM10);               //  Yes - Jump
+        CP      (-1);                   //  Is it a border square ?
+        JR      (Z,GM10);               //  Yes - Jump
+        LD      (val(P1),a);            //  Save piece
+        LD      (hl,addr(COLOR));       //  Address of color of piece
+        XOR     (ptr(hl));              //  Test color of piece
+        BIT     (7,a);                  //  Match ?
+        CALL    (Z,MPIECE);             //  Yes - call Move Piece
+
+        GM10: ;
+    }
+
+#endif
+}
+
+#else
+
+void GENMOV()
+{
+        callback_zargon_bridge(CB_GENMOV);
+        bool inchk = INCHK(m.COLOR);    //  Test for King in check
+        LD      (val(CKFLG),inchk);     //  Save attack count as flag
+        LD      (de,v16(MLNXT));        //  Addr of next avail list space
+        LD      (hl,v16(MLPTRI));       //  Ply list pointer index
+        INC16   (hl);                   //  Increment to next ply
+        INC16   (hl);
+        LD      (ptr(hl),e);            //  Save move list pointer
+        INC16   (hl);
+        LD      (ptr(hl),d);
+        INC16   (hl);
+        LD      (v16(MLPTRI),hl);       //  Save new index
+        LD      (v16(MLLST),hl);        //  Last pointer for chain init.
+        LD      (a,21);                 //  First position on board
+GM5:    LD      (val(M1),a);            //  Save as index
+        LD      (ix,v16(M1));           //  Load board index
+        LD      (a,ptr(ix+BOARD));      //  Fetch board contents
+        AND     (a);                    //  Is it empty ?
+        JR      (Z,GM10);               //  Yes - Jump
+        CP      (-1);                   //  Is it a border square ?
+        JR      (Z,GM10);               //  Yes - Jump
+        LD      (val(P1),a);            //  Save piece
+        LD      (hl,addr(COLOR));       //  Address of color of piece
+        XOR     (ptr(hl));              //  Test color of piece
+        BIT     (7,a);                  //  Match ?
+        CALL    (Z,MPIECE);             //  Yes - call Move Piece
+GM10:   LD      (a,val(M1));            //  Fetch current board position
+        INC     (a);                    //  Incr to next board position
+        CP      (99);                   //  End of board array ?
+        JP      (NZ,GM5);               //  No - Jump
+        RETu;                           //  Return
+}
+
+#endif
+
 
 //***********************************************************              //0865: ;***********************************************************
 // CHECK ROUTINE                                                           //0866: ; CHECK ROUTINE
