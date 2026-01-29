@@ -2250,11 +2250,15 @@ void PINFND()
                 //LD      (a,l);                  //  Piece type
                 if(m.T2 != BISHOP )               //  Bishop ?
                     continue;              //  No - jump
-                goto PF20;                 //  Jump
+                m.plistd[m.NPINS]   = dir;     // save direction of pin
+                m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
+                continue;
         PF10:   //LD      (a,l);                  //  Piece type
                 if(m.T2 != ROOK )                 //  Rook ?
                     continue;              //  No - jump
-                goto PF20;                 //  Jump
+                m.plistd[m.NPINS]   = dir;     // save direction of pin
+                m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
+                continue;
         PF15:                        //  Possible pin ?
                 if( m.M4 !=0 ) continue;              //  No - jump
                 m.M4 = m.M2;            //  Save possible pin position
@@ -2262,7 +2266,11 @@ void PINFND()
         PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
                 //AND     (7);                    //  Clear flags
                 //CP      (QUEEN);                //  Queen ?
-                    goto PF20;              //  No - jump
+                {
+                    m.plistd[m.NPINS]   = dir;     // save direction of pin
+                    m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
+                    continue;
+                }
                 // PUSH    (bc);                   //  Save regs.
                 // PUSH    (de);
                 // PUSH    (iy);
@@ -2289,12 +2297,8 @@ void PINFND()
         //uint8_t     PLISTA[10];     // pinned pieces                               //0201: PLISTA  DW      0,0,0,0,0,0,0,0,0,0
         //uint8_t     plistd[10];     // corresponding directions                    //0202:
 
-        PF20:   m.NPINS++;       //  Address of pinned piece count
-                //INC     (ptr(hl));              //  Increment
-                //LD      (ix,v16(NPINS));        //  Load pin list index
-                m.plistd[m.NPINS-1] = dir;     //  Save direction of pin
-                //LD      (a,val(M4));            //  Position of pinned piece
-                m.PLISTA[m.NPINS-1] = m.M4;      //  Save in list
+                m.plistd[m.NPINS]   = dir;     // save direction of pin
+                m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
         }
     }
 }
