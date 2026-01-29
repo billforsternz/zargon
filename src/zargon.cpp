@@ -2236,21 +2236,21 @@ PF5:    path_result =     PATH(c);                //  Compute next position
         if( path_result == 2 ) goto PF15;    //  Piece of same color?
         //AND     (a);                    //  Possible pin ?
         if( m.M4 ==0 ) goto PF25;              //  No - jump
-        LD      (a,val(T2));            //  Piece type encountered
-        CP      (QUEEN);                //  Queen ?
-        JP      (Z,PF19);               //  Yes - jump
-        LD      (l,a);                  //  Save piece type
+        if(m.T2 == QUEEN )            //  Piece type encountered
+        //CP      (QUEEN);                //  Queen ?
+            goto PF19;               //  Yes - jump
+        //LD      (l,a);                  //  Save piece type
         if( dir_count < 5 )             //  Direction counter
             //CP      (5);                    //  Non-diagonal direction ?
             goto PF10;              //  Yes - jump
-        LD      (a,l);                  //  Piece type
-        CP      (BISHOP);               //  Bishop ?
-        JP      (NZ,PF25);              //  No - jump
-        JPu     (PF20);                 //  Jump
-PF10:   LD      (a,l);                  //  Piece type
-        CP      (ROOK);                 //  Rook ?
-        JP      (NZ,PF25);              //  No - jump
-        JPu     (PF20);                 //  Jump
+        //LD      (a,l);                  //  Piece type
+        if(m.T2 != BISHOP )               //  Bishop ?
+            goto PF25;              //  No - jump
+        goto PF20;                 //  Jump
+PF10:   //LD      (a,l);                  //  Piece type
+        if(m.T2 != ROOK )                 //  Rook ?
+            goto PF25;              //  No - jump
+        goto PF20;                 //  Jump
 PF15:                        //  Possible pin ?
         if( m.M4 !=0 ) goto PF25;              //  No - jump
         LD      (a,val(M2));            //  Save possible pin position
