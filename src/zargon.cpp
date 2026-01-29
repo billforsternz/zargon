@@ -2233,8 +2233,8 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
         m.M3 = *p;              //  Save position as board index
         m.P1 = m.BOARDA[m.M3];
 
-        //dir_count = 8;                  //  Init scan direction count
-        b = 8;                  //  Init scan direction count
+        dir_count = 8;                  //  Init scan direction count
+        //b = 8;                  //  Init scan direction count
         XOR     (a);
         LD      (val(INDX2),a);         //  Init direction index
         LD      (iy,v16(INDX2));
@@ -2257,9 +2257,9 @@ PF5:    a =     PATH(c);                //  Compute next position
         CP      (QUEEN);                //  Queen ?
         JP      (Z,PF19);               //  Yes - jump
         LD      (l,a);                  //  Save piece type
-        LD      (a,b);                  //  Direction counter
-        CP      (5);                    //  Non-diagonal direction ?
-        JR      (CY,PF10);              //  Yes - jump
+        if( dir_count < 5 )             //  Direction counter
+            //CP      (5);                    //  Non-diagonal direction ?
+            goto PF10;              //  Yes - jump
         LD      (a,l);                  //  Piece type
         CP      (BISHOP);               //  Bishop ?
         JP      (NZ,PF25);              //  No - jump
@@ -2310,10 +2310,10 @@ PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         LD      (a,val(M4));            //  Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list
 PF25:   INC16   (iy);                   //  Increment direction index
-        DJNZ(PF27);
-        //dir_count--;
-        //if( dir_count != 0 )
-        //    goto PF27;                 //  Done ? No - Jump
+        //DJNZ(PF27);
+        dir_count--;
+        if( dir_count != 0 )
+            goto PF27;                 //  Done ? No - Jump
 PF26:   p++;                   //  Incr King/Queen pos index
         JPu     (PF1);                  //  Jump
 PF27:   JPu     (PF2);                  //  Jump
