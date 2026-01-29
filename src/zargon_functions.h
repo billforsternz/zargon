@@ -28,7 +28,6 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p );
 void POINTS();
 int8_t LIMIT( int8_t limit, int8_t val );
 int8_t LIMIT_asm( int8_t limit, int8_t val );
-int8_t LIMIT_c( int8_t limit, int8_t val );
 void MOVE();
 void UNMOVE();
 void SORTM();

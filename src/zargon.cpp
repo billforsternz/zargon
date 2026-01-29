@@ -2796,74 +2796,25 @@ LIM10:  CP      (val);                  //  Compare to limit               //153
         return a;                       //  Return                         //1535:         RET                     ; Return
 }                                                                          //1536:
 
-#if 1
-
-int8_t LIMIT( int8_t limit, int8_t val )
+int8_t LIMIT( int8_t limit, int8_t val)
 {
-    int8_t res1 = LIMIT_asm( limit, val );
-    int8_t res2 = LIMIT_c  ( limit, val );
-    static int count;
-    if( res1 != res2 && count<10 )
-    {
-        count++;
-        printf( "LIMIT_asm(%d,%d) -> %d\n", limit,val,res1 );
-        printf( "LIMIT_c(%d,%d) -> %d\n", limit,val,res2 );
-    }
-    return res1;
-}
 
-int8_t LIMIT_c( int8_t limit, int8_t val)
-{
+    // Negative values, eg limit=6, val=-7 => -6
     if( val < 0 )
     {
-        if( (0-val) > limit )
-            return 0-limit;
-        return val;
+        limit = 0-limit;    // make limit negative too
+        if( val < limit )   // if val is more negative than limit
+            val = limit;
     }
+
+    // Positive values, eg limit=6, val=7 => 6
     else
     {
         if( val > limit )
-            return limit;
-        return val;
+            val = limit;
     }
-
-#if 0
-
-        a = limit;
-        if( val < 0 )                //  Is value negative ?
-        { //JP      (Z,LIM10);              //  No - jump
-        limit = 0-limit;                //  Make positive
-        if(     (val);                  //  Compare to limit
-        if     (NC) return a;           //  Return if outside limit
-        LD      (a,val);                //  Output value as is
-        return a;                       //  Return
-        }
-        CP      (val);                  //  Compare to limit
-        if     (CY) return a;           //  Return if outside limit
-        LD      (a,val);                //  Output value as is
-        return a;                       //  Return
-#endif
-
+    return val;
 }
-
-#else
-
-int8_t LIMIT( int8_t limit, int8_t val) { a= limit;
-        BIT     (7,val);                //  Is value negative ?
-        JP      (Z,LIM10);              //  No - jump
-        NEG;                            //  Make positive
-        CP      (val);                  //  Compare to limit
-        if     (NC) return a;           //  Return if outside limit
-        LD      (a,val);                //  Output value as is
-        return a;                       //  Return
-LIM10:  CP      (val);                  //  Compare to limit
-        if     (CY) return a;           //  Return if outside limit
-        LD      (a,val);                //  Output value as is
-        return a;                       //  Return
-}
-
-#endif
-
 
 //***********************************************************              //1537: ;***********************************************************
 // MOVE ROUTINE                                                            //1538: ; MOVE ROUTINE
