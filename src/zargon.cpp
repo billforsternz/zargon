@@ -829,14 +829,14 @@ void MPIECE()
 
     // TODO: Maybe make piece a named parameter
     uint8_t piece = m.P1;
-    piece &= 0x87;   //  Clear flag bits
+    piece &= 0x87;   // clear flag bits
     bool empty = false;
 
     //  Decrement black pawns (so pawns, the only directional type, are 0 black and 1 white
     //   from now on in this function)
     if( piece == BPAWN )
         piece--;
-    piece &= 7;         // Isolate piece type
+    piece &= 7;      // clear colour flag to isolate piece type
     m.T1 = piece;
 
     /*
@@ -846,12 +846,12 @@ void MPIECE()
     The tables:
 
         int8_t direct[24] = {   // idx: type of row
-            +9,+11,-11,-9,      // 0:  diagonals
-            +10,-10,+1,-1,      // 4:  ranks and files
-            -21,-12,+8,+19,     // 8:  knight moves
-            +21,+12,-8,-19,     // 12: knight moves
-            +10,+10,+11,+9,     // 16: white pawn moves
-            -10,-10,-11,-9      // 20: black pawn moves
+            +9,+11,-11,-9,      // 0:   diagonals
+            +10,-10,+1,-1,      // 4:   ranks and files
+            -21,-12,+8,+19,     // 8:   knight moves
+            +21,+12,-8,-19,     // 12:  knight moves
+            +10,+10,+11,+9,     // 16:  white pawn moves
+            -10,-10,-11,-9      // 20:  black pawn moves
         };
 
         uint8_t dpoint[7] = { 
@@ -872,7 +872,10 @@ void MPIECE()
     //                move_dir  = -10, -10, -11, -9
 
     m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
-    for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2; dir_count!=0; dir_count--, dir_idx++ )
+    for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2;
+         dir_count != 0;
+         dir_count--, dir_idx++
+       )
     {
         uint8_t move_dir = m.direct[dir_idx];
 
@@ -880,8 +883,11 @@ void MPIECE()
         m.M2 = m.M1;
 
         // Loop through steps in each direction vector
-        for(;;)
+        bool stepping = true;
+        while( stepping )
         {
+            stepping = false;   // further steps are actually exceptional
+                                // (BISHOPS, ROOKS, QUEENS plus pawn double step)
 
             uint8_t path_result = PATH( move_dir );   //  Calculate next position
             // 0  --  New position is empty      
@@ -895,85 +901,83 @@ void MPIECE()
             callback_zargon(CB_SUPPRESS_KING_MOVES);
 
             // Hit our own piece or off the board ?
-            if( path_result >= 2 )
-                break;  //  Yes - this vector is done
-
-            // Empty destination ?
-            empty = (path_result==0);
-
-            //  Is it a Piece or a Pawn ?
-            if( piece >= KNIGHT )
+            if( path_result < 2 )
             {
 
-                //  Add move to list
-                ADMOVE();
+                // Empty destination ?
+                empty = (path_result==0);
 
-                // If it's a capture stop stepping
-                if( !empty )
-                    break;  // this vector is done
-
-                //  Keep stepping only if Bishop, Rook, or Queen
-                if( piece==KNIGHT || piece==KING )
-                    break;  // if KNIGHT or KING only one step
-            }
-
-            // Pawns are more complicated than pieces!
-            else
-            {
-
-                // For pawns, dir count 4 is single square
-                if( dir_count == 4 )
+                //  Is it a Piece?
+                if( piece >= KNIGHT )
                 {
 
-                    // Skip over dir_count==3 in the outer vector loop,
-                    //  it's a special case that's handled in the inner
-                    //  PATH() loop only. (See below *)
-                    dir_idx++;
-                    dir_count--;
+                    //  Add move to list
+                    ADMOVE();
 
-                    // Is destination available?
-                    if( !empty)
-                        break;     // this vector is done
-
-                    // Check promotion
-                    if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
-                        m.P2 |= 0x20;         //  Set promote flag
-
-                    // Add single step move to move list
-                    ADMOVE();              
-
-                    // Check Pawn moved flag, for double step
-                    if( m.P1 & 0x08 )          
-                        break;  // Moved before, this vector is done
-
-                    // This is the only pawn path that continues the inner PATH() stepping
-                    //  loop (for just one more step - the possible double step)
+                    // Keep stepping if not capture and it's a long range piece
+                    if( empty && (piece==BISHOP || piece==ROOK || piece==QUEEN) )
+                        stepping = true;
                 }
 
-                // For pawns, dir_count 3 indicates double step, but it's actually an
-                //  extension of the dir_count == 4 vector above rather than a vector
-                //  in it's own right, which is why we arrange to skip over it in the
-                //  outer vector loop. (See above *)
-                else if( dir_count == 3 )
+                // It's a pawn, more complicated than pieces!
+                else
                 {
-                    // Is forward square empty ?
-                    if( empty )
-                        ADMOVE();
-                    break;  // all but the dir_count==4  pawn paths are just one step
-                }
 
-                // For pawns, dir_count 1 and 2 are diagonal moves
-                else if( dir_count < 3 )
-                {
-                    if( empty )
-                        ENPSNT();               //  Try en passant capture
-                    else
+                    // For pawns, dir count 4 is single square
+                    if( dir_count == 4 )
                     {
-                        if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
-                            m.P2 |= 0x20;         //  Set promote flag
-                        ADMOVE();               //  Add to move list
+
+                        // Skip over dir_count==3 in the outer vector loop,
+                        //  it's a special case that's handled in the inner
+                        //  PATH() loop only. (See below *)
+                        dir_idx++;
+                        dir_count--;
+
+                        // Is destination available?
+                        if( empty)
+                        {
+
+                            // Check promotion
+                            if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                                m.P2 |= 0x20;         //  Set promote flag
+
+                            // Add single step move to move list
+                            ADMOVE();              
+
+                            // Check Pawn moved flag, for double step
+                            if( (m.P1 & 0x08) == 0 )
+                            {
+
+                                // This is the only pawn path that continues the inner PATH() stepping
+                                //  loop (for just one more step - the possible double step)
+                                stepping = true;
+                            }
+                        }
                     }
-                    break;  // all but the dir_count==4  pawn paths are just one step
+
+                    // For pawns, dir_count 3 indicates double step, but it's actually an
+                    //  extension of the dir_count == 4 vector above rather than a vector
+                    //  in it's own right, which is why we arrange to skip over it in the
+                    //  outer vector loop. (See above *)
+                    else if( dir_count == 3 )
+                    {
+                        // Is forward square empty ?
+                        if( empty )
+                            ADMOVE();
+                    }
+
+                    // For pawns, dir_count 1 and 2 are diagonal moves
+                    else if( dir_count < 3 )
+                    {
+                        if( empty )
+                            ENPSNT();               //  Try en passant capture
+                        else
+                        {
+                            if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                                m.P2 |= 0x20;           // set promote flag
+                            ADMOVE();                   // add to move list
+                        }
+                    }
                 }
             }
         }
