@@ -2280,12 +2280,18 @@ PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
         }
         if( defenders_minus_attackers-1 >= 0 )
             goto PF25;
-PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
-        INC     (ptr(hl));              //  Increment
-        LD      (ix,v16(NPINS));        //  Load pin list index
-        LD      (ptr(ix+PLISTD),dir);     //  Save direction of pin
-        LD      (a,val(M4));            //  Position of pinned piece
-        LD      (ptr(ix+PLIST),a);      //  Save in list
+
+// #define PLIST (addr(PLISTA)-TBASE-1)    ///TODO -1 why?                 //0199: PLIST   EQU     $-TBASE-1
+// #define PLISTD (PLIST+10)                                               //0200: PLISTD  EQU     PLIST+10
+//uint8_t     PLISTA[10];     // pinned pieces                               //0201: PLISTA  DW      0,0,0,0,0,0,0,0,0,0
+//uint8_t     plistd[10];     // corresponding directions                    //0202:
+
+PF20:   m.NPINS++;       //  Address of pinned piece count
+        //INC     (ptr(hl));              //  Increment
+        //LD      (ix,v16(NPINS));        //  Load pin list index
+        m.plistd[m.NPINS-1] = dir;     //  Save direction of pin
+        //LD      (a,val(M4));            //  Position of pinned piece
+        m.PLISTA[m.NPINS-1] = m.M4;      //  Save in list
 PF25:   y++;                            //  Increment direction index
         //DJNZ(PF27);
         dir_count--;
