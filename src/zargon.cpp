@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (23)
+// Functions converted to C (24)
 
 // INITBD
 // PATH
@@ -44,6 +44,7 @@ zargon_data_defs_check_and_regen regen;
 // ADJPTR
 // CASTLE
 // ADMOVE
+// GENMOV
 // INCHK
 // ATTACK
 // ATKSAV
@@ -61,9 +62,8 @@ zargon_data_defs_check_and_regen regen;
 // VALMOV 
 // ROYALT 
 // 
-// Functions not yet converted to C (9)
+// Functions not yet converted to C (8)
 // 
-// GENMOV
 // PINFND
 // POINTS
 // LIMIT 
@@ -1449,8 +1449,6 @@ GM10:   LD      (a,val(M1));            //  Fetch current board position   //085
         RETu;                           //  Return                         //0863:         RET                     ; Return
 }                                                                          //0864:
 
-#if 1
-
 void GENMOV()
 {
     callback_zargon_bridge(CB_GENMOV);
@@ -1471,7 +1469,6 @@ void GENMOV()
     m.MLPTRI = bin_hl;   // save new index
     m.MLLST  = bin_hl;   // last pointer for chain init.
 
-#if 0
     // Loop through the board
     for( uint8_t pos=21; pos<=98; pos++ )
     {
@@ -1483,77 +1480,20 @@ void GENMOV()
         {
             m.P1 = piece;
 
-            // if piece color is side to move, gen moves
+            // If piece color is side to move, gen moves
             if( (m.COLOR&0x80) == (piece&0x80) )
             {
 
-                hl = PTR_TO_BIN(&m.COLOR);       // color
-                a  = piece;
+                // TODO, Clarify this: Parmeters to MPIECE() are;
+                //  hl = address of COLOR
+                //  a = is piece with color bit cleared
+                hl = PTR_TO_BIN(&m.COLOR);
+                a  = piece & 0x7f;
                 MPIECE();
             }
         }
     }
-
-#else
-    // Loop through the board
-    for( uint8_t pos=21; pos<=98; pos++ )
-    {
-        m.M1 = pos;
-        uint8_t piece = m.BOARDA[pos];
-
-        // If piece not empty or border
-        if( piece!=0 && piece!=-1 )
-        { 
-            a = piece;
-            LD      (val(P1),a);            //  Save piece
-            LD      (hl,addr(COLOR));       //  Address of color of piece
-            XOR     (ptr(hl));              //  Test color of piece
-            BIT     (7,a);                  //  Match ?
-            CALL    (Z,MPIECE);             //  Yes - call Move Piece
-        }
-    }
-
-#endif
 }
-
-#else
-
-void GENMOV()
-{
-        callback_zargon_bridge(CB_GENMOV);
-        bool inchk = INCHK(m.COLOR);    //  Test for King in check
-        LD      (val(CKFLG),inchk);     //  Save attack count as flag
-        LD      (de,v16(MLNXT));        //  Addr of next avail list space
-        LD      (hl,v16(MLPTRI));       //  Ply list pointer index
-        INC16   (hl);                   //  Increment to next ply
-        INC16   (hl);
-        LD      (ptr(hl),e);            //  Save move list pointer
-        INC16   (hl);
-        LD      (ptr(hl),d);
-        INC16   (hl);
-        LD      (v16(MLPTRI),hl);       //  Save new index
-        LD      (v16(MLLST),hl);        //  Last pointer for chain init.
-        LD      (a,21);                 //  First position on board
-GM5:    LD      (val(M1),a);            //  Save as index
-        LD      (ix,v16(M1));           //  Load board index
-        LD      (a,ptr(ix+BOARD));      //  Fetch board contents
-        AND     (a);                    //  Is it empty ?
-        JR      (Z,GM10);               //  Yes - Jump
-        CP      (-1);                   //  Is it a border square ?
-        JR      (Z,GM10);               //  Yes - Jump
-        LD      (val(P1),a);            //  Save piece
-        LD      (hl,addr(COLOR));       //  Address of color of piece
-        XOR     (ptr(hl));              //  Test color of piece
-        BIT     (7,a);                  //  Match ?
-        CALL    (Z,MPIECE);             //  Yes - call Move Piece
-GM10:   LD      (a,val(M1));            //  Fetch current board position
-        INC     (a);                    //  Incr to next board position
-        CP      (99);                   //  End of board array ?
-        JP      (NZ,GM5);               //  No - Jump
-        RETu;                           //  Return
-}
-
-#endif
 
 
 //***********************************************************              //0865: ;***********************************************************
