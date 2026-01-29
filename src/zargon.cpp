@@ -2222,11 +2222,12 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
         m.M3 = *p;              //  Save position as board index
         m.P1 = m.BOARDA[m.M3];
 
-        dir_count = 8;                  //  Init scan direction count
-        //b = 8;                  //  Init scan direction count
         m.INDX2 = 0;          //  Init direction index
         y = &m.direct[m.INDX2];
-PF2:    m.M2 = m.M3;            //  Get King/Queen position
+// Loop over all directions
+for( uint8_t dir_count=8; dir_count>0; dir_count-- )
+{
+        m.M2 = m.M3;            //  Get King/Queen position
         m.M4 = 0;         //  Clear pinned piece saved pos
         dir = *y;     //  Get direction of scan
 PF5:    path_result =     PATH(dir);                //  Compute next position
@@ -2293,13 +2294,9 @@ PF20:   m.NPINS++;       //  Address of pinned piece count
         //LD      (a,val(M4));            //  Position of pinned piece
         m.PLISTA[m.NPINS-1] = m.M4;      //  Save in list
 PF25:   y++;                            //  Increment direction index
-        //DJNZ(PF27);
-        dir_count--;
-        if( dir_count != 0 )
-            goto PF27;                 //  Done ? No - Jump
+}
 PF26:   p++;                   //  Incr King/Queen pos index
         JPu     (PF1);                  //  Jump
-PF27:   JPu     (PF2);                  //  Jump
 }
 
 #else
