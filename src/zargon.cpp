@@ -2221,6 +2221,7 @@ PF2:    m.M2 = m.M3;            //  Get King/Queen position
 void PINFND()
 {
         uint8_t dir_count=0;
+        int8_t *y;
 
         callback_zargon_bridge(CB_PINFND);
         m.NPINS = 0;
@@ -2235,14 +2236,13 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
 
         dir_count = 8;                  //  Init scan direction count
         //b = 8;                  //  Init scan direction count
-        XOR     (a);
-        LD      (val(INDX2),a);         //  Init direction index
-        LD      (iy,v16(INDX2));
+        m.INDX2 = 0;          //  Init direction index
+        y = &m.direct[m.INDX2];
 PF2:    LD      (a,val(M3));            //  Get King/Queen position
         LD      (val(M2),a);            //  Save
         XOR     (a);
         LD      (val(M4),a);            //  Clear pinned piece saved pos
-        LD      (c,ptr(iy+DIRECT));     //  Get direction of scan
+        LD      (c,*y);     //  Get direction of scan
 PF5:    a =     PATH(c);                //  Compute next position
         AND     (a);                    //  Is it empty ?
         JR      (Z,PF5);                //  Yes - jump
@@ -2309,7 +2309,7 @@ PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         LD      (ptr(ix+PLISTD),c);     //  Save direction of pin
         LD      (a,val(M4));            //  Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list
-PF25:   INC16   (iy);                   //  Increment direction index
+PF25:   y++; INC16   (iy);                   //  Increment direction index
         //DJNZ(PF27);
         dir_count--;
         if( dir_count != 0 )
