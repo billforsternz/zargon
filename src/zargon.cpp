@@ -2253,13 +2253,12 @@ PF10:   //LD      (a,l);                  //  Piece type
         goto PF20;                 //  Jump
 PF15:                        //  Possible pin ?
         if( m.M4 !=0 ) goto PF25;              //  No - jump
-        LD      (a,val(M2));            //  Save possible pin position
-        LD      (val(M4),a);
-        JPu     (PF5);                  //  Jump
-PF19:   LD      (a,val(P1));            //  Load King or Queen
-        AND     (7);                    //  Clear flags
-        CP      (QUEEN);                //  Queen ?
-        JR      (NZ,PF20);              //  No - jump
+        m.M4 = m.M2;            //  Save possible pin position
+        goto PF5;                  //  Jump
+PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
+        //AND     (7);                    //  Clear flags
+        //CP      (QUEEN);                //  Queen ?
+            goto PF20;              //  No - jump
         PUSH    (bc);                   //  Save regs.
         PUSH    (de);
         PUSH    (iy);
@@ -2292,7 +2291,7 @@ PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         LD      (ptr(ix+PLISTD),c);     //  Save direction of pin
         LD      (a,val(M4));            //  Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list
-PF25:   y++; INC16   (iy);                   //  Increment direction index
+PF25:   y++;                            //  Increment direction index
         //DJNZ(PF27);
         dir_count--;
         if( dir_count != 0 )
