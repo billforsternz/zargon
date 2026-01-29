@@ -2202,26 +2202,13 @@ PF26:   INC16   (de);                   //  Incr King/Queen pos index      //123
 PF27:   JPu     (PF2);                  //  Jump                           //1235: PF27:   JP      PF2             ; Jump
 }                                                                          //1236:
 
-#if 0
-        //LD      (ix,v16(M3));           //  Load index to board
-        //LD      (a,ptr(ix+BOARD));      //  Get contents of board
-        m.P1 = m.BOARDA[m.M3];
-        uint8_t dir_count; dir_count = 8;                  //  Init scan direction count
-        m.INDX2 = 0;          //  Init direction index
-        int8_t *y; y = &m.direct[m.INDX2];
-PF2:    m.M2 = m.M3;            //  Get King/Queen position
-        m.M4 = 0;         //  Clear pinned piece saved pos
-        c = *y;     //  Get direction of scan
-
-#endif
-
-
 #if 1
 
 void PINFND()
 {
         uint8_t dir_count=0;
         int8_t *y;
+        int8_t path_result;
 
         callback_zargon_bridge(CB_PINFND);
         m.NPINS = 0;
@@ -2241,16 +2228,14 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
 PF2:    m.M2 = m.M3;            //  Get King/Queen position
         m.M4 = 0;         //  Clear pinned piece saved pos
         c = *y;     //  Get direction of scan
-PF5:    a =     PATH(c);                //  Compute next position
-        AND     (a);                    //  Is it empty ?
-        JR      (Z,PF5);                //  Yes - jump
-        CP      (3);                    //  Off board ?
-        JP      (Z,PF25);               //  Yes - jump
-        CP      (2);                    //  Piece of same color
-        LD      (a,val(M4));            //  Load pinned piece position
-        JR      (Z,PF15);               //  Yes - jump
-        AND     (a);                    //  Possible pin ?
-        JP      (Z,PF25);               //  No - jump
+PF5:    path_result =     PATH(c);                //  Compute next position
+        if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
+        if( path_result == 3 ) goto PF25;    //  Off board ?
+        //CP      (2);                    
+        //LD      (a,val(M4));            //  Load pinned piece position
+        if( path_result == 2 ) goto PF15;    //  Piece of same color?
+        //AND     (a);                    //  Possible pin ?
+        if( m.M4 ==0 ) goto PF25;              //  No - jump
         LD      (a,val(T2));            //  Piece type encountered
         CP      (QUEEN);                //  Queen ?
         JP      (Z,PF19);               //  Yes - jump
@@ -2266,8 +2251,8 @@ PF10:   LD      (a,l);                  //  Piece type
         CP      (ROOK);                 //  Rook ?
         JP      (NZ,PF25);              //  No - jump
         JPu     (PF20);                 //  Jump
-PF15:   AND     (a);                    //  Possible pin ?
-        JP      (NZ,PF25);              //  No - jump
+PF15:                        //  Possible pin ?
+        if( m.M4 !=0 ) goto PF25;              //  No - jump
         LD      (a,val(M2));            //  Save possible pin position
         LD      (val(M4),a);
         JPu     (PF5);                  //  Jump
@@ -2321,6 +2306,10 @@ PF27:   JPu     (PF2);                  //  Jump
 
 void PINFND()
 {
+        uint8_t dir_count=0;
+        int8_t *y;
+        int8_t path_result;
+
         callback_zargon_bridge(CB_PINFND);
         m.NPINS = 0;
         uint8_t *p = &m.POSK[0];        //  Addr of King/Queen pos list
@@ -2330,35 +2319,30 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
         if( *p == 0xff )                   //  At end of list ?
             return; //RET     (Z);                    //  Yes return
         m.M3 = *p;              //  Save position as board index
-        LD      (ix,v16(M3));           //  Load index to board
-        LD      (a,ptr(ix+BOARD));      //  Get contents of board
-        LD      (val(P1),a);            //  Save
-        LD      (b,8);                  //  Init scan direction count
-        XOR     (a);
-        LD      (val(INDX2),a);         //  Init direction index
-        LD      (iy,v16(INDX2));
-PF2:    LD      (a,val(M3));            //  Get King/Queen position
-        LD      (val(M2),a);            //  Save
-        XOR     (a);
-        LD      (val(M4),a);            //  Clear pinned piece saved pos
-        LD      (c,ptr(iy+DIRECT));     //  Get direction of scan
-PF5:    a =     PATH(c);                //  Compute next position
-        AND     (a);                    //  Is it empty ?
-        JR      (Z,PF5);                //  Yes - jump
-        CP      (3);                    //  Off board ?
-        JP      (Z,PF25);               //  Yes - jump
-        CP      (2);                    //  Piece of same color
-        LD      (a,val(M4));            //  Load pinned piece position
-        JR      (Z,PF15);               //  Yes - jump
-        AND     (a);                    //  Possible pin ?
-        JP      (Z,PF25);               //  No - jump
+        m.P1 = m.BOARDA[m.M3];
+
+        dir_count = 8;                  //  Init scan direction count
+        //b = 8;                  //  Init scan direction count
+        m.INDX2 = 0;          //  Init direction index
+        y = &m.direct[m.INDX2];
+PF2:    m.M2 = m.M3;            //  Get King/Queen position
+        m.M4 = 0;         //  Clear pinned piece saved pos
+        c = *y;     //  Get direction of scan
+PF5:    path_result =     PATH(c);                //  Compute next position
+        if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
+        if( path_result == 3 ) goto PF25;    //  Off board ?
+        //CP      (2);                    
+        //LD      (a,val(M4));            //  Load pinned piece position
+        if( path_result == 2 ) goto PF15;    //  Piece of same color?
+        //AND     (a);                    //  Possible pin ?
+        if( m.M4 ==0 ) goto PF25;              //  No - jump
         LD      (a,val(T2));            //  Piece type encountered
         CP      (QUEEN);                //  Queen ?
         JP      (Z,PF19);               //  Yes - jump
         LD      (l,a);                  //  Save piece type
-        LD      (a,b);                  //  Direction counter
-        CP      (5);                    //  Non-diagonal direction ?
-        JR      (CY,PF10);              //  Yes - jump
+        if( dir_count < 5 )             //  Direction counter
+            //CP      (5);                    //  Non-diagonal direction ?
+            goto PF10;              //  Yes - jump
         LD      (a,l);                  //  Piece type
         CP      (BISHOP);               //  Bishop ?
         JP      (NZ,PF25);              //  No - jump
@@ -2367,8 +2351,8 @@ PF10:   LD      (a,l);                  //  Piece type
         CP      (ROOK);                 //  Rook ?
         JP      (NZ,PF25);              //  No - jump
         JPu     (PF20);                 //  Jump
-PF15:   AND     (a);                    //  Possible pin ?
-        JP      (NZ,PF25);              //  No - jump
+PF15:                        //  Possible pin ?
+        if( m.M4 !=0 ) goto PF25;              //  No - jump
         LD      (a,val(M2));            //  Save possible pin position
         LD      (val(M4),a);
         JPu     (PF5);                  //  Jump
@@ -2408,14 +2392,15 @@ PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         LD      (ptr(ix+PLISTD),c);     //  Save direction of pin
         LD      (a,val(M4));            //  Position of pinned piece
         LD      (ptr(ix+PLIST),a);      //  Save in list
-PF25:   INC16   (iy);                   //  Increment direction index
-        DJNZ    (PF27);                 //  Done ? No - Jump
+PF25:   y++; INC16   (iy);                   //  Increment direction index
+        //DJNZ(PF27);
+        dir_count--;
+        if( dir_count != 0 )
+            goto PF27;                 //  Done ? No - Jump
 PF26:   p++;                   //  Incr King/Queen pos index
         JPu     (PF1);                  //  Jump
 PF27:   JPu     (PF2);                  //  Jump
 }
-
-
 #endif
 
 
