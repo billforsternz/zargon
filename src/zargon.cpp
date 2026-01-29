@@ -2263,15 +2263,10 @@ PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
         // PUSH    (bc);                   //  Save regs.
         // PUSH    (de);
         // PUSH    (iy);
-        XOR     (a);                    //  Zero out attack list
-        LD      (b,14);
-        LD      (hl,addr(ATKLST));
-back02: LD      (ptr(hl),a);
-        INC16   (hl);
-        DJNZ    (back02);
-        LD      (a,7);                  //  Set attack flag
-        LD      (val(T1),a);
-        CALLu   (ATTACK);               //  Find attackers/defenders
+        memset( m.ATKLST, 0, sizeof(m.ATKLST) );
+        //LD      (a,7);                  //  Set attack flag
+        m.T1 = 7;
+        ATTACK();               //  Find attackers/defenders
         LD      (hl,WACT);              //  White queen attackers
         LD      (de,BACT);              //  Black queen attackers
         LD      (a,val(P1));            //  Get queen
