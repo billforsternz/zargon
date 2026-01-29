@@ -2240,19 +2240,17 @@ void PINFND()
                 if(m.T2 == QUEEN )            //  Piece type encountered
                 {
 
-                        if( (m.P1&7) != QUEEN )    // Is royal piece king or queen
+                    if( (m.P1&7) == KING )
                     {
                         m.plistd[m.NPINS]   = dir;     // save direction of pin
                         m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
                         continue;
                     }
-                    // PUSH    (bc);                   //  Save regs.
-                    // PUSH    (de);
-                    // PUSH    (iy);
-                    memset( m.ATKLST, 0, sizeof(m.ATKLST) );
-                    //LD      (a,7);                  //  Set attack flag
+
+                    //  Find attackers/defenders
                     m.T1 = 7;
-                    ATTACK();               //  Find attackers/defenders
+                    memset( m.ATKLST, 0, sizeof(m.ATKLST) );
+                    ATTACK();
                     int8_t defenders_minus_attackers;
                     int8_t *wact; wact = (int8_t *)&(m.ATKLST);
                     int8_t *bact; bact = wact + sizeof(m.ATKLST)/2;
@@ -2266,29 +2264,27 @@ void PINFND()
                     }
                     if( defenders_minus_attackers < 1 )
                     {
+                        // Save direction of pin and position of pinned piece
+                        m.plistd[m.NPINS]   = dir;
+                        m.PLISTA[m.NPINS++] = m.M4;
+                    }
+                    continue;
+                }
+                else
+                {
+                    if( dir_count >=5 && m.T2 == BISHOP )               //  Bishop ?
+                    {
+                        // Save direction of pin and position of pinned piece
+                        m.plistd[m.NPINS]   = dir;
+                        m.PLISTA[m.NPINS++] = m.M4;
+                    }
+                    else if( dir_count <5 && m.T2 == ROOK )                 //  Rook ?
+                    {
                         m.plistd[m.NPINS]   = dir;     // save direction of pin
                         m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
                     }
                     continue;
                 }
-                //LD      (l,a);                  //  Save piece type
-                if( dir_count < 5 )             //  Direction counter
-                    //CP      (5);                    //  Non-diagonal direction ?
-                    goto PF10;              //  Yes - jump
-                //LD      (a,l);                  //  Piece type
-                if(m.T2 == BISHOP )               //  Bishop ?
-                {
-                    m.plistd[m.NPINS]   = dir;     // save direction of pin
-                    m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
-                }
-                continue;
-        PF10:   //LD      (a,l);                  //  Piece type
-                if(m.T2 == ROOK )                 //  Rook ?
-                {
-                    m.plistd[m.NPINS]   = dir;     // save direction of pin
-                    m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
-                }
-                continue;
         PF15:                        //  Possible pin ?
                 if( m.M4 !=0 ) continue;              //  No - jump
                 m.M4 = m.M2;            //  Save possible pin position
