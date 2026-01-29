@@ -1501,19 +1501,16 @@ void GENMOV()
         m.M1 = pos;
         uint8_t piece = m.BOARDA[pos];
 
-        a = piece;
-
-        AND     (a);                    //  Is it empty ?
-        JR      (Z,GM10);               //  Yes - Jump
-        CP      (-1);                   //  Is it a border square ?
-        JR      (Z,GM10);               //  Yes - Jump
-        LD      (val(P1),a);            //  Save piece
-        LD      (hl,addr(COLOR));       //  Address of color of piece
-        XOR     (ptr(hl));              //  Test color of piece
-        BIT     (7,a);                  //  Match ?
-        CALL    (Z,MPIECE);             //  Yes - call Move Piece
-
-        GM10: ;
+        // If piece not empty or border
+        if( piece!=0 && piece!=-1 )
+        { 
+            a = piece;
+            LD      (val(P1),a);            //  Save piece
+            LD      (hl,addr(COLOR));       //  Address of color of piece
+            XOR     (ptr(hl));              //  Test color of piece
+            BIT     (7,a);                  //  Match ?
+            CALL    (Z,MPIECE);             //  Yes - call Move Piece
+        }
     }
 
 #endif
