@@ -2267,28 +2267,9 @@ PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
         //LD      (a,7);                  //  Set attack flag
         m.T1 = 7;
         ATTACK();               //  Find attackers/defenders
-#if 0
-        LD      (hl,WACT);              //  White queen attackers
-        LD      (de,BACT);              //  Black queen attackers
-        LD      (a,val(P1));            //  Get queen
-        BIT     (7,a);                  //  Is she white ?
-        JR      (Z,rel008);             //  Yes - skip
-        LD      (a,ptr(de));            //  Number of defenders
-        SUB     (ptr(hl));
-        goto rejoin;
-
-rel008: LD      (a,ptr(hl));            //  Number of defenders
-        SUB     (ptr(de));              //  Defenders minus attackers
-
-rejoin: DEC     (a);                    //  Less 1
-        // POP     (iy);                   //  Restore regs.
-        // POP     (de);
-        // POP     (bc);
-        JP      (P,PF25);               //  Jump if pin not valid
-#else
         int8_t defenders_minus_attackers;
-        int8_t *wact; wact = (int8_t *)BIN_TO_PTR(WACT); // (int8_t *)&(m.ATKLST);
-        int8_t *bact; bact = (int8_t *)BIN_TO_PTR(BACT); //  wact + sizeof(ATKLST)/2;
+        int8_t *wact; wact = (int8_t *)&(m.ATKLST);
+        int8_t *bact; bact = wact + sizeof(m.ATKLST)/2;
         if( m.P1 & 0x80 )   // Is queen black ?
         {
             defenders_minus_attackers = *bact - *wact;
@@ -2299,7 +2280,6 @@ rejoin: DEC     (a);                    //  Less 1
         }
         if( defenders_minus_attackers-1 >= 0 )
             goto PF25;
-#endif
 PF20:   LD      (hl,addr(NPINS));       //  Address of pinned piece count
         INC     (ptr(hl));              //  Increment
         LD      (ix,v16(NPINS));        //  Load pin list index
