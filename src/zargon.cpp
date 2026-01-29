@@ -2215,9 +2215,9 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
         if( *p == 0xff )                   //  At end of list ?
             return; //RET     (Z);                    //  Yes return
         m.M3 = *p;              //  Save position as board index
-        LD      (ix,v16(M3));           //  Load index to board
-        LD      (a,ptr(ix+BOARD));      //  Get contents of board
-        LD      (val(P1),a);            //  Save
+        //LD      (ix,v16(M3));           //  Load index to board
+        //LD      (a,ptr(ix+BOARD));      //  Get contents of board
+        m.P1 = m.BOARDA[m.M3];
         LD      (b,8);                  //  Init scan direction count
         XOR     (a);
         LD      (val(INDX2),a);         //  Init direction index
