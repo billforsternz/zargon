@@ -2782,18 +2782,18 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //150
 //                        - Value to limit to in the A register            //1522: ;                        - Value to limit to in the A register
 //                 Output - Limited value in the A register.               //1523: ;                 Output - Limited value in the A register.
 //***********************************************************              //1524: ;***********************************************************
-void LIMIT_asm() {
+int8_t LIMIT_asm() {
         BIT     (7,b);                  //  Is value negative ?            //1525: LIMIT:  BIT     7,b             ; Is value negative ?
         JP      (Z,LIM10);              //  No - jump                      //1526:         JP      Z,LIM10         ; No - jump
         NEG;                            //  Make positive                  //1527:         NEG                     ; Make positive
         CP      (b);                    //  Compare to limit               //1528:         CP      b               ; Compare to limit
-        RET     (NC);                   //  Return if outside limit        //1529:         RET     NC              ; Return if outside limit
+        if     (NC) return a;                   //  Return if outside limit        //1529:         RET     NC              ; Return if outside limit
         LD      (a,b);                  //  Output value as is             //1530:         LD      a,b             ; Output value as is
-        RETu;                           //  Return                         //1531:         RET                     ; Return
+        return a;                           //  Return                         //1531:         RET                     ; Return
 LIM10:  CP      (b);                    //  Compare to limit               //1532: LIM10:  CP      b               ; Compare to limit
-        RET     (CY);                   //  Return if outside limit        //1533:         RET     C               ; Return if outside limit
+        if     (CY) return a;                   //  Return if outside limit        //1533:         RET     C               ; Return if outside limit
         LD      (a,b);                  //  Output value as is             //1534:         LD      a,b             ; Output value as is
-        RETu;                           //  Return                         //1535:         RET                     ; Return
+        return a;                           //  Return                         //1535:         RET                     ; Return
 }                                                                          //1536:
 
 #if 1
