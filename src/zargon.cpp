@@ -2272,11 +2272,15 @@ PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
         LD      (a,val(P1));            //  Get queen
         BIT     (7,a);                  //  Is she white ?
         JR      (Z,rel008);             //  Yes - skip
-        EX      (de,hl);                //  Reverse for black
+
+        LD      (a,ptr(de));            //  Number of defenders
+        SUB     (ptr(hl));
+        goto rejoin;
+
 rel008: LD      (a,ptr(hl));            //  Number of defenders
-        EX      (de,hl);                //  Reverse for attackers
-        SUB     (ptr(hl));              //  Defenders minus attackers
-        DEC     (a);                    //  Less 1
+        SUB     (ptr(de));              //  Defenders minus attackers
+
+rejoin: DEC     (a);                    //  Less 1
         // POP     (iy);                   //  Restore regs.
         // POP     (de);
         // POP     (bc);
