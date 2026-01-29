@@ -2214,89 +2214,93 @@ void PINFND()
         callback_zargon_bridge(CB_PINFND);
         m.NPINS = 0;
         uint8_t *p = &m.POSK[0];        //  Addr of King/Queen pos list
-PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of royal piece
+for( uint8_t i=0; i<4; i++, p++ )
+{
+    if( *p == 0 )
+        continue;
+//PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of royal piece
         //AND     (a);                    //  Is it on board ?
-        goto PF26;               //  No- jump
-        if( *p == 0xff )                   //  At end of list ?
-            return; //RET     (Z);                    //  Yes return
+//        goto PF26;               //  No- jump
+//        if( *p == 0xff )                   //  At end of list ?
+//            return; //RET     (Z);                    //  Yes return
         m.M3 = *p;              //  Save position as board index
         m.P1 = m.BOARDA[m.M3];
 
         m.INDX2 = 0;          //  Init direction index
         y = &m.direct[m.INDX2];
-// Loop over all directions
-for( uint8_t dir_count=8; dir_count>0; dir_count-- )
-{
-        m.M2 = m.M3;            //  Get King/Queen position
-        m.M4 = 0;         //  Clear pinned piece saved pos
-        dir = *y;     //  Get direction of scan
-PF5:    path_result =     PATH(dir);                //  Compute next position
-        if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
-        if( path_result == 3 ) goto PF25;    //  Off board ?
-        //CP      (2);                    
-        //LD      (a,val(M4));            //  Load pinned piece position
-        if( path_result == 2 ) goto PF15;    //  Piece of same color?
-        //AND     (a);                    //  Possible pin ?
-        if( m.M4 ==0 ) goto PF25;              //  No - jump
-        if(m.T2 == QUEEN )            //  Piece type encountered
-        //CP      (QUEEN);                //  Queen ?
-            goto PF19;               //  Yes - jump
-        //LD      (l,a);                  //  Save piece type
-        if( dir_count < 5 )             //  Direction counter
-            //CP      (5);                    //  Non-diagonal direction ?
-            goto PF10;              //  Yes - jump
-        //LD      (a,l);                  //  Piece type
-        if(m.T2 != BISHOP )               //  Bishop ?
-            goto PF25;              //  No - jump
-        goto PF20;                 //  Jump
-PF10:   //LD      (a,l);                  //  Piece type
-        if(m.T2 != ROOK )                 //  Rook ?
-            goto PF25;              //  No - jump
-        goto PF20;                 //  Jump
-PF15:                        //  Possible pin ?
-        if( m.M4 !=0 ) goto PF25;              //  No - jump
-        m.M4 = m.M2;            //  Save possible pin position
-        goto PF5;                  //  Jump
-PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
-        //AND     (7);                    //  Clear flags
-        //CP      (QUEEN);                //  Queen ?
-            goto PF20;              //  No - jump
-        // PUSH    (bc);                   //  Save regs.
-        // PUSH    (de);
-        // PUSH    (iy);
-        memset( m.ATKLST, 0, sizeof(m.ATKLST) );
-        //LD      (a,7);                  //  Set attack flag
-        m.T1 = 7;
-        ATTACK();               //  Find attackers/defenders
-        int8_t defenders_minus_attackers;
-        int8_t *wact; wact = (int8_t *)&(m.ATKLST);
-        int8_t *bact; bact = wact + sizeof(m.ATKLST)/2;
-        if( m.P1 & 0x80 )   // Is queen black ?
-        {
-            defenders_minus_attackers = *bact - *wact;
-        }
-        else
-        {
-            defenders_minus_attackers = *wact - *bact;
-        }
-        if( defenders_minus_attackers-1 >= 0 )
-            goto PF25;
+    // Loop over all directions
+    for( uint8_t dir_count=8; dir_count>0; dir_count-- )
+    {
+            m.M2 = m.M3;            //  Get King/Queen position
+            m.M4 = 0;         //  Clear pinned piece saved pos
+            dir = *y;     //  Get direction of scan
+    PF5:    path_result =     PATH(dir);                //  Compute next position
+            if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
+            if( path_result == 3 ) goto PF25;    //  Off board ?
+            //CP      (2);                    
+            //LD      (a,val(M4));            //  Load pinned piece position
+            if( path_result == 2 ) goto PF15;    //  Piece of same color?
+            //AND     (a);                    //  Possible pin ?
+            if( m.M4 ==0 ) goto PF25;              //  No - jump
+            if(m.T2 == QUEEN )            //  Piece type encountered
+            //CP      (QUEEN);                //  Queen ?
+                goto PF19;               //  Yes - jump
+            //LD      (l,a);                  //  Save piece type
+            if( dir_count < 5 )             //  Direction counter
+                //CP      (5);                    //  Non-diagonal direction ?
+                goto PF10;              //  Yes - jump
+            //LD      (a,l);                  //  Piece type
+            if(m.T2 != BISHOP )               //  Bishop ?
+                goto PF25;              //  No - jump
+            goto PF20;                 //  Jump
+    PF10:   //LD      (a,l);                  //  Piece type
+            if(m.T2 != ROOK )                 //  Rook ?
+                goto PF25;              //  No - jump
+            goto PF20;                 //  Jump
+    PF15:                        //  Possible pin ?
+            if( m.M4 !=0 ) goto PF25;              //  No - jump
+            m.M4 = m.M2;            //  Save possible pin position
+            goto PF5;                  //  Jump
+    PF19:   if( (m.P1&7) != QUEEN )            //  Load King or Queen
+            //AND     (7);                    //  Clear flags
+            //CP      (QUEEN);                //  Queen ?
+                goto PF20;              //  No - jump
+            // PUSH    (bc);                   //  Save regs.
+            // PUSH    (de);
+            // PUSH    (iy);
+            memset( m.ATKLST, 0, sizeof(m.ATKLST) );
+            //LD      (a,7);                  //  Set attack flag
+            m.T1 = 7;
+            ATTACK();               //  Find attackers/defenders
+            int8_t defenders_minus_attackers;
+            int8_t *wact; wact = (int8_t *)&(m.ATKLST);
+            int8_t *bact; bact = wact + sizeof(m.ATKLST)/2;
+            if( m.P1 & 0x80 )   // Is queen black ?
+            {
+                defenders_minus_attackers = *bact - *wact;
+            }
+            else
+            {
+                defenders_minus_attackers = *wact - *bact;
+            }
+            if( defenders_minus_attackers-1 >= 0 )
+                goto PF25;
 
-// #define PLIST (addr(PLISTA)-TBASE-1)    ///TODO -1 why?                 //0199: PLIST   EQU     $-TBASE-1
-// #define PLISTD (PLIST+10)                                               //0200: PLISTD  EQU     PLIST+10
-//uint8_t     PLISTA[10];     // pinned pieces                               //0201: PLISTA  DW      0,0,0,0,0,0,0,0,0,0
-//uint8_t     plistd[10];     // corresponding directions                    //0202:
+    // #define PLIST (addr(PLISTA)-TBASE-1)    ///TODO -1 why?                 //0199: PLIST   EQU     $-TBASE-1
+    // #define PLISTD (PLIST+10)                                               //0200: PLISTD  EQU     PLIST+10
+    //uint8_t     PLISTA[10];     // pinned pieces                               //0201: PLISTA  DW      0,0,0,0,0,0,0,0,0,0
+    //uint8_t     plistd[10];     // corresponding directions                    //0202:
 
-PF20:   m.NPINS++;       //  Address of pinned piece count
-        //INC     (ptr(hl));              //  Increment
-        //LD      (ix,v16(NPINS));        //  Load pin list index
-        m.plistd[m.NPINS-1] = dir;     //  Save direction of pin
-        //LD      (a,val(M4));            //  Position of pinned piece
-        m.PLISTA[m.NPINS-1] = m.M4;      //  Save in list
-PF25:   y++;                            //  Increment direction index
-}
-PF26:   p++;                   //  Incr King/Queen pos index
-        JPu     (PF1);                  //  Jump
+    PF20:   m.NPINS++;       //  Address of pinned piece count
+            //INC     (ptr(hl));              //  Increment
+            //LD      (ix,v16(NPINS));        //  Load pin list index
+            m.plistd[m.NPINS-1] = dir;     //  Save direction of pin
+            //LD      (a,val(M4));            //  Position of pinned piece
+            m.PLISTA[m.NPINS-1] = m.M4;      //  Save in list
+    PF25:   y++;                            //  Increment direction index
+    }
+} //PF26:   p++;                   //  Incr King/Queen pos index
+//        JPu     (PF1);                  //  Jump
 }
 
 #else
