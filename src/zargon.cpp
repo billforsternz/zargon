@@ -2238,11 +2238,9 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
         //b = 8;                  //  Init scan direction count
         m.INDX2 = 0;          //  Init direction index
         y = &m.direct[m.INDX2];
-PF2:    LD      (a,val(M3));            //  Get King/Queen position
-        LD      (val(M2),a);            //  Save
-        XOR     (a);
-        LD      (val(M4),a);            //  Clear pinned piece saved pos
-        LD      (c,*y);     //  Get direction of scan
+PF2:    m.M2 = m.M3;            //  Get King/Queen position
+        m.M4 = 0;         //  Clear pinned piece saved pos
+        c = *y;     //  Get direction of scan
 PF5:    a =     PATH(c);                //  Compute next position
         AND     (a);                    //  Is it empty ?
         JR      (Z,PF5);                //  Yes - jump
