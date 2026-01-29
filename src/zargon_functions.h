@@ -26,7 +26,7 @@ void PINFND();
 void XCHNG();
 inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p );
 void POINTS();
-int8_t LIMIT_asm();
+int8_t LIMIT_asm( int8_t val_a, int8_t val_b );
 int8_t LIMIT( int8_t val, int8_t limit );
 void MOVE();
 void UNMOVE();
