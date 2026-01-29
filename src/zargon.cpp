@@ -2202,6 +2202,20 @@ PF26:   INC16   (de);                   //  Incr King/Queen pos index      //123
 PF27:   JPu     (PF2);                  //  Jump                           //1235: PF27:   JP      PF2             ; Jump
 }                                                                          //1236:
 
+#if 0
+        //LD      (ix,v16(M3));           //  Load index to board
+        //LD      (a,ptr(ix+BOARD));      //  Get contents of board
+        m.P1 = m.BOARDA[m.M3];
+        uint8_t dir_count; dir_count = 8;                  //  Init scan direction count
+        m.INDX2 = 0;          //  Init direction index
+        int8_t *y; y = &m.direct[m.INDX2];
+PF2:    m.M2 = m.M3;            //  Get King/Queen position
+        m.M4 = 0;         //  Clear pinned piece saved pos
+        c = *y;     //  Get direction of scan
+
+#endif
+
+
 #if 1
 
 void PINFND()
@@ -2215,9 +2229,9 @@ PF1:    if( *p == 0 ) //LD      (a,ptr(de));            //  Get position of roya
         if( *p == 0xff )                   //  At end of list ?
             return; //RET     (Z);                    //  Yes return
         m.M3 = *p;              //  Save position as board index
-        //LD      (ix,v16(M3));           //  Load index to board
-        //LD      (a,ptr(ix+BOARD));      //  Get contents of board
-        m.P1 = m.BOARDA[m.M3];
+        LD      (ix,v16(M3));           //  Load index to board
+        LD      (a,ptr(ix+BOARD));      //  Get contents of board
+        LD      (val(P1),a);            //  Save
         LD      (b,8);                  //  Init scan direction count
         XOR     (a);
         LD      (val(INDX2),a);         //  Init direction index
@@ -2302,6 +2316,8 @@ PF27:   JPu     (PF2);                  //  Jump
 
 #else
 
+void PINFND()
+{
         callback_zargon_bridge(CB_PINFND);
         m.NPINS = 0;
         uint8_t *p = &m.POSK[0];        //  Addr of King/Queen pos list
