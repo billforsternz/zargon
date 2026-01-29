@@ -2736,9 +2736,9 @@ rel015: LD      (hl,addr(MTRL));        //  Net material on board          //147
         ADD     (a,ptr(hl));            //  Add exchange adjustments       //1478:         ADD     a,(hl)          ; Add exchange adjustments
         LD      (hl,addr(MV0));         //  Material at ply 0              //1479:         LD      hl,MV0          ; Material at ply 0
         SUB     (ptr(hl));              //  Subtract from current          //1480:         SUB     (hl)            ; Subtract from current
-        LD      (b,a);                  //  Save                           //1481:         LD      b,a             ; Save
-        LD      (a,30);                 //  Load material limit            //1482:         LD      a,30            ; Load material limit
-        a = LIMIT_asm(a,b); //e = LIMIT(b,30);                //  Limit to plus or minus value   //1483:         CALL    LIMIT           ; Limit to plus or minus value
+        //LD      (b,a);                  //  Save                           //1481:         LD      b,a             ; Save
+        //LD      (a,30);                 //  Load material limit            //1482:         LD      a,30            ; Load material limit
+        a = LIMIT_asm(30,a); //e = LIMIT(b,30);                //  Limit to plus or minus value   //1483:         CALL    LIMIT           ; Limit to plus or minus value
         LD      (e,a);                  //  Save limited value             //1484:         LD      e,a             ; Save limited value
         LD      (a,val(BRDC));          //  Get board control points       //1485:         LD      a,(BRDC)        ; Get board control points
         LD      (hl,addr(BC0));         //  Board control at ply zero      //1486:         LD      hl,BC0          ; Board control at ply zero
