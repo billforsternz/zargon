@@ -827,12 +827,11 @@ void MPIECE()
 {
     callback_zargon_bridge(CB_MPIECE);
 
-    // TODO: Use name parameters for parameters hl and a
-    uint8_t *p = BIN_TO_PTR(hl);        // color
-    uint8_t piece = a;
-    piece = piece ^ *p;                         // change colour of piece to move ?
+    // TODO: Maybe make piece a named parameter
+    uint8_t piece = m.P1;
     piece &= 0x87;   //  Clear flag bits
     bool empty = false;
+
     //  Decrement black pawns (so pawns, the only directional type, are 0 black and 1 white
     //   from now on in this function)
     if( piece == BPAWN )
@@ -1484,17 +1483,14 @@ void GENMOV()
             if( (m.COLOR&0x80) == (piece&0x80) )
             {
 
-                // TODO, Clarify this: Parmeters to MPIECE() are;
-                //  hl = address of COLOR
-                //  a = is piece with color bit cleared
-                hl = PTR_TO_BIN(&m.COLOR);
-                a  = piece & 0x7f;
+                // MPIECE() now uses piece including colour is m.P1
+                //  rather than recreating it. Not sure why original
+                //  code didn't do that
                 MPIECE();
             }
         }
     }
 }
-
 
 //***********************************************************              //0865: ;***********************************************************
 // CHECK ROUTINE                                                           //0866: ; CHECK ROUTINE
