@@ -3854,16 +3854,13 @@ CP0C:   MOVE();                 //  Produce move on board array
         m.MVEMSG[0] = LO(asc); //  Put in move message
         m.MVEMSG[1] = HI(asc); //  Put in move message
         //PRTBLK  (MVEMSG,5);           //  Output text of move
-        JRu     (CP1C);                 //  Jump
-CP10:   BIT     (1,b);                  //  King side castle ?
-        JR      (Z,rel020);             //  No - jump
-        //PRTBLK  (addr(O_O),5);        //  Output "O-O"
-        JRu     (CP1C);                 //  Jump
-rel020: BIT     (2,b);                  //  Queen side castle ?
-        JR      (Z,rel021);             //  No - jump
-        //PRTBLK  (addr(O_O_O),5);      //  Output "O-O-O"
-        JRu     (CP1C);                 //  Jump
-rel021: //PRTBLK  (P_PEP,5);            //  Output "PxPep" - En passant
+        goto CP1C;                 //  Jump
+CP10:   if(double_move_flags & 2)                  //  King side castle ?
+            ;  //  Output "O-O"
+        else if(double_move_flags & 4)                  //  Queen side castle ?
+            ;  //  Output "O-O-O"
+        else
+            ; //  Output "PxPep" - En passant
 CP1C:   LD      (a,val(COLOR));         //  Should computer call check ?
         LD      (b,a);
         XOR     (0x80);                 //  Toggle color
