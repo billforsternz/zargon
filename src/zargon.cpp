@@ -3861,23 +3861,28 @@ CP10:   if(double_move_flags & 2)                  //  King side castle ?
             ;  //  Output "O-O-O"
         else
             ; //  Output "PxPep" - En passant
-CP1C:   LD      (a,val(COLOR));         //  Should computer call check ?
-        LD      (b,a);
-        XOR     (0x80);                 //  Toggle color
-        LD      (val(COLOR),a);
-        a = INCHK(m.COLOR);             //  Check for check
-        AND     (a);                    //  Is enemy in check ?
-        LD      (a,b);                  //  Restore color
-        LD      (val(COLOR),a);
-        JR      (Z,CP24);               //  No - return
-        CARRET();                       //  New line
-        LD     (a,val_offset(SCORE,1)); //  Check for player mated
-        CP      (0xFF);                 //  Forced mate ?
-        CALL    (NZ,TBCPMV);            //  No - Tab to computer column
-        //PRTBLK  (CKMSG,5);            //  Output "check"
-        LD      (hl,addr(LINECT));      //  Address of screen line count
-        INC     (ptr(hl));              //  Increment for message
-CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates
+CP1C:   //  Toggle color
+        uint8_t color = m.COLOR & 0x80;
+        color = (color==0x80 ? 0 : 0x80);
+        uint8_t temp = m.COLOR;
+        m.COLOR = (m.COLOR&0x7f) | color;
+
+        //  Should computer call check ?
+        bool inchk  = INCHK(m.COLOR);             //  Check for check
+        m.COLOR = temp; // restore
+
+        if( inchk )
+        {
+            CARRET();                       //  New line
+            LD     (a,val_offset(SCORE,1)); //  Check for player mated
+            CP      (0xFF);                 //  Forced mate ?
+            uint8_t *p = (uint8_t *)&m.SCORE[0]; //  Check for player mated
+            if( *(p+1) != 0xff )            //  Forced mate ?
+                TBCPMV();            //  No - Tab to computer column
+            //PRTBLK  (CKMSG,5);            //  Output "check"
+            m.LINECT++;      // Increment screen line count
+        }
+        LD     (a,val_offset(SCORE,1)); //  Check again for mates
         CP      (0xFF);                 //  Player mated ?
         RET     (NZ);                   //  No - return
         LD      (c,0);                  //  Set player mate flag
