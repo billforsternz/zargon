@@ -2941,7 +2941,7 @@ MV40:   LD      (hl,v16(MLPTRJ));       //  Get move list pointer
 //                                                                         //1622: ;
 // ARGUMENTS:  --  None                                                    //1623: ; ARGUMENTS:  --  None
 //***********************************************************              //1624: ;***********************************************************
-void UNMOVE() {
+void UNMOVE_asm() {
         callback_zargon_bridge(CB_UNMOVE);
         LD      (hl,v16(MLPTRJ));       //  Load move list pointer         //1625: UNMOVE: LD      hl,(MLPTRJ)     ; Load move list pointer
         INC16   (hl);                   //  Increment past link bytes      //1626:         INC     hl              ; Increment past link bytes
@@ -3004,6 +3004,79 @@ UM40:   LD      (hl,v16(MLPTRJ));       //  Load move list pointer         //168
         ADD16   (hl,de);                                                   //1683:         ADD     hl,de
         JPu     (UM1);                  //  Jump (2nd part of dbl move)    //1684:         JP      UM1             ; Jump (2nd part of dbl move)
 }                                                                          //1685:
+
+ void UNMOVE()
+ {
+    uint8_t *p;
+    uint8_t *q;
+    uint8_t piece, captured_piece_flags;
+
+        callback_zargon_bridge(CB_UNMOVE);
+        p = BIN_TO_PTR(m.MLPTRJ);       //  Load move list pointer
+        //INC16   (hl);                   //  Increment past link bytes
+        //INC16   (hl);
+        p += 2;
+UM1:    m.M1 = *p++; //LD      (a,ptr(hl));            //  Get "from" position
+        //LD      (val(M1),a);            //  Save
+        //INC16   (hl);                   //  Increment pointer
+        m.M2 = *p++; //LD      (a,ptr(hl));            //  Get "to" position
+        //LD      (val(M2),a);            //  Save
+        //INC16   (hl);                   //  Increment pointer
+        captured_piece_flags = *p; //LD      (d,ptr(hl));            //  Get captured piece/flags
+        //LD      (ix,v16(M2));           //  Load "to" pos board index
+        piece = m.BOARDA[m.M2]; //LD      (piece,ptr(ix+BOARD));      //  Get piece moved
+ /*0x20*/ if( (captured_piece_flags&0x20) != 0 )                  //  Was it a Pawn promotion ?
+        goto UM15;              //  Yes - jump
+        //LD      (a,piece);                  //  Get piece moved
+        //AND     (7);                    //  Clear flag bits
+        if( (piece&7) == QUEEN)                //  Was it a Queen ?
+            goto UM20;               //  Yes - jump
+        if( (piece&7) == KING)                 //  Was it a King ?
+            goto UM30;               //  Yes - jump
+UM5: /*0x10*/  if( (captured_piece_flags&0x10) != 0 ) // BIT     (4,captured_piece_flags);                  //  Is this 1st move for piece ?
+        goto UM16;              //  Yes - jump
+UM6:    //LD      (iy,v16(M1));           //  Load "from" pos board index
+        m.BOARDA[m.M1] = piece;      //  Return to previous board pos
+        //LD      (a,captured_piece_flags);                  //  Get captured piece, if any
+        //AND     (0x8f);                 //  Clear flags
+        m.BOARDA[m.M2] = captured_piece_flags & 0x8f; // LD      (ptr(ix+BOARD),a);      //  Return to board
+   /*0x40*/  if( (captured_piece_flags&0x40) != 0 ) //   BIT     (6,captured_piece_flags);                  //  Was it a double move ?
+        goto UM40;              //  Yes - jump
+        //LD      (a,captured_piece_flags);                  //  Get captured piece, if any
+        //AND     (7);                    //  Clear flag bits
+        if( (captured_piece_flags&7) != QUEEN) //CP      (QUEEN);                //  Was it a Queen ?
+            return; //RET     (NZ);                   //  No - return
+        q = &m.POSQ[0]; //LD      (hl,addr(POSQ));        //  Address of saved Queen pos
+   /*0x80*/  if( (captured_piece_flags&0x80) == 0 )  // BIT     (7,captured_piece_flags);                  //  Is Queen white ?
+           goto UM10;               //  Yes - jump
+        q++;        //INC16   (hl);                   //  Increment to black Queen pos
+UM10:   *q = m.M2; //LD      (a,val(M2));            //  Queen's previous position
+        //LD      (ptr(hl),a);            //  Save
+        return;     //RETu;                           //  Return
+UM15: /*0x04, fb */   piece &= 0xfb; //RES     (2,piece);                  //  Restore Queen to Pawn
+        goto UM5;                  //  Jump
+UM16: /*0x08 f7 */  piece &= 0xf7; //RES     (3,piece);                  //  Clear piece moved flag
+        goto UM6;                  //  Jump
+UM20:   q = &m.POSQ[0]; //LD      (hl,addr(POSQ));        //  Addr of saved Queen position
+UM21: /*0x80 */  if( (piece&0x80) == 0 ) // BIT     (7,piece);                  //  Is Queen white ?
+        goto UM22;               //  Yes - jump
+        q++;                   //  Increment to black Queen pos
+UM22:   *q = m.M1; //LD      (a,val(M1));            //  Get previous position
+        //LD      (ptr(hl),a);            //  Save
+        goto UM5;                  //  Jump
+UM30:   q = &m.POSK[0]; //LD      (hl,addr(POSK));        //  Address of saved King pos
+     /*0x40*/   if( (captured_piece_flags&0x40) == 0 ) //BIT     (6,captured_piece_flags);                  //  Was it a castle ?
+        goto UM21;               //  No - jump
+    /*0x10 ef */  piece &= 0xef; //  RES     (4,piece);                  //  Clear castled flag
+        goto UM21;                 //  Jump
+UM40:   
+
+        p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
+        p += 8;         //  Increment to next move
+        goto UM1;                   //  Jump (2nd part of dbl move)
+}
+
+
 
 //***********************************************************              //1686: ;***********************************************************
 // SORT ROUTINE                                                            //1687: ; SORT ROUTINE
