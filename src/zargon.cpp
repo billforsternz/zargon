@@ -3693,7 +3693,7 @@ void ASCEND() {
 //                                                                         //1982: ;
 // ARGUMENTS:  --  None                                                    //1983: ; ARGUMENTS:  --  None
 //***********************************************************              //1984: ;***********************************************************
-void BOOK() {                                                              //1985:
+void BOOK_asm() {                                                              //1985:
 // see tobook: POPf    (af);            //  Abort return to FNDMOV         //1986: BOOK:   POP     af              ; Abort return to FNDMOV
         LD      (hl,addr(SCORE)+1);     //  Zero out score                 //1987:         LD      hl,SCORE+1      ; Zero out score
         LD      (ptr(hl),0);            //  Zero out score table           //1988:         LD      (hl),0          ; Zero out score table
@@ -3734,6 +3734,48 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)                         //202
         INC     (ptr(hl));              //                                 //2022:         INC     (hl)
         RETu;                           //  Return to CPTRMV               //2023:         RET                     ; Return to CPTRMV
 }                                                                          //2024:
+
+void BOOK()
+{
+        LD      (hl,addr(SCORE)+1);     //  Zero out score
+        LD      (ptr(hl),0);            //  Zero out score table
+        LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book
+        LD      (v16(BESTM),hl);        //
+        LD      (hl,addr(BESTM));       //  Initialize address of pointer
+        LD      (a,val(KOLOR));         //  Get computer's color
+        AND     (a);                    //  Is it white ?
+        JR      (NZ,BM5);               //  No - jump
+        Z80_LDAR;                       //  Load refresh reg (random no)
+        callback_zargon(CB_LDAR);
+        BIT     (0,a);                  //  Test random bit
+        RET     (Z);                    //  Return if zero (P-K4)
+        INC     (ptr(hl));              //  P-Q4
+        INC     (ptr(hl));              //
+        INC     (ptr(hl));              //
+        RETu;                           //  Return
+BM5:    INC     (ptr(hl));              //  Increment to black moves
+        INC     (ptr(hl));              //
+        INC     (ptr(hl));              //
+        INC     (ptr(hl));              //
+        INC     (ptr(hl));              //
+        INC     (ptr(hl));              //
+        LD      (ix,v16(MLPTRJ));       //  Pointer to opponents 1st move
+        LD      (a,ptr(ix+MLFRP));      //  Get "from" position
+        CP      (22);                   //  Is it a Queen Knight move ?
+        JR      (Z,BM9);                //  Yes - Jump
+        CP      (27);                   //  Is it a King Knight move ?
+        JR      (Z,BM9);                //  Yes - jump
+        CP      (34);                   //  Is it a Queen Pawn ?
+        JR      (Z,BM9);                //  Yes - jump
+        RET     (CY);                   //  If Queen side Pawn opening -
+                                        //  return (P-K4)
+        CP      (35);                   //  Is it a King Pawn ?
+        RET     (Z);                    //  Yes - return (P-K4)
+BM9:    INC     (ptr(hl));              //  (P-Q4)
+        INC     (ptr(hl));              //
+        INC     (ptr(hl));              //
+        RETu;                           //  Return to CPTRMV
+}
 
 //
 //  Omit some Z80 User Interface code, eg
