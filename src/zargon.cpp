@@ -2799,11 +2799,11 @@ void MOVE()
 uint8_t captured_piece_flags;
 uint8_t *p, *q;
 uint8_t piece;
-        callback_zargon_bridge(CB_MOVE);
-        p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
-        p += 2;                   //  Increment past link bytes
-for(;;)
-{
+    callback_zargon_bridge(CB_MOVE);
+    p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
+    p += 2;                   //  Increment past link bytes
+    for(;;)
+    {
  
         // "From" position
         m.M1 = *p++;                    //  Save
@@ -2821,21 +2821,19 @@ for(;;)
         if( captured_piece_flags & 0x20 )
         {
             piece |= 4; // change Pawn to a Queen
-            goto MV5;
         }
 
         //  Is it a queen ?
-        if( (piece&7) == QUEEN )
+        else if( (piece&7) == QUEEN )
         {
             q = &m.POSQ[0];             // addr of saved Queen position
             if( (piece & 0x80) != 0 )   // is queen black ?
                 q++;                    // increment to black queen pos
             *q = m.M2;                  // set new queen position
-            goto MV5;                   //  Jump
         }
 
         //  Is it a king ?
-        if( (piece&7) == KING )                  //  Is it a king ?
+        else if( (piece&7) == KING )                  //  Is it a king ?
         {
             q = &m.POSK[0];        //  Get saved King position
             if( (captured_piece_flags & 0x40) != 0 )  //  Castling ?
@@ -2843,10 +2841,9 @@ for(;;)
             if( (piece & 0x80) != 0 )   // is king black ?
                 q++;                    // increment to black king pos
             *q = m.M2;                  // set new king position
-            goto MV5;                   //  Jump
         }
 
-MV5:    //  Set piece moved flag, update "to" pos board index
+        //  Set piece moved flag, update "to" pos board index
         piece |= 0x08;                  
         m.BOARDA[m.M2] = piece;      //  Insert piece at new position
 
@@ -2855,26 +2852,26 @@ MV5:    //  Set piece moved flag, update "to" pos board index
 
         //  Double move ?
         if( (captured_piece_flags & 0x40) != 0 )
-            goto MV40;              //  Yes - jump
+        {
+            p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
+            p += 8;         //  Increment past link bytes
+        }
+        else
+        {
         
-        // Was captured piece a queen
-        if( (captured_piece_flags & 7) != QUEEN )
-            return;                   //  No - return
+            // Was captured piece a queen
+            if( (captured_piece_flags & 7) == QUEEN )
+            {
 
-        // Clear queen royalty position after capture
-        q = &m.POSQ[0];
-        if( (captured_piece_flags & 0x80) != 0 )  // is queen black ?
-            q++; // increment to black Queen pos
-        *q = 0;
-        return;
-
-MV40:   
-        
-        
-        
-        p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
-        p += 8;         //  Increment past link bytes
-}
+                // Clear queen royalty position after capture
+                q = &m.POSQ[0];
+                if( (captured_piece_flags & 0x80) != 0 )  // is queen black ?
+                    q++; // increment to black Queen pos
+                *q = 0;
+            }
+            return;
+        }
+    }
 }
 
 
