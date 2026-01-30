@@ -4303,26 +4303,28 @@ void EXECMV()
     flags = *(p+MLFLG);
     if( flags&0x40 )
     {
-        p += 6;                 //  Move list entry width
-        from = *(p+MLFRP); //LD      (from,ptr(ix+MLFRP));      //  Second "from" position
-        to   = *(p+MLTOP); //LD      (to,ptr(ix+MLTOP));      //  Second "to" position
-        if( to != from ) //CP      (from);                    //  Same as "from" position ?
-            goto EX04;              //  No - jump
-        ret_double_flags++;                    //  Set en passant flag
-        goto EX10;                 //  Jump
-    EX04:
-        if( to != 26 )                 //  White O-O ?
-                goto EX08;              //  No - jump
-        ret_double_flags |= 0x02; //SET     (1,ret_double_flags);                  //  Set O-O flag
-                goto EX10;                 //  Jump
-    EX08:
-        if( to != 96 )                 //  Black 0-0 ?
-                goto EX0C;              //  No - jump
-        ret_double_flags |= 0x02; //SET     (1,ret_double_flags);                  //  Set O-O flag
-        goto EX10;                 //  Jump
-    EX0C:   ret_double_flags |= 0x04; //SET     (2,ret_double_flags);                  //  Set 0-0-0 flag
-    EX10:   MAKEMV();               //  Make 2nd move on board
+
+        // Point at second move
+        p += 6;
+        from = *(p+MLFRP);
+        to   = *(p+MLTOP);
+
+        // Check for en-passant
+        if( to == from )
+            ret_double_flags |= 0x01;
+
+        // Check for O-O
+        else if( to == 26 || to == 96 )
+            ret_double_flags |= 0x02;
+
+        // Else must be O-O-O
+        else
+            ret_double_flags |= 0x04;
+
+        //  Make 2nd move on board
+        MAKEMV();
     }
+
+    // Return
     b = ret_double_flags;
 }
-
