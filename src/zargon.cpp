@@ -2735,7 +2735,7 @@ int8_t LIMIT( int8_t limit, int8_t val)
 //                                                                         //1550: ;
 // ARGUMENTS:  --  None                                                    //1551: ; ARGUMENTS:  --  None
 //***********************************************************              //1552: ;***********************************************************
-void MOVE() {
+void MOVE_asm() {
         callback_zargon_bridge(CB_MOVE);
         LD      (hl,v16(MLPTRJ));       //  Load move list pointer         //1553: MOVE:   LD      hl,(MLPTRJ)     ; Load move list pointer
         INC16   (hl);                   //  Increment past link bytes      //1554:         INC     hl              ; Increment past link bytes
@@ -2793,6 +2793,137 @@ MV40:   LD      (hl,v16(MLPTRJ));       //  Get move list pointer          //160
         ADD16   (hl,de);                //                                 //1606:         ADD     hl,de
         JPu     (MV1);                  //  Jump (2nd part of dbl move)    //1607:         JP      MV1             ; Jump (2nd part of dbl move)
 }                                                                          //1608:
+
+#if 1
+
+void MOVE()
+{
+uint8_t captured_piece_flags;
+uint8_t *p, *q;
+uint8_t piece;
+        callback_zargon_bridge(CB_MOVE);
+        p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
+        p += 2;                   //  Increment past link bytes
+MV1:
+ 
+        //LD      (a,ptr(hl));            //  "From" position
+        m.M1 = *p++;                    //  Save
+        //INC16   (hl);                   //  Increment pointer
+        //LD      (a,ptr(hl));            //  "To" position
+        m.M2 = *p++;                    //  Save
+        //INC16   (hl);                   //  Increment pointer
+        captured_piece_flags = *p;            //  Get captured piece/flags
+        //LD      (ix,v16(M1));           //  Load "from" pos board index
+        piece = m.BOARDA[m.M1];      //  Get piece moved
+        if( captured_piece_flags & 0x20 )                 //  Test Pawn promotion flag
+            goto MV15;              //  Jump if set
+       // AND     (7);                    //  Clear flag bits
+        if( (piece&7) == QUEEN )                 //  Is it a queen ?
+            goto MV20;               //  Yes - jump
+        if( (piece&7) == KING )                  //  Is it a king ?
+            goto MV30;               //  Yes - jump
+MV5:    //LD      (iy,v16(M2));           //  Load "to" pos board index
+        piece |= 0x08;                  //  Set piece moved flag
+        m.BOARDA[m.M2] = piece;      //  Insert piece at new position
+        m.BOARDA[m.M1] = 0;      //  Empty previous position
+        if( (captured_piece_flags & 0x40) != 0 )                  //  Double move ?
+            goto MV40;              //  Yes - jump
+        //LD      (a,d);                  //  Get captured piece, if any
+        //AND     (7);
+        if( (captured_piece_flags & 7) != QUEEN )                //  Was it a queen ?
+            return;                   //  No - return
+        q = &m.POSQ[0];       //  Addr of saved Queen position
+        if( (captured_piece_flags & 0x80) == 0 )                  //  Is Queen white ?
+            goto MV10;               //  Yes - jump
+        q++;                   //  Increment to black Queen pos
+MV10:   *q = 0;                    //  Set saved position to zero
+        return;                           //  Return
+MV15:   piece |= 4;                  //  Change Pawn to a Queen
+        goto MV5;                  //  Jump
+MV20:   q = &m.POSQ[0];        //  Addr of saved Queen position
+MV21:   if( (piece & 0x80) == 0 )                  //  Is Queen white ?
+            goto MV22;               //  Yes - jump
+        q++;                   //  Increment to black Queen pos
+MV22:   *q = m.M2;            //  Get new Queen position
+        goto MV5;                  //  Jump
+MV30:   q = &m.POSK[0];        //  Get saved King position
+        if( (captured_piece_flags & 0x40) == 0 )                  //  Castling ?
+            goto MV21;               //  No - jump
+        piece |= 0x10;                  //  Set King castled flag
+        goto MV21;                 //  Jump
+MV40:   
+        
+        
+        
+        p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
+        p += 8;         //  Increment past link bytes
+        goto MV1;
+}
+
+#else
+
+void MOVE()
+{
+        callback_zargon_bridge(CB_MOVE);
+        LD      (hl,v16(MLPTRJ));       //  Load move list pointer
+        INC16   (hl);                   //  Increment past link bytes
+        INC16   (hl);
+MV1:    LD      (a,ptr(hl));            //  "From" position
+        LD      (val(M1),a);            //  Save
+        INC16   (hl);                   //  Increment pointer
+        LD      (a,ptr(hl));            //  "To" position
+        LD      (val(M2),a);            //  Save
+        INC16   (hl);                   //  Increment pointer
+        LD      (d,ptr(hl));            //  Get captured piece/flags
+        LD      (ix,v16(M1));           //  Load "from" pos board index
+        LD      (e,ptr(ix+BOARD));      //  Get piece moved
+        BIT     (5,d);                  //  Test Pawn promotion flag
+        JR      (NZ,MV15);              //  Jump if set
+        LD      (a,e);                  //  Piece moved
+        AND     (7);                    //  Clear flag bits
+        CP      (QUEEN);                //  Is it a queen ?
+        JR      (Z,MV20);               //  Yes - jump
+        CP      (KING);                 //  Is it a king ?
+        JR      (Z,MV30);               //  Yes - jump
+MV5:    LD      (iy,v16(M2));           //  Load "to" pos board index
+        SET     (3,e);                  //  Set piece moved flag
+        LD      (ptr(iy+BOARD),e);      //  Insert piece at new position
+        LD      (ptr(ix+BOARD),0);      //  Empty previous position
+        BIT     (6,d);                  //  Double move ?
+        JR      (NZ,MV40);              //  Yes - jump
+        LD      (a,d);                  //  Get captured piece, if any
+        AND     (7);
+        CP      (QUEEN);                //  Was it a queen ?
+        RET     (NZ);                   //  No - return
+        LD      (hl,addr(POSQ));        //  Addr of saved Queen position
+        BIT     (7,d);                  //  Is Queen white ?
+        JR      (Z,MV10);               //  Yes - jump
+        INC16   (hl);                   //  Increment to black Queen pos
+MV10:   XOR     (a);                    //  Set saved position to zero
+        LD      (ptr(hl),a);
+        RETu;                           //  Return
+MV15:   SET     (2,e);                  //  Change Pawn to a Queen
+        JPu     (MV5);                  //  Jump
+MV20:   LD      (hl,addr(POSQ));        //  Addr of saved Queen position
+MV21:   BIT     (7,e);                  //  Is Queen white ?
+        JR      (Z,MV22);               //  Yes - jump
+        INC16   (hl);                   //  Increment to black Queen pos
+MV22:   LD      (a,val(M2));            //  Get new Queen position
+        LD      (ptr(hl),a);            //  Save
+        JPu     (MV5);                  //  Jump
+MV30:   LD      (hl,addr(POSK));        //  Get saved King position
+        BIT     (6,d);                  //  Castling ?
+        JR      (Z,MV21);               //  No - jump
+        SET     (4,e);                  //  Set King castled flag
+        JPu     (MV21);                 //  Jump
+MV40:   LD      (hl,v16(MLPTRJ));       //  Get move list pointer
+        LD      (de,8);                 //  Increment to next move
+        ADD16   (hl,de);                //
+        JPu     (MV1);                  //  Jump (2nd part of dbl move)
+}
+
+#endif
+
 
 //***********************************************************              //1609: ;***********************************************************
 // UN-MOVE ROUTINE                                                         //1610: ; UN-MOVE ROUTINE
