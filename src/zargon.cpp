@@ -2819,15 +2819,32 @@ for(;;)
 
         // Test Pawn promotion flag
         if( captured_piece_flags & 0x20 )
-            goto MV15;
+        {
+            piece |= 4; // change Pawn to a Queen
+            goto MV5;
+        }
 
         //  Is it a queen ?
         if( (piece&7) == QUEEN )
-            goto MV20;
+        {
+            q = &m.POSQ[0];             // addr of saved Queen position
+            if( (piece & 0x80) != 0 )   // is queen black ?
+                q++;                    // increment to black queen pos
+            *q = m.M2;                  // set new queen position
+            goto MV5;                   //  Jump
+        }
 
         //  Is it a king ?
         if( (piece&7) == KING )                  //  Is it a king ?
-            goto MV30;
+        {
+            q = &m.POSK[0];        //  Get saved King position
+            if( (captured_piece_flags & 0x40) != 0 )  //  Castling ?
+                piece |= 0x10;                  
+            if( (piece & 0x80) != 0 )   // is king black ?
+                q++;                    // increment to black king pos
+            *q = m.M2;                  // set new king position
+            goto MV5;                   //  Jump
+        }
 
 MV5:    //  Set piece moved flag, update "to" pos board index
         piece |= 0x08;                  
@@ -2839,29 +2856,18 @@ MV5:    //  Set piece moved flag, update "to" pos board index
         //  Double move ?
         if( (captured_piece_flags & 0x40) != 0 )
             goto MV40;              //  Yes - jump
-        //LD      (a,d);                  //  Get captured piece, if any
-        //AND     (7);
-        if( (captured_piece_flags & 7) != QUEEN )                //  Was it a queen ?
+        
+        // Was captured piece a queen
+        if( (captured_piece_flags & 7) != QUEEN )
             return;                   //  No - return
-        q = &m.POSQ[0];       //  Addr of saved Queen position
-        if( (captured_piece_flags & 0x80) == 0 )                  //  Is Queen white ?
-            goto MV10;               //  Yes - jump
-        q++;                   //  Increment to black Queen pos
-MV10:   *q = 0;                    //  Set saved position to zero
-        return;                           //  Return
-MV15:   piece |= 4;                  //  Change Pawn to a Queen
-        goto MV5;                  //  Jump
-MV20:   q = &m.POSQ[0];        //  Addr of saved Queen position
-MV21:   if( (piece & 0x80) == 0 )                  //  Is Queen white ?
-            goto MV22;               //  Yes - jump
-        q++;                   //  Increment to black Queen pos
-MV22:   *q = m.M2;            //  Get new Queen position
-        goto MV5;                  //  Jump
-MV30:   q = &m.POSK[0];        //  Get saved King position
-        if( (captured_piece_flags & 0x40) == 0 )                  //  Castling ?
-            goto MV21;               //  No - jump
-        piece |= 0x10;                  //  Set King castled flag
-        goto MV21;                 //  Jump
+
+        // Clear queen royalty position after capture
+        q = &m.POSQ[0];
+        if( (captured_piece_flags & 0x80) != 0 )  // is queen black ?
+            q++; // increment to black Queen pos
+        *q = 0;
+        return;
+
 MV40:   
         
         
