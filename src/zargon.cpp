@@ -4251,7 +4251,7 @@ void MLTPLY()
 // ARGUMENTS:   -- Flags set in the B register as described                //3297: ; ARGUMENTS:   -- Flags set in the B register as described
 //                 above.                                                  //3298: ;                 above.
 //***********************************************************              //3299: ;***********************************************************
-void EXECMV() {
+void EXECMV_asm() {
         PUSH    (ix);                   //  Save registers                 //3300: EXECMV: PUSH    ix              ; Save registers
         PUSHf   (af);                   //                                 //3301:         PUSH    af
         LD      (ix,v16(MLPTRJ));       //  Index into move list           //3302:         LD      ix,(MLPTRJ)     ; Index into move list
@@ -4285,3 +4285,44 @@ EX14:   POPf    (af);                   //  Restore registers              //332
         POP     (ix);                   //                                 //3330:         POP     ix
         RETu;                           //  Return                         //3331:         RET                     ; Return
 }                                                                          //3332:
+
+void EXECMV()
+{
+    uint8_t *p;
+    uint8_t from, to, flags, double_flags;
+        //PUSH    (ix);                   //  Save registers
+        //PUSHf   (af);                   //
+        p = BIN_TO_PTR(m.MLPTRJ);       //  Index into move list
+        from = *(p+MLFRP); //LD      (from,ptr(ix+MLFRP));      //  Move list "from" position
+        to   = *(p+MLTOP);      //  Move list "to" position
+        MAKEMV();               //  Produce move
+        flags = *(p+MLFLG);      //  Move list flags
+        LD      (double_flags,0);                  //
+        if( (flags&0x40) == 0 )                  //  Double move ?
+            goto EX14;               //  No - jump
+        p += 6;                 //  Move list entry width
+        //ADD16   (ix,de);                //  Increment MLPTRJ
+        from = *(p+MLFRP); //LD      (from,ptr(ix+MLFRP));      //  Second "from" position
+        to   = *(p+MLTOP); //LD      (to,ptr(ix+MLTOP));      //  Second "to" position
+        //LD      (a,to);                  //  Get "to" position
+        if( to != from ) //CP      (from);                    //  Same as "from" position ?
+         goto EX04;              //  No - jump
+        double_flags++;                    //  Set en passant flag
+        goto EX10;                 //  Jump
+EX04:   if( to != 26 )                 //  White O-O ?
+            goto EX08;              //  No - jump
+        double_flags |= 0x02; //SET     (1,double_flags);                  //  Set O-O flag
+            goto EX10;                 //  Jump
+EX08:   if( to != 96 )                 //  Black 0-0 ?
+            goto EX0C;              //  No - jump
+        double_flags |= 0x02; //SET     (1,double_flags);                  //  Set O-O flag
+        goto EX10;                 //  Jump
+EX0C:   double_flags |= 0x04; //SET     (2,double_flags);                  //  Set 0-0-0 flag
+EX10:   MAKEMV();               //  Make 2nd move on board
+EX14:   //POPf    (af);                   //  Restore registers
+        //POP     (ix);                   //
+        ; //RETu;                           //  Return
+
+        b = double_flags;
+}
+
