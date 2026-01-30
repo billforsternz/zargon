@@ -2232,23 +2232,46 @@ void PINFND()
             dir = *y++;     //  Get direction of scan
                 m.M2 = m.M3;            //  Get King/Queen position
                 m.M4 = 0;         //  Clear pinned piece saved pos
+
+            // Step through squares in this direction
             bool stepping = true;
             while( stepping )
             {
                 stepping = false;
                 path_result =     PATH(dir);                //  Compute next position
+
+                // If empty, carry on stepping
                 if( path_result == 0 )
-                {   stepping= true; continue; }   //  Is it empty ?                //  Yes - jump
-                if( path_result == 3 ) continue;    //  Off board ?
-                if( path_result == 2 ) //  Piece of same color?
                 {
-                    //  Possible pin ?
-                    if( m.M4 !=0 ) continue;              //  No - jump
-                    m.M4 = m.M2;            //  Save possible pin position
-                    stepping= true; continue;                  //  Jump
+                    stepping = true;    // keep stepping
+                    continue;
                 }
-                if( m.M4 ==0 ) continue;             //  If no possible pin jump
-                if(m.T2 == QUEEN )            //  Piece type encountered
+
+                // If off board, stop stepping, on to next direction
+                if( path_result == 3 )
+                {
+                    continue;
+                }
+
+                // Piece of same color it might be a pinned piece
+                if( path_result == 2 )
+                {
+                    // Have we already registered a possible pin ?
+                    if( m.M4 != 0 )
+                        continue;   // yes, on to next direction
+
+                    // Register a possible pin position
+                    m.M4 = m.M2;            
+                    stepping= true;    // keep stepping
+                    continue;
+                }
+
+                // Else piece of different colour
+                if( m.M4 ==0 )
+                    continue;   // if no possible pin, on to next direction
+
+
+                if (m.T2 == QUEEN )
                 {
 
                     if( (m.P1&7) == KING )
@@ -2279,7 +2302,6 @@ void PINFND()
                         m.plistd[m.NPINS]   = dir;
                         m.PLISTA[m.NPINS++] = m.M4;
                     }
-                    continue;
                 }
                 else
                 {
@@ -2294,7 +2316,6 @@ void PINFND()
                         m.plistd[m.NPINS]   = dir;     // save direction of pin
                         m.PLISTA[m.NPINS++] = m.M4;      // save position of pinned piece
                     }
-                    continue;
                 }
             }
         }
