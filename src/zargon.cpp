@@ -2232,15 +2232,20 @@ void PINFND()
             dir = *y++;     //  Get direction of scan
                 m.M2 = m.M3;            //  Get King/Queen position
                 m.M4 = 0;         //  Clear pinned piece saved pos
-        PF5:    path_result =     PATH(dir);                //  Compute next position
-                if( path_result == 0 ) goto PF5;    //  Is it empty ?                //  Yes - jump
+            bool stepping = true;
+            while( stepping )
+            {
+                stepping = false;
+                path_result =     PATH(dir);                //  Compute next position
+                if( path_result == 0 )
+                {   stepping= true; continue; }   //  Is it empty ?                //  Yes - jump
                 if( path_result == 3 ) continue;    //  Off board ?
                 if( path_result == 2 ) //  Piece of same color?
                 {
                     //  Possible pin ?
                     if( m.M4 !=0 ) continue;              //  No - jump
                     m.M4 = m.M2;            //  Save possible pin position
-                    goto PF5;                  //  Jump
+                    stepping= true; continue;                  //  Jump
                 }
                 if( m.M4 ==0 ) continue;             //  If no possible pin jump
                 if(m.T2 == QUEEN )            //  Piece type encountered
@@ -2291,6 +2296,7 @@ void PINFND()
                     }
                     continue;
                 }
+            }
         }
     }
 }
