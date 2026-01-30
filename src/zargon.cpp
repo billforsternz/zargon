@@ -3825,6 +3825,8 @@ CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates          //238
 
 void CPTRMV()
 {
+uint8_t from, to;
+
         //  Select best move
         FNDMOV();
         callback_zargon_bridge(CB_AFTER_FNDMOV);
@@ -3840,15 +3842,17 @@ CP0C:   MOVE();                 //  Produce move on board array
         EXECMV();               //  Make move on graphics board
                                         // and return info about it
         uint8_t double_move_flags = b;                  //  Special move flags
+        from = c;
+        to   = e;
         if( double_move_flags != 0 ) //AND     (a);                    //  Special ?
             goto CP10;              //  Yes - jump
-        LD      (d,e);                  //  "To" position of the move
         uint16_t asc;
-        asc = BITASN(d);                //  Convert to Ascii
-        LD  (v16_offset(MVEMSG,3),asc); //  Put in move message
-        LD      (d,c);                  //  "From" position of the move
-        asc =   BITASN(d);              //  Convert to Ascii
-        LD      (v16(MVEMSG),asc);      //  Put in move message
+        asc = BITASN(to);                //  Convert to Ascii
+        m.MVEMSG[3] = LO(asc); //  Put in move message
+        m.MVEMSG[4] = HI(asc); //  Put in move message
+        asc =   BITASN(from);              //  Convert to Ascii
+        m.MVEMSG[0] = LO(asc); //  Put in move message
+        m.MVEMSG[1] = HI(asc); //  Put in move message
         //PRTBLK  (MVEMSG,5);           //  Output text of move
         JRu     (CP1C);                 //  Jump
 CP10:   BIT     (1,b);                  //  King side castle ?
