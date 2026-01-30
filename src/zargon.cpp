@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (29)
+// Functions converted to C (30)
 
 // INITBD
 // PATH
@@ -66,12 +66,12 @@ zargon_data_defs_check_and_regen regen;
 // VALMOV 
 // ROYALT 
 // EXECMV 
+// CPTRMV 
 // 
-// Functions not yet converted to C (3)
+// Functions not yet converted to C (2)
 // 
 // POINTS
 // BOOK
-// CPTRMV 
 // 
 
 // Transitional (maybe) pointer manipulation macros
@@ -3825,67 +3825,94 @@ CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates          //238
 
 void CPTRMV()
 {
-uint8_t from, to;
 
-        //  Select best move
-        FNDMOV();
-        callback_zargon_bridge(CB_AFTER_FNDMOV);
+    //  Select best move
+    FNDMOV();
+    callback_zargon_bridge(CB_AFTER_FNDMOV);
 
-        //        //  Move list pointer variable
-        m.MLPTRJ = m.BESTM;       //  Pointer to move data
-        uint8_t *p = (uint8_t *)&m.SCORE[0]; //  To check for mates
-        if( *(p+1) != 0 )                    //  Mate against computer ?
-            goto CP0C;              //  No - jump
-        c = 1;                  //  Computer mate flag
-        FCDMAT();               //  Full checkmate ?
-CP0C:   MOVE();                 //  Produce move on board array
-        EXECMV();               //  Make move on graphics board
-                                        // and return info about it
-        uint8_t double_move_flags = b;                  //  Special move flags
-        from = c;
-        to   = e;
-        if( double_move_flags != 0 ) //AND     (a);                    //  Special ?
-            goto CP10;              //  Yes - jump
+    // Save best move
+    m.MLPTRJ = m.BESTM;
+
+    //
+    //  The rest of this function can (probably?) be omitted for
+    //  our purposes, it's Z80 User interface code and it doesn't
+    //  actually produce any output in this Sargon port
+    //
+
+    // Check for mate against computer
+    uint8_t *p = (uint8_t *)&m.SCORE[0];
+    if( *(p+1) == 0 )
+    {
+        c = 1;      // computer mate flag
+        FCDMAT();   // full checkmate ?
+    }
+
+    // Make move on board array
+    MOVE();
+
+    // Return info about it
+    EXECMV();
+    uint8_t double_move_flags = b;
+    uint8_t from = c;
+    uint8_t to   = e;
+
+    // Print move
+    if( double_move_flags == 0 )
+    {
         uint16_t asc;
-        asc = BITASN(to);                //  Convert to Ascii
-        m.MVEMSG[3] = LO(asc); //  Put in move message
-        m.MVEMSG[4] = HI(asc); //  Put in move message
-        asc =   BITASN(from);              //  Convert to Ascii
-        m.MVEMSG[0] = LO(asc); //  Put in move message
-        m.MVEMSG[1] = HI(asc); //  Put in move message
-        //PRTBLK  (MVEMSG,5);           //  Output text of move
-        goto CP1C;                 //  Jump
-CP10:   if(double_move_flags & 2)                  //  King side castle ?
-            ;  //  Output "O-O"
-        else if(double_move_flags & 4)                  //  Queen side castle ?
-            ;  //  Output "O-O-O"
+        asc = BITASN(to);      // convert to Ascii
+        m.MVEMSG[3] = LO(asc); // put in move message
+        m.MVEMSG[4] = HI(asc); // put in move message
+        asc =   BITASN(from);  // convert to Ascii
+        m.MVEMSG[0] = LO(asc); // put in move message
+        m.MVEMSG[1] = HI(asc); // put in move message
+        //PRTBLK  (MVEMSG,5);  // output text of move
+    }
+    else
+    {
+        // King side castle ?
+        if(double_move_flags & 2)
+            ; //PRTBLK  (addr(O_O),5);      // output "O-O"
+
+        // Queen side castle ?
+        else if(double_move_flags & 4)
+            ; //PRTBLK  (addr(O_O_O),5);    // output "O-O-O"
+
+        // Else en passant
         else
-            ; //  Output "PxPep" - En passant
-CP1C:   //  Toggle color
-        uint8_t color = m.COLOR & 0x80;
-        color = (color==0x80 ? 0 : 0x80);
-        uint8_t temp = m.COLOR;
-        m.COLOR = (m.COLOR&0x7f) | color;
+            ; //PRTBLK  (P_PEP,5);          // output "PxPep"
+    }
 
-        //  Should computer call check ?
-        bool inchk  = INCHK(m.COLOR);             //  Check for check
-        m.COLOR = temp; // restore
+    //  Toggle color
+    uint8_t color = m.COLOR & 0x80;
+    color = (color==0x80 ? 0 : 0x80);
+    uint8_t temp = m.COLOR;
+    m.COLOR = (m.COLOR&0x7f) | color;
 
-        if( inchk )
-        {
-            CARRET();                       //  New line
-            p = (uint8_t *)&m.SCORE[0]; //  Check for player mated
-            if( *(p+1) != 0xff )            //  Forced mate ?
-                TBCPMV();            //  No - Tab to computer column
-            //PRTBLK  (CKMSG,5);            //  Output "check"
-            m.LINECT++;      // Increment screen line count
-        }
-        p = (uint8_t *)&m.SCORE[0]; //  Check again for mates
-        if( *(p+1) == 0xff )             //  Player mated ?
-        {
-            c = 0;                  //  Set player mate flag
-            FCDMAT();               //  Full checkmate ?
-        }
+    //  Should computer call check ?
+    bool inchk = INCHK(m.COLOR);
+    m.COLOR = temp; // restore
+    if( inchk )
+    {
+
+        // New line
+        CARRET();
+
+        // Check for player mated
+        p = (uint8_t *)&m.SCORE[0]; 
+        if( *(p+1) != 0xff )    // forced mate ?
+            TBCPMV();           // no - tab to computer column
+        //PRTBLK  (CKMSG,5);    // output "check"
+        m.LINECT++;             // increment screen line count
+    }
+
+    // Check again for mates
+    p = (uint8_t *)&m.SCORE[0]; 
+    if( *(p+1) == 0xff )        // player mated ?
+    {
+        c = 0;                  // set player mate flag
+        FCDMAT();               // full checkmate ?
+    }
 }
 
 //
