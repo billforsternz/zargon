@@ -3874,20 +3874,18 @@ CP1C:   //  Toggle color
         if( inchk )
         {
             CARRET();                       //  New line
-            LD     (a,val_offset(SCORE,1)); //  Check for player mated
-            CP      (0xFF);                 //  Forced mate ?
-            uint8_t *p = (uint8_t *)&m.SCORE[0]; //  Check for player mated
+            p = (uint8_t *)&m.SCORE[0]; //  Check for player mated
             if( *(p+1) != 0xff )            //  Forced mate ?
                 TBCPMV();            //  No - Tab to computer column
             //PRTBLK  (CKMSG,5);            //  Output "check"
             m.LINECT++;      // Increment screen line count
         }
-        LD     (a,val_offset(SCORE,1)); //  Check again for mates
-        CP      (0xFF);                 //  Player mated ?
-        RET     (NZ);                   //  No - return
-        LD      (c,0);                  //  Set player mate flag
-        CALLu   (FCDMAT);               //  Full checkmate ?
-        RETu;                           //  Return
+        p = (uint8_t *)&m.SCORE[0]; //  Check again for mates
+        if( *(p+1) == 0xff )             //  Player mated ?
+        {
+            c = 0;                  //  Set player mate flag
+            FCDMAT();               //  Full checkmate ?
+        }
 }
 
 //
