@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (28)
+// Functions converted to C (29)
 
 // INITBD
 // PATH
@@ -65,13 +65,13 @@ zargon_data_defs_check_and_regen regen;
 // ASNTBI 
 // VALMOV 
 // ROYALT 
+// EXECMV 
 // 
-// Functions not yet converted to C (4)
+// Functions not yet converted to C (3)
 // 
 // POINTS
 // BOOK
 // CPTRMV 
-// EXECMV 
 // 
 
 // Transitional (maybe) pointer manipulation macros
@@ -4288,20 +4288,20 @@ EX14:   POPf    (af);                   //  Restore registers              //332
 
 void EXECMV()
 {
-    uint8_t *p;
-    uint8_t from, to, flags, ret_double_flags=0;
+    // Later - make this a proper return value
+    uint8_t ret_double_flags=0;
 
     // Get move "from" and "to" positions
-    p = BIN_TO_PTR(m.MLPTRJ);
-    from = *(p+MLFRP);
-    to   = *(p+MLTOP);
+    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
+    uint8_t from = *(p+MLFRP);
+    uint8_t to   = *(p+MLTOP);
 
     // Make the move
     MAKEMV();
 
     // If double move
-    flags = *(p+MLFLG);
-    if( flags&0x40 )
+    uint8_t flags = *(p+MLFLG);
+    if( flags & 0x40 )
     {
 
         // Point at second move
