@@ -3765,7 +3765,7 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)                         //202
 //                                                                         //2336: ;
 // ARGUMENTS:  --  None                                                    //2337: ; ARGUMENTS:  --  None
 //***********************************************************              //2338: ;***********************************************************
-void CPTRMV() {
+void CPTRMV_asm() {
         CALLu   (FNDMOV);               //  Select best move               //2339: CPTRMV: CALL    FNDMOV          ; Select best move
         callback_zargon_bridge(CB_AFTER_FNDMOV);
         LD      (hl,v16(BESTM));        //  Move list pointer variable     //2340:         LD      hl,(BESTM)      ; Move list pointer variable
@@ -3822,6 +3822,67 @@ CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates          //238
         CALLu   (FCDMAT);               //  Full checkmate ?               //2390:         CALL    FCDMAT          ; Full checkmate ?
         RETu;                           //  Return                         //2391:         RET                     ; Return
 }                                                                          //2392:
+
+void CPTRMV()
+{
+        //  Select best move
+        FNDMOV();
+        callback_zargon_bridge(CB_AFTER_FNDMOV);
+
+        //        //  Move list pointer variable
+        m.MLPTRJ = m.BESTM;       //  Pointer to move data
+        uint8_t *p = (uint8_t *)&m.SCORE[0]; //  To check for mates
+        if( *(p+1) != 0 )                    //  Mate against computer ?
+            goto CP0C;              //  No - jump
+        c = 1;                  //  Computer mate flag
+        FCDMAT();               //  Full checkmate ?
+CP0C:   MOVE();                 //  Produce move on board array
+        EXECMV();               //  Make move on graphics board
+                                        // and return info about it
+        uint8_t double_move_flags = b;                  //  Special move flags
+        if( double_move_flags != 0 ) //AND     (a);                    //  Special ?
+            goto CP10;              //  Yes - jump
+        LD      (d,e);                  //  "To" position of the move
+        uint16_t asc;
+        asc = BITASN(d);                //  Convert to Ascii
+        LD  (v16_offset(MVEMSG,3),asc); //  Put in move message
+        LD      (d,c);                  //  "From" position of the move
+        asc =   BITASN(d);              //  Convert to Ascii
+        LD      (v16(MVEMSG),asc);      //  Put in move message
+        //PRTBLK  (MVEMSG,5);           //  Output text of move
+        JRu     (CP1C);                 //  Jump
+CP10:   BIT     (1,b);                  //  King side castle ?
+        JR      (Z,rel020);             //  No - jump
+        //PRTBLK  (addr(O_O),5);        //  Output "O-O"
+        JRu     (CP1C);                 //  Jump
+rel020: BIT     (2,b);                  //  Queen side castle ?
+        JR      (Z,rel021);             //  No - jump
+        //PRTBLK  (addr(O_O_O),5);      //  Output "O-O-O"
+        JRu     (CP1C);                 //  Jump
+rel021: //PRTBLK  (P_PEP,5);            //  Output "PxPep" - En passant
+CP1C:   LD      (a,val(COLOR));         //  Should computer call check ?
+        LD      (b,a);
+        XOR     (0x80);                 //  Toggle color
+        LD      (val(COLOR),a);
+        a = INCHK(m.COLOR);             //  Check for check
+        AND     (a);                    //  Is enemy in check ?
+        LD      (a,b);                  //  Restore color
+        LD      (val(COLOR),a);
+        JR      (Z,CP24);               //  No - return
+        CARRET();                       //  New line
+        LD     (a,val_offset(SCORE,1)); //  Check for player mated
+        CP      (0xFF);                 //  Forced mate ?
+        CALL    (NZ,TBCPMV);            //  No - Tab to computer column
+        //PRTBLK  (CKMSG,5);            //  Output "check"
+        LD      (hl,addr(LINECT));      //  Address of screen line count
+        INC     (ptr(hl));              //  Increment for message
+CP24:   LD     (a,val_offset(SCORE,1)); //  Check again for mates
+        CP      (0xFF);                 //  Player mated ?
+        RET     (NZ);                   //  No - return
+        LD      (c,0);                  //  Set player mate flag
+        CALLu   (FCDMAT);               //  Full checkmate ?
+        RETu;                           //  Return
+}
 
 //
 //  Omit some more Z80 user interface stuff, functions
@@ -4288,7 +4349,7 @@ EX14:   POPf    (af);                   //  Restore registers              //332
 
 void EXECMV()
 {
-    // Later - make this a proper return value
+    // Later - make this a proper return value (also from and to)
     uint8_t ret_double_flags=0;
 
     // Get move "from" and "to" positions
@@ -4327,4 +4388,8 @@ void EXECMV()
 
     // Return
     b = ret_double_flags;
+
+    // Temporary
+    c = from;
+    e = to;
 }
