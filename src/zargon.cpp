@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (27)
+// Functions converted to C (28)
 
 // INITBD
 // PATH
@@ -53,7 +53,8 @@ zargon_data_defs_check_and_regen regen;
 // XCHNG
 // NEXTAD
 // LIMIT 
-// MOVE 
+// MOVE
+// UNMOVE 
 // SORTM
 // EVAL
 // FNDMOV
@@ -65,10 +66,9 @@ zargon_data_defs_check_and_regen regen;
 // VALMOV 
 // ROYALT 
 // 
-// Functions not yet converted to C (5)
+// Functions not yet converted to C (4)
 // 
 // POINTS
-// UNMOVE 
 // BOOK
 // CPTRMV 
 // EXECMV 
@@ -2957,90 +2957,6 @@ UM40:   LD      (hl,v16(MLPTRJ));       //  Load move list pointer         //168
         JPu     (UM1);                  //  Jump (2nd part of dbl move)    //1684:         JP      UM1             ; Jump (2nd part of dbl move)
 }                                                                          //1685:
 
-void MOVE_c()
-{
-    callback_zargon_bridge(CB_MOVE);
-
-    //  Load move list pointer
-    uint8_t *p = BIN_TO_PTR( m.MLPTRJ);
-    p += 2;     // increment past link bytes
-
-    // Loop for possible double move
-    for(;;)
-    {
- 
-        // "From" position
-        m.M1 = *p++;
-
-        // "To" position
-        m.M2 = *p++;
-
-        // Get captured piece plus flags
-        uint8_t captured_piece_flags = *p;
-
-        // Get piece moved from "from" pos board index
-        uint8_t piece = m.BOARDA[m.M1];
-
-        // Promote pawn if required
-        if( captured_piece_flags & 0x20 )
-        {
-            piece |= 4; // change pawn to a queen
-        }
-
-        // Update queen position if required
-        else if( (piece&7) == QUEEN )
-        {
-            uint8_t *q = &m.POSQ[0];    // addr of saved queen position
-            if( (piece & 0x80) != 0 )   // is queen black ?
-                q++;                    // increment to black queen pos
-            *q = m.M2;                  // set new queen position
-        }
-
-        // Update king position if required
-        else if( (piece&7) == KING )
-        {
-            uint8_t *q = &m.POSK[0];    // addr of saved king position
-            if( (captured_piece_flags & 0x40) != 0 )  // castling ?
-                piece |= 0x10;  // set castled flag                  
-            if( (piece & 0x80) != 0 )   // is king black ?
-                q++;                    // increment to black king pos
-            *q = m.M2;                  // set new king position
-        }
-
-        // Set piece moved flag
-        piece |= 0x08;
-
-        // Insert piece at new position
-        m.BOARDA[m.M2] = piece;
-
-        // Empty previous position
-        m.BOARDA[m.M1] = 0;     
-
-        // Double move ?
-        if( (captured_piece_flags & 0x40) != 0 )
-        {
-            p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
-            p += 8;                     //  jump to next move
-        }
-        else
-        {
-        
-            // Was captured piece a queen
-            if( (captured_piece_flags & 7) == QUEEN )
-            {
-
-                // Clear queen royalty position after capture
-                uint8_t *q = &m.POSQ[0];
-                if( (captured_piece_flags & 0x80) != 0 )  // is queen black ?
-                    q++; // increment to black queen pos
-                *q = 0;
-            }
-            return;
-        }
-    }
-}
-
-
 void UNMOVE()
 {
     callback_zargon_bridge(CB_UNMOVE);
@@ -3091,38 +3007,41 @@ void UNMOVE()
             *q = m.M1;                  // set previous king position
         }
 
-UM5: /*0x10*/  if( (captured_piece_flags&0x10) != 0 ) // BIT     (4,captured_piece_flags);                  //  Is this 1st move for piece ?
-{
- /*0x08 f7 */  piece &= 0xf7; //RES     (3,piece);                  //  Clear piece moved flag
+        // If this is the first move for piece, clear piece moved flag
+        if( (captured_piece_flags&0x10) != 0 )
+        {
+            piece &= 0xf7;
+        }
+
+        // Return piece to previous board position
+        m.BOARDA[m.M1] = piece;
+
+        // Restore captured piece with cleared flags
+        m.BOARDA[m.M2] = captured_piece_flags & 0x8f;     
+
+        // Double move ?
+        if( (captured_piece_flags & 0x40) != 0 )
+        {
+            p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
+            p += 8;                     //  jump to next move
+        }
+        else
+        {
+        
+            // Was captured piece a queen
+            if( (captured_piece_flags & 7) == QUEEN )
+            {
+
+                // Restore queen royalty position after capture
+                uint8_t *q = &m.POSQ[0];
+                if( (captured_piece_flags & 0x80) != 0 )  // is queen black ?
+                    q++; // increment to black queen pos
+                *q = m.M2;
+            }
+            return;
+        }
+    }
 }
-UM6:    //LD      (iy,v16(M1));           //  Load "from" pos board index
-        m.BOARDA[m.M1] = piece;      //  Return to previous board pos
-        //LD      (a,captured_piece_flags);                  //  Get captured piece, if any
-        //AND     (0x8f);                 //  Clear flags
-        m.BOARDA[m.M2] = captured_piece_flags & 0x8f; // LD      (ptr(ix+BOARD),a);      //  Return to board
-   /*0x40*/  if( (captured_piece_flags&0x40) != 0 ) //   BIT     (6,captured_piece_flags);                  //  Was it a double move ?
-        goto UM40;              //  Yes - jump
-        //LD      (a,captured_piece_flags);                  //  Get captured piece, if any
-        //AND     (7);                    //  Clear flag bits
-        if( (captured_piece_flags&7) != QUEEN) //CP      (QUEEN);                //  Was it a Queen ?
-            return; //RET     (NZ);                   //  No - return
-        uint8_t *k; k = &m.POSQ[0]; //LD      (hl,addr(POSQ));        //  Address of saved Queen pos
-   /*0x80*/  if( (captured_piece_flags&0x80) == 0 )  // BIT     (7,captured_piece_flags);                  //  Is Queen white ?
-           goto UM10;               //  Yes - jump
-        k++;        //INC16   (hl);                   //  Increment to black Queen pos
-UM10:   *k = m.M2; //LD      (a,val(M2));            //  Queen's previous position
-        //LD      (ptr(hl),a);            //  Save
-        return;     //RETu;                           //  Return
-
-
-UM40:   
-
-        p = BIN_TO_PTR( m.MLPTRJ);       //  Load move list pointer
-        p += 8;         //  Increment to next move
-}
-}
-
-
 
 //***********************************************************              //1686: ;***********************************************************
 // SORT ROUTINE                                                            //1687: ; SORT ROUTINE
