@@ -3737,44 +3737,36 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)                         //202
 
 void BOOK()
 {
-        LD      (hl,addr(SCORE)+1);     //  Zero out score
-        LD      (ptr(hl),0);            //  Zero out score table
-        LD      (hl,addr(BMOVES)-2);    //  Init best move ptr to book
-        LD      (v16(BESTM),hl);        //
-        LD      (hl,addr(BESTM));       //  Initialize address of pointer
-        LD      (a,val(KOLOR));         //  Get computer's color
-        AND     (a);                    //  Is it white ?
-        JR      (NZ,BM5);               //  No - jump
+        uint8_t *p = (uint8_t *)&m.SCORE;      //  Zero out score
+        *(p+1) = 0;             //  Zero out score table
+        p = &m.BMOVES[0];    //  Init best move ptr to book
+        p -= MLFRP;
+        m.BESTM = PTR_TO_BIN(p);        //
+        uint16_t *q = &m.BESTM;       //  Initialize address of pointer
+        if( m.KOLOR != 0 )         //  Get computer's color
+            //AND     (a);                    //  Is it white ?
+            goto BM5;               //  No - jump
         Z80_LDAR;                       //  Load refresh reg (random no)
         callback_zargon(CB_LDAR);
-        BIT     (0,a);                  //  Test random bit
-        RET     (Z);                    //  Return if zero (P-K4)
-        INC     (ptr(hl));              //  P-Q4
-        INC     (ptr(hl));              //
-        INC     (ptr(hl));              //
-        RETu;                           //  Return
-BM5:    INC     (ptr(hl));              //  Increment to black moves
-        INC     (ptr(hl));              //
-        INC     (ptr(hl));              //
-        INC     (ptr(hl));              //
-        INC     (ptr(hl));              //
-        INC     (ptr(hl));              //
-        LD      (ix,v16(MLPTRJ));       //  Pointer to opponents 1st move
-        LD      (a,ptr(ix+MLFRP));      //  Get "from" position
-        CP      (22);                   //  Is it a Queen Knight move ?
-        JR      (Z,BM9);                //  Yes - Jump
-        CP      (27);                   //  Is it a King Knight move ?
-        JR      (Z,BM9);                //  Yes - jump
-        CP      (34);                   //  Is it a Queen Pawn ?
-        JR      (Z,BM9);                //  Yes - jump
-        RET     (CY);                   //  If Queen side Pawn opening -
-                                        //  return (P-K4)
-        CP      (35);                   //  Is it a King Pawn ?
-        RET     (Z);                    //  Yes - return (P-K4)
-BM9:    INC     (ptr(hl));              //  (P-Q4)
-        INC     (ptr(hl));              //
-        INC     (ptr(hl));              //
-        RETu;                           //  Return to CPTRMV
+        uint8_t rand; rand = a;
+        if( (rand&1) == 0 )                  //  Test random bit
+            return;                   //  Return if zero (P-K4)
+        *q += 3;           //  P-Q4
+        return;                         //  Return
+BM5:    *q += 6;           //  Increment to black moves
+        p = BIN_TO_PTR(m.MLPTRJ);       //  Pointer to opponents 1st move
+        uint8_t from = *(p+MLFRP);      //  Get "from" position
+        if( from == 22 )                   //  Is it a Queen Knight move ?
+            goto BM9;                //  Yes - Jump
+        if( from == 27 )                   //  Is it a King Knight move ?
+            goto BM9;                //  Yes - jump
+        if( from == 34 )                   //  Is it a Queen Pawn ?
+            goto BM9;                //  Yes - jump
+        if( from < 34 )                   //  If Queen side Pawn opening -
+            return;                            //  return (P-K4)
+        if( from == 35 )                   //  Is it a King Pawn ?
+            return;                    //  Yes - return (P-K4)
+BM9:    *q += 3;
 }
 
 //

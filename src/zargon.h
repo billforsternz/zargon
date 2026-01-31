@@ -402,10 +402,10 @@ uint8_t BC0     =      0;               //                                 //036
 uint8_t MV0     =      0;               //                                 //0370: MV0     DB      0
 uint8_t PTSCK   =      0;               //                                 //0371: PTSCK   DB      0
 uint8_t BMOVES[12] = {                                                     //0372: BMOVES  DB      35,55,10H
-    35,55,0x10,                                                            //0373:         DB      34,54,10H
-    34,54,0x10,                                                            //0374:         DB      85,65,10H
-    85,65,0x10,                                                            //0375:         DB      84,64,10H
-    84,64,0x10                                                             //0376:
+    35,55,0x10,        // e2-e4 double move                                //0373:         DB      34,54,10H
+    34,54,0x10,        // d2-d4 double move                                //0374:         DB      85,65,10H
+    85,65,0x10,        // e7-e5 double move                                //0375:         DB      84,64,10H
+    84,64,0x10         // d7-d5 double move                                //0376:
 };
 uint8_t LINECT = 0;
 char MVEMSG[5]; // = {'a','1','-','a','1'};
