@@ -37,15 +37,6 @@ extern int main_uci( int argc, const char *argv[] );
 void (*callback_zargon)( CB cb );    // fn ptr
 int main( int argc, const char *argv[] )
 {
-
-    // If no arguments, run UCI engine
-    callback_zargon = callback_zargon_tests;
-    if( argc == 1 )
-    {
-        callback_zargon = callback_zargon_uci;
-        int ret = main_uci( argc, argv );
-        return ret;
-    }
 #ifdef _DEBUG
     const char *test_args[] =
     {
@@ -56,6 +47,15 @@ int main( int argc, const char *argv[] )
     argc = sizeof(test_args) / sizeof(test_args[0]);
     argv = test_args;
 #endif
+
+    // If no arguments, run UCI engine
+    callback_zargon = callback_zargon_tests;
+    if( argc == 1 )
+    {
+        callback_zargon = callback_zargon_uci;
+        int ret = main_uci( argc, argv );
+        return ret;
+    }
     const char *usage =
     ENGINE_NAME " " VERSION " UCI engine and test suite\n"
     "by Dan and Kathe Spracklin\n"
