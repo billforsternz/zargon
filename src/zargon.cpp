@@ -2699,8 +2699,7 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //150
         RETu;                           //  Return                         //1508:         RET                     ; Return
 }                                                                          //1509:
 
-// NOT YET
-void POINTS_c()
+void POINTS()
 {
     int calc = 0;
     int8_t bonus;
@@ -2761,7 +2760,6 @@ PT6C:   bonus = -2;                 //  Two point penalty for white
             goto PT6D;               //  Jump if white
         bonus = 2;                 //  Two point penalty for black
 PT6D:   m.BRDC += bonus;        //  Get address of board control
-        //printf( "[z %d: %02x]\n", ++calc, m.BRDC );
         //ADD     (a,ptr(hl));            //  Add on penalty/bonus points
         //LD      (ptr(hl),a);            //  Save
 PT6X:   
@@ -2770,9 +2768,7 @@ PT6X:
         ATTACK();               //  Build attack list for square
 //        int8_t *wact = (int8_t *)&(m.ATKLST);
 //        int8_t *bact = wact + sizeof(m.ATKLST)/2;
-        //printf( "[a %d: %02x]\n", ++calc, 0xff & (*wact-*bact) );
         m.BRDC += (*wact-*bact);
-        //printf( "[b %d: %02x]\n", ++calc, 0xff & m.BRDC );
         // LD      (hl,BACT);              //  Get black attacker count addr
         // LD      (a,val(wact));          //  Get white attacker count
         // SUB     (ptr(hl));              //  Compute count difference
@@ -2783,8 +2779,6 @@ PT6X:
         //AND     (a);                    //  Is it empty ?
             goto PT25;               //  Yes - jump
         XCHNG();                //  Evaluate exchange, if any
-        //printf( "[c %d: %02x\n", ++calc, e );
-        //printf( "[d %d: %02x\n", ++calc, d );
         points    = e;                          //  XCHNG returns registers e, d
         piece_val = d;           //  e=points, d=attacked piece val (I think, later - formalise this)
         //XOR     (a);                    //  Check for a loss
@@ -2806,7 +2800,6 @@ PT6X:
         if( m.M3 != *(p+MLTOP) )        //  Is it the one moving ?
             goto PT23;              //  No - jump
         m.PTSCK = m.M3; // LD      (val(PTSCK),a);         //  Save position as a flag
-        //printf( "[e %d: %02x\n", ++calc, m.PTSCK );
         goto PT23;                 //  Jump
 PT20:   //LD      (hl,addr(PTSW1));       //  Previous maximum points won
         //CP      (ptr(hl));              //  Compare to current value
@@ -2821,21 +2814,15 @@ rel011: //LD      (hl,addr(PTSW2));       //  Previous 2nd max points won
 PT23:   //LD      (hl,addr(P1));          //  Get piece
         //BIT     (7,ptr(hl));            //  Test color
         //LD      (a,d);                  //  Value of piece
-        //printf( "[f %d: %02x\n", ++calc, 0xff & piece_val );
         if( (m.P1&0x80) == 0 )  goto rel012; //JR      (Z,rel012);             //  Jump if white
         piece_val = 0-piece_val;  // NEG;                            //  Negate for black
-        //printf( "[g %d: %02x\n", ++calc, 0xff & piece_val );
 rel012: //LD      (hl,addr(MTRL));        //  Get addrs of material total
         //ADD     (a,ptr(hl));            //  Add new value
         m.MTRL += piece_val; //LD      (ptr(hl),a);            //  Store
-        //printf( "[h %d: %02x\n", ++calc, m.MTRL );
 PT25:   // LD      (a,val(M3));            //  Get current board position
         // INC     (a);                    //  Increment
         // CP      (99);                   //  At end of board ?
         // JP      (NZ,PT5);               //  No - jump
-        //printf( "[i %d: %02x\n", ++calc, m.M3+1 );
-        //if( calc == 187 )
-        //    printf("DEBUG\n");
         if( m.M3+1 < 99 )
         {
             m.M3++;
@@ -2844,17 +2831,14 @@ PT25:   // LD      (a,val(M3));            //  Get current board position
         if( m.PTSCK == 0 )  //LD      (a,val(PTSCK));         //  Moving piece lost flag
         //AND     (a);                    //  Was it lost ?
             goto PT25A; //JR      (Z,PT25A);              //  No - jump
-        //printf( "[j %d: %02x\n", ++calc, m.PTSCK );
         m.PTSW1 = m.PTSW2; //LD      (a,val(PTSW2));         //  2nd max points won
         //LD      (val(PTSW1),a);         //  Store as max points won
         //XOR     (a);                    //  Zero out 2nd max points won
-        //printf( "[k %d: %02x\n", ++calc, m.PTSW1 );
         m.PTSW2 = 0; //LD      (val(PTSW2),a);         //
 PT25A:  ptsl = m.PTSL; if( ptsl == 0 ) //LD      (a,val(PTSL));          //  Get max points lost
         //AND     (a);                    //  Is it zero ?
             goto rel013; //JR      (Z,rel013);             //  Yes - jump
         ptsl--;                    //  Decrement it
-        //printf( "[l %d: %02x\n", ++calc, 0xff & ptsl );
 rel013: //LD      (b,a);                  //  Save it
         ptsw = m.PTSW1;
         if( ptsw == 0 ) //LD      (a,val(PTSW1));         //  Max,points won
@@ -2865,34 +2849,26 @@ rel013: //LD      (b,a);                  //  Save it
         //AND     (a);                    //  Is it zero ?
             goto rel014; //JR      (Z,rel014);             //  Yes - jump
         ptsw--; // DEC     (a);                    //  Decrement it
-        //printf( "[m %d: %02x\n", ++calc, 0xff & ptsw );
 
         // uint8_t u8; u8 = (uint8_t)ptsw;
         // u8 = u8>>1;
         // ptsw = (int8_t) u8;
         ptsw = ptsw/2;  //SRL     (a);                    //  Divide it by 2
-        //printf( "[n %d: %02x\n", ++calc, 0xff & ptsw );
 rel014: ptsw -= ptsl; //SUB     (b);                    //  Subtract points lost
-        //printf( "[o %d: %02x\n", ++calc, 0xff & ptsw );
         if( (m.COLOR &0x80)==0 ) //LD      (hl,addr(COLOR));       //  Color of side just moved ???
             //BIT     (7,ptr(hl));            //  Is it white ?
             goto rel015;    //JR      (Z,rel015);             //  Yes - jump
         ptsw = 0-ptsw; //NEG;                            //  Negate for black
-        //printf( "[p %d: %02x\n", ++calc, 0xff & ptsw );
 rel015: ptsw += m.MTRL; // LD      (hl,addr(MTRL));        //  Net material on board
-        //printf( "[q %d: %02x\n", ++calc, 0xff & ptsw );
         //ADD     (a,ptr(hl));            //  Add exchange adjustments
         //LD      (hl,addr(MV0));         //  Material at ply 0
         //SUB     (ptr(hl));              //  Subtract from current
         ptsw -= m.MV0;
-        //printf( "[r %d: %02x\n", ++calc, 0xff & ptsw );
         //LD      (b,a);                //  Save
         //LD      (a,30);               //  Load material limit
         ptsw = LIMIT(30,ptsw);                //  Limit to plus or minus value
-        //printf( "[s %d: %02x\n", ++calc, 0xff & ptsw );
         points = ptsw;                  //  Save limited value
         bcp = m.BRDC - m.BC0; //LD      (a,val(BRDC));          //  Get board control points
-        //printf( "[t %d: %02x\n", ++calc, 0xff & bcp );
         //LD      (hl,addr(BC0));         //  Board control at ply zero
         //SUB     (ptr(hl));              //  Get difference
         //LD      (b,a);                  //  Save
@@ -2903,32 +2879,28 @@ rel015: ptsw += m.MTRL; // LD      (hl,addr(MTRL));        //  Net material on b
 rel026: //LD      (a,6);                //  Load board control limit
         // a = LIMIT(6,b);                 //  Limit to plus or minus value
         temp = LIMIT(6,bcp);
-        //printf( "[u %d: %02x\n", ++calc, 0xff & temp );
         //LD      (d,a);                  //  Save limited value
         //LD      (a,e);                  //  Get material points
         //ADD     (a,a);                  //  Multiply by 4
         //ADD     (a,a);                  //
         //ADD     (a,d);                  //  Add board control
-        //printf( "[v %d: %02x\n", ++calc, 0xff & points );
         temp += points*4;
-        //printf( "[w %d: %02x\n", ++calc, 0xff & temp );
         if( (m.COLOR&0x80) != 0 )
         //LD      (hl,addr(COLOR));       //  Color of side just moved
         //BIT     (7,ptr(hl));            //  Is it white ?
             goto rel016; //JR      (NZ,rel016);            //  No - jump
         temp = 0-temp; //NEG;                            //  Negate for white
-        //printf( "[x %d: %02x\n", ++calc, 0xff & temp );
 rel016: temp += 0x80; //ADD     (a,0x80);               //  Rescale score (neutral = 80H)
-        //printf( "[y %d: %02x\n", ++calc, 0xff & temp );
         a = temp;
         callback_zargon(CB_END_OF_POINTS);
         m.VALM = a; //LD      (val(VALM),a);          //  Save score
         p = BIN_TO_PTR( m.MLPTRJ ); //LD      (ix,v16(MLPTRJ));       //  Load move list pointer
         *(p+MLVAL) = m.VALM;    //LD      (ptr(ix+MLVAL),a);      //  Save score in move list
-        //RETu;                           //  Return
 }
 
-
+// Keep this around for a while, hashing the memory to check whether
+//  we are in sync is interesting
+#if 0
 void POINTS()
 {
     static int count;
@@ -2956,6 +2928,7 @@ void POINTS()
         printf( "%d)\n", m.VALM );
     }
 }
+#endif
 
 //***********************************************************              //1510: ;***********************************************************
 // LIMIT ROUTINE                                                           //1511: ; LIMIT ROUTINE
