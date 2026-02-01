@@ -35,7 +35,7 @@ zargon_data_defs_check_and_regen regen;
 //   
 //  Progress report:
 
-// Functions converted to C (30)
+// Functions converted to C (31)
 
 // INITBD
 // PATH
@@ -67,11 +67,11 @@ zargon_data_defs_check_and_regen regen;
 // ROYALT 
 // EXECMV 
 // CPTRMV 
+// BOOK
 // 
-// Functions not yet converted to C (2)
+// Functions not yet converted to C (1)
 // 
 // POINTS
-// BOOK
 // 
 
 // Transitional (maybe) pointer manipulation macros
@@ -3741,41 +3741,47 @@ void BOOK()
     uint8_t *p = (uint8_t *)&m.SCORE;
     *(p+1) = 0;
 
-    //  Init best move ptr to book
+    // Point to 4 individual first move book moves, in order 1.e4, 1.d4, 1...e5, 1...d5
+    //  For each move only the bytes at MLFRP, MLTOP, MLFG respectively (from, to, flags)
+    //  are stored (so 3 bytes per move)
     p = &m.BMOVES[0];
+
+    // Adjust p so that p+MLFRP points at "from" (then "to", then "flags")
     p -= MLFRP;
-    m.BESTM = PTR_TO_BIN(p);        //
-    uint16_t *q = &m.BESTM;       //  Initialize address of pointer
+
+    // Named pointers to each of the four book moves;
+    uint8_t *e4=p, *d4=p+3, *e5=p+6, *d5=p+9;
 
     // If computer is White
     if( m.KOLOR == 0 )
     {
-        Z80_LDAR;                       //  Load refresh reg (random no)
+
+        // Get a random number
+        Z80_LDAR;                       
         callback_zargon(CB_LDAR);
         uint8_t rand = a;
-        if( (rand&1) == 0 )                  //  Test random bit
-            return;                   //  Return if zero (P-K4)
-        *q += 3;           //  P-Q4
-        return;                         //  Return
+
+        // Play e4 or d4 randomly
+        if( (rand&1) == 0 )
+            m.BESTM = PTR_TO_BIN(e4);
+        else
+            m.BESTM = PTR_TO_BIN(d4);
     }
 
     // Else computer is Black
     else
     {
-        *q += 6;           //  Increment to black moves
         p = BIN_TO_PTR(m.MLPTRJ);       //  Pointer to opponents 1st move
         uint8_t from = *(p+MLFRP);      //  Get "from" position
-        if( from == 22 )                   //  Is it a Queen Knight move ?
-            goto BM9;                //  Yes - Jump
-        if( from == 27 )                   //  Is it a King Knight move ?
-            goto BM9;                //  Yes - jump
-        if( from == 34 )                   //  Is it a Queen Pawn ?
-            goto BM9;                //  Yes - jump
-        if( from < 34 )                   //  If Queen side Pawn opening -
-            return;                            //  return (P-K4)
-        if( from == 35 )                   //  Is it a King Pawn ?
-            return;                    //  Yes - return (P-K4)
-BM9:    *q += 3;
+
+        // Play d5 after all White first moves except a,b,c or e pawn moves 
+        bool play_d5 = true;
+        if( from==31 || from==32 || from==33 || from==35 )
+            play_d5 = false;
+        if( play_d5 )
+            m.BESTM = PTR_TO_BIN(d5);
+        else
+            m.BESTM = PTR_TO_BIN(e5);
     }
 }
 
