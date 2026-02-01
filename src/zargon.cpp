@@ -3737,23 +3737,32 @@ BM9:    INC     (ptr(hl));              //  (P-Q4)                         //202
 
 void BOOK()
 {
-        uint8_t *p = (uint8_t *)&m.SCORE;      //  Zero out score
-        *(p+1) = 0;             //  Zero out score table
-        p = &m.BMOVES[0];    //  Init best move ptr to book
-        p -= MLFRP;
-        m.BESTM = PTR_TO_BIN(p);        //
-        uint16_t *q = &m.BESTM;       //  Initialize address of pointer
-        if( m.KOLOR != 0 )         //  Get computer's color
-            //AND     (a);                    //  Is it white ?
-            goto BM5;               //  No - jump
+    // Set score to zero
+    uint8_t *p = (uint8_t *)&m.SCORE;
+    *(p+1) = 0;
+
+    //  Init best move ptr to book
+    p = &m.BMOVES[0];
+    p -= MLFRP;
+    m.BESTM = PTR_TO_BIN(p);        //
+    uint16_t *q = &m.BESTM;       //  Initialize address of pointer
+
+    // If computer is White
+    if( m.KOLOR == 0 )
+    {
         Z80_LDAR;                       //  Load refresh reg (random no)
         callback_zargon(CB_LDAR);
-        uint8_t rand; rand = a;
+        uint8_t rand = a;
         if( (rand&1) == 0 )                  //  Test random bit
             return;                   //  Return if zero (P-K4)
         *q += 3;           //  P-Q4
         return;                         //  Return
-BM5:    *q += 6;           //  Increment to black moves
+    }
+
+    // Else computer is Black
+    else
+    {
+        *q += 6;           //  Increment to black moves
         p = BIN_TO_PTR(m.MLPTRJ);       //  Pointer to opponents 1st move
         uint8_t from = *(p+MLFRP);      //  Get "from" position
         if( from == 22 )                   //  Is it a Queen Knight move ?
@@ -3767,6 +3776,7 @@ BM5:    *q += 6;           //  Increment to black moves
         if( from == 35 )                   //  Is it a King Pawn ?
             return;                    //  Yes - return (P-K4)
 BM9:    *q += 3;
+    }
 }
 
 //
