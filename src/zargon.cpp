@@ -2722,8 +2722,11 @@ void POINTS()
         m.PTSW2 = 0;
         m.PTSCK = 0;
         m.T1 = 7;          //  Set attacker flag
-        m.M3 =21;                 //  Init to first square on board
-PT5:    piece = m.BOARDA[m.M3];            //  Save as board index
+
+    // Loop over the board
+    for( m.M3=21; m.M3<=98; m.M3++ )
+    {
+        piece = m.BOARDA[m.M3];            //  Save as board index
         //LD      (ix,v16(M3));           //  Load board index
         //LD      (a,ptr(ix+BOARD));      //  Get piece from board
         if( piece == 0xff )                   //  Off board edge ?
@@ -2819,15 +2822,12 @@ PT23:   //LD      (hl,addr(P1));          //  Get piece
 rel012: //LD      (hl,addr(MTRL));        //  Get addrs of material total
         //ADD     (a,ptr(hl));            //  Add new value
         m.MTRL += piece_val; //LD      (ptr(hl),a);            //  Store
-PT25:   // LD      (a,val(M3));            //  Get current board position
+PT25:   ; // LD      (a,val(M3));            //  Get current board position
         // INC     (a);                    //  Increment
         // CP      (99);                   //  At end of board ?
         // JP      (NZ,PT5);               //  No - jump
-        if( m.M3+1 < 99 )
-        {
-            m.M3++;
-            goto PT5;
-        }
+    }
+
         if( m.PTSCK == 0 )  //LD      (a,val(PTSCK));         //  Moving piece lost flag
         //AND     (a);                    //  Was it lost ?
             goto PT25A; //JR      (Z,PT25A);              //  No - jump
