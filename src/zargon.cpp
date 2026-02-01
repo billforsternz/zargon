@@ -2710,18 +2710,18 @@ void POINTS()
     int8_t piece_val;
     int8_t ptsl, ptsw;
     int8_t bcp;
-        int8_t *wact = (int8_t *)&(m.ATKLST);
-        int8_t *bact = wact + sizeof(m.ATKLST)/2;
+    int8_t *wact = (int8_t *)&(m.ATKLST);
+    int8_t *bact = wact + sizeof(m.ATKLST)/2;
 
-        callback_zargon_bridge(CB_POINTS);
-        //  Zero out variables
-        m.MTRL  = 0;
-        m.BRDC  = 0;
-        m.PTSL  = 0;
-        m.PTSW1 = 0;
-        m.PTSW2 = 0;
-        m.PTSCK = 0;
-        m.T1 = 7;          //  Set attacker flag
+    callback_zargon_bridge(CB_POINTS);
+    //  Zero out variables
+    m.MTRL  = 0;
+    m.BRDC  = 0;
+    m.PTSL  = 0;
+    m.PTSW1 = 0;
+    m.PTSW2 = 0;
+    m.PTSCK = 0;
+    m.T1 = 7;          //  Set attacker flag
 
     // Loop over the board
     for( m.M3=21; m.M3<=98; m.M3++ )
@@ -2730,12 +2730,16 @@ void POINTS()
         //LD      (ix,v16(M3));           //  Load board index
         //LD      (a,ptr(ix+BOARD));      //  Get piece from board
         if( piece == 0xff )                   //  Off board edge ?
-            goto PT25;               //  Yes - jump
-        m.P1 = piece;          //  Save piece, if any
+            continue;
+
+        // Piece with flags
+        m.P1 = piece;
         //LD      (ptr(hl),a);            //
         //AND     (7);                    //  Save piece type, if any
         piece &= 7;
-        m.T3 = piece;            //
+
+        // Piece type
+        m.T3 = piece;            
         if( piece < KNIGHT )                //  Less than a Knight (Pawn) ?
             goto PT6X;              //  Yes - Jump
         if( piece < ROOK )                 //  Rook, Queen or King ?
