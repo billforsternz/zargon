@@ -2502,7 +2502,7 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 //                                                                         //1343: ;
 // ARGUMENTS:  --  None                                                    //1344: ; ARGUMENTS:  --  None
 //***********************************************************              //1345: ;***********************************************************
-void POINTS() {
+void POINTS_asm() {
         callback_zargon_bridge(CB_POINTS);
         XOR     (a);                    //  Zero out variables             //1346: POINTS: XOR     a               ; Zero out variables
         LD      (val(MTRL),a);          //                                 //1347:         LD      (MTRL),a
@@ -2669,6 +2669,175 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //150
         LD      (ptr(ix+MLVAL),a);      //  Save score in move list        //1507:         LD      (ix+MLVAL),a    ; Save score in move list
         RETu;                           //  Return                         //1508:         RET                     ; Return
 }                                                                          //1509:
+
+void POINTS()
+{
+        callback_zargon_bridge(CB_POINTS);
+        //  Zero out variables
+        m.MTRL  = 0;
+        m.BRDC  = 0;
+        m.PTSL  = 0;
+        m.PTSW1 = 0;
+        m.PTSW2 = 0;
+        m.PTSCK = 0;
+        m.T1 = 7;          //  Set attacker flag
+        LD      (a,21);                 //  Init to first square on board
+PT5:    LD      (val(M3),a);            //  Save as board index
+        LD      (ix,v16(M3));           //  Load board index
+        LD      (a,ptr(ix+BOARD));      //  Get piece from board
+        CP      (-1);                   //  Off board edge ?
+        JP      (Z,PT25);               //  Yes - jump
+        LD      (hl,addr(P1));          //  Save piece, if any
+        LD      (ptr(hl),a);            //
+        AND     (7);                    //  Save piece type, if any
+        LD      (val(T3),a);            //
+        CP      (KNIGHT);               //  Less than a Knight (Pawn) ?
+        JR      (CY,PT6X);              //  Yes - Jump
+        CP      (ROOK);                 //  Rook, Queen or King ?
+        JR      (CY,PT6B);              //  No - jump
+        CP      (KING);                 //  Is it a King ?
+        JR      (Z,PT6AA);              //  Yes - jump
+        LD      (a,val(MOVENO));        //  Get move number
+        CP      (7);                    //  Less than 7 ?
+        JR      (CY,PT6A);              //  Yes - Jump
+        JPu     (PT6X);                 //  Jump
+PT6AA:  BIT     (4,ptr(hl));            //  Castled yet ?
+        JR      (Z,PT6A);               //  No - jump
+        LD      (a,+6);                 //  Bonus for castling
+        BIT     (7,ptr(hl));            //  Check piece color
+        JR      (Z,PT6D);               //  Jump if white
+        LD      (a,-6);                 //  Bonus for black castling
+        JPu     (PT6D);                 //  Jump
+PT6A:   BIT     (3,ptr(hl));            //  Has piece moved yet ?
+        JR      (Z,PT6X);               //  No - jump
+        JPu     (PT6C);                 //  Jump
+PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?
+        JR      (NZ,PT6X);              //  Yes - jump
+PT6C:   LD      (a,-2);                 //  Two point penalty for white
+        BIT     (7,ptr(hl));            //  Check piece color
+        JR      (Z,PT6D);               //  Jump if white
+        LD      (a,+2);                 //  Two point penalty for black
+PT6D:   LD      (hl,addr(BRDC));        //  Get address of board control
+        ADD     (a,ptr(hl));            //  Add on penalty/bonus points
+        LD      (ptr(hl),a);            //  Save
+PT6X:   XOR     (a);                    //  Zero out attack list
+        LD      (b,14);                 //
+        LD      (hl,addr(ATKLST));      //
+back04: LD      (ptr(hl),a);            //
+        INC16   (hl);                   //
+        DJNZ    (back04);               //
+        CALLu   (ATTACK);               //  Build attack list for square
+        LD      (hl,BACT);              //  Get black attacker count addr
+        LD      (a,val(wact));          //  Get white attacker count
+        SUB     (ptr(hl));              //  Compute count difference
+        LD      (hl,addr(BRDC));        //  Address of board control
+        ADD     (a,ptr(hl));            //  Accum board control score
+        LD      (ptr(hl),a);            //  Save
+        LD      (a,val(P1));            //  Get piece on current square
+        AND     (a);                    //  Is it empty ?
+        JP      (Z,PT25);               //  Yes - jump
+        CALLu   (XCHNG);                //  Evaluate exchange, if any
+        XOR     (a);                    //  Check for a loss
+        CP      (e);                    //  Points lost ?
+        JR      (Z,PT23);               //  No - Jump
+        DEC     (d);                    //  Deduct half a Pawn value
+        LD      (a,val(P1));            //  Get piece under attack
+        LD      (hl,addr(COLOR));       //  Color of side just moved
+        XOR     (ptr(hl));              //  Compare with piece
+        BIT     (7,a);                  //  Do colors match ?
+        LD      (a,e);                  //  Points lost
+        JR      (NZ,PT20);              //  Jump if no match
+        LD      (hl,addr(PTSL));        //  Previous max points lost
+        CP      (ptr(hl));              //  Compare to current value
+        JR      (CY,PT23);              //  Jump if greater than
+        LD      (ptr(hl),e);            //  Store new value as max lost
+        LD      (ix,v16(MLPTRJ));       //  Load pointer to this move
+        LD      (a,val(M3));            //  Get position of lost piece
+        CP      (ptr(ix+MLTOP));        //  Is it the one moving ?
+        JR      (NZ,PT23);              //  No - jump
+        LD      (val(PTSCK),a);         //  Save position as a flag
+        JPu     (PT23);                 //  Jump
+PT20:   LD      (hl,addr(PTSW1));       //  Previous maximum points won
+        CP      (ptr(hl));              //  Compare to current value
+        JR      (CY,rel011);            //  Jump if greater than
+        LD      (a,ptr(hl));            //  Load previous max value
+        LD      (ptr(hl),e);            //  Store new value as max won
+rel011: LD      (hl,addr(PTSW2));       //  Previous 2nd max points won
+        CP      (ptr(hl));              //  Compare to current value
+        JR      (CY,PT23);              //  Jump if greater than
+        LD      (ptr(hl),a);            //  Store as new 2nd max lost
+PT23:   LD      (hl,addr(P1));          //  Get piece
+        BIT     (7,ptr(hl));            //  Test color
+        LD      (a,d);                  //  Value of piece
+        JR      (Z,rel012);             //  Jump if white
+        NEG;                            //  Negate for black
+rel012: LD      (hl,addr(MTRL));        //  Get addrs of material total
+        ADD     (a,ptr(hl));            //  Add new value
+        LD      (ptr(hl),a);            //  Store
+PT25:   LD      (a,val(M3));            //  Get current board position
+        INC     (a);                    //  Increment
+        CP      (99);                   //  At end of board ?
+        JP      (NZ,PT5);               //  No - jump
+        LD      (a,val(PTSCK));         //  Moving piece lost flag
+        AND     (a);                    //  Was it lost ?
+        JR      (Z,PT25A);              //  No - jump
+        LD      (a,val(PTSW2));         //  2nd max points won
+        LD      (val(PTSW1),a);         //  Store as max points won
+        XOR     (a);                    //  Zero out 2nd max points won
+        LD      (val(PTSW2),a);         //
+PT25A:  LD      (a,val(PTSL));          //  Get max points lost
+        AND     (a);                    //  Is it zero ?
+        JR      (Z,rel013);             //  Yes - jump
+        DEC     (a);                    //  Decrement it
+rel013: LD      (b,a);                  //  Save it
+        LD      (a,val(PTSW1));         //  Max,points won
+        AND     (a);                    //  Is it zero ?
+        JR      (Z,rel014);             //  Yes - jump
+        LD      (a,val(PTSW2));         //  2nd max points won
+        AND     (a);                    //  Is it zero ?
+        JR      (Z,rel014);             //  Yes - jump
+        DEC     (a);                    //  Decrement it
+        SRL     (a);                    //  Divide it by 2
+rel014: SUB     (b);                    //  Subtract points lost
+        LD      (hl,addr(COLOR));       //  Color of side just moved ???
+        BIT     (7,ptr(hl));            //  Is it white ?
+        JR      (Z,rel015);             //  Yes - jump
+        NEG;                            //  Negate for black
+rel015: LD      (hl,addr(MTRL));        //  Net material on board
+        ADD     (a,ptr(hl));            //  Add exchange adjustments
+        LD      (hl,addr(MV0));         //  Material at ply 0
+        SUB     (ptr(hl));              //  Subtract from current
+        //LD      (b,a);                //  Save
+        //LD      (a,30);               //  Load material limit
+        a = LIMIT(30,a);                //  Limit to plus or minus value
+        LD      (e,a);                  //  Save limited value
+        LD      (a,val(BRDC));          //  Get board control points
+        LD      (hl,addr(BC0));         //  Board control at ply zero
+        SUB     (ptr(hl));              //  Get difference
+        LD      (b,a);                  //  Save
+        LD      (a,val(PTSCK));         //  Moving piece lost flag
+        AND     (a);                    //  Is it zero ?
+        JR      (Z,rel026);             //  Yes - jump
+        LD      (b,0);                  //  Zero board control points
+rel026: //LD      (a,6);                //  Load board control limit
+        a = LIMIT(6,b);                 //  Limit to plus or minus value
+        LD      (d,a);                  //  Save limited value
+        LD      (a,e);                  //  Get material points
+        ADD     (a,a);                  //  Multiply by 4
+        ADD     (a,a);                  //
+        ADD     (a,d);                  //  Add board control
+        LD      (hl,addr(COLOR));       //  Color of side just moved
+        BIT     (7,ptr(hl));            //  Is it white ?
+        JR      (NZ,rel016);            //  No - jump
+        NEG;                            //  Negate for white
+rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)
+        callback_zargon(CB_END_OF_POINTS);
+        LD      (val(VALM),a);          //  Save score
+        LD      (ix,v16(MLPTRJ));       //  Load move list pointer
+        LD      (ptr(ix+MLVAL),a);      //  Save score in move list
+        RETu;                           //  Return
+}
+
 
 //***********************************************************              //1510: ;***********************************************************
 // LIMIT ROUTINE                                                           //1511: ; LIMIT ROUTINE
