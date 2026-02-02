@@ -2710,19 +2710,21 @@ void POINTS()
     int8_t piece_val;
     int8_t ptsl, ptsw;
     int8_t bcp;
-        int8_t *wact = (int8_t *)&(m.ATKLST);
-        int8_t *bact = wact + sizeof(m.ATKLST)/2;
+    int8_t *wact = (int8_t *)&(m.ATKLST);
+    int8_t *bact = wact + sizeof(m.ATKLST)/2;
 
-        callback_zargon_bridge(CB_POINTS);
+    callback_zargon_bridge(CB_POINTS);
 
-        //  Zero out variables
-        m.MTRL  = 0;
-        m.BRDC  = 0;
-        m.PTSL  = 0;
-        m.PTSW1 = 0;
-        m.PTSW2 = 0;
-        m.PTSCK = 0;
-        m.T1 = 7;          //  Set attacker flag
+    //  Zero out variables
+    m.MTRL  = 0;
+    m.BRDC  = 0;
+    m.PTSL  = 0;
+    m.PTSW1 = 0;
+    m.PTSW2 = 0;
+    m.PTSCK = 0;
+    m.T1 = 7;          //  Set attacker flag
+
+    // Loop around board
     for( m.M3=21; m.M3<=98; m.M3++ )
     {
         piece = m.BOARDA[m.M3];            //  Save as board index
@@ -2867,14 +2869,17 @@ void POINTS()
         m.MTRL += piece_val;
     }
 
-        if( m.PTSCK == 0 )  //LD      (a,val(PTSCK));         //  Moving piece lost flag
-        //AND     (a);                    //  Was it lost ?
-            goto PT25A; //JR      (Z,PT25A);              //  No - jump
-        m.PTSW1 = m.PTSW2; //LD      (a,val(PTSW2));         //  2nd max points won
-        //LD      (val(PTSW1),a);         //  Store as max points won
-        //XOR     (a);                    //  Zero out 2nd max points won
-        m.PTSW2 = 0; //LD      (val(PTSW2),a);         //
-PT25A:  ptsl = m.PTSL; if( ptsl == 0 ) //LD      (a,val(PTSL));          //  Get max points lost
+        // If moving piece lost
+        if( m.PTSCK != 0 )
+        {
+
+            // Shift two element max points one stack
+            m.PTSW1 = m.PTSW2;
+            m.PTSW2 = 0;
+        }
+
+
+        ptsl = m.PTSL; if( ptsl == 0 ) //LD      (a,val(PTSL));          //  Get max points lost
         //AND     (a);                    //  Is it zero ?
             goto rel013; //JR      (Z,rel013);             //  Yes - jump
         ptsl--;                    //  Decrement it
