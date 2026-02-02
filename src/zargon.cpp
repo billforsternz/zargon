@@ -2878,27 +2878,29 @@ void POINTS()
             m.PTSW2 = 0;
         }
 
+        // Get max points lost, and decrement if non-zero
+        ptsl = m.PTSL;
+        if( ptsl != 0 )
+            ptsl--;
 
-        ptsl = m.PTSL; if( ptsl == 0 ) //LD      (a,val(PTSL));          //  Get max points lost
-        //AND     (a);                    //  Is it zero ?
-            goto rel013; //JR      (Z,rel013);             //  Yes - jump
-        ptsl--;                    //  Decrement it
-rel013: //LD      (b,a);                  //  Save it
+        // Get max points won
         ptsw = m.PTSW1;
-        if( ptsw == 0 ) //LD      (a,val(PTSW1));         //  Max,points won
-        //AND     (a);                    //  Is it zero ?
-            goto rel014; //JR      (Z,rel014);             //  Yes - jump
-        ptsw = m.PTSW2;
-        if( ptsw == 0 ) //LD      (a,val(PTSW2));         //  2nd max points won
-        //AND     (a);                    //  Is it zero ?
-            goto rel014; //JR      (Z,rel014);             //  Yes - jump
-        ptsw--; // DEC     (a);                    //  Decrement it
+        if( ptsw != 0 ) //LD      (a,val(PTSW1));         //  Max,points won
+        {//AND     (a);                    //  Is it zero ?
+             //   goto rel014; //JR      (Z,rel014);             //  Yes - jump
+            ptsw = m.PTSW2;
+            if( ptsw != 0 ) //LD      (a,val(PTSW2));         //  2nd max points won
+            {//AND     (a);                    //  Is it zero ?
+             //   goto rel014; //JR      (Z,rel014);             //  Yes - jump
+                ptsw--; // DEC     (a);                    //  Decrement it
 
-        // uint8_t u8; u8 = (uint8_t)ptsw;
-        // u8 = u8>>1;
-        // ptsw = (int8_t) u8;
-        ptsw = ptsw/2;  //SRL     (a);                    //  Divide it by 2
-rel014: ptsw -= ptsl; //SUB     (b);                    //  Subtract points lost
+                // uint8_t u8; u8 = (uint8_t)ptsw;
+                // u8 = u8>>1;
+                // ptsw = (int8_t) u8;
+                ptsw = ptsw/2;  //SRL     (a);                    //  Divide it by 2
+            }
+        }
+        ptsw -= ptsl; //SUB     (b);                    //  Subtract points lost
         if( (m.COLOR &0x80)==0 ) //LD      (hl,addr(COLOR));       //  Color of side just moved ???
             //BIT     (7,ptr(hl));            //  Is it white ?
             goto rel015;    //JR      (Z,rel015);             //  Yes - jump
