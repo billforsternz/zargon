@@ -2930,11 +2930,10 @@ void POINTS()
 
         // Add material*4
         temp += points*4;
-        if( (m.COLOR&0x80) != 0 )
-        //LD      (hl,addr(COLOR));       //  Color of side just moved
-        //BIT     (7,ptr(hl));            //  Is it white ?
-            goto rel016; //JR      (NZ,rel016);            //  No - jump
-        temp = 0-temp; //NEG;                            //  Negate for white
+
+        // Color of side just moved
+        if( (m.COLOR&0x80) == 0 )
+            temp = 0-temp;  // negate for white
 rel016: temp += 0x80; //ADD     (a,0x80);               //  Rescale score (neutral = 80H)
         a = temp;
         callback_zargon(CB_END_OF_POINTS);
