@@ -2714,6 +2714,7 @@ void POINTS()
         int8_t *bact = wact + sizeof(m.ATKLST)/2;
 
         callback_zargon_bridge(CB_POINTS);
+
         //  Zero out variables
         m.MTRL  = 0;
         m.BRDC  = 0;
@@ -2722,47 +2723,95 @@ void POINTS()
         m.PTSW2 = 0;
         m.PTSCK = 0;
         m.T1 = 7;          //  Set attacker flag
-        m.M3 =21;                 //  Init to first square on board
-PT5:    piece = m.BOARDA[m.M3];            //  Save as board index
+    for( m.M3=21; m.M3<=98; m.M3++ )
+    {
+        piece = m.BOARDA[m.M3];            //  Save as board index
         //LD      (ix,v16(M3));           //  Load board index
         //LD      (a,ptr(ix+BOARD));      //  Get piece from board
-        if( piece == 0xff )                   //  Off board edge ?
-            goto PT25;               //  Yes - jump
-        m.P1 = piece;          //  Save piece, if any
+
+        //  Off board edge ?
+        if( piece == 0xff )
+            continue;
+
+        // Piece with flags
+        m.P1 = piece;
         //LD      (ptr(hl),a);            //
         //AND     (7);                    //  Save piece type, if any
+
+        // Piece without flags
         piece &= 7;
-        m.T3 = piece;            //
+        m.T3 = piece;
+        
+        // Pawn ?
         if( piece < KNIGHT )                //  Less than a Knight (Pawn) ?
-            goto PT6X;              //  Yes - Jump
-        if( piece < ROOK )                 //  Rook, Queen or King ?
-            goto PT6B;              //  No - jump
-        if( piece == KING )                 //  Is it a King ?
-            goto PT6AA;              //  Yes - jump
-        if( m.MOVENO < 7 )        //  Get move number
-        //CP      (7);                    //  Less than 7 ?
-            goto PT6A;              //  Yes - Jump
-        goto PT6X;                 //  Jump
-PT6AA:  if( (m.P1&0x10) == 0 )           //  Castled yet ?
-            goto PT6A;               //  No - jump
-        bonus = +6;                 //  Bonus for castling
-        if( (m.P1&0x80) == 0 )            //  Check piece color
-            goto PT6D;               //  Jump if white
-        bonus = -6;                 //  Bonus for black castling
-        goto PT6D;                 //  Jump
-PT6A:   if( (m.P1&0x08) == 0 )            //  Has piece moved yet ?
-            goto PT6X;               //  No - jump
-        goto PT6C;                 //  Jump
-PT6B:   if( (m.P1&0x08) != 0 )            //  Has piece moved yet ?
-            goto PT6X;              //  Yes - jump
-PT6C:   bonus = -2;                 //  Two point penalty for white
-        if( (m.P1&0x80) == 0 )            //  Check piece color
-            goto PT6D;               //  Jump if white
-        bonus = 2;                 //  Two point penalty for black
-PT6D:   m.BRDC += bonus;        //  Get address of board control
-        //ADD     (a,ptr(hl));            //  Add on penalty/bonus points
-        //LD      (ptr(hl),a);            //  Save
-PT6X:   
+            ;
+
+        // Bishop or knight
+        else if( piece < ROOK )                 //  Rook, Queen or King ?
+        {
+//PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //1385: PT6B:   BIT     3,(hl)          ; Has piece moved yet ?
+//        JR      (NZ,PT6X);              //  Yes - jump                     //1386:         JR      NZ,PT6X         ; Yes - jump
+//PT6C:   LD      (a,-2);                 //  Two point penalty for white    //1387: PT6C:   LD      a,-2            ; Two point penalty for white
+//        BIT     (7,ptr(hl));            //  Check piece color              //1388:         BIT     7,(hl)          ; Check piece color
+//        JR      (Z,PT6D);               //  Jump if white                  //1389:         JR      Z,PT6D          ; Jump if white
+//        LD      (a,+2);                 //  Two point penalty for black    //1390:         LD      a,+2            ; Two point penalty for black
+
+
+
+
+
+            // If not moved, 2 point penalty for white
+            if( (m.P1&0x08) == 0 )            //  Has piece moved yet ?
+            {
+                bonus = -2;                 //  Two point penalty for white
+                if( (m.P1&0x80) != 0 )            //  Check piece color
+                    bonus = 2;                 //  Two point penalty for black
+                m.BRDC += bonus;        //  Get address of board control
+            }
+        }
+
+        // Rook, Queen or King
+        else if( piece == KING )
+        {
+            if( (m.P1&0x10) != 0 )           //  Castled yet ?
+            {
+                bonus = +6;                 //  Bonus for castling
+                if( (m.P1&0x80) != 0 )            //  Check piece color
+                    bonus = -6;                 //  Bonus for black castling
+                m.BRDC += bonus;        //  Get address of board control
+            }
+            else if( (m.P1&0x08) != 0 )            //  Has piece moved yet ?
+            {
+                bonus = -2;                 //  Two point penalty for white
+                if( (m.P1&0x80) != 0 )            //  Check piece color
+                    bonus = 2;                 //  Two point penalty for black
+                m.BRDC += bonus;        //  Get address of board control
+            }
+        }
+
+        // 
+//PT6A:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //1382: PT6A:   BIT     3,(hl)          ; Has piece moved yet ?
+//        JR      (Z,PT6X);               //  No - jump                      //1383:         JR      Z,PT6X          ; No - jump
+//        JPu     (PT6C);                 //  Jump                           //1384:         JP      PT6C            ; Jump
+//PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //1385: PT6B:   BIT     3,(hl)          ; Has piece moved yet ?
+//        JR      (NZ,PT6X);              //  Yes - jump                     //1386:         JR      NZ,PT6X         ; Yes - jump
+//PT6C:   LD      (a,-2);                 //  Two point penalty for white    //1387: PT6C:   LD      a,-2            ; Two point penalty for white
+//        BIT     (7,ptr(hl));            //  Check piece color              //1388:         BIT     7,(hl)          ; Check piece color
+//        JR      (Z,PT6D);               //  Jump if white                  //1389:         JR      Z,PT6D          ; Jump if white
+//        LD      (a,+2);                 //  Two point penalty for black    //1390:         LD      a,+2            ; Two point penalty for black
+
+
+        else if( m.MOVENO < 7 )        //  Get move number
+        {
+            if( (m.P1&0x08) != 0 )            //  Has piece moved yet ?
+            {
+                bonus = -2;                 //  Two point penalty for white
+                if( (m.P1&0x80) != 0 )            //  Check piece color
+                    bonus = 2;                 //  Two point penalty for black
+                m.BRDC += bonus;        //  Get address of board control
+            }
+        }
+
         //  Zero out attack list
         memset( m.ATKLST, 0, sizeof(m.ATKLST) );
         ATTACK();               //  Build attack list for square
@@ -2819,15 +2868,12 @@ PT23:   //LD      (hl,addr(P1));          //  Get piece
 rel012: //LD      (hl,addr(MTRL));        //  Get addrs of material total
         //ADD     (a,ptr(hl));            //  Add new value
         m.MTRL += piece_val; //LD      (ptr(hl),a);            //  Store
-PT25:   // LD      (a,val(M3));            //  Get current board position
+PT25: ;  // LD      (a,val(M3));            //  Get current board position
         // INC     (a);                    //  Increment
         // CP      (99);                   //  At end of board ?
         // JP      (NZ,PT5);               //  No - jump
-        if( m.M3+1 < 99 )
-        {
-            m.M3++;
-            goto PT5;
-        }
+}
+
         if( m.PTSCK == 0 )  //LD      (a,val(PTSCK));         //  Moving piece lost flag
         //AND     (a);                    //  Was it lost ?
             goto PT25A; //JR      (Z,PT25A);              //  No - jump
