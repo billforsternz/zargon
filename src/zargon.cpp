@@ -2760,7 +2760,7 @@ void POINTS()
             }
         }
 
-        // Rook, Queen or King
+        // King
         else if( piece == KING )
         {
             if( (m.P1&0x10) != 0 )           //  Castled yet ?
@@ -2779,7 +2779,8 @@ void POINTS()
             }
         }
 
-        else if( m.MOVENO < 7 )        //  Get move number
+        // Rook or queen early in game
+        else if( m.MOVENO < 7 )
         {
             if( (m.P1&0x08) != 0 )            //  Has piece moved yet ?
             {
@@ -2817,42 +2818,54 @@ void POINTS()
             //  Deduct half a Pawn value
             piece_val--;
 
-            // Compare colour of piece under attack with colour of side just moved
-        if( (m.COLOR&0x80) == (m.P1&0x80) )
-        {
-            //LD      (hl,addr(PTSL));        //  Previous max points lost
-            //CP      (ptr(hl));              //  Compare to current value
-            if( points < m.PTSL ) goto PT23;              //  Jump if greater than
-            m.PTSL = points; // LD      (ptr(hl),e);            //  Store new value as max lost
-            p = BIN_TO_PTR(m.MLPTRJ);       //  Load pointer to this move
-            //LD      (a,val(M3));            //  Get position of lost piece
-            if( m.M3 != *(p+MLTOP) )        //  Is it the one moving ?
-                goto PT23;              //  No - jump
-            m.PTSCK = m.M3; // LD      (val(PTSCK),a);         //  Save position as a flag
-            //goto PT23;                 //  Jump
+            // If color of piece under attack matches color of side just moved
+            if( (m.COLOR&0x80) == (m.P1&0x80) )
+            {
+
+                // If points lost >= previous max points lost
+                if( points >= m.PTSL )
+                {
+
+                    // Store new value as max lost
+                    m.PTSL = points;
+
+                    // Load pointer to this move
+                    p = BIN_TO_PTR(m.MLPTRJ);
+                
+                    // Is the lost piece the one moving ?
+                    if( m.M3 == *(p+MLTOP) )  
+                        m.PTSCK = m.M3; // yes, save position as a flag
+                }
+            }
+
+
+            // Else color of piece under attack doesn't match color of side just moved
+            else
+            {
+
+                // Points won
+                temp = points;
+
+                // If points won >= previous maximum points won
+                if( points >= m.PTSW1 )
+                {
+
+                    // Update max points won (but save previous value)
+                    temp = m.PTSW1;
+                    m.PTSW1 = points;
+                }
+                
+                // Update 2nd max points won with old value of max points won
+                if( temp >= m.PTSW2 )
+                    m.PTSW2 = temp;
+            }
         }
-        else
-        {
-            //PT20:   //LD      (hl,addr(PTSW1));       //  Previous maximum points won
-            //CP      (ptr(hl));              //  Compare to current value
-            temp = points;
-            if( points < m.PTSW1 ) goto rel011; //JR      (CY,rel011);            //  Jump if greater than
-            temp = m.PTSW1; //LD      (a,ptr(hl));            //  Load previous max value
-            m.PTSW1 = points; //LD      (ptr(hl),e);            //  Store new value as max won
-    rel011: //LD      (hl,addr(PTSW2));       //  Previous 2nd max points won
-            //CP      (ptr(hl));              //  Compare to current value
-            if( temp < m.PTSW2 ) goto PT23; //JR      (CY,PT23);              //  Jump if greater than
-            m.PTSW2 = temp; //LD      (ptr(hl),a);            //  Store as new 2nd max lost
-        }
-PT23:   //LD      (hl,addr(P1));          //  Get piece
-        //BIT     (7,ptr(hl));            //  Test color
-        //LD      (a,d);                  //  Value of piece
-        if( (m.P1&0x80) == 0 )  goto rel012; //JR      (Z,rel012);             //  Jump if white
-        piece_val = 0-piece_val;  // NEG;                            //  Negate for black
-rel012: //LD      (hl,addr(MTRL));        //  Get addrs of material total
-        //ADD     (a,ptr(hl));            //  Add new value
-        m.MTRL += piece_val; //LD      (ptr(hl),a);            //  Store
-}
+
+        // Accumulate total material
+        if( (m.P1&0x80) != 0 )
+            piece_val = 0-piece_val;    // negate piece value if Black
+        m.MTRL += piece_val;
+    }
 
         if( m.PTSCK == 0 )  //LD      (a,val(PTSCK));         //  Moving piece lost flag
         //AND     (a);                    //  Was it lost ?
