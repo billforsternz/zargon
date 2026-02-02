@@ -2715,14 +2715,14 @@ void POINTS()
 
     callback_zargon_bridge(CB_POINTS);
 
-    //  Zero out variables
+    // Init points algorithm variables
     m.MTRL  = 0;
     m.BRDC  = 0;
     m.PTSL  = 0;
     m.PTSW1 = 0;
     m.PTSW2 = 0;
     m.PTSCK = 0;
-    m.T1 = 7;          //  Set attacker flag
+    m.T1 = 7;       // set attacker flag
 
     // Loop around board
     for( m.M3=21; m.M3<=98; m.M3++ )
@@ -2737,8 +2737,6 @@ void POINTS()
 
         // Piece with flags
         m.P1 = piece;
-        //LD      (ptr(hl),a);            //
-        //AND     (7);                    //  Save piece type, if any
 
         // Piece without flags
         piece &= 7;
@@ -2803,7 +2801,7 @@ void POINTS()
         //  into board control score
         m.BRDC += (*wact-*bact);
 
-        // If sqaure is empty continue loop
+        // If square is empty continue loop
         if( m.P1 == 0 )            //  Get piece on current square
             continue;
 
@@ -2811,7 +2809,6 @@ void POINTS()
         XCHNG();                
         points    = e;  //  XCHNG returns registers e, d
         piece_val = d;  //  e=points, d=attacked piece val (I think, later - formalise this)
-        //XOR     (a);
         
         // If piece is nominally lost
         if( points != 0 )
@@ -2869,77 +2866,83 @@ void POINTS()
         m.MTRL += piece_val;
     }
 
-        // If moving piece lost
-        if( m.PTSCK != 0 )
-        {
+    // If moving piece lost
+    if( m.PTSCK != 0 )
+    {
 
-            // Shift two element max points one stack
-            m.PTSW1 = m.PTSW2;
-            m.PTSW2 = 0;
-        }
+        // Shift two element max points stack
+        m.PTSW1 = m.PTSW2;
+        m.PTSW2 = 0;
+    }
 
-        // Adjust max points lost (decrement if non-zero)
-        ptsl = m.PTSL;
-        if( ptsl != 0 )
-            ptsl--;
+    // Adjust max points lost (decrement if non-zero)
+    ptsl = m.PTSL;
+    if( ptsl != 0 )
+        ptsl--;
 
-        // Get max points won
-        ptsw = m.PTSW1;
+    // Get max points won
+    ptsw = m.PTSW1;
 
-        // Adjust max points won if both 1st and 2nd max points won are non-zero
-        //  Value is;
-        //      0 if 1st max points won is 0
-        //      else 2nd max points won
-        //      except then if not zero adjusted val = (val-1)/2
-        // I don't currently understand the reasoning behind this
+    // Adjust max points won if both 1st and 2nd max points won are non-zero
+    //  Value is;
+    //      0 if 1st max points won is 0
+    //      else 2nd max points won
+    //      except then if not zero adjusted val = (val-1)/2
+    // I don't currently understand the reasoning behind this
+    if( ptsw != 0 )
+    {
+        ptsw = m.PTSW2;
         if( ptsw != 0 )
         {
-            ptsw = m.PTSW2;
-            if( ptsw != 0 )
-            {
-                ptsw--;
-                ptsw = ptsw/2;
-            }
+            ptsw--;
+            ptsw = ptsw/2;
         }
+    }
 
-        // Points won net = points won - points lost
-        ptsw -= ptsl;
+    // Points won net = points won - points lost
+    ptsw -= ptsl;
 
-        // Color of side just moved
-        if( (m.COLOR &0x80) != 0 )
-            ptsw = 0-ptsw;  // negate for black
+    // Color of side just moved
+    if( (m.COLOR &0x80) != 0 )
+        ptsw = 0-ptsw;  // negate for black
 
-        // Add net material on board
-        ptsw += m.MTRL;
+    // Add net material on board
+    ptsw += m.MTRL;
 
-        // Subtract material at ply 0
-        ptsw -= m.MV0;
+    // Subtract material at ply 0
+    ptsw -= m.MV0;
 
-        // Limit to +/- 30
-        points = LIMIT(30,ptsw);                //  Limit to plus or minus value
+    // Limit to +/- 30
+    points = LIMIT(30,ptsw);
 
-        // Board control points minus board control at ply zero
-        bcp = m.BRDC - m.BC0;
+    // Board control points minus board control at ply zero
+    bcp = m.BRDC - m.BC0;
 
-        // If moving piece lost, set board control points to zero
-        if( m.PTSCK != 0 ) //LD      (a,val(PTSCK));         //  Moving piece lost flag
-            bcp = 0;
+    // If moving piece lost, set board control points to zero
+    if( m.PTSCK != 0 )
+        bcp = 0;
 
-        // Limit to +/- 6
-        temp = LIMIT(6,bcp);
+    // Limit to +/- 6
+    bcp = LIMIT(6,bcp);
 
-        // Add material*4
-        temp += points*4;
+    // Add material*4
+    points = points*4 + bcp;
 
-        // Color of side just moved
-        if( (m.COLOR&0x80) == 0 )
-            temp = 0-temp;  // negate for white
-rel016: temp += 0x80; //ADD     (a,0x80);               //  Rescale score (neutral = 80H)
-        a = temp;
-        callback_zargon(CB_END_OF_POINTS);
-        m.VALM = a; //LD      (val(VALM),a);          //  Save score
-        p = BIN_TO_PTR( m.MLPTRJ ); //LD      (ix,v16(MLPTRJ));       //  Load move list pointer
-        *(p+MLVAL) = m.VALM;    //LD      (ptr(ix+MLVAL),a);      //  Save score in move list
+    // Color of side just moved
+    if( (m.COLOR&0x80) == 0 )
+        points = 0-points;  // negate for white
+
+    // Rescale score (neutral = 0x80)
+    points += 0x80;
+    a = points;
+    callback_zargon(CB_END_OF_POINTS);
+
+    // Save score value
+    m.VALM = a;
+
+    // Save score value to move pointed to by current move ptr
+    p = BIN_TO_PTR( m.MLPTRJ );
+    *(p+MLVAL) = m.VALM;
 }
 
 // Keep this around for a while, hashing the memory to check whether
