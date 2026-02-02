@@ -2818,27 +2818,31 @@ void POINTS()
             piece_val--;
 
             // Compare colour of piece under attack with colour of side just moved
-        if( (m.COLOR&0x80) == (m.P1&0x80) ) {
-        //LD      (hl,addr(PTSL));        //  Previous max points lost
-        //CP      (ptr(hl));              //  Compare to current value
-        if( points < m.PTSL ) goto PT23;              //  Jump if greater than
-        m.PTSL = points; // LD      (ptr(hl),e);            //  Store new value as max lost
-        p = BIN_TO_PTR(m.MLPTRJ);       //  Load pointer to this move
-        //LD      (a,val(M3));            //  Get position of lost piece
-        if( m.M3 != *(p+MLTOP) )        //  Is it the one moving ?
-            goto PT23;              //  No - jump
-        m.PTSCK = m.M3; // LD      (val(PTSCK),a);         //  Save position as a flag
-        goto PT23;                 //  Jump
-        } //PT20:   //LD      (hl,addr(PTSW1));       //  Previous maximum points won
-        //CP      (ptr(hl));              //  Compare to current value
-        temp = points;
-        if( points < m.PTSW1 ) goto rel011; //JR      (CY,rel011);            //  Jump if greater than
-        temp = m.PTSW1; //LD      (a,ptr(hl));            //  Load previous max value
-        m.PTSW1 = points; //LD      (ptr(hl),e);            //  Store new value as max won
-rel011: //LD      (hl,addr(PTSW2));       //  Previous 2nd max points won
-        //CP      (ptr(hl));              //  Compare to current value
-        if( temp < m.PTSW2 ) goto PT23; //JR      (CY,PT23);              //  Jump if greater than
-        m.PTSW2 = temp; //LD      (ptr(hl),a);            //  Store as new 2nd max lost
+        if( (m.COLOR&0x80) == (m.P1&0x80) )
+        {
+            //LD      (hl,addr(PTSL));        //  Previous max points lost
+            //CP      (ptr(hl));              //  Compare to current value
+            if( points < m.PTSL ) goto PT23;              //  Jump if greater than
+            m.PTSL = points; // LD      (ptr(hl),e);            //  Store new value as max lost
+            p = BIN_TO_PTR(m.MLPTRJ);       //  Load pointer to this move
+            //LD      (a,val(M3));            //  Get position of lost piece
+            if( m.M3 != *(p+MLTOP) )        //  Is it the one moving ?
+                goto PT23;              //  No - jump
+            m.PTSCK = m.M3; // LD      (val(PTSCK),a);         //  Save position as a flag
+            //goto PT23;                 //  Jump
+        }
+        else
+        {
+            //PT20:   //LD      (hl,addr(PTSW1));       //  Previous maximum points won
+            //CP      (ptr(hl));              //  Compare to current value
+            temp = points;
+            if( points < m.PTSW1 ) goto rel011; //JR      (CY,rel011);            //  Jump if greater than
+            temp = m.PTSW1; //LD      (a,ptr(hl));            //  Load previous max value
+            m.PTSW1 = points; //LD      (ptr(hl),e);            //  Store new value as max won
+    rel011: //LD      (hl,addr(PTSW2));       //  Previous 2nd max points won
+            //CP      (ptr(hl));              //  Compare to current value
+            if( temp < m.PTSW2 ) goto PT23; //JR      (CY,PT23);              //  Jump if greater than
+            m.PTSW2 = temp; //LD      (ptr(hl),a);            //  Store as new 2nd max lost
         }
 PT23:   //LD      (hl,addr(P1));          //  Get piece
         //BIT     (7,ptr(hl));            //  Test color
