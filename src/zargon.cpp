@@ -2878,7 +2878,7 @@ void POINTS()
             m.PTSW2 = 0;
         }
 
-        // Adjust max points lost (and decrement if non-zero)
+        // Adjust max points lost (decrement if non-zero)
         ptsl = m.PTSL;
         if( ptsl != 0 )
             ptsl--;
@@ -2887,9 +2887,10 @@ void POINTS()
         ptsw = m.PTSW1;
 
         // Adjust max points won if both 1st and 2nd max points won are non-zero
-        //  Value is   0 if 1st max points won is 0
-        //        else 2nd max points won
-        //        except then if not zero adjusted val = (val--)/2
+        //  Value is;
+        //      0 if 1st max points won is 0
+        //      else 2nd max points won
+        //      except then if not zero adjusted val = (val-1)/2
         // I don't currently understand the reasoning behind this
         if( ptsw != 0 )
         {
@@ -2900,19 +2901,23 @@ void POINTS()
                 ptsw = ptsw/2;
             }
         }
-        ptsw -= ptsl; //SUB     (b);                    //  Subtract points lost
-        if( (m.COLOR &0x80)==0 ) //LD      (hl,addr(COLOR));       //  Color of side just moved ???
-            //BIT     (7,ptr(hl));            //  Is it white ?
-            goto rel015;    //JR      (Z,rel015);             //  Yes - jump
-        ptsw = 0-ptsw; //NEG;                            //  Negate for black
-rel015: ptsw += m.MTRL; // LD      (hl,addr(MTRL));        //  Net material on board
-        //ADD     (a,ptr(hl));            //  Add exchange adjustments
-        //LD      (hl,addr(MV0));         //  Material at ply 0
-        //SUB     (ptr(hl));              //  Subtract from current
+
+        // Points won net = points won - points lost
+        ptsw -= ptsl;
+
+        // Color of side just moved
+        if( (m.COLOR &0x80) != 0 )
+            ptsw = 0-ptsw;  // negate for black
+
+        // Add net material on board
+        ptsw += m.MTRL;
+
+        // Subtract material at ply 0
         ptsw -= m.MV0;
-        //LD      (b,a);                //  Save
-        //LD      (a,30);               //  Load material limit
+
+        // Limit to +/- 30
         ptsw = LIMIT(30,ptsw);                //  Limit to plus or minus value
+
         points = ptsw;                  //  Save limited value
         bcp = m.BRDC - m.BC0; //LD      (a,val(BRDC));          //  Get board control points
         //LD      (hl,addr(BC0));         //  Board control at ply zero
