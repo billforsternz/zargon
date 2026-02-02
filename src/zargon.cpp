@@ -2749,16 +2749,6 @@ void POINTS()
         // Bishop or knight
         else if( piece < ROOK )                 //  Rook, Queen or King ?
         {
-//PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //1385: PT6B:   BIT     3,(hl)          ; Has piece moved yet ?
-//        JR      (NZ,PT6X);              //  Yes - jump                     //1386:         JR      NZ,PT6X         ; Yes - jump
-//PT6C:   LD      (a,-2);                 //  Two point penalty for white    //1387: PT6C:   LD      a,-2            ; Two point penalty for white
-//        BIT     (7,ptr(hl));            //  Check piece color              //1388:         BIT     7,(hl)          ; Check piece color
-//        JR      (Z,PT6D);               //  Jump if white                  //1389:         JR      Z,PT6D          ; Jump if white
-//        LD      (a,+2);                 //  Two point penalty for black    //1390:         LD      a,+2            ; Two point penalty for black
-
-
-
-
 
             // If not moved, 2 point penalty for white
             if( (m.P1&0x08) == 0 )            //  Has piece moved yet ?
@@ -2789,18 +2779,6 @@ void POINTS()
             }
         }
 
-        // 
-//PT6A:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //1382: PT6A:   BIT     3,(hl)          ; Has piece moved yet ?
-//        JR      (Z,PT6X);               //  No - jump                      //1383:         JR      Z,PT6X          ; No - jump
-//        JPu     (PT6C);                 //  Jump                           //1384:         JP      PT6C            ; Jump
-//PT6B:   BIT     (3,ptr(hl));            //  Has piece moved yet ?          //1385: PT6B:   BIT     3,(hl)          ; Has piece moved yet ?
-//        JR      (NZ,PT6X);              //  Yes - jump                     //1386:         JR      NZ,PT6X         ; Yes - jump
-//PT6C:   LD      (a,-2);                 //  Two point penalty for white    //1387: PT6C:   LD      a,-2            ; Two point penalty for white
-//        BIT     (7,ptr(hl));            //  Check piece color              //1388:         BIT     7,(hl)          ; Check piece color
-//        JR      (Z,PT6D);               //  Jump if white                  //1389:         JR      Z,PT6D          ; Jump if white
-//        LD      (a,+2);                 //  Two point penalty for black    //1390:         LD      a,+2            ; Two point penalty for black
-
-
         else if( m.MOVENO < 7 )        //  Get move number
         {
             if( (m.P1&0x08) != 0 )            //  Has piece moved yet ?
@@ -2812,34 +2790,35 @@ void POINTS()
             }
         }
 
-        //  Zero out attack list
+        // Zero out attack list
         memset( m.ATKLST, 0, sizeof(m.ATKLST) );
-        ATTACK();               //  Build attack list for square
-//        int8_t *wact = (int8_t *)&(m.ATKLST);
-//        int8_t *bact = wact + sizeof(m.ATKLST)/2;
+
+        // Build attack list for square
+        ATTACK();
+
+        // Get (White attacker count - Black attacker count) and accumulate
+        //  into board control score
         m.BRDC += (*wact-*bact);
-        // LD      (hl,BACT);              //  Get black attacker count addr
-        // LD      (a,val(wact));          //  Get white attacker count
-        // SUB     (ptr(hl));              //  Compute count difference
-        // LD      (hl,addr(BRDC));        //  Address of board control
-        // ADD     (a,ptr(hl));            //  Accum board control score
-        // LD      (ptr(hl),a);            //  Save
+
+        // If sqaure is empty continue loop
         if( m.P1 == 0 )            //  Get piece on current square
-        //AND     (a);                    //  Is it empty ?
-            goto PT25;               //  Yes - jump
-        XCHNG();                //  Evaluate exchange, if any
-        points    = e;                          //  XCHNG returns registers e, d
-        piece_val = d;           //  e=points, d=attacked piece val (I think, later - formalise this)
-        //XOR     (a);                    //  Check for a loss
-        if( points == 0 )                   //  Points lost ?
-            goto PT23;               //  No - Jump
-        piece_val--;                    //  Deduct half a Pawn value
-        //LD      (a,val(P1));            //  Get piece under attack
-        //LD      (hl,addr(COLOR));       //  Color of side just moved
-        //XOR     (ptr(hl));              //  Compare with piece
-        //BIT     (7,a);                  //  Do colors match ?
-        //LD      (a,e);                  //  Points lost
-        if( (m.COLOR&0x80) != (m.P1&0x80) ) goto PT20;              //  Jump if no match
+            continue;
+
+        // Evaluate exchange, if any
+        XCHNG();                
+        points    = e;  //  XCHNG returns registers e, d
+        piece_val = d;  //  e=points, d=attacked piece val (I think, later - formalise this)
+        //XOR     (a);
+        
+        // If piece is nominally lost
+        if( points != 0 )
+        {
+
+            //  Deduct half a Pawn value
+            piece_val--;
+
+            // Compare colour of piece under attack with colour of side just moved
+        if( (m.COLOR&0x80) == (m.P1&0x80) ) {
         //LD      (hl,addr(PTSL));        //  Previous max points lost
         //CP      (ptr(hl));              //  Compare to current value
         if( points < m.PTSL ) goto PT23;              //  Jump if greater than
@@ -2850,7 +2829,7 @@ void POINTS()
             goto PT23;              //  No - jump
         m.PTSCK = m.M3; // LD      (val(PTSCK),a);         //  Save position as a flag
         goto PT23;                 //  Jump
-PT20:   //LD      (hl,addr(PTSW1));       //  Previous maximum points won
+        } //PT20:   //LD      (hl,addr(PTSW1));       //  Previous maximum points won
         //CP      (ptr(hl));              //  Compare to current value
         temp = points;
         if( points < m.PTSW1 ) goto rel011; //JR      (CY,rel011);            //  Jump if greater than
@@ -2860,6 +2839,7 @@ rel011: //LD      (hl,addr(PTSW2));       //  Previous 2nd max points won
         //CP      (ptr(hl));              //  Compare to current value
         if( temp < m.PTSW2 ) goto PT23; //JR      (CY,PT23);              //  Jump if greater than
         m.PTSW2 = temp; //LD      (ptr(hl),a);            //  Store as new 2nd max lost
+        }
 PT23:   //LD      (hl,addr(P1));          //  Get piece
         //BIT     (7,ptr(hl));            //  Test color
         //LD      (a,d);                  //  Value of piece
@@ -2868,10 +2848,6 @@ PT23:   //LD      (hl,addr(P1));          //  Get piece
 rel012: //LD      (hl,addr(MTRL));        //  Get addrs of material total
         //ADD     (a,ptr(hl));            //  Add new value
         m.MTRL += piece_val; //LD      (ptr(hl),a);            //  Store
-PT25: ;  // LD      (a,val(M3));            //  Get current board position
-        // INC     (a);                    //  Increment
-        // CP      (99);                   //  At end of board ?
-        // JP      (NZ,PT5);               //  No - jump
 }
 
         if( m.PTSCK == 0 )  //LD      (a,val(PTSCK));         //  Moving piece lost flag
