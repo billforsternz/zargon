@@ -2878,26 +2878,26 @@ void POINTS()
             m.PTSW2 = 0;
         }
 
-        // Get max points lost, and decrement if non-zero
+        // Adjust max points lost (and decrement if non-zero)
         ptsl = m.PTSL;
         if( ptsl != 0 )
             ptsl--;
 
         // Get max points won
         ptsw = m.PTSW1;
-        if( ptsw != 0 ) //LD      (a,val(PTSW1));         //  Max,points won
-        {//AND     (a);                    //  Is it zero ?
-             //   goto rel014; //JR      (Z,rel014);             //  Yes - jump
-            ptsw = m.PTSW2;
-            if( ptsw != 0 ) //LD      (a,val(PTSW2));         //  2nd max points won
-            {//AND     (a);                    //  Is it zero ?
-             //   goto rel014; //JR      (Z,rel014);             //  Yes - jump
-                ptsw--; // DEC     (a);                    //  Decrement it
 
-                // uint8_t u8; u8 = (uint8_t)ptsw;
-                // u8 = u8>>1;
-                // ptsw = (int8_t) u8;
-                ptsw = ptsw/2;  //SRL     (a);                    //  Divide it by 2
+        // Adjust max points won if both 1st and 2nd max points won are non-zero
+        //  Value is   0 if 1st max points won is 0
+        //        else 2nd max points won
+        //        except then if not zero adjusted val = (val--)/2
+        // I don't currently understand the reasoning behind this
+        if( ptsw != 0 )
+        {
+            ptsw = m.PTSW2;
+            if( ptsw != 0 )
+            {
+                ptsw--;
+                ptsw = ptsw/2;
             }
         }
         ptsw -= ptsl; //SUB     (b);                    //  Subtract points lost
