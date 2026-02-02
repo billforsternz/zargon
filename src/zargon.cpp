@@ -2916,25 +2916,19 @@ void POINTS()
         ptsw -= m.MV0;
 
         // Limit to +/- 30
-        ptsw = LIMIT(30,ptsw);                //  Limit to plus or minus value
+        points = LIMIT(30,ptsw);                //  Limit to plus or minus value
 
-        points = ptsw;                  //  Save limited value
-        bcp = m.BRDC - m.BC0; //LD      (a,val(BRDC));          //  Get board control points
-        //LD      (hl,addr(BC0));         //  Board control at ply zero
-        //SUB     (ptr(hl));              //  Get difference
-        //LD      (b,a);                  //  Save
-        if( m.PTSCK == 0 ) //LD      (a,val(PTSCK));         //  Moving piece lost flag
-        //AND     (a);                    //  Is it zero ?
-            goto rel026;    //JR      (Z,rel026);             //  Yes - jump
-        bcp = 0; //LD      (b,0);                  //  Zero board control points
-rel026: //LD      (a,6);                //  Load board control limit
-        // a = LIMIT(6,b);                 //  Limit to plus or minus value
+        // Board control points minus board control at ply zero
+        bcp = m.BRDC - m.BC0;
+
+        // If moving piece lost, set board control points to zero
+        if( m.PTSCK != 0 ) //LD      (a,val(PTSCK));         //  Moving piece lost flag
+            bcp = 0;
+
+        // Limit to +/- 6
         temp = LIMIT(6,bcp);
-        //LD      (d,a);                  //  Save limited value
-        //LD      (a,e);                  //  Get material points
-        //ADD     (a,a);                  //  Multiply by 4
-        //ADD     (a,a);                  //
-        //ADD     (a,d);                  //  Add board control
+
+        // Add material*4
         temp += points*4;
         if( (m.COLOR&0x80) != 0 )
         //LD      (hl,addr(COLOR));       //  Color of side just moved
