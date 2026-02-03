@@ -30,11 +30,6 @@ emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
 
-//
-// Currently converting from hybrid ASM / C to normal C
-//   
-//  Progress report:  All 32 functions now converted to C!
-
 // Transitional (maybe) pointer manipulation macros
 //  Note: a "bin" for our purposes is the binary representation of
 //        a Sargon pointer, it is a uint16_t offset from the start
