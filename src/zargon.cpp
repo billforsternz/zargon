@@ -39,7 +39,7 @@ zargon_data_defs_check_and_regen regen;
 //  Note: a "bin" for our purposes is the binary representation of
 //        a Sargon pointer, it is a uint16_t offset from the start
 //        of Sargon's memory
-#define BIN_TO_PTR(bin)     ((uint8_t*) (bin + ((uint8_t*)(&m))))
+#define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
 #define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
 #define MK_U16(hi,lo,bin)   do { bin = hi; bin<<=8; bin+=lo; } while(0)
 #define HI(bin)             ((bin>>8)&0xff)
@@ -682,11 +682,23 @@ pa3:    return a;                       //  Return                         //052
 inline uint8_t PATH( int8_t dir )
 {
     callback_zargon_bridge(CB_PATH);
+
+    // Step along the path
     uint8_t piece = m.BOARDA[m.M2+=dir];
+
+    // Off board?
+    //  return 3 if off board
     if( piece == ((uint8_t)-1) )
         return 3;
+
+    // Set P2=piece and T2=piece type (=piece&7)
+    //  return 0 if empty 
     else if(  0 == (m.T2 = (m.P2=piece)&7) )
         return 0;
+
+    // Else we have run into non zero piece P2
+    //  return 1 if different color to origin piece P1
+    //  return 2 if same color as origin piece P1
     return ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
 }
 
@@ -816,7 +828,8 @@ void MPIECE()
         };
 
         uint8_t dpoint[7] = { 
-            20,16,8,0,4,0,0     // black pawn->20, white pawn->16, knight->8 etc  
+            20,16,8,0,4,0,0     // black pawn->20, white pawn->16, knight->8,
+                                //  bishop->0, rook->4, queen->0, king->0  
         };
 
         uint8_t dcount[7] = { 
@@ -1092,21 +1105,16 @@ void ADJPTR_asm() {
         RETu;                           //  Return                         //0693:         RET                     ; Return
 }                                                                          //0694:
 
-inline void ADJPTR() {
-        callback_zargon_bridge(CB_ADJPTR);
-        // LD      (hl,v16(MLLST));        //  Get list pointer
-        // LD      (de,-6);                //  Size of a move entry
-        // ADD16   (hl,de);                //  Back up list pointer
-        // LD      (v16(MLLST),hl);        //  Save list pointer
-        // LD      (ptr(hl),0);            //  Zero out link, first byte
-        // INC16   (hl);                   //  Next byte
-        // LD      (ptr(hl),0);            //  Zero out link, second byte
-        // RETu;                           //  Return
-		m.MLLST -= 6;
-		uint8_t  *p = (uint8_t *)&m;
-		p += m.MLLST;
-		uint16_t *q = (uint16_t *)p;
-		*q = 0;
+inline void ADJPTR()
+{
+    callback_zargon_bridge(CB_ADJPTR);
+
+    // Adjust list pointer to point at previous move
+    uint8_t *p = BIN_TO_PTR(m.MLLST -= 6);
+
+    // Zero link = first two bytes
+    uint16_t *q = (uint16_t *)p;
+	*q = 0;
 }
 
 //***********************************************************              //0695: ;***********************************************************
