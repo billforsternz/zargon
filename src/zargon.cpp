@@ -2728,8 +2728,6 @@ void POINTS()
     for( m.M3=21; m.M3<=98; m.M3++ )
     {
         piece = m.BOARDA[m.M3];            //  Save as board index
-        //LD      (ix,v16(M3));           //  Load board index
-        //LD      (a,ptr(ix+BOARD));      //  Get piece from board
 
         //  Off board edge ?
         if( piece == 0xff )
@@ -2742,52 +2740,58 @@ void POINTS()
         piece &= 7;
         m.T3 = piece;
         
-        // Pawn ?
-        if( piece < KNIGHT )                //  Less than a Knight (Pawn) ?
+        // Pawn (or empty) ?
+        if( piece < KNIGHT )
             ;
 
         // Bishop or knight
-        else if( piece < ROOK )                 //  Rook, Queen or King ?
+        else if( piece < ROOK )
         {
 
-            // If not moved, 2 point penalty for white
-            if( (m.P1&0x08) == 0 )            //  Has piece moved yet ?
+            // If bishop or knight has not moved, 2 point penalty
+            if( (m.P1&0x08) == 0 )  // if piece not moved
             {
-                bonus = -2;                 //  Two point penalty for white
-                if( (m.P1&0x80) != 0 )            //  Check piece color
-                    bonus = 2;                 //  Two point penalty for black
-                m.BRDC += bonus;        //  Get address of board control
+                bonus = -2;
+                if( (m.P1&0x80) != 0 )  // if Black
+                    bonus = 2;          // 2 point penalty for Black
+                m.BRDC += bonus;
             }
         }
 
         // King
         else if( piece == KING )
         {
-            if( (m.P1&0x10) != 0 )           //  Castled yet ?
+
+            // 6 point bonus for castling
+            if( (m.P1&0x10) != 0 )
             {
-                bonus = +6;                 //  Bonus for castling
-                if( (m.P1&0x80) != 0 )            //  Check piece color
-                    bonus = -6;                 //  Bonus for black castling
-                m.BRDC += bonus;        //  Get address of board control
+                bonus = +6;
+                if( (m.P1&0x80) != 0 )  // if Black
+                    bonus = -6;         // 6 point bonus for Black
+                m.BRDC += bonus;
             }
-            else if( (m.P1&0x08) != 0 )            //  Has piece moved yet ?
+
+            // Else if king has not castled but has moved, 2 point penalty
+            else if( (m.P1&0x08) != 0 )  // if piece has moved
             {
-                bonus = -2;                 //  Two point penalty for white
-                if( (m.P1&0x80) != 0 )            //  Check piece color
-                    bonus = 2;                 //  Two point penalty for black
-                m.BRDC += bonus;        //  Get address of board control
+                bonus = -2;
+                if( (m.P1&0x80) != 0 )  // if Black
+                    bonus = 2;          // 2 point penalty for Black
+                m.BRDC += bonus;
             }
         }
 
         // Rook or queen early in game
         else if( m.MOVENO < 7 )
         {
-            if( (m.P1&0x08) != 0 )            //  Has piece moved yet ?
+
+            // If rook or queen early in the game HAS moved, 2 point penalty
+            if( (m.P1&0x08) != 0 )  // if piece has moved
             {
-                bonus = -2;                 //  Two point penalty for white
-                if( (m.P1&0x80) != 0 )            //  Check piece color
-                    bonus = 2;                 //  Two point penalty for black
-                m.BRDC += bonus;        //  Get address of board control
+                bonus = -2;
+                if( (m.P1&0x80) != 0 )  // if Black
+                    bonus = 2;          // 2 point penalty for Black
+                m.BRDC += bonus;
             }
         }
 
@@ -2836,7 +2840,6 @@ void POINTS()
                         m.PTSCK = m.M3; // yes, save position as a flag
                 }
             }
-
 
             // Else color of piece under attack doesn't match color of side just moved
             else
