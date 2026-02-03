@@ -1500,7 +1500,9 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
         RETu;                           //  Return                         //0892:         RET                     ; Return
 }                                                                          //0893:
 
-inline bool INCHK( uint8_t color ) {
+inline bool INCHK( uint8_t color )
+{
+
     // Set index M3 to point at White or Black king, Set P1 as piece
     //  with flags and T1 as piece type (piece&7)
 	const uint8_t *p = &m.POSK[color?1:0];
@@ -1949,13 +1951,17 @@ PC5:    // POPf    (af);                //  Abnormal exit                  //112
 }                                                                          //1128:
 
 // Returns true if attacker is not a valid attacker
-inline bool PNCK( uint16_t pin_count, int8_t attack_direction ) {
+inline bool PNCK( uint16_t pin_count, int8_t attack_direction )
+{
     callback_zargon_bridge(CB_PNCK);
+
+    // Loop over the pin list
     bool not_first_find=false;
     uint8_t *p = &m.PLISTA[0];  // Pin list address
     bool expired = false;
     while(!expired)
     {
+
         // Search list for position of piece (Z80_CPIR)
         bool found = false;
         while( !found )
@@ -2283,47 +2289,84 @@ void XCHNG()
     uint8_t count_white = *p_white;
     uint8_t count_black = *p_black;
 
-    e = 0;                          //  Init points lost count (XCHNG returns registers e + d)
-    d = m.pvalue[m.T3-1];           //  Get attacked piece value (XCHNG returns registers e + d)
-    d = d+d;                        //  Double it
-    uint8_t piece_val = d;          //  Save
+    // Init points lost count (XCHNG() returns registers e + d)
+    e = 0;
+
+    // Get attacked piece value (XCHNG() returns registers e + d)
+    d = m.pvalue[m.T3-1];
+    d = d+d;                        // double it
+    uint8_t piece_val = d;          // save
+
+    // Retrieve first attacker
     uint8_t val = black ? NEXTAD( count_white, p_white )
-                        : NEXTAD( count_black, p_black );   //  Retrieve first attacker
+                        : NEXTAD( count_black, p_black );
+
+    // Return if none
     if( val==0 )
-        return;                     //  Return if none
+        return;
+
+    // Loop through attackers and defenders
     for(;;)
     {
-        uint8_t save_val = val;                 //  Save attacker value
+
+        // Save attacker value
+        uint8_t save_val = val;
+
+        // Get next defender
         val = black ? NEXTAD( count_black, p_black )
-                    : NEXTAD( count_white, p_white );   //  Get next defender
+                    : NEXTAD( count_white, p_white );
+
+        // Toggle
         black = !black;
         side_flag = !side_flag;
+
+        // If have a defender and attacked < attacker
         bool attacked_lt_attacker = (piece_val<save_val);
-        if( val!=0 && attacked_lt_attacker )  //  If have a defender and attacked < attacker
+        if( val!=0 && attacked_lt_attacker ) 
         {
+
+            // Evaluate this as special case
             for(;;)
             {
-                if( save_val>val )          //  Defender less than attacker ?
-                    return;                 //  Yes - return
+
+                // Defender less than attacker ?
+                if( save_val>val )
+                    return; //  Yes - return
+
+                // Get next attacker
                 val = black ? NEXTAD( count_black, p_black )
-                            : NEXTAD( count_white, p_white );       //  Get next attacker
-                if( val==0 )
-                    return;                 //  Return if none
-                save_val = val;             //  Save attacker value
+                            : NEXTAD( count_white, p_white );
+                if( val == 0 )
+                    return; // Return if none
+
+                // Save attacker value
+                save_val = val;
+
+                //  Get next defender
                 val = black ? NEXTAD( count_white, p_white )
-                            : NEXTAD( count_black, p_black );       //  Get next defender
-                if( val==0 )
-                    break;                  //  End loop if none
+                            : NEXTAD( count_black, p_black );
+                if( val == 0 )
+                    break; // End subloop if none
             }
         }
-        int8_t points = (int8_t)piece_val;  //  Get value of attacked piece
-        if( side_flag )                     //  Attacker or defender ?
-            points = 0-points;              //  Negate value for attacker
-        points += (int8_t)e;                //  Total points lost
-        e = (uint8_t)points;                //  Save total
-        if( val==0 )
-            return;                         //  Return if none
-        piece_val = save_val;               //  Prev attacker becomes defender
+
+        // Get value of attacked piece
+        int8_t points = (int8_t)piece_val;  
+
+        //  Attacker or defender ?
+        if( side_flag )
+            points = 0-points;  // negate value for attacker
+
+        // Accumulate total points lost
+        points += (int8_t)e;
+        
+        // Save total
+        e = (uint8_t)points;
+        if( val == 0 )
+            return; // return at end of list
+
+        // Prev attacker becomes defender
+        piece_val = save_val;
     }
 }
 
@@ -2368,21 +2411,28 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 {
     callback_zargon_bridge(CB_NEXTAD);
     uint8_t val = 0;
-    if( count != 0 )                    //  Not at end of list ?
+
+    // Not at end of list ?
+    if( count != 0 )                    
     {
-        count--;        //  Decrement list count
+
+        // Decrement list count
+        count--;
+
+        // Find next piece slot
         do
         {
-            p++;                   //  Increment list pointer
-        } while( *p == 0 );    //  Keep going if empty
+            p++;               // increment list pointer
+        } while( *p == 0 );    // keep going if empty
 
-        //  Get value from list
+        // Get nibble value from list and remove it
         val = *p &0x0f;
         *p = *p >> 4;
 
-        //  Double it
+        // Double it
         val = val+val;
-        p--;        //  Decrement list pointer
+        p--;    // decrement list pointer to retrieve second
+                // nibble (if present) next
     }
     return val;
 }
@@ -3313,11 +3363,11 @@ void SORTM()
             if( m.VALM < *(q+MLVAL) )
                 break;
 
-            //  Swap pointers if value not less than list value
+            // Swap pointers if value not less than list value
             bin_hl = bin_de;
         }
 
-        //  Link new move into list
+        // Link new move into list
         WR_BIN(p,bin_bc);
     }
 }
@@ -3355,18 +3405,31 @@ EV10:   CALLu   (UNMOVE);               //  Restore board array            //176
         RETu;                           //  Return                         //1761:         RET                     ; Return
 }                                                                          //1762:
 
-void EVAL() {
+void EVAL()
+{
     callback_zargon_bridge(CB_EVAL);
-    MOVE();                         //  Make move on the board array
-    bool inchk = INCHK(m.COLOR);    //  Determine if move is legal
+
+    // Make move on the board array
+    MOVE();
+
+    // Determine if move is legal
+    bool inchk = INCHK(m.COLOR);
+
+    // Score of zero for illegal move
     if( inchk )
-        m.VALM = 0;                 // Score of zero for illegal move
+        m.VALM = 0;
     else
     {
-        PINFND();                   //  Compile pinned list
-        POINTS();                   //  Assign points to move
+
+        // Compile pinned list
+        PINFND();
+
+        // Assign points to move
+        POINTS();
     }
-    UNMOVE();                       //  Restore board array
+
+    // Restore board array
+    UNMOVE();
 }
 
 //***********************************************************              //1763: ;***********************************************************
@@ -3700,15 +3763,15 @@ void FNDMOV()
         score = 0;
         if( !points_needed && m.MATEF!=0 )
         {
-            if( m.NPLY == 1 )    //  At top of tree ?
+            if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
-            ASCEND();               //  Ascend one ply in tree
-            p = BIN_TO_PTR(m.SCRIX);        //  Load score table pointer
-            p++;                   //  Increment to current ply
-            p++;                   //
-            score = *p;            //  Get score
-            p--;                   //  Restore pointer
-            p--;                   //
+            ASCEND();               // ascend one ply in tree
+            p = BIN_TO_PTR(m.SCRIX);// load score table pointer
+            p++;                    // increment to current ply
+            p++;                    //
+            score = *p;             // get score
+            p--;                    // restore pointer
+            p--;                    //
         }
 
         // Time to evaluate points ?
@@ -3723,25 +3786,25 @@ void FNDMOV()
 
             // Restore board position
             UNMOVE();
-            score = m.VALM;         // get value of move
-            m.MATEF |= 1;           // set mate flag
-            p = BIN_TO_PTR(m.SCRIX);   // load score table pointer
+            score = m.VALM;             // get value of move
+            m.MATEF |= 1;               // set mate flag
+            p = BIN_TO_PTR(m.SCRIX);    // load score table pointer
         }
 
         // Else if terminal position ?
-        else if( m.MATEF == 0 )   // checkmate or stalemate ?
+        else if( m.MATEF == 0 ) // checkmate or stalemate ?
         {
-            score = 0x80;  // stalemate             //  Pre-set stalemate score
+            score = 0x80;       // stalemate score
             if( m.CKFLG != 0 )  // test check flag
             {
-                score = 0xff;   // if in check, then checkmate
+                score = 0xff;   // if in check, then checkmate score
                 m.PMATE= m.MOVENO;
             }
-            m.MATEF |= 1;           // set mate flag
-            p = BIN_TO_PTR(m.SCRIX);   // load score table pointer
+            m.MATEF |= 1;               // set mate flag
+            p = BIN_TO_PTR(m.SCRIX);    // load score table pointer
         }
 
-        // Alpa Beta cuttoff ?
+        // Alpa Beta cutoff ?
         callback_zargon(CB_ALPHA_BETA_CUTOFF);
         if( score <= *p )  // compare to score 2 ply above
         {
@@ -3749,7 +3812,7 @@ void FNDMOV()
             continue;
         }
 
-        //  Negate score
+        // Negate score
         iscore = (int8_t)score;  
         iscore = 0-iscore;
         score = (uint8_t) iscore;
@@ -3759,13 +3822,14 @@ void FNDMOV()
         CY = (*p > score);                
         Z  = (*p == score);
         callback_zargon(CB_NO_BEST_MOVE);
-        if( CY || Z ) continue;         //  Jump if less than or equal
-        *p = score; // save as new score 1 ply above
+        if( CY || Z )
+            continue;   // continue unless score is greater
+        *p = score;     // save as new score 1 ply above
         callback_zargon(CB_YES_BEST_MOVE);
 
         // At top of tree ?
         if( m.NPLY != 1 )
-            continue;   //  no - loop
+            continue;   // no - loop
 
         // Set best move pointer = current move pointer
         m.BESTM = m.MLPTRJ;
@@ -3775,13 +3839,13 @@ void FNDMOV()
 
         //  Was it a checkmate ?
         if( *p != 0xff )
-            continue;   //  no - loop
+            continue;   // no - loop
 
         // Subtract 2 from maximum ply number
         m.PLYMAX -= 2;
 
         // Calculate checkmate move number and return
-        if( (m.KOLOR&0x80 ) != 0 )  // If computer's color is not white decrement
+        if( (m.KOLOR&0x80 ) != 0 )  // if computer's color is black decrement
             m.PMATE--;
         return;
     }
