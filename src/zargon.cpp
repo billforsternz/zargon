@@ -2701,19 +2701,9 @@ rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //150
 
 void POINTS()
 {
-    int calc = 0;
-    int8_t bonus;
-    uint8_t piece;
-    uint8_t *p;
-    int8_t temp;
-    int8_t points;
-    int8_t piece_val;
-    int8_t ptsl, ptsw;
-    int8_t bcp;
+    callback_zargon_bridge(CB_POINTS);
     int8_t *wact = (int8_t *)&(m.ATKLST);
     int8_t *bact = wact + sizeof(m.ATKLST)/2;
-
-    callback_zargon_bridge(CB_POINTS);
 
     // Init points algorithm variables
     m.MTRL  = 0;
@@ -2727,7 +2717,7 @@ void POINTS()
     // Loop around board
     for( m.M3=21; m.M3<=98; m.M3++ )
     {
-        piece = m.BOARDA[m.M3];            //  Save as board index
+        uint8_t piece = m.BOARDA[m.M3];            //  Save as board index
 
         //  Off board edge ?
         if( piece == 0xff )
@@ -2751,7 +2741,7 @@ void POINTS()
             // If bishop or knight has not moved, 2 point penalty
             if( (m.P1&0x08) == 0 )  // if piece not moved
             {
-                bonus = -2;
+                int8_t bonus = -2;
                 if( (m.P1&0x80) != 0 )  // if Black
                     bonus = 2;          // 2 point penalty for Black
                 m.BRDC += bonus;
@@ -2765,7 +2755,7 @@ void POINTS()
             // 6 point bonus for castling
             if( (m.P1&0x10) != 0 )
             {
-                bonus = +6;
+                int8_t bonus = +6;
                 if( (m.P1&0x80) != 0 )  // if Black
                     bonus = -6;         // 6 point bonus for Black
                 m.BRDC += bonus;
@@ -2774,7 +2764,7 @@ void POINTS()
             // Else if king has not castled but has moved, 2 point penalty
             else if( (m.P1&0x08) != 0 )  // if piece has moved
             {
-                bonus = -2;
+                int8_t bonus = -2;
                 if( (m.P1&0x80) != 0 )  // if Black
                     bonus = 2;          // 2 point penalty for Black
                 m.BRDC += bonus;
@@ -2788,7 +2778,7 @@ void POINTS()
             // If rook or queen early in the game HAS moved, 2 point penalty
             if( (m.P1&0x08) != 0 )  // if piece has moved
             {
-                bonus = -2;
+                int8_t bonus = -2;
                 if( (m.P1&0x80) != 0 )  // if Black
                     bonus = 2;          // 2 point penalty for Black
                 m.BRDC += bonus;
@@ -2811,8 +2801,8 @@ void POINTS()
 
         // Evaluate exchange, if any
         XCHNG();                
-        points    = e;  //  XCHNG returns registers e, d
-        piece_val = d;  //  e=points, d=attacked piece val (I think, later - formalise this)
+        int8_t points    = e;  //  XCHNG returns registers e, d
+        int8_t piece_val = d;  //  e=points, d=attacked piece val (I think, later - formalise this)
         
         // If piece is nominally lost
         if( points != 0 )
@@ -2833,7 +2823,7 @@ void POINTS()
                     m.PTSL = points;
 
                     // Load pointer to this move
-                    p = BIN_TO_PTR(m.MLPTRJ);
+                    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
                 
                     // Is the lost piece the one moving ?
                     if( m.M3 == *(p+MLTOP) )  
@@ -2846,7 +2836,7 @@ void POINTS()
             {
 
                 // Points won
-                temp = points;
+                int8_t temp = points;
 
                 // If points won >= previous maximum points won
                 if( points >= m.PTSW1 )
@@ -2879,12 +2869,12 @@ void POINTS()
     }
 
     // Adjust max points lost (decrement if non-zero)
-    ptsl = m.PTSL;
+    int8_t ptsl = m.PTSL;
     if( ptsl != 0 )
         ptsl--;
 
     // Get max points won
-    ptsw = m.PTSW1;
+    int8_t ptsw = m.PTSW1;
 
     // Adjust max points won if both 1st and 2nd max points won are non-zero
     //  Value is;
@@ -2916,10 +2906,10 @@ void POINTS()
     ptsw -= m.MV0;
 
     // Limit to +/- 30
-    points = LIMIT(30,ptsw);
+    int8_t points = LIMIT(30,ptsw);
 
     // Board control points minus board control at ply zero
-    bcp = m.BRDC - m.BC0;
+    int8_t bcp = m.BRDC - m.BC0;
 
     // If moving piece lost, set board control points to zero
     if( m.PTSCK != 0 )
@@ -2944,41 +2934,9 @@ void POINTS()
     m.VALM = a;
 
     // Save score value to move pointed to by current move ptr
-    p = BIN_TO_PTR( m.MLPTRJ );
+    uint8_t *p = BIN_TO_PTR( m.MLPTRJ );
     *(p+MLVAL) = m.VALM;
 }
-
-// Keep this around for a while, hashing the memory to check whether
-//  we are in sync is interesting
-#if 0
-void POINTS()
-{
-    static int count;
-    if( 1 ) //count > 100 )
-    {
-        POINTS_c();
-    }
-    else
-    {
-        count++;
-        uint16_t acc=0;
-        uint8_t *p = (uint8_t *)(&m);
-        uint8_t *p1 = p + offsetof( emulated_memory, BOARDA );
-        uint8_t *p2 = p + offsetof( emulated_memory, BMOVES ); 
-        uint16_t *q1 = (uint16_t *)p1;
-        uint16_t *q2 = (uint16_t *)p2;
-        for( uint16_t *q=q1; q<=q2; q++ )
-            acc ^= *q;
-        printf( "(POINTS %d: %04x ->", count, acc );
-        #if 0
-        POINTS_asm();
-        #else
-        POINTS_c();
-        #endif
-        printf( "%d)\n", m.VALM );
-    }
-}
-#endif
 
 //***********************************************************              //1510: ;***********************************************************
 // LIMIT ROUTINE                                                           //1511: ; LIMIT ROUTINE
