@@ -2502,7 +2502,6 @@ PT6C:   LD      (a,-2);                 //  Two point penalty for white    //138
 PT6D:   LD      (hl,addr(BRDC));        //  Get address of board control   //1391: PT6D:   LD      hl,BRDC         ; Get address of board control
         ADD     (a,ptr(hl));            //  Add on penalty/bonus points    //1392:         ADD     a,(hl)          ; Add on penalty/bonus points
         LD      (ptr(hl),a);            //  Save                           //1393:         LD      (hl),a          ; Save
-        printf( "[z %d: %02x]\n", ++calc, a );
 PT6X:   XOR     (a);                    //  Zero out attack list           //1394: PT6X:   XOR     a               ; Zero out attack list
         LD      (b,14);                 //                                 //1395:         LD      b,14
         LD      (hl,addr(ATKLST));      //                                 //1396:         LD      hl,ATKLST
@@ -2513,17 +2512,13 @@ back04: LD      (ptr(hl),a);            //                                 //139
         LD      (hl,BACT);              //  Get black attacker count addr  //1401:         LD      hl,BACT         ; Get black attacker count addr
         LD      (a,val(wact));          //  Get white attacker count       //1402:         LD      a,(WACT)        ; Get white attacker count
         SUB     (ptr(hl));              //  Compute count difference       //1403:         SUB     (hl)            ; Compute count difference
-        printf( "[a %d: %02x]\n", ++calc, a );
         LD      (hl,addr(BRDC));        //  Address of board control       //1404:         LD      hl,BRDC         ; Address of board control
         ADD     (a,ptr(hl));            //  Accum board control score      //1405:         ADD     a,(hl)          ; Accum board control score
-        printf( "[b %d: %02x]\n", ++calc, a );
         LD      (ptr(hl),a);            //  Save                           //1406:         LD      (hl),a          ; Save
         LD      (a,val(P1));            //  Get piece on current square    //1407:         LD      a,(P1)          ; Get piece on current square
         AND     (a);                    //  Is it empty ?                  //1408:         AND     a               ; Is it empty ?
         JP      (Z,PT25);               //  Yes - jump                     //1409:         JP      Z,PT25          ; Yes - jump
         CALLu   (XCHNG);                //  Evaluate exchange, if any      //1410:         CALL    XCHNG           ; Evaluate exchange, if any
-        printf( "[c %d: %02x\n", ++calc, e );
-        printf( "[d %d: %02x\n", ++calc, d );
         XOR     (a);                    //  Check for a loss               //1411:         XOR     a               ; Check for a loss
         CP      (e);                    //  Points lost ?                  //1412:         CP      e               ; Points lost ?
         JR      (Z,PT23);               //  No - Jump                      //1413:         JR      Z,PT23          ; No - Jump
@@ -2543,7 +2538,6 @@ back04: LD      (ptr(hl),a);            //                                 //139
         CP      (ptr(ix+MLTOP));        //  Is it the one moving ?         //1427:         CP      (ix+MLTOP)      ; Is it the one moving ?
         JR      (NZ,PT23);              //  No - jump                      //1428:         JR      NZ,PT23         ; No - jump
         LD      (val(PTSCK),a);         //  Save position as a flag        //1429:         LD      (PTSCK),a       ; Save position as a flag
-        printf( "[e %d: %02x\n", ++calc, a );
         JPu     (PT23);                 //  Jump                           //1430:         JP      PT23            ; Jump
 PT20:   LD      (hl,addr(PTSW1));       //  Previous maximum points won    //1431: PT20:   LD      hl,PTSW1        ; Previous maximum points won
         CP      (ptr(hl));              //  Compare to current value       //1432:         CP      (hl)            ; Compare to current value
@@ -2557,35 +2551,26 @@ rel011: LD      (hl,addr(PTSW2));       //  Previous 2nd max points won    //143
 PT23:   LD      (hl,addr(P1));          //  Get piece                      //1440: PT23:   LD      hl,P1           ; Get piece
         BIT     (7,ptr(hl));            //  Test color                     //1441:         BIT     7,(hl)          ; Test color
         LD      (a,d);                  //  Value of piece                 //1442:         LD      a,d             ; Value of piece
-        printf( "[f %d: %02x\n", ++calc, a );
         JR      (Z,rel012);             //  Jump if white                  //1443:         JR      Z,rel012        ; Jump if white
         NEG;                            //  Negate for black               //1444:         NEG                     ; Negate for black
-        printf( "[g %d: %02x\n", ++calc, a );
 rel012: LD      (hl,addr(MTRL));        //  Get addrs of material total    //1445: rel012: LD      hl,MTRL         ; Get addrs of material total
         ADD     (a,ptr(hl));            //  Add new value                  //1446:         ADD     a,(hl)          ; Add new value
         LD      (ptr(hl),a);            //  Store                          //1447:         LD      (hl),a          ; Store
-        printf( "[h %d: %02x\n", ++calc, a );
 PT25:   LD      (a,val(M3));            //  Get current board position     //1448: PT25:   LD      a,(M3)          ; Get current board position
         INC     (a);                    //  Increment                      //1449:         INC     a               ; Increment
-        printf( "[i %d: %02x\n", ++calc, a );
-        if( calc == 187 )
-            printf("DEBUG\n");
         CP      (99);                   //  At end of board ?              //1450:         CP      99              ; At end of board ?
         JP      (NZ,PT5);               //  No - jump                      //1451:         JP      NZ,PT5          ; No - jump
         LD      (a,val(PTSCK));         //  Moving piece lost flag         //1452:         LD      a,(PTSCK)       ; Moving piece lost flag
         AND     (a);                    //  Was it lost ?                  //1453:         AND     a               ; Was it lost ?
         JR      (Z,PT25A);              //  No - jump                      //1454:         JR      Z,PT25A         ; No - jump
-        printf( "[j %d: %02x\n", ++calc, a );
         LD      (a,val(PTSW2));         //  2nd max points won             //1455:         LD      a,(PTSW2)       ; 2nd max points won
         LD      (val(PTSW1),a);         //  Store as max points won        //1456:         LD      (PTSW1),a       ; Store as max points won
-        printf( "[k %d: %02x\n", ++calc, a );
         XOR     (a);                    //  Zero out 2nd max points won    //1457:         XOR     a               ; Zero out 2nd max points won
         LD      (val(PTSW2),a);         //                                 //1458:         LD      (PTSW2),a
 PT25A:  LD      (a,val(PTSL));          //  Get max points lost            //1459: PT25A:  LD      a,(PTSL)        ; Get max points lost
         AND     (a);                    //  Is it zero ?                   //1460:         AND     a               ; Is it zero ?
         JR      (Z,rel013);             //  Yes - jump                     //1461:         JR      Z,rel013        ; Yes - jump
         DEC     (a);                    //  Decrement it                   //1462:         DEC     a               ; Decrement it
-        printf( "[l %d: %02x\n", ++calc, a );
 rel013: LD      (b,a);                  //  Save it                        //1463: rel013: LD      b,a             ; Save it
         LD      (a,val(PTSW1));         //  Max,points won                 //1464:         LD      a,(PTSW1)       ; Max,points won
         AND     (a);                    //  Is it zero ?                   //1465:         AND     a               ; Is it zero ?
@@ -2594,31 +2579,23 @@ rel013: LD      (b,a);                  //  Save it                        //146
         AND     (a);                    //  Is it zero ?                   //1468:         AND     a               ; Is it zero ?
         JR      (Z,rel014);             //  Yes - jump                     //1469:         JR      Z,rel014        ; Yes - jump
         DEC     (a);                    //  Decrement it                   //1470:         DEC     a               ; Decrement it
-        printf( "[m %d: %02x\n", ++calc, a );
         SRL     (a);                    //  Divide it by 2                 //1471:         SRL     a               ; Divide it by 2
-        printf( "[n %d: %02x\n", ++calc, a );
 rel014: SUB     (b);                    //  Subtract points lost           //1472: rel014: SUB     b               ; Subtract points lost
-        printf( "[o %d: %02x\n", ++calc, a );
         LD      (hl,addr(COLOR));       //  Color of side just moved ???   //1473:         LD      hl,COLOR        ; Color of side just moved ???
         BIT     (7,ptr(hl));            //  Is it white ?                  //1474:         BIT     7,(hl)          ; Is it white ?
         JR      (Z,rel015);             //  Yes - jump                     //1475:         JR      Z,rel015        ; Yes - jump
         NEG;                            //  Negate for black               //1476:         NEG                     ; Negate for black
-        printf( "[p %d: %02x\n", ++calc, a );
 rel015: LD      (hl,addr(MTRL));        //  Net material on board          //1477: rel015: LD      hl,MTRL         ; Net material on board
         ADD     (a,ptr(hl));            //  Add exchange adjustments       //1478:         ADD     a,(hl)          ; Add exchange adjustments
-        printf( "[q %d: %02x\n", ++calc, a );
         LD      (hl,addr(MV0));         //  Material at ply 0              //1479:         LD      hl,MV0          ; Material at ply 0
         SUB     (ptr(hl));              //  Subtract from current          //1480:         SUB     (hl)            ; Subtract from current
-        printf( "[r %d: %02x\n", ++calc, a );
         //LD      (b,a);                //  Save                           //1481:         LD      b,a             ; Save
         //LD      (a,30);               //  Load material limit            //1482:         LD      a,30            ; Load material limit
         a = LIMIT(30,a);                //  Limit to plus or minus value   //1483:         CALL    LIMIT           ; Limit to plus or minus value
-        printf( "[s %d: %02x\n", ++calc, a );
         LD      (e,a);                  //  Save limited value             //1484:         LD      e,a             ; Save limited value
         LD      (a,val(BRDC));          //  Get board control points       //1485:         LD      a,(BRDC)        ; Get board control points
         LD      (hl,addr(BC0));         //  Board control at ply zero      //1486:         LD      hl,BC0          ; Board control at ply zero
         SUB     (ptr(hl));              //  Get difference                 //1487:         SUB     (hl)            ; Get difference
-        printf( "[t %d: %02x\n", ++calc, a );
         LD      (b,a);                  //  Save                           //1488:         LD      b,a             ; Save
         LD      (a,val(PTSCK));         //  Moving piece lost flag         //1489:         LD      a,(PTSCK)       ; Moving piece lost flag
         AND     (a);                    //  Is it zero ?                   //1490:         AND     a               ; Is it zero ?
@@ -2627,20 +2604,15 @@ rel015: LD      (hl,addr(MTRL));        //  Net material on board          //147
 rel026: //LD      (a,6);                //  Load board control limit       //1493: rel026: LD      a,6             ; Load board control limit
         a = LIMIT(6,b);                 //  Limit to plus or minus value   //1494:         CALL    LIMIT           ; Limit to plus or minus value
         LD      (d,a);                  //  Save limited value             //1495:         LD      d,a             ; Save limited value
-        printf( "[u %d: %02x\n", ++calc, a );
         LD      (a,e);                  //  Get material points            //1496:         LD      a,e             ; Get material points
-        printf( "[v %d: %02x\n", ++calc, a );
         ADD     (a,a);                  //  Multiply by 4                  //1497:         ADD     a,a             ; Multiply by 4
         ADD     (a,a);                  //                                 //1498:         ADD     a,a
         ADD     (a,d);                  //  Add board control              //1499:         ADD     a,d             ; Add board control
-        printf( "[w %d: %02x\n", ++calc, a );
         LD      (hl,addr(COLOR));       //  Color of side just moved       //1500:         LD      hl,COLOR        ; Color of side just moved
         BIT     (7,ptr(hl));            //  Is it white ?                  //1501:         BIT     7,(hl)          ; Is it white ?
         JR      (NZ,rel016);            //  No - jump                      //1502:         JR      NZ,rel016       ; No - jump
         NEG;                            //  Negate for white               //1503:         NEG                     ; Negate for white
-        printf( "[x %d: %02x\n", ++calc, a );
 rel016: ADD     (a,0x80);               //  Rescale score (neutral = 80H)  //1504: rel016: ADD     a,80H           ; Rescale score (neutral = 80H)
-        printf( "[y %d: %02x\n", ++calc, a );
         callback_zargon(CB_END_OF_POINTS);
         LD      (val(VALM),a);          //  Save score                     //1505:         LD      (VALM),a        ; Save score
         LD      (ix,v16(MLPTRJ));       //  Load move list pointer         //1506:         LD      ix,(MLPTRJ)     ; Load move list pointer
