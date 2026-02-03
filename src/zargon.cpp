@@ -697,7 +697,7 @@ inline uint8_t PATH( int8_t dir )
         return 0;
 
     // Else we have run into non zero piece P2
-    //  return 1 if different color to origin piece P1
+    //  return 1 if opposite color to origin piece P1
     //  return 2 if same color as origin piece P1
     return ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
 }
@@ -1113,8 +1113,7 @@ inline void ADJPTR()
     uint8_t *p = BIN_TO_PTR(m.MLLST -= 6);
 
     // Zero link = first two bytes
-    uint16_t *q = (uint16_t *)p;
-	*q = 0;
+    WR_BIN(p,0);
 }
 
 //***********************************************************              //0695: ;***********************************************************
@@ -1434,7 +1433,7 @@ void GENMOV()
     uint16_t bin_hl = m.MLPTRI; // ply list pointer index
     bin_hl += 2;                // increment to next ply
 
-    //  Save move list pointer
+    // Save move list pointer
     uint8_t *p = BIN_TO_PTR(bin_hl);
     WR_BIN(p,bin_de);
     bin_hl += 2;
@@ -1502,9 +1501,13 @@ rel005: LD      (a,ptr(hl));            //  Fetch King position            //088
 }                                                                          //0893:
 
 inline bool INCHK( uint8_t color ) {
+    // Set index M3 to point at White or Black king, Set P1 as piece
+    //  with flags and T1 as piece type (piece&7)
 	const uint8_t *p = &m.POSK[color?1:0];
 	m.P1 = m.BOARDA[m.M3 = *p];
 	m.T1 = m.P1 & 7;
+
+    // Return true if there are attackers to the king
 	return ATTACK();
 }
 
@@ -1645,24 +1648,13 @@ AT32:   LD      (a,val(T2));            //  Attacking piece type           //101
 
 bool ATTACK()
 {
-    //         callback_zargon_bridge(CB_ATTACK);
-    //         PUSH    (bc);                   //  Save Register B
-    //         XOR     (a);                    //  Clear
-    //         LD      (b,16);                 //  Initial direction count
-    //         LD      (val(INDX2),a);         //  Initial direction index
-    //         LD      (iy,v16(INDX2));        //  Load index
     callback_zargon_bridge(CB_ATTACK);
+
+    // Loop over the 16 directions in the direct[] table
     m.INDX2 = 0;
     const int8_t *dir_ptr = (int8_t *)m.direct;
-
-    // Direction loop
     for( uint8_t dir_count=16; dir_count>0; dir_count-- )
     {
-
-        // AT5:    LD      (c,ptr(iy+DIRECT));     //  Get direction
-        //         LD      (d,0);                  //  Init. scan count/flags
-        //         LD      (a,val(M3));            //  Init. board start position
-        //         LD      (val(M2),a);            //  Save
         int8_t dir = *dir_ptr++;
         uint8_t scan_count = 0;
         m.M2 = m.M3;
@@ -1670,18 +1662,6 @@ bool ATTACK()
         // Stepping loop
         for(;;)
         {
-
-            // AT10:   INC     (d);                    //  Increment scan count
-            //         CALLu   (PATH);                 //  Next position
-            //         CP      (1);                    //  Piece of a opposite color ?
-            //         JR      (Z,AT14A);              //  Yes - jump
-            //         CP      (2);                    //  Piece of same color ?
-            //         JR      (Z,AT14B);              //  Yes - jump
-            //         AND     (a);                    //  Empty position ?
-            //         JR      (NZ,AT12);              //  No - jump
-            //         LD      (a,b);                  //  Fetch direction count
-            //         CP      (9);                    //  On knight scan ?
-            //         JR      (NC,AT10);              //  No - jump
             scan_count++;
             uint8_t path_result = PATH(dir);
 
@@ -1694,51 +1674,36 @@ bool ATTACK()
                 continue; // empty square, not a knight, keep stepping
             if( path_result==0 || path_result==3 )
                 break;  // break to stop stepping
+
+            // 1 -- Encountered a piece of the opposite color
             if( path_result == 1)
             {
-                // 1  --  Encountered a piece of the opposite color
-                // AT14A:  BIT     (6,scan_count);                  //  Same color found already ?
-                //         JR      (NZ,AT12);              //  Yes - jump
-                //         SET     (5,d);                  //  Set opposite color found flag
-                //         JPu     (AT14);                 //  Jump
+                // Same color found already ?
                 if( (scan_count&0x40) != 0 )
                     break;
+
+                // Set opposite color found flag
                 scan_count |= 0x20;
             }
-            else // if( path_result == 2 )
+
+            // 2 -- Encountered a piece of the same color
+            else
             {
-                // 2  --  Encountered a piece of the same color
-                // AT14B:  BIT     (5,d);                  //  Opposite color found already?
-                //         JR      (NZ,AT12);              //  Yes - jump
-                //         SET     (6,d);                  //  Set same color found flag
+                // Opposite color found already?
                 if( (scan_count&0x20) != 0 )
                     break;
+
+                // Set same color found flag
                 scan_count |= 0x40;
             }
 
-            //  Encountered a piece of either colour
-            //
-            //  ***** DETERMINE IF PIECE ENCOUNTERED ATTACKS SQUARE *****
-            //
-
-            // AT14:   LD      (a,val(T2));            //  Fetch piece type encountered
-            //         LD      (e,a);                  //  Save
-            //         LD      (a,b);                  //  Get direction-counter
-            //         CP      (9);                    //  Look for Knights ?
-            //         JR      (CY,AT25);              //  Yes - jump
-            //         LD      (a,e);                  //  Get piece type
-            //         CP      (QUEEN);                //  Is is a Queen ?
-            //         JR      (NZ,AT15);              //  No - Jump
-            //         SET     (7,d);                  //  Set Queen found flag
-            //         JRu     (AT30);                 //  Jump
+            // Encountered a piece of either colour, determine if
+            //  piece attacks square
             uint8_t piece = m.T2;
 
             // Knight moves?
             if( dir_count < 9 )
             {
-                // AT25:   LD      (a,e);                  //  Get piece type
-                //         CP      (KNIGHT);               //  Is it a Knight ?
-                //         JR      (NZ,AT12);              //  No - jump
                 if( piece != KNIGHT )
                     break;
             }
@@ -1750,44 +1715,12 @@ bool ATTACK()
             }
 
             // King is good for ranks and diagonals for one step
-            // AT15:   LD      (a,d);                  //  Get flag/scan count
-            //         AND     (0x0F);                 //  Isolate count
-            //         CP      (1);                    //  On first position ?
-            //         JR      (NZ,AT16);              //  No - jump
-            //         LD      (a,e);                  //  Get encountered piece type
-            //         CP      (KING);                 //  Is it a King ?
-            //         JR      (Z,AT30);               //  Yes - jump
             else if( (scan_count&0x0f) == 1 && piece == KING )
                 ;
-
-            // Rooks, Bishops and Pawn logic
-            // AT16:   LD      (a,b);                  //  Get direction counter
-            //         CP      (13);                   //  Scanning files or ranks ?
-            //         JR      (CY,AT21);              //  Yes - jump
-            //         LD      (a,e);                  //  Get piece type
-            //         CP      (BISHOP);               //  Is it a Bishop ?
-            //         JR      (Z,AT30);               //  Yes - jump
-            //         LD      (a,d);                  //  Get flags/scan count
-            //         AND     (0x0F);                 //  Isolate count
-            //         CP      (1);                    //  On first position ?
-            //         JR      (NZ,AT12);              //  No - jump
-            //         CP      (e);                    //  Is it a Pawn ?
-            //         JR      (NZ,AT12);              //  No - jump
-            //         LD      (a,val(P2));            //  Fetch piece including color
-            //         BIT     (7,a);                  //  Is it white ?
-            //         JR      (Z,AT20);               //  Yes - jump
-            //         LD      (a,b);                  //  Get direction counter
-            //         CP      (15);                   //  On a non-attacking diagonal ?
-            //         JR      (CY,AT12);              //  Yes - jump
-            //         JRu     (AT30);                 //  Jump
 
             // Ranks and files and rook?
             else if( dir_count < 13 )
             {
-                // AT21:   LD      (a,e);                  //  Get piece type
-                //         CP      (ROOK);                 //  Is is a Rook ?
-                //         JR      (NZ,AT12);              //  No - jump
-                //         JRu     (AT30);                 //  Jump
                 if( piece != ROOK )
                     break;   // ranks and files and not rook
             }
@@ -1799,16 +1732,14 @@ bool ATTACK()
             // Diagonals and pawn
             else
             {
-                if( (scan_count&0x0f) != 1 || piece != PAWN )    // count must be 1, pawn reach
+
+                // Count must be 1, pawn reach
+                if( (scan_count&0x0f) != 1 || piece != PAWN )
                     break;
 
                 // Pawn attack logic
-                if( (m.P2&0x80) == 0 )
+                if( (m.P2&0x80) == 0 )  // Black?
                 {
-                    // AT20:   LD      (a,b);                  //  Get direction counter
-                    //         CP      (15);                   //  On a non-attacking diagonal ?
-                    //         JR      (NC,AT12);              //  Yes - jump
-                    //         JRu     (AT30);                 //  Jump
                     if( dir_count >= 15 )
                         break;   // not the right direction for this colour
                 }
@@ -1821,45 +1752,29 @@ bool ATTACK()
 
             // Get here if we've identified a suitable piece on the vector
             //
-            // AT30:   LD      (a,val(T1));            //  Attacked piece type/flag
-            //         CP      (7);                    //  Call from POINTS ?
-            //         JR      (Z,AT31);               //  Yes - jump
-            //         BIT     (5,d);                  //  Is attacker opposite color ?
-            //         JR      (Z,AT32);               //  No - jump
-            //         LD      (a,1);                  //  Set attacker found flag
-            //         JPu     (AT13);                 //  Jump
+            // Check attacked piece type 1-6. Use 7 as a special sentinel
+            //  value to indicate called from POINTS()
             if( m.T1 == 7 )
             {
-                // AT31:   CALLu   (ATKSAV);               //  Save attacker in attack list
+                // If called from POINTS(), save attacker in attack list
                 ATKSAV(scan_count,dir);
             }
+
+            // Else if piece is opposite color attacker found
             else if( (scan_count&0x20) != 0 )
             {
                 return true;
             }
 
-            // AT32:   LD      (a,val(T2));            //  Attacking piece type
-            //         CP      (KING);                 //  Is it a King,?
-            //         JP      (Z,AT12);               //  Yes - jump
-            //         CP      (KNIGHT);               //  Is it a Knight ?
-            //         JP      (Z,AT12);               //  Yes - jump
-            //         JPu     (AT10);                 //  Jump
+            // Keep stepping unless single step piece
             if( m.T2 == KING )
                 break;
             if( m.T2 == KNIGHT )
                 break;
-
-            // End stepping loop, keep stepping except for the break;s above
         }
-
-        // End direction loop
-        // AT12:   INC16   (iy);                   //  Increment direction index
-        //         DJNZ    (AT5);                  //  Done ? No - jump
-        //         XOR     (a);                    //  No attackers
     }
 
-    // AT13:   POP     (bc);                   //  Restore register B
-    //         RETu;                           //  Return
+    // No attackers
     return false;
 }
 
@@ -1932,6 +1847,9 @@ AS25:   POP     (de);                   //  Restore DE regs                //107
 inline void ATKSAV( uint8_t scan_count, int8_t dir )
 {
     callback_zargon_bridge(CB_ATKSAV);
+
+    // If there are pins, check whether this attacking piece is
+    //  pinned and therefore not worthy of being saved to the list
     if( m.NPINS )
     {
         bool invalid_attacker = PNCK(m.NPINS,dir);
@@ -1939,19 +1857,32 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
             return;
         scan_count = dir;   // reproduce bug in original Sargon
     }
+
+    // Point at White attack list
     uint8_t *p = &m.wact[0];    // Attack list
-    uint16_t offset = 0;        // White offset
+
+    // Skip to Black attack list if Black
+    uint16_t offset = 0;            // White offset
     if( (m.P2&0x80) != 0 )
-        offset = 7;             // Black offset
+        offset = sizeof(m.wact);    // Black offset
     p += offset;
-    (*p)++;                     // Increment list count
 
-    offset = m.P2 & 0x07;       // Piece type
+    // First byte of attack list is count, increment it
+    (*p)++;
+
+    // Rest of list is 6 slots, one for each piece type
+    offset = m.P2 & 0x07;   // get piece type
+
+    // If queen previously found use Queen slot
+    //  (not sure why)
     if( (scan_count&0x80) != 0 )         // Queen found this scan ?
-        offset = QUEEN;         //  Use Queen slot in attack list
-    p += offset;                // Attack list slot address
+        offset = QUEEN;
+    p += offset;    // point at piece type slot
 
-    // Add nibble to attack list
+    // Add the value of the piece as a nibble to attack list
+    //  If both nibbles in slot non-zero overflow to next slot
+    //  I think this means there should be room for 7 pieces
+    //  not 6 in the list right?
     uint8_t *pvalue = &m.pvalue[0] - 1;
     uint8_t hi = *p&0xf0;
     uint8_t lo = *p&0x0f;
@@ -2681,7 +2612,10 @@ void POINTS()
     m.PTSW1 = 0;
     m.PTSW2 = 0;
     m.PTSCK = 0;
-    m.T1 = 7;       // set attacker flag
+
+    // Attacked piece type 1-6 for pawn to king. Use 7 as a special sentinel
+    //  value to indicate to ATTACK() it's being called by POINTS()
+    m.T1 = 7;
 
     // Loop around board
     for( m.M3=21; m.M3<=98; m.M3++ )
