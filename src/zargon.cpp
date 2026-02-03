@@ -41,7 +41,6 @@ zargon_data_defs_check_and_regen regen;
 //        of Sargon's memory
 #define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
 #define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
-#define MK_U16(hi,lo,bin)   do { bin = hi; bin<<=8; bin+=lo; } while(0)
 #define HI(bin)             ((bin>>8)&0xff)
 #define LO(bin)             (bin&0xff)
 inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
@@ -3676,18 +3675,16 @@ void FNDMOV()
         // Traverse move list
         uint8_t score = 0;
         int8_t iscore = 0;
-        p = BIN_TO_PTR(m.MLPTRJ);       //  Load last move pointer
-        uint8_t lo = *p++;            //  Get next move pointer
-        uint8_t hi = *p;
+        p = BIN_TO_PTR(m.MLPTRJ);   // load last move pointer
+        uint16_t bin = RD_BIN(p);
 
         //  End of move list ?
         bool points_needed = false;
-        if( hi != 0 )                   
+        if( HI(bin) != 0 )                   
         {
-            MK_U16(hi,lo,m.MLPTRJ);     //  Save current move pointer
-            p = BIN_TO_PTR(m.MLPTRI);      //  Save in ply pointer list
-            *p++ = lo;
-            *p   = hi;
+            m.MLPTRJ = bin;             // save current move pointer
+            p = BIN_TO_PTR(m.MLPTRI);   // save in ply pointer list
+            WR_BIN(p,bin);
 
             // Max depth reached ?
             if( m.NPLY >= m.PLYMAX )
@@ -3702,7 +3699,7 @@ void FNDMOV()
                 //  If move not legal, restore board position and continue looping
                 if( inchk )       //  Is move legal
                 {
-                    CALLu   (UNMOVE);               
+                    UNMOVE();               
                     continue;
                 }
 
@@ -3732,7 +3729,7 @@ void FNDMOV()
             {
 
                 // Toggle color
-                hi = m.COLOR & 0x80;
+                uint8_t hi = m.COLOR & 0x80;
                 hi = (hi==0x80 ? 0 : 0x80);
                 m.COLOR = (m.COLOR&0x7f) | hi;
 
@@ -3751,9 +3748,9 @@ void FNDMOV()
 
                 // Save score as initial value
                 *p = score;            
-                p--;                   // decrement pointer
-                m.SCRIX = PTR_TO_BIN(p);  // save it
-                genmove_needed = true; // go to top of loop
+                p--;                        // decrement pointer
+                m.SCRIX = PTR_TO_BIN(p);    // save it
+                genmove_needed = true;      // go to top of loop
                 continue;
             }
         }
@@ -4137,9 +4134,11 @@ void CPTRMV()
     m.MLPTRJ = m.BESTM;
 
     //
-    //  The rest of this function can (probably?) be omitted for
-    //  our purposes, it's Z80 User interface code and it doesn't
-    //  actually produce any output in this Sargon port
+    //  Most of the rest of this function can be omitted for our
+    //  purposes, it's Z80 User interface code and it doesn't
+    //  actually produce any output in this Sargon port.
+    //
+    //  (Should at least keep the color toggle though)
     //
 
     // Check for mate against computer
@@ -4186,13 +4185,13 @@ void CPTRMV()
             ; //PRTBLK  (P_PEP,5);          // output "PxPep"
     }
 
-    //  Toggle color
+    // Toggle color
     uint8_t color = m.COLOR & 0x80;
     color = (color==0x80 ? 0 : 0x80);
     uint8_t temp = m.COLOR;
     m.COLOR = (m.COLOR&0x7f) | color;
 
-    //  Should computer call check ?
+    // Should computer call check ?
     bool inchk = INCHK(m.COLOR);
     m.COLOR = temp; // restore
     if( inchk )
@@ -4329,8 +4328,12 @@ AT04:   LD      (b,a);                  //  Invalid flag                   //263
 
 void ASNTBI()
 {
+
+    // Input from registers h,l
     uint8_t file = h;       // 'A' - 'H'
     uint8_t rank = l;       // '1' - '8'
+
+    // If not okay, return register b=1
     bool ok = ('1'<=rank && rank<='8' && 'A'<=file && file<='H' );
     if( !ok )
     {
@@ -4338,6 +4341,8 @@ void ASNTBI()
         b = 1;
         return;
     }
+
+    // Otherwise calculate offset from 21-98
     rank -= '0';            // 1 - 8
     rank++;                 // 2 - 9
     file -= 'A';            // 0 - 7
@@ -4522,15 +4527,13 @@ void ROYALT()
 {
 
     // Clear royalty array
-    uint8_t *p = &m.POSK[0];
-    for( int i=0; i<4; i++ )
-        *p++ = 0;
+    memset( &m.POSK[0], 0, 4 );
 
     // Board idx = a1 to h8 inclusive
     for( int idx=21; idx<=98; idx++ )
     {
         //  Address of White king position
-        p = &m.POSK[0];
+        uint8_t *p = &m.POSK[0];
         uint8_t piece = m.BOARDA[idx];
 
         // Is it a black piece ?
