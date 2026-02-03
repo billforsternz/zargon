@@ -3894,26 +3894,44 @@ rel019: LD      (hl,v16(SCRIX));        //  Load score table index         //195
         RETu;                           //  Return                         //1972:         RET                     ; Return
 }                                                                          //1973:
 
-void ASCEND() {
+void ASCEND()
+{
     callback_zargon_bridge(CB_ASCEND);
-    uint8_t hi = m.COLOR & 0x80;    //  Toggle color
+
+    //  Toggle color
+    uint8_t hi = m.COLOR & 0x80;
     hi = (hi==0x80 ? 0 : 0x80);
     m.COLOR = (m.COLOR&0x7f) | hi;
-    bool white = (hi==0x00 );       //  Is new colour white ?
+
+    // If new colour is Black, decrement move number
+    bool white = (hi==0x00 );       
     if( !white )
         m.MOVENO--;
-    m.SCRIX--;                      //  Decrement score table index
-    m.NPLY--;                       //  Decrement ply counter
-    uint8_t *p = BIN_TO_PTR(m.MLPTRI); //  Get ply list pointer       
-    p--;                            //  Load pointer to move list top
-    hi = *p--;
-    uint8_t lo = *p--;
-    MK_U16(hi,lo,m.MLNXT);          //  Update move list avail ptr
-    hi = *p--;                      //  Get ptr to next move to undo
-    lo = *p;
-    m.MLPTRI = (uint16_t)PTR_TO_BIN(p); //  Save new ply list pointer
-    MK_U16(hi,lo,m.MLPTRJ);
-    UNMOVE();                       //  Restore board to previous ply
+
+    // Decrement score table index
+    m.SCRIX--;
+
+    // Decrement ply counter
+    m.NPLY--;                       
+
+    // Get ply list pointer       
+    uint8_t *p = BIN_TO_PTR(m.MLPTRI);
+
+    // Decrement by ptr size
+    p -= sizeof(int16_t);
+
+    // Update move list avail ptr
+    m.MLNXT = RD_BIN(p);
+
+    // Get ptr to next move to undo
+    p -= sizeof(int16_t);
+    m.MLPTRJ = RD_BIN(p);
+
+    // Save new ply list pointer
+    m.MLPTRI = PTR_TO_BIN(p);  
+
+    // Restore board to previous ply
+    UNMOVE();
 }
 
 //***********************************************************                      ;***********************************************************
