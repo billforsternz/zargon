@@ -33,46 +33,7 @@ zargon_data_defs_check_and_regen regen;
 //
 // Currently converting from hybrid ASM / C to normal C
 //   
-//  Progress report:
-
-// Functions converted to C (31)
-
-// INITBD
-// PATH
-// MPIECE
-// ENPSNT
-// ADJPTR
-// CASTLE
-// ADMOVE
-// GENMOV
-// INCHK
-// ATTACK
-// ATKSAV
-// PNCK
-// PINFND
-// XCHNG
-// NEXTAD
-// LIMIT 
-// MOVE
-// UNMOVE 
-// SORTM
-// EVAL
-// FNDMOV
-// ASCEND
-// DIVIDE (not actually needed any more)
-// MLTPLY (not actually needed any more)
-// BITASN 
-// ASNTBI 
-// VALMOV 
-// ROYALT 
-// EXECMV 
-// CPTRMV 
-// BOOK
-// 
-// Functions not yet converted to C (1)
-// 
-// POINTS
-// 
+//  Progress report:  All 32 functions now converted to C!
 
 // Transitional (maybe) pointer manipulation macros
 //  Note: a "bin" for our purposes is the binary representation of
