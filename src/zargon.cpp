@@ -3454,7 +3454,7 @@ FM5:    LD      (hl,addr(NPLY));        //  Address of ply counter         //181
         XOR     (a);                    //  Initialize mate flag           //1813:         XOR     a               ; Initialize mate flag
         LD      (val(MATEF),a);                                            //1814:         LD      (MATEF),a
         CALLu   (GENMOV);               //  Generate list of moves         //1815:         CALL    GENMOV          ; Generate list of moves
-        callback_zargon(CB_AFTER_GENMOV);
+        callback_after_genmov();
         LD      (a,val(NPLY));          //  Current ply counter            //1816:         LD      a,(NPLY)        ; Current ply counter
         LD      (hl,addr(PLYMAX));      //  Address of maximum ply number  //1817:         LD      hl,PLYMAX       ; Address of maximum ply number
         CP      (ptr(hl));              //  At max ply ?                   //1818:         CP      (hl)            ; At max ply ?

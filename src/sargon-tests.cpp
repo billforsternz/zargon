@@ -1000,8 +1000,3 @@ static void show()
     }
 }
 
-void after_genmov()
-{
-    //printf( "\nafter genmov()\n" );
-    //show();
-}

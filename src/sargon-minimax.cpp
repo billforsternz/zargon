@@ -1290,8 +1290,6 @@ bool sargon_minimax_regression_test( bool quiet)
     return ok;
 }
 
-extern void after_genmov();
-
 //
 // Calculate Func frequency to aid in optimisation efforts
 // Results after sorting: (cmdline "p -2")
@@ -1388,10 +1386,6 @@ void callback_zargon_tests( CB cb )
         static uint8_t a_reg;
         a_reg++;
         gbl_z80_cpu.A = a_reg;
-    }
-    else if( cb == CB_AFTER_GENMOV )
-    {
-        // after_genmov();  // does nothing any more
     }
     else if( cb == CB_YES_BEST_MOVE )
     {
@@ -1606,7 +1600,7 @@ void callback_end_of_points( int8_t &points )
     points = (int8_t)value;
 }
 
-void callback_AFTER_GENMOV()
+void callback_after_genmov()
 {
     if( !zargon_tests )
         callback_zargon_uci( CB_AFTER_GENMOV );
