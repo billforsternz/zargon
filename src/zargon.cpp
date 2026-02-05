@@ -807,6 +807,10 @@ void MPIECE()
     piece &= 7;      // clear colour flag to isolate piece type
     m.T1 = piece;
 
+    // For minimax experiments, suppress king moves
+    if( callback_suppress_king_moves(piece) )
+        return;
+
     /*
 
     How the piece moving tables work by example
@@ -866,9 +870,6 @@ void MPIECE()
             //        same color                 
             // 3  --  New position is off the    
             //        board                      
-
-            callback_zargon( CB_SUPPRESS_KING_MOVES );
-            //callback_zargon_suppress_king_moves( path_result, dir_count );
 
             // Hit our own piece or off the board ?
             if( path_result < 2 )
@@ -3770,8 +3771,8 @@ void FNDMOV()
         }
 
         // Alpa Beta cutoff ?
-        callback_zargon(CB_ALPHA_BETA_CUTOFF);
-        //callback_zargon_ALPHA_BETA_CUTOFF( score, p );
+        // callback_zargon(CB_ALPHA_BETA_CUTOFF);
+        callback_alpha_beta_cutoff( score, p );
         if( score <= *p )  // compare to score 2 ply above
         {
             ASCEND();  // ascend one ply in tree
@@ -3787,8 +3788,8 @@ void FNDMOV()
         p++;  
         CY = (*p > score);                
         Z  = (*p == score);
-        callback_zargon(CB_NO_BEST_MOVE);
-        //callback_zargon_NO_BEST_MOVE( score, p );
+        //callback_zargon(CB_NO_BEST_MOVE);
+        callback_no_best_move( score, p );
         if( CY || Z )
             continue;   // continue unless score is greater
         *p = score;     // save as new score 1 ply above

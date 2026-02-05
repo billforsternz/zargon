@@ -31,5 +31,8 @@ void callback_ldar( uint8_t &out_random_number );
 void callback_yes_best_move();
 void callback_end_of_points( int8_t &points );
 void callback_after_genmov();
+bool callback_suppress_king_moves( uint8_t piece );
+void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p );
+void callback_no_best_move( uint8_t score, const uint8_t *p );
 
 #endif MAIN_H_INCLUDED
