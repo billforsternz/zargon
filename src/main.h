@@ -26,4 +26,7 @@ extern void callback_zargon_tests( CB cb ); // .. or here
 // True if main_tests() running, false if main_uci() running
 extern bool zargon_tests;
 
+// Individual callback functions
+void callback_ldar( uint8_t &out_random_number );
+
 #endif MAIN_H_INCLUDED

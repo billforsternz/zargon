@@ -1529,6 +1529,30 @@ void callback_zargon_tests( CB cb )
     }
 }
 
+void callback_ldar( uint8_t &out_random_number )
+{
+    if( zargon_tests )
+    {
+        static uint8_t not_so_random;
+
+        // For testing purposes, make LDAR output increment, results in
+        //  deterministic choice of book moves
+        not_so_random++;
+        out_random_number = not_so_random;
+    }
+    else
+    {
+        static bool has_run_at_least_once;
+        if( !has_run_at_least_once )  
+        {        
+            has_run_at_least_once = true;
+            srand((unsigned int)time(NULL));
+        }                                   
+        int random_number = rand();
+        out_random_number = (uint8_t)(random_number&0xff);
+    }
+}
+
 void callback_YES_BEST_MOVE()
 {
     if( !zargon_tests )
@@ -1574,20 +1598,6 @@ void callback_AFTER_GENMOV()
     if( !zargon_tests )
         callback_zargon_uci( CB_AFTER_GENMOV );
 }
-
-void callback_LDAR( uint8_t &rand )
-{
-    if( zargon_tests )
-    {
-        static uint8_t not_so_random;
-
-        // For testing purposes, make LDAR output increment, results in
-        //  deterministic choice of book moves
-        not_so_random++;
-        rand = not_so_random;
-    }
-}
-
 
 //    // Remaining Callbacks only apply when we are running our minimax tests and
 //    //  heavily manipulating Sargon's operations

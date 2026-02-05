@@ -3978,9 +3978,8 @@ void BOOK()
     {
 
         // Get a random number
-        Z80_LDAR;                       
-        callback_zargon(CB_LDAR);
-        uint8_t rand = a;
+        uint8_t rand;
+        callback_ldar(rand);
 
         // Play e4 or d4 randomly
         if( (rand&1) == 0 )
