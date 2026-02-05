@@ -17,6 +17,7 @@
 #include <algorithm>
 #include "util.h"
 #include "thc.h"
+#include "main.h"
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "sargon-pv.h"
@@ -1390,7 +1391,7 @@ void callback_zargon_tests( CB cb )
     }
     else if( cb == CB_AFTER_GENMOV )
     {
-        after_genmov();
+        // after_genmov();  // does nothing any more
     }
     else if( cb == CB_YES_BEST_MOVE )
     {
@@ -1526,5 +1527,170 @@ void callback_zargon_tests( CB cb )
         prog.msg = "(Confirming best move)";
         running_example->progress.push_back(prog);
     }
+}
+
+void callback_YES_BEST_MOVE()
+{
+    if( !zargon_tests )
+    {
+        callback_zargon_uci( CB_YES_BEST_MOVE );
+        return;
+    }
+    sargon_pv_callback_yes_best_move();
+    Progress prog;
+    prog.pt  = bestmove_confirmed;
+    prog.msg = "(Confirming best move)";
+    running_example->progress.push_back(prog);
+}
+
+void callback_END_OF_POINTS( int8_t &points )
+{
+    if( !zargon_tests )
+    {
+        callback_zargon_uci( CB_END_OF_POINTS );
+        return;
+    }
+    sargon_pv_callback_end_of_points();
+
+    // For purposes of minimax tracing experiment, we inject our own points
+    //  score for each known position (we keep the number of positions to
+    //  managable levels.)
+    if( !callback_minimax_mods_active )
+        return;
+    std::string key = get_key();
+    Progress prog;
+    prog.pt  = create;
+    prog.key = key;
+    prog.msg = util::sprintf( "Position %d, \"%s\" created in tree",
+                                    running_example->cardinal_nbr[key],
+                                    running_example->lines[key].c_str() );
+    running_example->progress.push_back(prog);
+    unsigned int value = running_example->values[key];
+    points = (int8_t)value;
+}
+
+void callback_AFTER_GENMOV()
+{
+    if( !zargon_tests )
+        callback_zargon_uci( CB_AFTER_GENMOV );
+}
+
+void callback_LDAR( uint8_t &rand )
+{
+    if( zargon_tests )
+    {
+        static uint8_t not_so_random;
+
+        // For testing purposes, make LDAR output increment, results in
+        //  deterministic choice of book moves
+        not_so_random++;
+        rand = not_so_random;
+    }
+}
+
+
+//    // Remaining Callbacks only apply when we are running our minimax tests and
+//    //  heavily manipulating Sargon's operations
+//    if( !callback_minimax_mods_active )
+//        return;
+
+// For purposes of minimax tracing experiment, we only want two possible
+//  moves in each position - achieved by suppressing King moves
+void callback_suppress_king_moves( uint8_t &path_result, uint8_t &dir_count )
+{
+    if( !callback_minimax_mods_active )
+        return;
+    unsigned char piece = peekb(T1);
+    if( piece == 6 )    // King?
+    {
+        // Change A to 2 and B to 1 and MPIECE will exit without
+        //  generating (non-castling) king moves
+        path_result = 2;
+        dir_count = 1;
+    }
+}
+
+
+    // For purposes of minimax tracing experiment, describe and annotate the
+    //  best move calculation
+void callback_zargon_ALPHA_BETA_CUTOFF( uint8_t score, uint8_t *p )
+    {
+    if( !callback_minimax_mods_active )
+        return;
+        Progress prog;
+        std::string key = get_key();
+
+        // Eval takes place after undoing last move, so need to add it back to
+        //  show position meaningfully
+        unsigned int  mlptrj = peekw(MLPTRJ);
+        unsigned char from  = peekb(mlptrj+2);
+        thc::Square sq;
+        sargon_export_square(from,sq);
+        char c = thc::get_file(sq);
+        if( key == "(root)" )
+            key = "";
+        key += toupper(c); 
+        uint8_t val = *p;
+        bool jmp = (score <= val);   // Note that Sargon integer values have reverse sense to
+                                    //  float centipawns.
+                                    //  So jmp if al <= val means
+                                    //     jmp if float(al) >= float(val)
+        std::string float_value = (val==0 ? "MAX" : util::sprintf("%.3f",sargon_export_value(val)) ); // Show "MAX" instead of "16.0"
+        prog.key = key;
+        prog.pt  = eval;
+        prog.move_val = score;
+        prog.alphabeta_compare_val = val;
+        prog.minimax_compare_val = *(p+1);
+        prog.msg = util::sprintf( "Eval (ply %d), %s", peekb(NPLY), running_example->lines[key].c_str() );
+        running_example->progress.push_back(prog);
+        if( jmp )   // jmp matches the Sargon assembly code jump decision. Jump if Alpha-Beta cutoff
+        {
+            prog.pt  = alpha_beta_yes;
+            prog.msg = util::sprintf( "Alpha beta cutoff because move value=%.3f >= two lower ply value=%s",
+            sargon_export_value(score),
+            float_value.c_str() );
+            prog.diagram_msg = util::sprintf( ">=%s so ALPHA BETA CUTOFF",
+                                float_value.c_str() );
+        }
+        else
+        {
+            prog.pt  = alpha_beta_no;
+            prog.msg = util::sprintf( "No alpha beta cutoff because move value=%.3f < two lower ply value=%s",
+                                    sargon_export_value(score),
+                                    float_value.c_str() );
+        }
+        running_example->progress.push_back(prog);
+    }
+
+void callback_zargon_NO_BEST_MOVE( uint8_t score, uint8_t *p )
+{
+    if( !callback_minimax_mods_active )
+        return;
+    Progress prog;
+    uint8_t val = *p;
+    bool jmp = (score <= val);  // Note that Sargon integer values have reverse sense to
+                                //  float centipawns.
+                                //  So jmp if al <= val means
+                                //     jmp if float(al) >= float(val)
+    std::string float_value = (val==0 ? "MAX" : util::sprintf("%.3f",sargon_export_value(val)) ); // Show "MAX" instead of "16.0"
+    std::string neg_float_value = (val==0 ? " -MAX" : util::sprintf("%.3f",0.0-sargon_export_value(val)) ); // Show "-MAX" instead of "-16.0"
+    if( jmp )   // jmp matches the Sargon assembly code jump decision. Jump if not best move
+    {
+        prog.pt  = bestmove_no;
+        prog.msg = util::sprintf( "Not best move because negated move value=%.3f >= one lower ply value=%s",
+                                    sargon_export_value(score),
+        float_value.c_str() );
+        prog.diagram_msg = util::sprintf( "<=%s so discard",
+                                neg_float_value.c_str() );
+    }
+    else
+    {
+        prog.pt  = bestmove_yes;
+        prog.msg = util::sprintf( "Best move because negated move value=%.3f < one lower ply value=%s",
+                                    sargon_export_value(score), float_value.c_str() );
+        prog.diagram_msg = util::sprintf( ">%s so NEW BEST MOVE",
+                                    neg_float_value.c_str() );
+    }
+    running_example->progress.push_back(prog);
 }
 

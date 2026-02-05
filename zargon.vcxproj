@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\bridge.h" />
+    <ClInclude Include="src\main.h" />
     <ClInclude Include="src\sargon-asm-interface.h" />
     <ClInclude Include="src\sargon-interface.h" />
     <ClInclude Include="src\sargon-pv.h" />
@@ -153,6 +154,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bridge.cpp" />
+    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\sargon-engine.cpp" />
     <ClCompile Include="src\sargon-interface.cpp" />
     <ClCompile Include="src\sargon-minimax.cpp" />

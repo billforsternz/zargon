@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stddef.h>                                                        //         (Numbered lines of original Z80 Sargon code on the right)
 
+#include "main.h"
 #include "sargon-asm-interface.h"
 #include "bridge.h"
 #include "zargon_functions.h"
@@ -866,7 +867,8 @@ void MPIECE()
             // 3  --  New position is off the    
             //        board                      
 
-            callback_zargon(CB_SUPPRESS_KING_MOVES);
+            callback_zargon( CB_SUPPRESS_KING_MOVES );
+            //callback_zargon_suppress_king_moves( path_result, dir_count );
 
             // Hit our own piece or off the board ?
             if( path_result < 2 )
@@ -2846,11 +2848,11 @@ void POINTS()
 
     // Rescale score (neutral = 0x80)
     points += 0x80;
-    a = points;
-    callback_zargon(CB_END_OF_POINTS);
+    callback_zargon( CB_END_OF_POINTS );
+    //callback_zargon_end_of_points(points);
 
     // Save score value
-    m.VALM = a;
+    m.VALM = points;
 
     // Save score value to move pointed to by current move ptr
     uint8_t *p = BIN_TO_PTR( m.MLPTRJ );
@@ -3770,6 +3772,7 @@ void FNDMOV()
 
         // Alpa Beta cutoff ?
         callback_zargon(CB_ALPHA_BETA_CUTOFF);
+        //callback_zargon_ALPHA_BETA_CUTOFF( score, p );
         if( score <= *p )  // compare to score 2 ply above
         {
             ASCEND();  // ascend one ply in tree
@@ -3786,6 +3789,7 @@ void FNDMOV()
         CY = (*p > score);                
         Z  = (*p == score);
         callback_zargon(CB_NO_BEST_MOVE);
+        //callback_zargon_NO_BEST_MOVE( score, p );
         if( CY || Z )
             continue;   // continue unless score is greater
         *p = score;     // save as new score 1 ply above

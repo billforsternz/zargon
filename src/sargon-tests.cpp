@@ -17,6 +17,7 @@
 #include <chrono>
 #include "util.h"
 #include "thc.h"
+#include "main.h"
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "sargon-pv.h"
@@ -33,29 +34,8 @@ extern bool sargon_minimax_regression_test( bool quiet);
 static std::string timing_calibration_game("e4 e5 Nf3 Nc6 Bb5 Qf6 Nc3 a6 Nd5 Qd6 Bc4 Nf6 O-O b5 Bb3 Nxe4 Re1 Nf6 d4 Nxd5 dxe5 Qg6 Nh4 Qe6 Bxd5 Qe7 Nf5 Qb4 c3 Qc5 Be3 g6 Bxc5 gxf5 e6 Bxc5 exf7+ Kf8 Qh5 Kg7 Qg5+ Kf8 Qh6#");
 
 // main()
-extern int main_uci( int argc, const char *argv[] );
-void (*callback_zargon)( CB cb );    // fn ptr
-int main( int argc, const char *argv[] )
+int main_tests( int argc, const char *argv[] )
 {
-#ifdef _DEBUG
-    const char *test_args[] =
-    {
-        "Debug/sargon-tests.exe",
-        "p",
-        "-2"
-    };
-    argc = sizeof(test_args) / sizeof(test_args[0]);
-    argv = test_args;
-#endif
-
-    // If no arguments, run UCI engine
-    callback_zargon = callback_zargon_tests;
-    if( argc == 1 )
-    {
-        callback_zargon = callback_zargon_uci;
-        int ret = main_uci( argc, argv );
-        return ret;
-    }
     const char *usage =
     ENGINE_NAME " " VERSION " UCI engine and test suite\n"
     "by Dan and Kathe Spracklin\n"
