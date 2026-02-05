@@ -1553,34 +1553,47 @@ void callback_ldar( uint8_t &out_random_number )
     }
 }
 
-void callback_YES_BEST_MOVE()
+void callback_yes_best_move()
 {
+
+    // If uci, sargon_pv_callback_yes_best_move() plus UCI stats and abort check
     if( !zargon_tests )
     {
         callback_zargon_uci( CB_YES_BEST_MOVE );
         return;
     }
+
+    // If tests, stage 1) sargon_pv_callback_yes_best_move() ...
     sargon_pv_callback_yes_best_move();
+
+    // Plus stage 2) minimax stuff if it runs
+    if( !callback_minimax_mods_active )
+        return;
     Progress prog;
     prog.pt  = bestmove_confirmed;
     prog.msg = "(Confirming best move)";
     running_example->progress.push_back(prog);
 }
 
-void callback_END_OF_POINTS( int8_t &points )
+void callback_end_of_points( int8_t &points )
 {
+    // If uci, sargon_pv_callback_end_of_points() plus UCI stats and abort check
     if( !zargon_tests )
     {
         callback_zargon_uci( CB_END_OF_POINTS );
         return;
     }
+ 
+    // If tests, stage 1) sargon_pv_callback_end_of_points() ...
     sargon_pv_callback_end_of_points();
+
+    // Plus stage 2) minimax stuff if it runs
+    if( !callback_minimax_mods_active )
+        return;
 
     // For purposes of minimax tracing experiment, we inject our own points
     //  score for each known position (we keep the number of positions to
     //  managable levels.)
-    if( !callback_minimax_mods_active )
-        return;
     std::string key = get_key();
     Progress prog;
     prog.pt  = create;

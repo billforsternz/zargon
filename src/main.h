@@ -28,5 +28,7 @@ extern bool zargon_tests;
 
 // Individual callback functions
 void callback_ldar( uint8_t &out_random_number );
+void callback_yes_best_move();
+void callback_end_of_points( int8_t &points );
 
 #endif MAIN_H_INCLUDED

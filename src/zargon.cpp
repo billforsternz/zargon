@@ -2848,8 +2848,7 @@ void POINTS()
 
     // Rescale score (neutral = 0x80)
     points += 0x80;
-    callback_zargon( CB_END_OF_POINTS );
-    //callback_zargon_end_of_points(points);
+    callback_end_of_points(points);
 
     // Save score value
     m.VALM = points;
@@ -3793,7 +3792,7 @@ void FNDMOV()
         if( CY || Z )
             continue;   // continue unless score is greater
         *p = score;     // save as new score 1 ply above
-        callback_zargon(CB_YES_BEST_MOVE);
+        callback_yes_best_move();
 
         // At top of tree ?
         if( m.NPLY != 1 )
