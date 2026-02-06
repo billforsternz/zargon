@@ -1029,7 +1029,7 @@ void ADMOVE()
     callback_zargon_bridge(CB_ADMOVE);
 
     // Address of next location in move list
-    uint16_t bin = v16(MLNXT);
+    uint16_t bin = m.MLNXT;
     uint8_t *p = BIN_TO_PTR(bin);
 
     // Check that we haven't run out of memory
@@ -1365,16 +1365,14 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
     uint8_t *p = &m.wact[0];    // Attack list
 
     // Skip to Black attack list if Black
-    uint16_t offset = 0;            // White offset
     if( (m.P2&0x80) != 0 )
-        offset = sizeof(m.wact);    // Black offset
-    p += offset;
+        p += sizeof(m.ATKLST)/2;    // (bact)
 
     // First byte of attack list is count, increment it
     (*p)++;
 
     // Rest of list is 6 slots, one for each piece type
-    offset = m.P2 & 0x07;   // get piece type
+    uint8_t offset = m.P2 & 0x07;   // get piece type
 
     // If queen previously found use Queen slot
     //  (not sure why)
@@ -1609,10 +1607,11 @@ void XCHNG()
     bool black = (m.P1 & 0x80) != 0;
     bool side_flag = true;
 
-    uint8_t *p_white = (uint8_t *)((uint8_t *)&m + WACT);
-    uint8_t *p_black = (uint8_t *)((uint8_t *)&m + BACT);
-    uint8_t count_white = *p_white;
-    uint8_t count_black = *p_black;
+    uint8_t *wact = (uint8_t *)&(m.ATKLST);
+    uint8_t *bact = wact + sizeof(m.ATKLST)/2;
+
+    uint8_t count_white = *wact;
+    uint8_t count_black = *bact;
 
     // Init points lost count (XCHNG() returns registers e + d)
     e = 0;
@@ -1623,8 +1622,8 @@ void XCHNG()
     uint8_t piece_val = d;          // save
 
     // Retrieve first attacker
-    uint8_t val = black ? NEXTAD( count_white, p_white )
-                        : NEXTAD( count_black, p_black );
+    uint8_t val = black ? NEXTAD( count_white, wact )
+                        : NEXTAD( count_black, bact );
 
     // Return if none
     if( val==0 )
@@ -1638,8 +1637,8 @@ void XCHNG()
         uint8_t save_val = val;
 
         // Get next defender
-        val = black ? NEXTAD( count_black, p_black )
-                    : NEXTAD( count_white, p_white );
+        val = black ? NEXTAD( count_black, bact )
+                    : NEXTAD( count_white, wact );
 
         // Toggle
         black = !black;
@@ -1659,8 +1658,8 @@ void XCHNG()
                     return; //  Yes - return
 
                 // Get next attacker
-                val = black ? NEXTAD( count_black, p_black )
-                            : NEXTAD( count_white, p_white );
+                val = black ? NEXTAD( count_black, bact )
+                            : NEXTAD( count_white, wact );
                 if( val == 0 )
                     return; // Return if none
 
@@ -1668,8 +1667,8 @@ void XCHNG()
                 save_val = val;
 
                 //  Get next defender
-                val = black ? NEXTAD( count_white, p_white )
-                            : NEXTAD( count_black, p_black );
+                val = black ? NEXTAD( count_white, wact )
+                            : NEXTAD( count_black, bact );
                 if( val == 0 )
                     break; // End subloop if none
             }
@@ -2430,7 +2429,7 @@ void FNDMOV()
             m.NPLY++;                   //  Increment ply count
             m.MATEF = 0;                //  Initialize mate flag
             GENMOV();                   //  Generate list of moves
-            callback_zargon(CB_AFTER_GENMOV);
+            callback_after_genmov();
             if( m.PLYMAX > m.NPLY )
                 SORTM();                    // Not at max ply, so call sort
             m.MLPTRJ = m.MLPTRI;            //  last move pointer = oad ply index pointer
@@ -2566,7 +2565,6 @@ void FNDMOV()
         }
 
         // Alpa Beta cutoff ?
-        // callback_zargon(CB_ALPHA_BETA_CUTOFF);
         callback_alpha_beta_cutoff( score, p );
         if( score <= *p )  // compare to score 2 ply above
         {
@@ -2583,7 +2581,6 @@ void FNDMOV()
         p++;
         CY = (*p > score);
         Z  = (*p == score);
-        //callback_zargon(CB_NO_BEST_MOVE);
         callback_no_best_move( score, p );
         if( CY || Z )
             continue;   // continue unless score is greater

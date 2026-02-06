@@ -17,12 +17,6 @@ extern int main( int argc, const char *argv[] );
 extern int main_uci( int argc, const char *argv[] );
 extern int main_tests( int argc, const char *argv[] );
 
-// Sargon core calls back to calling code use gb_z80_cpu to inspect
-//  and/or change registers
-extern void (*callback_zargon)( CB cb );    // fn ptr
-extern void callback_zargon_uci( CB cb );   // redirect callback here ...
-extern void callback_zargon_tests( CB cb ); // .. or here
-
 // True if main_tests() running, false if main_uci() running
 extern bool zargon_tests;
 

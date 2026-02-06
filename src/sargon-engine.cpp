@@ -2511,37 +2511,8 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     //show();
 }
 
-// Original UCI callback
-void callback_zargon_uci( CB cb )
-{
-    total_callbacks++;
-    if( cb == CB_AFTER_GENMOV )
-    {
-        genmov_callbacks++;
-        if( peekb(NPLY)==1 && the_repetition_moves.size()>0 )
-            repetition_remove_moves( the_repetition_moves );
-    }
-    else if( cb == CB_END_OF_POINTS )
-    {
-        end_of_points_callbacks++;
-        sargon_pv_callback_end_of_points();
-    }
-    else if( cb == CB_YES_BEST_MOVE )
-    {
-        bestmove_callbacks++;
-        sargon_pv_callback_yes_best_move();
-    }
-
-    // Abort run_sargon() if new event in queue (and not PLYMAX==1 which is
-    //  effectively instantaneous, finds a baseline move)
-    if( !async_queue.empty() && peekb(PLYMAX)>1 )
-    {
-        longjmp( jmp_buf_env, 1 );
-    }
-}
-
 //
-// Split out versions called by individual callback routines
+// UCI specific callback handling (minimal)
 //
 
 // Called by callback_after_genmove()

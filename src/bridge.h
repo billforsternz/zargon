@@ -11,7 +11,7 @@
 //#define BRIDGE_CALLBACK_TRACE
 //#define BRIDGE_CALLBACK_TRACE_DETAILED
 #ifdef BRIDGE_CALLBACK_TRACE_DETAILED
-#define callback_zargon_bridge(cb) callback_zargon(cb)
+#define callback_zargon_bridge(cb) bridge_callback_trace(cb,0)
 #else
 #define callback_zargon_bridge(cb)
 #endif

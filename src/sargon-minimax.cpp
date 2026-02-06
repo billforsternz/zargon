@@ -1363,168 +1363,8 @@ class for_destructor
 };
 // for_destructor inst;  // just an instance to make the destructor run after main()
 
-void callback_zargon_tests( CB cb )
-{
-    //if( cb <= CB_ASCEND )
-    //    cb_counts[cb]++;
-    #ifdef BRIDGE_CALLBACK_TRACE
-    z80_registers reg;
-    reg.af = (uint16_t)(gbl_z80_cpu.AF);
-    reg.bc = (uint16_t)(gbl_z80_cpu.BC);
-    reg.de = (uint16_t)(gbl_z80_cpu.DE);
-    reg.hl = (uint16_t)(gbl_z80_cpu.HL);
-    reg.ix = (uint16_t)(gbl_z80_cpu.IX);
-    reg.iy = (uint16_t)(gbl_z80_cpu.IY);
-    bridge_callback_trace( cb, &reg );
-    #endif
-
-    // High performance callbacks
-    if( cb == CB_LDAR )
-    {
-        // For testing purposes, make LDAR output increment, results in
-        //  deterministic choice of book moves
-        static uint8_t a_reg;
-        a_reg++;
-        gbl_z80_cpu.A = a_reg;
-    }
-    else if( cb == CB_YES_BEST_MOVE )
-    {
-        sargon_pv_callback_yes_best_move();
-    }
-    else if( cb == CB_END_OF_POINTS )
-    {
-        sargon_pv_callback_end_of_points();
-    }
-
-    // Remaining Callbacks only apply when we are running our minimax tests and
-    //  heavily manipulating Sargon's operations
-    if( !callback_minimax_mods_active )
-        return;
-
-    // For purposes of minimax tracing experiment, we only want two possible
-    //  moves in each position - achieved by suppressing King moves
-    if( cb == CB_SUPPRESS_KING_MOVES )
-    {
-        unsigned char piece = peekb(T1);
-        if( piece == 6 )    // King?
-        {
-            // Change A to 2 and B to 1 and MPIECE will exit without
-            //  generating (non-castling) king moves
-            gbl_z80_cpu.A = 2;
-            gbl_z80_cpu.B = 1;
-        }
-    }
-
-    // For purposes of minimax tracing experiment, we inject our own points
-    //  score for each known position (we keep the number of positions to
-    //  managable levels.)
-    else if( cb == CB_END_OF_POINTS )
-    {
-        std::string key = get_key();
-        Progress prog;
-        prog.pt  = create;
-        prog.key = key;
-        prog.msg = util::sprintf( "Position %d, \"%s\" created in tree",
-                                        running_example->cardinal_nbr[key],
-                                        running_example->lines[key].c_str() );
-        running_example->progress.push_back(prog);
-        unsigned int value = running_example->values[key];
-        gbl_z80_cpu.A = (uint8_t)value;
-    }
-
-    // For purposes of minimax tracing experiment, describe and annotate the
-    //  best move calculation
-    else if( cb == CB_ALPHA_BETA_CUTOFF )
-    {
-        Progress prog;
-        std::string key = get_key();
-
-        // Eval takes place after undoing last move, so need to add it back to
-        //  show position meaningfully
-        unsigned int  p     = peekw(MLPTRJ);
-        unsigned char from  = peekb(p+2);
-        thc::Square sq;
-        sargon_export_square(from,sq);
-        char c = thc::get_file(sq);
-        if( key == "(root)" )
-            key = "";
-        key += toupper(c); 
-        unsigned int al  = gbl_z80_cpu.A;
-        unsigned int bx  = gbl_z80_cpu.HL;
-        unsigned int val = peekb(bx);
-        bool jmp = (al <= val);   // Note that Sargon integer values have reverse sense to
-                                    //  float centipawns.
-                                    //  So jmp if al <= val means
-                                    //     jmp if float(al) >= float(val)
-        std::string float_value = (val==0 ? "MAX" : util::sprintf("%.3f",sargon_export_value(val)) ); // Show "MAX" instead of "16.0"
-        prog.key = key;
-        prog.pt  = eval;
-        prog.move_val = al;
-        prog.alphabeta_compare_val = val;
-        prog.minimax_compare_val = peekb(bx+1);
-        prog.msg = util::sprintf( "Eval (ply %d), %s", peekb(NPLY), running_example->lines[key].c_str() );
-        running_example->progress.push_back(prog);
-        if( jmp )   // jmp matches the Sargon assembly code jump decision. Jump if Alpha-Beta cutoff
-        {
-            prog.pt  = alpha_beta_yes;
-            prog.msg = util::sprintf( "Alpha beta cutoff because move value=%.3f >= two lower ply value=%s",
-            sargon_export_value(al),
-            float_value.c_str() );
-            prog.diagram_msg = util::sprintf( ">=%s so ALPHA BETA CUTOFF",
-            float_value.c_str() );
-        }
-        else
-        {
-            prog.pt  = alpha_beta_no;
-            prog.msg = util::sprintf( "No alpha beta cutoff because move value=%.3f < two lower ply value=%s",
-            sargon_export_value(al),
-            float_value.c_str() );
-        }
-        running_example->progress.push_back(prog);
-    }
-    else if( cb == CB_NO_BEST_MOVE )
-    {
-        Progress prog;
-        unsigned int al  = gbl_z80_cpu.A;
-        unsigned int bx  = gbl_z80_cpu.HL;
-        unsigned int val = peekb(bx);
-        bool jmp = (al <= val);   // Note that Sargon integer values have reverse sense to
-                                    //  float centipawns.
-                                    //  So jmp if al <= val means
-                                    //     jmp if float(al) >= float(val)
-        std::string float_value = (val==0 ? "MAX" : util::sprintf("%.3f",sargon_export_value(val)) ); // Show "MAX" instead of "16.0"
-        std::string neg_float_value = (val==0 ? " -MAX" : util::sprintf("%.3f",0.0-sargon_export_value(val)) ); // Show "-MAX" instead of "-16.0"
-        if( jmp )   // jmp matches the Sargon assembly code jump decision. Jump if not best move
-        {
-            prog.pt  = bestmove_no;
-            prog.msg = util::sprintf( "Not best move because negated move value=%.3f >= one lower ply value=%s",
-            sargon_export_value(al),
-            float_value.c_str() );
-            prog.diagram_msg = util::sprintf( "<=%s so discard",
-            neg_float_value.c_str() );
-        }
-        else
-        {
-            prog.pt  = bestmove_yes;
-            prog.msg = util::sprintf( "Best move because negated move value=%.3f < one lower ply value=%s",
-            sargon_export_value(al),
-            float_value.c_str() );
-            prog.diagram_msg = util::sprintf( ">%s so NEW BEST MOVE",
-            neg_float_value.c_str() );
-        }
-        running_example->progress.push_back(prog);
-    }
-    else if( cb == CB_YES_BEST_MOVE )
-    {
-        Progress prog;
-        prog.pt  = bestmove_confirmed;
-        prog.msg = "(Confirming best move)";
-        running_example->progress.push_back(prog);
-    }
-}
-
 //
-//  No longer need a faux Z80, so we can use a more straightforward system of individual
+//  No longer need a faux Z80, so we can use a straightforward system of individual
 //  callback routines
 //
 
@@ -1552,6 +1392,14 @@ void callback_ldar( uint8_t &out_random_number )
     }
 }
 
+// The name of this callback derives from the previous CB_YES_BEST_MOVE.
+// It doesn't make much sense by itself, in our original Sargon X86
+// project the callbacks had longer string identifiers and
+// CB_ALPHA_BETA_CUTOFF, CB_NO_BEST_MOVE, CB_YES_BEST_MOVE made sense
+// with question marks as three closely related decision points;
+// 'Alpha beta cutoff?'
+//   NO-> 'No! is this the best move?'
+//   YES->  'Yes! this is the best move
 void callback_yes_best_move()
 {
     // Important PV callback (1 of 2)
@@ -1576,6 +1424,7 @@ void callback_yes_best_move()
     running_example->progress.push_back(prog);
 }
 
+// End of POINTS routine
 void callback_end_of_points( int8_t &points )
 {
     // Important PV callback (2 of 2)
@@ -1607,6 +1456,7 @@ void callback_end_of_points( int8_t &points )
     points = (int8_t)value;
 }
 
+// After GENMOV() routine
 void callback_after_genmov()
 {
     if( !zargon_tests )
@@ -1628,6 +1478,7 @@ bool callback_suppress_king_moves( uint8_t piece )
 
 // For purposes of minimax tracing experiment, describe and annotate the
 //  best move calculation, part 1
+// (Name 'Alpha beta cutoff?' -> CB_ALPHA_BETA_CUTOFF)
 void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 {
     if( !callback_minimax_mods_active )
@@ -1679,6 +1530,7 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 
 // For purposes of minimax tracing experiment, describe and annotate the
 //  best move calculation, part 2
+// (Name 'No! is this the best move?' -> CB_NO_BEST_MOVE)
 void callback_no_best_move( uint8_t score, const uint8_t *p )
 {
     if( !callback_minimax_mods_active )

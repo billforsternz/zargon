@@ -114,8 +114,14 @@ void bridge_callback_trace( CB cb, const z80_registers *reg )
 
 std::string reg_dump( const z80_registers *reg )
 {
-    std::string s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
+    std::string s;
+    if( !reg )
+        s = "Z80 registers not available";
+    else
+    {
+        s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
                 reg->af & 0xff, reg->bc, reg->de, reg->hl, reg->ix, reg->iy );
+    }
     return s;
 }
 

@@ -13,7 +13,6 @@
 #include "main.h"
 
 // Instantiate globals
-void (*callback_zargon)( CB cb );    // fn ptr
 bool zargon_tests;
 
 // main()
@@ -37,7 +36,6 @@ int main( int argc, const char *argv[] )
     if( argc == 1 )
     {
         zargon_tests = false;
-        callback_zargon = callback_zargon_uci;
         ret = main_uci( argc, argv );
     }
 
@@ -45,7 +43,6 @@ int main( int argc, const char *argv[] )
     else
     {
         zargon_tests = true;
-        callback_zargon = callback_zargon_tests;
         ret = main_tests( argc, argv );
     }
     return ret;
