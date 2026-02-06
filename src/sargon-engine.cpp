@@ -2511,6 +2511,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     //show();
 }
 
+// Original UCI callback
 void callback_zargon_uci( CB cb )
 {
     total_callbacks++;
@@ -2537,5 +2538,48 @@ void callback_zargon_uci( CB cb )
     {
         longjmp( jmp_buf_env, 1 );
     }
+}
+
+//
+// Split out versions called by individual callback routines
+//
+
+// Called by callback_after_genmove()
+void callback_uci_after_genmove()
+{
+    total_callbacks++;
+    genmov_callbacks++;
+    if( peekb(NPLY)==1 && the_repetition_moves.size()>0 )
+        repetition_remove_moves( the_repetition_moves );
+}
+
+// Called by callback_end_of_points()
+void callback_uci_end_of_points()
+{
+    total_callbacks++;
+    end_of_points_callbacks++;
+
+    // sargon_pv_callback_end_of_points() is
+    // now called by callback_end_of_points()
+
+    // Need to call the following regularly, but no need for all three
+    // routines to do it, so now just do it at end of points
+
+    // Abort run_sargon() if new event in queue (and not PLYMAX==1 which is
+    //  effectively instantaneous, finds a baseline move)
+    if( !async_queue.empty() && peekb(PLYMAX)>1 )
+    {
+        longjmp( jmp_buf_env, 1 );
+    }
+}
+
+// Called by callback_yes_best_move()
+void callback_uci_yes_best_move()
+{
+    total_callbacks++;
+    bestmove_callbacks++;
+
+    // sargon_pv_callback_yes_best_move() is
+    // now called by by callback_yes_best_move()
 }
 

@@ -1523,6 +1523,11 @@ void callback_zargon_tests( CB cb )
     }
 }
 
+//
+//  No longer need a faux Z80, so we can use a more straightforward system of individual
+//  callback routines
+//
+
 void callback_ldar( uint8_t &out_random_number )
 {
     if( zargon_tests )
@@ -1549,18 +1554,17 @@ void callback_ldar( uint8_t &out_random_number )
 
 void callback_yes_best_move()
 {
+    // Important PV callback (1 of 2)
+    sargon_pv_callback_yes_best_move();
 
-    // If uci, sargon_pv_callback_yes_best_move() plus UCI stats and abort check
+    // If UCI, UCI stats and abort check
     if( !zargon_tests )
     {
-        callback_zargon_uci( CB_YES_BEST_MOVE );
+        callback_uci_yes_best_move();
         return;
     }
 
-    // If tests, stage 1) sargon_pv_callback_yes_best_move() ...
-    sargon_pv_callback_yes_best_move();
-
-    // Plus stage 2) minimax stuff if it runs
+    // Minimax tests and documentation?
     if( !callback_minimax_mods_active )
         return;
 
@@ -1574,17 +1578,17 @@ void callback_yes_best_move()
 
 void callback_end_of_points( int8_t &points )
 {
-    // If uci, sargon_pv_callback_end_of_points() plus UCI stats and abort check
+    // Important PV callback (2 of 2)
+    sargon_pv_callback_end_of_points();
+
+    // If UCI, UCI stats and abort check
     if( !zargon_tests )
     {
-        callback_zargon_uci( CB_END_OF_POINTS );
+        callback_uci_end_of_points();
         return;
     }
  
-    // If tests, stage 1) sargon_pv_callback_end_of_points() ...
-    sargon_pv_callback_end_of_points();
-
-    // Plus stage 2) minimax stuff if it runs
+    // Minimax tests and documentation?
     if( !callback_minimax_mods_active )
         return;
 
@@ -1606,7 +1610,7 @@ void callback_end_of_points( int8_t &points )
 void callback_after_genmov()
 {
     if( !zargon_tests )
-        callback_zargon_uci( CB_AFTER_GENMOV );
+        callback_uci_after_genmove();
 }
 
 //

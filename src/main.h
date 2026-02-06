@@ -35,4 +35,9 @@ bool callback_suppress_king_moves( uint8_t piece );
 void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p );
 void callback_no_best_move( uint8_t score, const uint8_t *p );
 
+// UCI needs only a small subset of the callbacks
+void callback_uci_after_genmove();
+void callback_uci_end_of_points();
+void callback_uci_yes_best_move();
+
 #endif MAIN_H_INCLUDED
