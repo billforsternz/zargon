@@ -21,6 +21,7 @@
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "sargon-pv.h"
+#include "zargon_functions.h"
 
 // Individual tests
 bool sargon_position_tests( bool quiet, int comprehensive );
@@ -276,7 +277,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             pokeb(PLYMAX, plymax );
             if( regenerate_position )
                 sargon_import_position(cr);
-            sargon(api_CPTRMV);
+            CPTRMV();
             thc::ChessRules cr_after;
             sargon_export_position(cr_after);
             std::string terse = sargon_export_move(BESTM);
@@ -423,7 +424,7 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
                     ok = sargon_play_move(mv);
                 else
                 {
-                    sargon(api_CPTRMV);
+                    CPTRMV();
                     std::string terse = sargon_export_move(BESTM);
                     ok = mv.TerseIn( &cr, terse.c_str() );
                 }

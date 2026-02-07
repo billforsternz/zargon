@@ -246,7 +246,6 @@ bool sargon_play_move( thc::Move &mv )
     unsigned char kolor = peekb(KOLOR); // which side is Sargon?
     pokeb( KOLOR, color==0?0x80:0 );    // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
     std::string terse = mv.TerseOut();
-    z80_registers regs;
     for( int i=0; i<2; i++ )
     {
         uint8_t file = terse[0 + 2*i] - 0x20;    // toupper for ASNTBI()
@@ -258,7 +257,7 @@ bool sargon_play_move( thc::Move &mv )
     }
     if( ok )
     {
-        ok = sargon( api_VALMOV, &regs );
+        bool ok = VALMOV();
         if( ok )
         {
             uint8_t double_flags, from, to;
@@ -632,7 +631,7 @@ static void sargon_import_position_inner( const thc::ChessPosition &cp )
         }
     }
     memcpy( poke(BOARDA), board_position, sizeof(board_position) );
-    sargon(api_ROYALT);
+    ROYALT();
 }
 
 // Run Sargon move calculation
@@ -646,7 +645,7 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
     pokeb( PLYMAX, plymax );
     sargon_import_position( cp, avoid_book );
     pokeb( KOLOR, peekb(COLOR) );  // Set KOLOR (Sargon's colour) to COLOR (side to move)
-    sargon(api_CPTRMV);
+    CPTRMV();
     pv = sargon_pv_get(); // only update if CPTRMV completes (engine uses longjmp to abort if timeout)
 }
 
@@ -709,33 +708,3 @@ std::string algebraic( unsigned int sq )
     return s;
 }
 
-bool sargon( int api_command_code, z80_registers *registers )
-{
-    bool ok = true;
-    if( registers )
-    {
-        gbl_z80_cpu.AF = registers->af;
-        gbl_z80_cpu.BC = registers->bc;
-        gbl_z80_cpu.DE = registers->de;
-        gbl_z80_cpu.HL = registers->hl;
-        gbl_z80_cpu.IX = registers->ix;
-        gbl_z80_cpu.IY = registers->iy;
-    }
-    switch(api_command_code)
-    {
-        case api_INITBD: INITBD(); break;
-        case api_ROYALT: ROYALT(); break;
-        case api_CPTRMV: CPTRMV(); break;
-        case api_VALMOV: ok = VALMOV(); break;
-    }
-    if( registers )
-    {
-        registers->af = gbl_z80_cpu.AF;
-        registers->bc = gbl_z80_cpu.BC;
-        registers->de = gbl_z80_cpu.DE;
-        registers->hl = gbl_z80_cpu.HL;
-        registers->ix = gbl_z80_cpu.IX;
-        registers->iy = gbl_z80_cpu.IY;
-    }
-    return ok;
-}

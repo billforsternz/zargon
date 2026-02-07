@@ -63,10 +63,5 @@ const int LINECT = 0x0340; // (0x0340 in sargon_x86.asm)
 const int MVEMSG = 0x0341; // (0x0341 in sargon_x86.asm)
 const int MLIST  = 0x0400; // (0x0400 in sargon_x86.asm)
 const int MLEND  = 0xee60; // (0xee60 in sargon_x86.asm)
-// API constants
-const int api_INITBD = 1;
-const int api_ROYALT = 2;
-const int api_CPTRMV = 3;
-const int api_VALMOV = 4;
 
 #endif //SARGON_ASM_INTERFACE_H_INCLUDED
