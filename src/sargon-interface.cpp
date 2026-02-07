@@ -256,14 +256,7 @@ bool sargon_play_move( thc::Move &mv )
             pokeb(MVEMSG+i,board_index);
     }
     if( ok )
-    {
-        bool ok = VALMOV();
-        if( ok )
-        {
-            uint8_t double_flags, from, to;
-            EXECMV( double_flags, from, to );
-        }
-    }
+        ok = VALMOV();
 
     // Restore COLOR and KOLOR
     pokeb( KOLOR, kolor );

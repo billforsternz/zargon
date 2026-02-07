@@ -2756,19 +2756,18 @@ void CPTRMV()
     // Save best move
     m.MLPTRJ = m.BESTM;
 
-    // Unnecessary Z80 User interface stuff has now been removed
-    //
-
     // Make the move
     MOVE();
-    uint8_t double_flags, from, to;
-    EXECMV( double_flags, from, to );
 
     // Toggle color
     uint8_t color = m.COLOR & 0x80;
     color = (color==0x80 ? 0 : 0x80);
     uint8_t temp = m.COLOR;
     m.COLOR = (m.COLOR&0x7f) | color;
+
+    // Unnecessary Z80 User interface stuff, including EXECMV (graphics move)
+    // has now been removed
+    //
 }
 
 //
@@ -3002,64 +3001,6 @@ void ROYALT()
 
 //
 //  Omit some more Z80 user interface stuff, functions
-//  DSPBRD, BSETUP, INSPCE, CONVRT, DIVIDE, MLTPLY, BLNKER
+//  DSPBRD, BSETUP, INSPCE, CONVRT, DIVIDE, MLTPLY, BLNKER, EXECMV
 //
 
-//***********************************************************
-// EXECUTE MOVE SUBROUTINE
-//***********************************************************
-// FUNCTION:   --  This routine is the control routine for
-//                 MAKEMV. It checks for double moves and
-//                 sees that they are properly handled. It
-//                 sets flags in the B register for double
-//                 moves:
-//                       En Passant -- Bit 0
-//                       O-O        -- Bit 1
-//                       O-O-O      -- Bit 2
-//
-// CALLED BY:   -- PLYRMV
-//                 CPTRMV
-//
-// CALLS:       -- MAKEMV  (graphics move - omitted)
-//
-// ARGUMENTS:   -- Flags set in the B register as described
-//                 above.
-//***********************************************************
-void EXECMV( uint8_t &out_double_flags, uint8_t &out_from, uint8_t &out_to )
-{
-    out_double_flags=0;
-
-    // Get move "from" and "to" positions
-    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
-    out_from = *(p+MLFRP);
-    out_to   = *(p+MLTOP);
-
-    // Make the move on a graphics board, omitted here
-    // MAKEMV();
-
-    // If double move
-    uint8_t flags = *(p+MLFLG);
-    if( flags & 0x40 )
-    {
-
-        // Point at second move
-        p += 6;
-        out_from = *(p+MLFRP);
-        out_to   = *(p+MLTOP);
-
-        // Check for en-passant
-        if( out_to == out_from )
-            out_double_flags |= 0x01;
-
-        // Check for O-O
-        else if( out_to == 26 || out_to == 96 )
-            out_double_flags |= 0x02;
-
-        // Else must be O-O-O
-        else
-            out_double_flags |= 0x04;
-
-        // Make the 2nd move on a graphics board, omitted here
-        // MAKEMV();
-    }
-}
