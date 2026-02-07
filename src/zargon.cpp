@@ -1287,7 +1287,7 @@ bool ATTACK()
                     break;
 
                 // Pawn attack logic
-                if( (m.P2&0x80) == 0 )  // Black?
+                if( IS_WHITE(m.P2) )
                 {
                     if( dir_count >= 15 )
                         break;   // not the right direction for this colour
@@ -1363,7 +1363,7 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
     uint8_t *p = &m.wact[0];    // Attack list
 
     // Skip to Black attack list if Black
-    if( (m.P2&0x80) != 0 )
+    if( IS_BLACK(m.P2) )
         p += sizeof(m.ATKLST)/2;    // (bact)
 
     // First byte of attack list is count, increment it
@@ -1560,7 +1560,7 @@ void PINFND()
                             int8_t defenders_minus_attackers;
                             int8_t *wact = (int8_t *)&(m.ATKLST);
                             int8_t *bact = wact + sizeof(m.ATKLST)/2;
-                            if( m.P1 & 0x80 )   // Is queen black ?
+                            if( IS_BLACK(m.P1) )   // Is queen black ?
                             {
                                 defenders_minus_attackers = *bact - *wact;
                             }
@@ -1601,7 +1601,7 @@ void PINFND()
 void XCHNG( int8_t &points, int8_t &attacked_piece_val )
 {
     callback_zargon_bridge(CB_XCHNG);
-    bool black = (m.P1 & 0x80) != 0;
+    bool black = IS_BLACK(m.P1);
     bool side_flag = true;
 
     uint8_t *wact = (uint8_t *)&(m.ATKLST);
@@ -1798,8 +1798,8 @@ void POINTS()
             if( (m.P1&0x08) == 0 )  // if piece not moved
             {
                 int8_t bonus = -2;
-                if( (m.P1&0x80) != 0 )  // if Black
-                    bonus = 2;          // 2 point penalty for Black
+                if( IS_BLACK(m.P1) )
+                    bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
             }
         }
@@ -1812,8 +1812,8 @@ void POINTS()
             if( (m.P1&0x10) != 0 )
             {
                 int8_t bonus = +6;
-                if( (m.P1&0x80) != 0 )  // if Black
-                    bonus = -6;         // 6 point bonus for Black
+                if( IS_BLACK(m.P1) )
+                    bonus = -6;     // 6 point bonus for Black
                 m.BRDC += bonus;
             }
 
@@ -1821,8 +1821,8 @@ void POINTS()
             else if( (m.P1&0x08) != 0 )  // if piece has moved
             {
                 int8_t bonus = -2;
-                if( (m.P1&0x80) != 0 )  // if Black
-                    bonus = 2;          // 2 point penalty for Black
+                if( IS_BLACK(m.P1) )
+                    bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
             }
         }
@@ -1835,8 +1835,8 @@ void POINTS()
             if( (m.P1&0x08) != 0 )  // if piece has moved
             {
                 int8_t bonus = -2;
-                if( (m.P1&0x80) != 0 )  // if Black
-                    bonus = 2;          // 2 point penalty for Black
+                if( IS_BLACK(m.P1) )  // if Black
+                    bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
             }
         }
@@ -1868,7 +1868,7 @@ void POINTS()
             attacked_piece_val--;
 
             // If color of piece under attack matches color of side just moved
-            if( (m.COLOR&0x80) == (m.P1&0x80) )
+            if( IS_SAME_COLOR(m.COLOR,m.P1) )
             {
 
                 // If points lost >= previous max points lost
@@ -1910,7 +1910,7 @@ void POINTS()
         }
 
         // Accumulate total material
-        if( (m.P1&0x80) != 0 )
+        if( IS_BLACK(m.P1) )
             attacked_piece_val = 0-attacked_piece_val;    // negate piece value if Black
         m.MTRL += attacked_piece_val;
     }
@@ -1952,7 +1952,7 @@ void POINTS()
     ptsw -= ptsl;
 
     // Color of side just moved
-    if( (m.COLOR &0x80) != 0 )
+    if( IS_BLACK(m.COLOR) )
         ptsw = 0-ptsw;  // negate for black
 
     // Add net material on board
@@ -1978,7 +1978,7 @@ void POINTS()
     points = points*4 + bcp;
 
     // Color of side just moved
-    if( (m.COLOR&0x80) == 0 )
+    if( IS_WHITE(m.COLOR) )
         points = 0-points;  // negate for white
 
     // Rescale score (neutral = 0x80)
