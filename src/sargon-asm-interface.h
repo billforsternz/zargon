@@ -8,12 +8,6 @@
 // First byte of Sargon data
 extern unsigned char *sargon_base_address;
 
-// Call Sargon core (original z80 code, now translated, call selected
-//  functions, optionally can set input registers (and/or inspect
-//  returned registers)
-// Returns bool ok (used for api_VALMOV only)
-bool sargon( int api_command_code, z80_registers *registers=NULL );
-
 // Data offsets for peeking and poking
 const int BOARDA = 0x0134; // (0x0134 in sargon_x86.asm)
 const int ATKLST = 0x01ac; // (0x01ac in sargon_x86.asm)

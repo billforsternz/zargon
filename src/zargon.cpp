@@ -18,8 +18,10 @@
 #include "zargon_functions.h"
 #include "zargon.h"
 #include "z80_cpu.h"
-#include "z80_opcodes.h"  // include last, uses aggressive macros
-                          //  that might upset other .h files
+
+// Have now eliminated Z80 simulation after completing conversion to C/C++
+// #include "z80_opcodes.h" // include last, uses aggressive macros
+                            //  that might upset other .h files
 
 // Emulate Z80 CPU and opcodes
 z80_cpu     gbl_z80_cpu;
@@ -524,30 +526,20 @@ uint8_t MLEND;
 #define MLTOP 3
 #define MLFLG 4
 #define MLVAL 5
-#define DIRECT (addr(direct)-TBASE)
-#define DPOINT (addr(dpoint)-TBASE)
-#define DCOUNT (addr(dcount)-TBASE)
-#define PVALUE (addr(pvalue)-TBASE-1)
-#define PIECES  (addr(pieces)-TBASE)
-#define BOARD (addr(BOARDA)-TBASE)
-#define WACT addr(ATKLST)
-#define BACT (addr(ATKLST)+7)
-#define PLIST (addr(PLISTA)-TBASE-1)
-#define PLISTD (PLIST+10)
-
+// #define DIRECT (addr(direct)-TBASE)
+// #define DPOINT (addr(dpoint)-TBASE)
+// #define DCOUNT (addr(dcount)-TBASE)
+// #define PVALUE (addr(pvalue)-TBASE-1)
+// #define PIECES  (addr(pieces)-TBASE)
+// #define BOARD (addr(BOARDA)-TBASE)
+// #define WACT addr(ATKLST)
+// #define BACT (addr(ATKLST)+7)
+// #define PLIST (addr(PLISTA)-TBASE-1)
+// #define PLISTD (PLIST+10)
 
 //**********************************************************
 // PROGRAM CODE SECTION
 //**********************************************************
-
-//
-// Miscellaneous stubs
-//
-void FCDMAT()  {}
-void TBCPMV()  {}
-void MAKEMV()  {}
-void PRTBLK( const char *name, int len ) {}
-void CARRET()  {}
 
 //**********************************************************
 // BOARD SETUP ROUTINE
@@ -1600,8 +1592,7 @@ void PINFND()
 //
 // ARGUMENTS:  --  None.
 //***********************************************************
-
-void XCHNG()
+void XCHNG( int8_t &points, int8_t &attacked_piece_val )
 {
     callback_zargon_bridge(CB_XCHNG);
     bool black = (m.P1 & 0x80) != 0;
@@ -1613,13 +1604,13 @@ void XCHNG()
     uint8_t count_white = *wact;
     uint8_t count_black = *bact;
 
-    // Init points lost count (XCHNG() returns registers e + d)
-    e = 0;
+    // Init points lost count
+    points = 0;
 
-    // Get attacked piece value (XCHNG() returns registers e + d)
-    d = m.pvalue[m.T3-1];
-    d = d+d;                        // double it
-    uint8_t piece_val = d;          // save
+    // Get attacked piece value
+    uint8_t piece_val = m.pvalue[m.T3-1];
+    piece_val = piece_val+piece_val;
+    attacked_piece_val = piece_val;
 
     // Retrieve first attacker
     uint8_t val = black ? NEXTAD( count_white, wact )
@@ -1675,17 +1666,16 @@ void XCHNG()
         }
 
         // Get value of attacked piece
-        int8_t points = (int8_t)piece_val;
+        int8_t temp = (int8_t)piece_val;
 
         //  Attacker or defender ?
         if( side_flag )
-            points = 0-points;  // negate value for attacker
+            temp = 0-temp;  // negate value for attacker
 
         // Accumulate total points lost
-        points += (int8_t)e;
+        points += temp;
 
         // Save total
-        e = (uint8_t)points;
         if( val == 0 )
             return; // return at end of list
 
@@ -1860,16 +1850,16 @@ void POINTS()
             continue;
 
         // Evaluate exchange, if any
-        XCHNG();
-        int8_t points    = e;  //  XCHNG returns registers e, d
-        int8_t piece_val = d;  //  e=points, d=attacked piece val (I think, later - formalise this)
+        int8_t points;
+        int8_t attacked_piece_val;
+        XCHNG( points, attacked_piece_val );
 
         // If piece is nominally lost
         if( points != 0 )
         {
 
             //  Deduct half a Pawn value
-            piece_val--;
+            attacked_piece_val--;
 
             // If color of piece under attack matches color of side just moved
             if( (m.COLOR&0x80) == (m.P1&0x80) )
@@ -1915,8 +1905,8 @@ void POINTS()
 
         // Accumulate total material
         if( (m.P1&0x80) != 0 )
-            piece_val = 0-piece_val;    // negate piece value if Black
-        m.MTRL += piece_val;
+            attacked_piece_val = 0-attacked_piece_val;    // negate piece value if Black
+        m.MTRL += attacked_piece_val;
     }
 
     // If moving piece lost
@@ -2579,10 +2569,9 @@ void FNDMOV()
 
         // Compare to score 1 ply above
         p++;
-        CY = (*p > score);
-        Z  = (*p == score);
+        bool score_greater = (*p < score);
         callback_no_best_move( score, p );
-        if( CY || Z )
+        if( !score_greater )
             continue;   // continue unless score is greater
         *p = score;     // save as new score 1 ply above
         callback_yes_best_move();
@@ -2946,7 +2935,7 @@ bool VALMOV()
     if( !ok )
     {
 
-        // Not legal Undo move on board array
+        // Not legal so Undo move on board array
         UNMOVE();
 
         //  Restore last move pointer
@@ -3031,7 +3020,7 @@ void ROYALT()
 // CALLED BY:   -- PLYRMV
 //                 CPTRMV
 //
-// CALLS:       -- MAKEMV
+// CALLS:       -- MAKEMV  (graphics move - omitted)
 //
 // ARGUMENTS:   -- Flags set in the B register as described
 //                 above.
@@ -3045,8 +3034,8 @@ void EXECMV( uint8_t &out_double_flags, uint8_t &out_from, uint8_t &out_to )
     out_from = *(p+MLFRP);
     out_to   = *(p+MLTOP);
 
-    // Make the move
-    MAKEMV();
+    // Make the move on a graphics board, omitted here
+    // MAKEMV();
 
     // If double move
     uint8_t flags = *(p+MLFLG);
@@ -3070,7 +3059,7 @@ void EXECMV( uint8_t &out_double_flags, uint8_t &out_from, uint8_t &out_to )
         else
             out_double_flags |= 0x04;
 
-        //  Make 2nd move on board
-        MAKEMV();
+        // Make the 2nd move on a graphics board, omitted here
+        // MAKEMV();
     }
 }
