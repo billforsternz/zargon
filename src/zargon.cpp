@@ -44,6 +44,12 @@ zargon_data_defs_check_and_regen regen;
 inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
 inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
 
+inline bool IS_WHITE( uint8_t piece ) { return (piece&0x80) == 0;  }
+inline bool IS_BLACK( uint8_t piece ) { return (piece&0x80) != 0;  }
+inline void TOGGLE  ( uint8_t &color) { color = (color==0?0x80:0); }
+inline bool IS_SAME_COLOR( uint8_t piece1, uint8_t piece2 )      { return (piece1&0x80) == (piece2&0x80); }
+inline bool IS_DIFFERENT_COLOR( uint8_t piece1, uint8_t piece2 ) { return ((piece1&0x80) ^ (piece2&0x80)) != 0; }
+
 //***********************************************************
 // EQUATES
 //***********************************************************
@@ -632,7 +638,7 @@ inline uint8_t PATH( int8_t dir )
     // Else we have run into non zero piece P2
     //  return 1 if opposite color to origin piece P1
     //  return 2 if same color as origin piece P1
-    return ((m.P2 ^ m.P1)&0x80) ? 1 : 2;
+    return IS_SAME_COLOR(m.P2,m.P1) ? 2 : 1;
 }
 
 //***********************************************************
@@ -841,7 +847,7 @@ void ENPSNT()
     uint8_t idx = m.M1;
 
     // Add 10 for black
-    if( m.P1 & 0x80 )
+    if( IS_BLACK(m.P1) )
         idx += 10;
 
     // Check on en-passant capture rank
@@ -1113,7 +1119,7 @@ void GENMOV()
             m.P1 = piece;
 
             // If piece color is side to move, gen moves
-            if( (m.COLOR&0x80) == (piece&0x80) )
+            if( IS_SAME_COLOR(m.COLOR,piece) )
             {
 
                 // MPIECE() now uses piece including colour is m.P1
