@@ -2767,88 +2767,20 @@ void CPTRMV()
     // Save best move
     m.MLPTRJ = m.BESTM;
 
+    // Unnecessary Z80 User interface stuff has now been removed
     //
-    //  Most of the rest of this function can be omitted for our
-    //  purposes, it's Z80 User interface code and it doesn't
-    //  actually produce any output in this Sargon port.
-    //
-    //  (Should at least keep the color toggle though)
-    //
-
-    // Check for mate against computer
-    uint8_t *p = (uint8_t *)&m.SCORE[0];
-    if( *(p+1) == 0 )
-    {
-        c = 1;      // computer mate flag
-        FCDMAT();   // full checkmate ?
-    }
 
     // Make move on board array
     MOVE();
 
     // Return info about it
     EXECMV();
-    uint8_t double_move_flags = b;
-    uint8_t from = c;
-    uint8_t to   = e;
-
-    // Print move
-    if( double_move_flags == 0 )
-    {
-        uint16_t asc;
-        asc = BITASN(to);      // convert to Ascii
-        m.MVEMSG[3] = LO(asc); // put in move message
-        m.MVEMSG[4] = HI(asc); // put in move message
-        asc =   BITASN(from);  // convert to Ascii
-        m.MVEMSG[0] = LO(asc); // put in move message
-        m.MVEMSG[1] = HI(asc); // put in move message
-        //PRTBLK  (MVEMSG,5);  // output text of move
-    }
-    else
-    {
-        // King side castle ?
-        if(double_move_flags & 2)
-            ; //PRTBLK  (addr(O_O),5);      // output "O-O"
-
-        // Queen side castle ?
-        else if(double_move_flags & 4)
-            ; //PRTBLK  (addr(O_O_O),5);    // output "O-O-O"
-
-        // Else en passant
-        else
-            ; //PRTBLK  (P_PEP,5);          // output "PxPep"
-    }
 
     // Toggle color
     uint8_t color = m.COLOR & 0x80;
     color = (color==0x80 ? 0 : 0x80);
     uint8_t temp = m.COLOR;
     m.COLOR = (m.COLOR&0x7f) | color;
-
-    // Should computer call check ?
-    bool inchk = INCHK(m.COLOR);
-    m.COLOR = temp; // restore
-    if( inchk )
-    {
-
-        // New line
-        CARRET();
-
-        // Check for player mated
-        p = (uint8_t *)&m.SCORE[0];
-        if( *(p+1) != 0xff )    // forced mate ?
-            TBCPMV();           // no - tab to computer column
-        //PRTBLK  (CKMSG,5);    // output "check"
-        m.LINECT++;             // increment screen line count
-    }
-
-    // Check again for mates
-    p = (uint8_t *)&m.SCORE[0];
-    if( *(p+1) == 0xff )        // player mated ?
-    {
-        c = 0;                  // set player mate flag
-        FCDMAT();               // full checkmate ?
-    }
 }
 
 //
@@ -2924,7 +2856,6 @@ uint16_t BITASN( uint8_t idx )
 //***********************************************************
 
 // TODO, give this proper C parameters and return code
-
 void ASNTBI()
 {
 
@@ -3093,45 +3024,8 @@ void ROYALT()
 
 //
 //  Omit some more Z80 user interface stuff, functions
-//  DSPBRD, BSETUP, INSPCE, CONVRT
+//  DSPBRD, BSETUP, INSPCE, CONVRT, DIVIDE, MLTPLY, BLNKER
 //
-
-//***********************************************************
-// POSITIVE INTEGER DIVISION
-//   inputs hi=A lo=D, divide by E
-//   output D, remainder in A
-//***********************************************************
-
-void DIVIDE()
-{
-    uint16_t x = (uint16_t)a;
-    x = x<<8;
-    x += d;
-    uint16_t y = (uint16_t)e;
-    d = (uint8_t) (x/y);
-    a = (uint8_t) (x%y);
-}
-
-//***********************************************************
-// POSITIVE INTEGER MULTIPLICATION
-//   inputs D, E
-//   output hi=A lo=D
-//***********************************************************
-
-void MLTPLY()
-{
-    uint16_t x = (uint16_t)d;
-    uint16_t y = (uint16_t)e;
-    uint16_t xy = x*y;
-    a = (uint8_t) (xy>>8);
-    d = (uint8_t) (xy&0xff);
-}
-
-//
-//  Omit some more Z80 user interface stuff, function
-//  BLNKER
-//
-
 
 //***********************************************************
 // EXECUTE MOVE SUBROUTINE
@@ -3153,7 +3047,6 @@ void MLTPLY()
 // ARGUMENTS:   -- Flags set in the B register as described
 //                 above.
 //***********************************************************
-
 void EXECMV()
 {
     // Later - make this a proper return value (also from and to)

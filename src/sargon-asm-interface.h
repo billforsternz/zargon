@@ -69,6 +69,5 @@ const int api_ROYALT = 2;
 const int api_CPTRMV = 3;
 const int api_VALMOV = 4;
 const int api_ASNTBI = 5;
-const int api_EXECMV = 6;
 
 #endif //SARGON_ASM_INTERFACE_H_INCLUDED

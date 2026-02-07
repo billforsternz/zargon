@@ -16,6 +16,7 @@
 #include "sargon-interface.h"
 #include "sargon-asm-interface.h"
 #include "zargon.h"
+#include "zargon_functions.h"
 
 // First byte of Sargon data
 unsigned char *sargon_base_address = (unsigned char *)zargon_get_ptr_emulated_memory();
@@ -264,7 +265,7 @@ bool sargon_play_move( thc::Move &mv )
     {
         ok = sargon( api_VALMOV, &regs );
         if( ok )
-            sargon( api_EXECMV, &regs );
+            EXECMV();
     }
 
     // Restore COLOR and KOLOR
@@ -713,12 +714,6 @@ std::string algebraic( unsigned int sq )
 bool sargon( int api_command_code, z80_registers *registers )
 {
     bool ok = true;
-    extern void INITBD();
-    extern void ROYALT();
-    extern void CPTRMV();
-    extern bool VALMOV();
-    extern void ASNTBI();
-    extern void EXECMV();
     if( registers )
     {
         gbl_z80_cpu.AF = registers->af;
@@ -735,7 +730,6 @@ bool sargon( int api_command_code, z80_registers *registers )
         case api_CPTRMV: CPTRMV(); break;
         case api_VALMOV: ok = VALMOV(); break;
         case api_ASNTBI: ASNTBI(); break;
-        case api_EXECMV: EXECMV(); break;
     }
     if( registers )
     {

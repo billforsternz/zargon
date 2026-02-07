@@ -40,8 +40,6 @@ uint16_t BITASN( uint8_t idx );
 void ASNTBI();
 bool VALMOV();
 void ROYALT();
-void DIVIDE();
-void MLTPLY();
 void EXECMV();
 
 // PATH() is the most important function from a performance perspective
