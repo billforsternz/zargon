@@ -2854,31 +2854,21 @@ uint16_t BITASN( uint8_t idx )
 //                 A if invalid.
 //***********************************************************
 
-// TODO, give this proper C parameters and return code
-void ASNTBI()
+uint8_t ASNTBI( uint8_t file, uint8_t rank )
 {
 
-    // Input from registers h,l
-    uint8_t file = h;       // 'A' - 'H'
-    uint8_t rank = l;       // '1' - '8'
-
-    // If not okay, return register b=1
+    // If not okay, return 0
     bool ok = ('1'<=rank && rank<='8' && 'A'<=file && file<='H' );
     if( !ok )
-    {
-        a = 1;
-        b = 1;
-        return;
-    }
+        return 0;
 
-    // Otherwise calculate offset from 21-98
+    // Otherwise return offset from 21-98
     rank -= '0';            // 1 - 8
     rank++;                 // 2 - 9
     file -= 'A';            // 0 - 7
     file++;                 // 1 - 8
     uint8_t offset = rank*10 + file;    // 21-98
-    a = offset;
-    b = 0;  //ok
+    return offset;
 }
 
 //***********************************************************

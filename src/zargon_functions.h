@@ -37,7 +37,7 @@ void ASCEND();
 void BOOK();
 void CPTRMV();
 uint16_t BITASN( uint8_t idx );
-void ASNTBI();
+uint8_t ASNTBI( uint8_t file, uint8_t rank );
 bool VALMOV();
 void ROYALT();
 void EXECMV( uint8_t &out_double_flags, uint8_t &out_from, uint8_t &out_to );

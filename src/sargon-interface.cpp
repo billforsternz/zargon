@@ -249,17 +249,12 @@ bool sargon_play_move( thc::Move &mv )
     z80_registers regs;
     for( int i=0; i<2; i++ )
     {
-        memset( &regs, 0, sizeof(regs) );
-        unsigned int file = terse[0 + 2*i] - 0x20;    // toupper for ASNTBI()
-        unsigned int rank = terse[1 + 2*i];
-        regs.hl = (file<<8) + rank;     // eg set hl registers = 0x4838 = "H8"
-        sargon( api_ASNTBI, &regs );    // ASNTBI = ASCII square name to board index
-        ok = (((regs.bc>>8) & 0xff) == 0);  // ok if reg B eq 0
+        uint8_t file = terse[0 + 2*i] - 0x20;    // toupper for ASNTBI()
+        uint8_t rank = terse[1 + 2*i];
+        uint8_t board_index = ASNTBI( file, rank );    // ASNTBI = ASCII square name to board index
+        ok = (board_index>0);
         if( ok )
-        {
-            unsigned int board_index = (regs.af&0xff);  // A register is low part of regs.af
             pokeb(MVEMSG+i,board_index);
-        }
     }
     if( ok )
     {
@@ -732,7 +727,6 @@ bool sargon( int api_command_code, z80_registers *registers )
         case api_ROYALT: ROYALT(); break;
         case api_CPTRMV: CPTRMV(); break;
         case api_VALMOV: ok = VALMOV(); break;
-        case api_ASNTBI: ASNTBI(); break;
     }
     if( registers )
     {
