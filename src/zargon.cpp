@@ -2080,7 +2080,7 @@ void MOVE()
         else if( (piece&7) == QUEEN )
         {
             uint8_t *q = &m.POSQ[0];    // addr of saved queen position
-            if( (piece & 0x80) != 0 )   // is queen black ?
+            if( IS_BLACK(piece) )       // is queen black ?
                 q++;                    // increment to black queen pos
             *q = m.M2;                  // set new queen position
         }
@@ -2091,7 +2091,7 @@ void MOVE()
             uint8_t *q = &m.POSK[0];    // addr of saved king position
             if( (captured_piece_flags & 0x40) != 0 )  // castling ?
                 piece |= 0x10;
-            if( (piece & 0x80) != 0 )   // is king black ?
+            if( IS_BLACK(piece ) )      // is king black ?
                 q++;                    // increment to black king pos
             *q = m.M2;                  // set new king position
         }
@@ -2120,7 +2120,7 @@ void MOVE()
 
                 // Clear queen royalty position after capture
                 uint8_t *q = &m.POSQ[0];
-                if( (captured_piece_flags & 0x80) != 0 )  // is queen black ?
+                if( IS_BLACK(captured_piece_flags) )  // is queen black ?
                     q++; // increment to black queen pos
                 *q = 0;
             }
@@ -2180,7 +2180,7 @@ void UNMOVE()
         else if( (piece&7) == QUEEN )
         {
             uint8_t *q = &m.POSQ[0];    // addr of saved queen position
-            if( (piece & 0x80) != 0 )   // is queen black ?
+            if( IS_BLACK(piece) )       // is queen black ?
                 q++;                    // increment to black queen pos
             *q = m.M1;                  // set previous queen position
         }
@@ -2191,7 +2191,7 @@ void UNMOVE()
             uint8_t *q = &m.POSK[0];    // addr of saved king position
             if( (captured_piece_flags & 0x40) != 0 )  // castling ?
                 piece &= 0xef;  // clear castled flag
-            if( (piece & 0x80) != 0 )   // is king black ?
+            if( IS_BLACK(piece) )       // is king black ?
                 q++;                    // increment to black king pos
             *q = m.M1;                  // set previous king position
         }
@@ -2223,7 +2223,7 @@ void UNMOVE()
 
                 // Restore queen royalty position after capture
                 uint8_t *q = &m.POSQ[0];
-                if( (captured_piece_flags & 0x80) != 0 )  // is queen black ?
+                if( IS_BLACK(captured_piece_flags) )  // is queen black ?
                     q++; // increment to black queen pos
                 *q = m.M2;
             }
@@ -2488,13 +2488,10 @@ void FNDMOV()
             {
 
                 // Toggle color
-                uint8_t hi = m.COLOR & 0x80;
-                hi = (hi==0x80 ? 0 : 0x80);
-                m.COLOR = (m.COLOR&0x7f) | hi;
+                TOGGLE(m.COLOR);
 
                 // If new colour is white increment move number
-                bool white = (hi==0x00 );
-                if( white )
+                if( IS_WHITE(m.COLOR) )
                     m.MOVENO++;
 
                 //  Load score table pointer
@@ -2600,7 +2597,7 @@ void FNDMOV()
         m.PLYMAX -= 2;
 
         // Calculate checkmate move number and return
-        if( (m.KOLOR&0x80 ) != 0 )  // if computer's color is black decrement
+        if( IS_BLACK(m.KOLOR) )  // if computer's color is black decrement
             m.PMATE--;
         return;
     }
@@ -2624,13 +2621,10 @@ void ASCEND()
     callback_zargon_bridge(CB_ASCEND);
 
     //  Toggle color
-    uint8_t hi = m.COLOR & 0x80;
-    hi = (hi==0x80 ? 0 : 0x80);
-    m.COLOR = (m.COLOR&0x7f) | hi;
+    TOGGLE(m.COLOR);
 
     // If new colour is Black, decrement move number
-    bool white = (hi==0x00 );
-    if( !white )
+    if( IS_BLACK(m.COLOR) )
         m.MOVENO--;
 
     // Decrement score table index
@@ -2766,10 +2760,7 @@ void CPTRMV()
     MOVE();
 
     // Toggle color
-    uint8_t color = m.COLOR & 0x80;
-    color = (color==0x80 ? 0 : 0x80);
-    uint8_t temp = m.COLOR;
-    m.COLOR = (m.COLOR&0x7f) | color;
+    TOGGLE(m.COLOR);
 
     // Unnecessary Z80 User interface stuff, including EXECMV (graphics move)
     // has now been removed
@@ -2889,10 +2880,8 @@ bool VALMOV()
     //  Save last move pointer
     uint16_t mlptrj_save = m.MLPTRJ;
 
-    // Toggle computer's color
-    uint8_t temp = m.KOLOR & 0x80;
-    temp = (temp==0x80 ? 0 : 0x80);
-    m.COLOR = (m.KOLOR&0x7f) | temp;    // store as current COLOR
+    // Set user color to opposite of computer's color
+    m.COLOR = IS_WHITE(m.KOLOR) ? BLACK : WHITE;
 
     // Load move list index
     uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
@@ -2982,7 +2971,7 @@ void ROYALT()
         uint8_t piece = m.BOARDA[idx];
 
         // Is it a black piece ?
-        if( (piece&0x80) != 0 )
+        if( IS_BLACK(piece) )
             p++;    // yes, increment to address of Black king position
 
         // Delete flags, leave piece
