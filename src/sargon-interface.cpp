@@ -265,7 +265,10 @@ bool sargon_play_move( thc::Move &mv )
     {
         ok = sargon( api_VALMOV, &regs );
         if( ok )
-            EXECMV();
+        {
+            uint8_t double_flags, from, to;
+            EXECMV( double_flags, from, to );
+        }
     }
 
     // Restore COLOR and KOLOR

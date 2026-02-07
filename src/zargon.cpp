@@ -2770,11 +2770,10 @@ void CPTRMV()
     // Unnecessary Z80 User interface stuff has now been removed
     //
 
-    // Make move on board array
+    // Make the move
     MOVE();
-
-    // Return info about it
-    EXECMV();
+    uint8_t double_flags, from, to;
+    EXECMV( double_flags, from, to );
 
     // Toggle color
     uint8_t color = m.COLOR & 0x80;
@@ -3047,15 +3046,14 @@ void ROYALT()
 // ARGUMENTS:   -- Flags set in the B register as described
 //                 above.
 //***********************************************************
-void EXECMV()
+void EXECMV( uint8_t &out_double_flags, uint8_t &out_from, uint8_t &out_to )
 {
-    // Later - make this a proper return value (also from and to)
-    uint8_t ret_double_flags=0;
+    out_double_flags=0;
 
     // Get move "from" and "to" positions
     uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
-    uint8_t from = *(p+MLFRP);
-    uint8_t to   = *(p+MLTOP);
+    out_from = *(p+MLFRP);
+    out_to   = *(p+MLTOP);
 
     // Make the move
     MAKEMV();
@@ -3067,29 +3065,22 @@ void EXECMV()
 
         // Point at second move
         p += 6;
-        from = *(p+MLFRP);
-        to   = *(p+MLTOP);
+        out_from = *(p+MLFRP);
+        out_to   = *(p+MLTOP);
 
         // Check for en-passant
-        if( to == from )
-            ret_double_flags |= 0x01;
+        if( out_to == out_from )
+            out_double_flags |= 0x01;
 
         // Check for O-O
-        else if( to == 26 || to == 96 )
-            ret_double_flags |= 0x02;
+        else if( out_to == 26 || out_to == 96 )
+            out_double_flags |= 0x02;
 
         // Else must be O-O-O
         else
-            ret_double_flags |= 0x04;
+            out_double_flags |= 0x04;
 
         //  Make 2nd move on board
         MAKEMV();
     }
-
-    // Return
-    b = ret_double_flags;
-
-    // Temporary
-    c = from;
-    e = to;
 }
