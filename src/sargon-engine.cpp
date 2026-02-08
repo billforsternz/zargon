@@ -33,6 +33,11 @@
 #include "sargon-interface.h"
 #include "sargon-asm-interface.h"
 #include "sargon-pv.h"
+#include "zargon.h"
+#include "zargon_functions.h"
+
+// Sargon data structure
+static emulated_memory &m = gbl_emulated_memory;
 
 // Measure elapsed time, nodes    
 static unsigned long base_time;
@@ -104,7 +109,7 @@ template <class T>
 class SafeQueue
 {
 public:
-    SafeQueue() : q(), m(), c() {}
+    SafeQueue() : q(), mx(), c() {}
     ~SafeQueue() {}
 
     // Is queue empty ?
@@ -113,7 +118,7 @@ public:
     // Add an element to the queue.
     void enqueue(T t)
     {
-        std::lock_guard<std::mutex> lock(m);
+        std::lock_guard<std::mutex> lock(mx);
         q.push(t);
         c.notify_one();
     }
@@ -122,7 +127,7 @@ public:
     //  if the queue is empty, wait until an element is available
     T dequeue(void)
     {
-        std::unique_lock<std::mutex> lock(m);
+        std::unique_lock<std::mutex> lock(mx);
         while(q.empty())
         {
             // release lock as long as the wait and reaquire it afterwards
@@ -135,7 +140,7 @@ public:
 
 private:
     std::queue<T> q;
-    mutable std::mutex m;
+    mutable std::mutex mx;
     std::condition_variable c;
 };
 
@@ -1406,12 +1411,12 @@ static void log_state_changes( const std::string &msg, PlayingState old_state, P
 static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth )
 {
     // Timers
-    const unsigned long LO =100;
-    const unsigned long MED=30;
-    const unsigned long HI =16;
-    unsigned long ms_lo  = ms_time / LO;
+    const unsigned long LOW  = 100;
+    const unsigned long MED  = 30;
+    const unsigned long HIGH = 16;
+    unsigned long ms_lo  = ms_time / LOW;
     unsigned long ms_med = ms_time / MED;
-    unsigned long ms_hi  = ms_time / HI;
+    unsigned long ms_hi  = ms_time / HIGH;
     bool timer_running = false;
 
     // States
@@ -1967,12 +1972,12 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     // Otherwise set a cutoff timer
     else
     {
-        const unsigned long LO =100;
+        const unsigned long LOW =100;
         const unsigned long MED=30;
-        const unsigned long HI =16;
-        ms_lo  = ms_time / LO;
+        const unsigned long HIGH =16;
+        ms_lo  = ms_time / LOW;
         unsigned long ms_med = ms_time / MED;
-        unsigned long ms_hi  = ms_time / HI;
+        unsigned long ms_hi  = ms_time / HIGH;
 
 
         // Use the cut off timer, with a medium cutoff if we haven't yet
@@ -2304,7 +2309,7 @@ static bool repetition_test()
     unsigned int plyix = peekw(PLYIX);
     unsigned int mllst = peekw(MLLST);
     unsigned int mlnxt = peekw(MLNXT);
-    const unsigned char *q = peek(0x400);
+    const uint8_t *q = (const uint8_t *)&m.MLIST[0];
     unsigned char buf[18];
     memcpy(buf,q,18);
 

@@ -10,6 +10,71 @@
 struct emulated_memory;
 emulated_memory *zargon_get_ptr_emulated_memory();
 
+// Now export emulated memory as a global, transitional I think
+extern emulated_memory gbl_emulated_memory;
+
+// Transitional (maybe) pointer manipulation macros
+//  Note: a "bin" for our purposes is the binary representation of
+//        a Sargon pointer, it is a uint16_t offset from the start
+//        of Sargon's memory
+#define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
+#define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
+#define HI(bin)             ((bin>>8)&0xff)
+#define LO(bin)             (bin&0xff)
+inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
+inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
+
+// Flag definitions
+// These definitions apply to pieces on the board array and to move flags
+// Always bit 7 is color (1=black) and bits 2-0 indicate piece type
+// Other bits
+//  6 - move flags only - double move flag (set for castling and en passant)
+//  5 - move flags only - pawn promotion flag
+//  4 - board array     - has castled flag for kings only
+//      move flags      - first move flag for the piece on the move
+//  3   board array     - piece has moved flag
+//      move flags      - captured piece (in bits 2-0) has moved flag
+inline bool IS_WHITE( uint8_t piece ) { return (piece&0x80) == 0;  }
+inline bool IS_BLACK( uint8_t piece ) { return (piece&0x80) != 0;  }
+inline void TOGGLE  ( uint8_t &color) { color = (color==0?0x80:0); }
+inline bool IS_SAME_COLOR( uint8_t piece1, uint8_t piece2 )      { return (piece1&0x80) == (piece2&0x80); }
+inline bool IS_DIFFERENT_COLOR( uint8_t piece1, uint8_t piece2 ) { return ((piece1&0x80) ^ (piece2&0x80)) != 0; }
+inline bool HAS_MOVED( uint8_t piece ) { return (piece&0x08) != 0;  }
+inline bool HAS_NOT_MOVED( uint8_t piece ) { return (piece&0x08) == 0;  }
+inline void SET_MOVED( uint8_t &piece ) { piece|=0x08;  }
+inline void CLR_MOVED( uint8_t &piece ) { piece&=0xf7;  }
+inline bool IS_DOUBLE_MOVE( uint8_t piece ) { return (piece&0x40) != 0;  }
+inline void SET_DOUBLE_MOVE( uint8_t &piece ) { piece|=0x40;  }
+inline bool IS_PROMOTION( uint8_t piece ) { return (piece&0x20) != 0;  }
+inline void SET_PROMOTION( uint8_t &piece ) { piece|=0x20;  }
+inline bool IS_FIRST_MOVE( uint8_t piece ) { return (piece&0x10) != 0;  }
+inline void SET_FIRST_MOVE( uint8_t &piece ) { piece|=0x10;  }
+inline bool IS_CASTLED( uint8_t piece ) { return (piece&0x10) != 0;  }
+inline void SET_CASTLED( uint8_t &piece ) { piece|=0x10;  }
+inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
+
+// Sargon squares
+#define SQ_a1 21
+#define SQ_b1 22
+#define SQ_d1 24
+#define SQ_e1 25
+#define SQ_h1 28
+#define SQ_a2 31
+#define SQ_b2 32
+#define SQ_c2 33
+#define SQ_e2 35
+#define SQ_a3 41
+#define SQ_a4 51
+#define SQ_a5 61
+#define SQ_h5 68
+#define SQ_a6 71
+#define SQ_a7 81
+#define SQ_a8 91
+#define SQ_b8 92
+#define SQ_d8 94
+#define SQ_e8 95
+#define SQ_h8 98
+
 // Initially at least we were emulating 64K of Z80 memory
 //  at some point we will probably rename this to simply
 //  zargon_data or similar

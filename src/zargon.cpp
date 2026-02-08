@@ -27,73 +27,12 @@
 z80_cpu     gbl_z80_cpu;
 
 // Up to 64K of emulated memory
-static emulated_memory m;
+emulated_memory gbl_emulated_memory;        // Now made available as simple global
+static emulated_memory &m = gbl_emulated_memory;
 emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
-
-// Transitional (maybe) pointer manipulation macros
-//  Note: a "bin" for our purposes is the binary representation of
-//        a Sargon pointer, it is a uint16_t offset from the start
-//        of Sargon's memory
-#define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
-#define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
-#define HI(bin)             ((bin>>8)&0xff)
-#define LO(bin)             (bin&0xff)
-inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
-inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
-
-// Flag definitions
-// These definitions apply to pieces on the board array and to move flags
-// Always bit 7 is color (1=black) and bits 2-0 indicate piece type
-// Other bits
-//  6 - move flags only - double move flag (set for castling and en passant)
-//  5 - move flags only - pawn promotion flag
-//  4 - board array     - has castled flag for kings only
-//      move flags      - first move flag for the piece on the move
-//  3   board array     - piece has moved flag
-//      move flags      - captured piece (in bits 2-0) has moved flag
-inline bool IS_WHITE( uint8_t piece ) { return (piece&0x80) == 0;  }
-inline bool IS_BLACK( uint8_t piece ) { return (piece&0x80) != 0;  }
-inline void TOGGLE  ( uint8_t &color) { color = (color==0?0x80:0); }
-inline bool IS_SAME_COLOR( uint8_t piece1, uint8_t piece2 )      { return (piece1&0x80) == (piece2&0x80); }
-inline bool IS_DIFFERENT_COLOR( uint8_t piece1, uint8_t piece2 ) { return ((piece1&0x80) ^ (piece2&0x80)) != 0; }
-inline bool HAS_MOVED( uint8_t piece ) { return (piece&0x08) != 0;  }
-inline bool HAS_NOT_MOVED( uint8_t piece ) { return (piece&0x08) == 0;  }
-inline void SET_MOVED( uint8_t &piece ) { piece|=0x08;  }
-inline void CLR_MOVED( uint8_t &piece ) { piece&=0xf7;  }
-inline bool IS_DOUBLE_MOVE( uint8_t piece ) { return (piece&0x40) != 0;  }
-inline void SET_DOUBLE_MOVE( uint8_t &piece ) { piece|=0x40;  }
-inline bool IS_PROMOTION( uint8_t piece ) { return (piece&0x20) != 0;  }
-inline void SET_PROMOTION( uint8_t &piece ) { piece|=0x20;  }
-inline bool IS_FIRST_MOVE( uint8_t piece ) { return (piece&0x10) != 0;  }
-inline void SET_FIRST_MOVE( uint8_t &piece ) { piece|=0x10;  }
-inline bool IS_CASTLED( uint8_t piece ) { return (piece&0x10) != 0;  }
-inline void SET_CASTLED( uint8_t &piece ) { piece|=0x10;  }
-inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
-
-// Sargon squares
-#define SQ_a1 21
-#define SQ_b1 22
-#define SQ_d1 24
-#define SQ_e1 25
-#define SQ_h1 28
-#define SQ_a2 31
-#define SQ_b2 32
-#define SQ_c2 33
-#define SQ_e2 35
-#define SQ_a3 41
-#define SQ_a4 51
-#define SQ_a5 61
-#define SQ_h5 68
-#define SQ_a6 71
-#define SQ_a7 81
-#define SQ_a8 91
-#define SQ_b8 92
-#define SQ_d8 94
-#define SQ_e8 95
-#define SQ_h8 98
 
 //***********************************************************
 // EQUATES
@@ -1792,43 +1731,6 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 // ARGUMENTS:  --  None
 //***********************************************************
 
-struct Scatter
-{
-    const char *name;
-    uint32_t counts[256];
-};
-
-static Scatter array[10];
-
-void scatter( int idx, const char *name, uint8_t val )
-{
-    int nbr = sizeof(array)/sizeof(array[0]);
-    static uint32_t times_called;
-    if( ++times_called == 10000000 )
-    {
-        for( int i=0; i<nbr; i++ )
-        {
-            Scatter *p = &array[i];
-            if( !p->name )
-                break;
-            printf( "%s%s\n", i==0?"":"\n", p->name );
-            for( int j=0; j<256; j++ )
-            {
-                uint8_t u8 = (uint8_t) j;
-                int8_t  i8 =  (int8_t) u8;
-                printf( "%5d | %8lu | %5d\n", i8, p->counts[u8], u8 );
-            }
-        }
-        exit(0);
-    }
-    if( idx < nbr )
-    {
-        Scatter *p = &array[idx];
-        p->name = name;
-        (p->counts[val])++;
-    }
-}
-
 void POINTS()
 {
     callback_zargon_bridge(CB_POINTS);
@@ -2009,9 +1911,9 @@ void POINTS()
     // Get max points won
     int8_t ptsw = m.PTSW1;
 
-    // Experiment: Both PTSW1 and PTSW2 are small integers in the 0-20 range
-    scatter( 0, "m.PTSW1", m.PTSW1 );
-    scatter( 1, "m.PTSW2", m.PTSW2 );
+    // Experiment: Both PTSW1 and PTSW2 are small integers in the 0-20 (ish) range
+    //  See commit bd4b1b3db9ecf5c529325ceb49be2df7ba09414e for the scatter()
+    //  source code we used to probe that (and other "Experiment:" results below)
 
     // Adjust max points won if both 1st and 2nd max points won are non-zero
     //  Value is;
@@ -2027,7 +1929,6 @@ void POINTS()
             ptsw--;
 
             // Experiment: ptsw is also a small integer in the 0-20 range
-            scatter( 2, "ptsw--", ptsw );
             ptsw = ptsw/2;
         }
     }
@@ -2065,17 +1966,13 @@ void POINTS()
     if( IS_WHITE(m.COLOR) )
         points = 0-points;  // negate for white
 
-    // Experiment: points here is a balanced signed value, so 0 = even +126=very good, -126=very bad
-    scatter( 3, "points signed", points );
-
     // Rescale score (neutral = 0x80)
+    // Experiment: points here is a balanced signed value, so 0 = even +126=very good, -126=very bad
     points += 0x80;
-
-    // Experiment: after rescale -126->2 ... -1->127, 0->128, 1->129 ... 126->254
-    scatter( 4, "rescaled", points );
     callback_end_of_points(points);
 
     // Save score value
+    // Experiment: after rescale -126->2 ... -1->127, 0->128, 1->129 ... 126->254
     m.VALM = points;
 
     // Save score value to move pointed to by current move ptr

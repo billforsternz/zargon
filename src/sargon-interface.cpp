@@ -20,6 +20,7 @@
 
 // First byte of Sargon data
 unsigned char *sargon_base_address = (unsigned char *)zargon_get_ptr_emulated_memory();
+static emulated_memory &m = gbl_emulated_memory;
 
 // Write chess position into Sargon (inner-most part)
 static void sargon_import_position_inner( const thc::ChessPosition &cp );
@@ -271,7 +272,7 @@ bool sargon_play_move( thc::Move &mv )
 void sargon_export_position( thc::ChessPosition &cp )
 {
     cp.Init();
-    const unsigned char *sargon_board = peek(BOARDA);
+    const unsigned char *sargon_board = &m.BOARDA[0];
     const unsigned char *src_base = sargon_board + 28;  // square h1
     char *dst_base = &cp.squares[thc::h1];
     for( int i=0; i<8; i++ )
