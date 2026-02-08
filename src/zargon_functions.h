@@ -11,7 +11,16 @@
 //  idiomatic C is realised
 //
 void INITBD();
-inline uint8_t PATH( int8_t dir );
+
+enum path_t
+{
+    PATH_EMPTY = 0,
+    PATH_OPPOSITE_COLOR = 1,
+    PATH_SAME_COLOR = 2,
+    PATH_OFF_BOARD = 3
+};
+
+inline path_t PATH( int8_t dir );
 void MPIECE();
 void ENPSNT();
 inline void ADJPTR();

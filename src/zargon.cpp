@@ -618,7 +618,7 @@ void INITBD()
 //             constant to be added for the new position.
 //***********************************************************
 
-inline uint8_t PATH( int8_t dir )
+inline path_t PATH( int8_t dir )
 {
     callback_zargon_bridge(CB_PATH);
 
@@ -628,17 +628,17 @@ inline uint8_t PATH( int8_t dir )
     // Off board?
     //  return 3 if off board
     if( piece == ((uint8_t)-1) )
-        return 3;
+        return PATH_OFF_BOARD;
 
     // Set P2=piece and T2=piece type (=piece&7)
     //  return 0 if empty
     else if(  0 == (m.T2 = (m.P2=piece)&7) )
-        return 0;
+        return PATH_EMPTY;
 
     // Else we have run into non zero piece P2
     //  return 1 if opposite color to origin piece P1
     //  return 2 if same color as origin piece P1
-    return IS_SAME_COLOR(m.P2,m.P1) ? 2 : 1;
+    return IS_SAME_COLOR(m.P2,m.P1) ? PATH_SAME_COLOR : PATH_OPPOSITE_COLOR;
 }
 
 //***********************************************************
@@ -728,7 +728,7 @@ void MPIECE()
             stepping = false;   // further steps are actually exceptional
                                 // (BISHOPS, ROOKS, QUEENS plus pawn double step)
 
-            uint8_t path_result = PATH( move_dir );   //  Calculate next position
+            path_t path_result = PATH( move_dir );   //  Calculate next position
             // 0  --  New position is empty
             // 1  --  Encountered a piece of the
             //        opposite color
@@ -737,12 +737,12 @@ void MPIECE()
             // 3  --  New position is off the
             //        board
 
-            // Hit our own piece or off the board ?
-            if( path_result < 2 )
+            // Can move to empty squares or squares of the same color.
+            if( path_result <= PATH_OPPOSITE_COLOR )
             {
 
                 // Empty destination ?
-                empty = (path_result==0);
+                empty = (path_result==PATH_EMPTY);
 
                 //  Is it a Piece?
                 if( piece >= KNIGHT )
@@ -1212,20 +1212,20 @@ bool ATTACK()
         for(;;)
         {
             scan_count++;
-            uint8_t path_result = PATH(dir);
+            path_t path_result = PATH(dir);
 
             // PATH() return values
             // 0  --  New position is empty
             // 1  --  Encountered a piece of the opposite color
             // 2  --  Encountered a piece of the same color
             // 3  --  New position is off the board
-            if( path_result==0 && dir_count>=9 )
+            if( path_result==PATH_EMPTY && dir_count>=9 )
                 continue; // empty square, not a knight, keep stepping
-            if( path_result==0 || path_result==3 )
+            if( path_result==PATH_EMPTY || path_result==PATH_OFF_BOARD )
                 break;  // break to stop stepping
 
             // 1 -- Encountered a piece of the opposite color
-            if( path_result == 1)
+            if( path_result == PATH_OPPOSITE_COLOR )
             {
                 // Same color found already ?
                 if( (scan_count&0x40) != 0 )
@@ -1509,16 +1509,16 @@ void PINFND()
             while( stepping )
             {
                 stepping = false;
-                int8_t path_result = PATH(dir);  // next position
+                path_t path_result = PATH(dir);  // next position
 
                 // If empty, carry on stepping
-                if( path_result == 0 )
+                if( path_result == PATH_EMPTY )
                 {
                     stepping = true;
                 }
 
                 // Piece of same color it might be a pinned piece
-                else if( path_result==2 && m.M4==0 )
+                else if( path_result==PATH_SAME_COLOR && m.M4==0 )
                 {
 
                     // Register a possible pin position
@@ -1527,7 +1527,7 @@ void PINFND()
                 }
 
                 // Else piece of different colour and we have a potential pinned piece
-                else if( path_result==1 && m.M4 != 0 )
+                else if( path_result==PATH_OPPOSITE_COLOR && m.M4 != 0 )
                 {
                     bool save_pinned_piece = false;
 
