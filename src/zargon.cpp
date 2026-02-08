@@ -1792,6 +1792,43 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 // ARGUMENTS:  --  None
 //***********************************************************
 
+struct Scatter
+{
+    const char *name;
+    uint32_t counts[256];
+};
+
+static Scatter array[10];
+
+void scatter( int idx, const char *name, uint8_t val )
+{
+    int nbr = sizeof(array)/sizeof(array[0]);
+    static uint32_t times_called;
+    if( ++times_called == 10000000 )
+    {
+        for( int i=0; i<nbr; i++ )
+        {
+            Scatter *p = &array[i];
+            if( !p->name )
+                break;
+            printf( "%s%s\n", i==0?"":"\n", p->name );
+            for( int j=0; j<256; j++ )
+            {
+                uint8_t u8 = (uint8_t) j;
+                int8_t  i8 =  (int8_t) u8;
+                printf( "%5d | %8lu | %5d\n", i8, p->counts[u8], u8 );
+            }
+        }
+        exit(0);
+    }
+    if( idx < nbr )
+    {
+        Scatter *p = &array[idx];
+        p->name = name;
+        (p->counts[val])++;
+    }
+}
+
 void POINTS()
 {
     callback_zargon_bridge(CB_POINTS);
@@ -1972,6 +2009,10 @@ void POINTS()
     // Get max points won
     int8_t ptsw = m.PTSW1;
 
+    // Experiment: Both PTSW1 and PTSW2 are small integers in the 0-20 range
+    scatter( 0, "m.PTSW1", m.PTSW1 );
+    scatter( 1, "m.PTSW2", m.PTSW2 );
+
     // Adjust max points won if both 1st and 2nd max points won are non-zero
     //  Value is;
     //      0 if 1st max points won is 0
@@ -1984,6 +2025,9 @@ void POINTS()
         if( ptsw != 0 )
         {
             ptsw--;
+
+            // Experiment: ptsw is also a small integer in the 0-20 range
+            scatter( 2, "ptsw--", ptsw );
             ptsw = ptsw/2;
         }
     }
@@ -2021,8 +2065,14 @@ void POINTS()
     if( IS_WHITE(m.COLOR) )
         points = 0-points;  // negate for white
 
+    // Experiment: points here is a balanced signed value, so 0 = even +126=very good, -126=very bad
+    scatter( 3, "points signed", points );
+
     // Rescale score (neutral = 0x80)
     points += 0x80;
+
+    // Experiment: after rescale -126->2 ... -1->127, 0->128, 1->129 ... 126->254
+    scatter( 4, "rescaled", points );
     callback_end_of_points(points);
 
     // Save score value
