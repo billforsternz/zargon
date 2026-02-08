@@ -44,11 +44,34 @@ zargon_data_defs_check_and_regen regen;
 inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
 inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
 
+// Misc
 inline bool IS_WHITE( uint8_t piece ) { return (piece&0x80) == 0;  }
 inline bool IS_BLACK( uint8_t piece ) { return (piece&0x80) != 0;  }
 inline void TOGGLE  ( uint8_t &color) { color = (color==0?0x80:0); }
 inline bool IS_SAME_COLOR( uint8_t piece1, uint8_t piece2 )      { return (piece1&0x80) == (piece2&0x80); }
 inline bool IS_DIFFERENT_COLOR( uint8_t piece1, uint8_t piece2 ) { return ((piece1&0x80) ^ (piece2&0x80)) != 0; }
+
+// Sargon squares
+#define SQ_a1 21
+#define SQ_b1 22
+#define SQ_d1 24
+#define SQ_e1 25
+#define SQ_h1 28
+#define SQ_a2 31
+#define SQ_b2 32
+#define SQ_c2 33
+#define SQ_e2 35
+#define SQ_a3 41
+#define SQ_a4 51
+#define SQ_a5 61
+#define SQ_h5 68
+#define SQ_a6 71
+#define SQ_a7 81
+#define SQ_a8 91
+#define SQ_b8 92
+#define SQ_d8 94
+#define SQ_e8 95
+#define SQ_h8 98
 
 //***********************************************************
 // EQUATES
@@ -282,10 +305,10 @@ uint8_t     plistd[10];     // corresponding directions
 // POSQ    --  Position of Queens. Like POSK,but for queens.
 //***********************************************************
 uint8_t     POSK[2] = {
-    25,95
+    SQ_e1,SQ_e8
 };
 uint8_t     POSQ[2] = {
-    24,94
+    SQ_d1,SQ_d8
 };
 int8_t padding2 = -1;
 
@@ -568,7 +591,7 @@ void INITBD()
     memset( &m.BOARDA[0], -1, sizeof(m.BOARDA) );
 
     // Init the 64 squares within the 120 byte BOARD[] array
-    uint8_t *dst = &m.BOARDA[21];
+    uint8_t *dst = &m.BOARDA[SQ_a1];
     uint8_t *src = &m.pieces[0];
     for( int i=0; i<8; i++ )
     {
@@ -585,10 +608,10 @@ void INITBD()
     }
 
     //  Init King/Queen position list
-    m.POSK[0] = 25;
-    m.POSK[1] = 95;
-    m.POSQ[0] = 24;
-    m.POSQ[1] = 94;
+    m.POSK[0] = SQ_e1;
+    m.POSK[1] = SQ_e8;
+    m.POSQ[0] = SQ_d1;
+    m.POSQ[1] = SQ_d8;
 }
 
 //***********************************************************
@@ -775,7 +798,7 @@ void MPIECE()
                         {
 
                             // Check promotion
-                            if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )  // destination on 1st or 8th rank?
                                 m.P2 |= 0x20;         //  Set promote flag
 
                             // Add single step move to move list
@@ -810,7 +833,7 @@ void MPIECE()
                             ENPSNT();               //  Try en passant capture
                         else
                         {
-                            if( m.M2<=28 || m.M2>=91 )  // destination on 1st or 8th rank?
+                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )  // destination on 1st or 8th rank?
                                 m.P2 |= 0x20;           // set promote flag
                             ADMOVE();                   // add to move list
                         }
@@ -851,8 +874,8 @@ void ENPSNT()
         idx += 10;
 
     // Check on en-passant capture rank
-    if( idx<61 || 68<idx )  // fifth rank a5-h5 ? So white captures black pawn
-        return;
+    if( idx<SQ_a5 || SQ_h5<idx )  // fifth rank a5-h5 ? So white captures black pawn
+        return;  // not on fifth rank
 
     // Test pointer to previous move
     uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
@@ -978,7 +1001,7 @@ void CASTLE()
                     break;
 
                 // Must not be under attack (except for b1 and b8)
-                if( m.M3 != 22 && m.M3 != 92 && ATTACK() )
+                if( m.M3 != SQ_b1 && m.M3 != SQ_b8 && ATTACK() )
                     break;
             }
 
@@ -1108,7 +1131,7 @@ void GENMOV()
     m.MLLST  = bin_hl;   // last pointer for chain init.
 
     // Loop through the board
-    for( uint8_t pos=21; pos<=98; pos++ )
+    for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
     {
         m.M1 = pos;
         uint8_t piece = m.BOARDA[pos];
@@ -1771,7 +1794,7 @@ void POINTS()
     m.T1 = 7;
 
     // Loop around board
-    for( m.M3=21; m.M3<=98; m.M3++ )
+    for( m.M3=SQ_a1; m.M3<=SQ_h8; m.M3++ )
     {
         uint8_t piece = m.BOARDA[m.M3];            //  Save as board index
 
@@ -2706,7 +2729,7 @@ void BOOK()
 
         // Play d5 after all White first moves except a,b,c or e pawn moves
         bool play_d5 = true;
-        if( from==31 || from==32 || from==33 || from==35 )
+        if( from==SQ_a2 || from==SQ_b2 || from==SQ_c2 || from==SQ_e2 )
             play_d5 = false;
         if( play_d5 )
             m.BESTM = PTR_TO_BIN(d5);
@@ -2852,7 +2875,7 @@ uint8_t ASNTBI( uint8_t file, uint8_t rank )
     rank++;                 // 2 - 9
     file -= 'A';            // 0 - 7
     file++;                 // 1 - 8
-    uint8_t offset = rank*10 + file;    // 21-98
+    uint8_t offset = rank*10 + file;    // 21-98 (SQ_a1 - SQ_h8)
     return offset;
 }
 
@@ -2964,7 +2987,7 @@ void ROYALT()
     memset( &m.POSK[0], 0, 4 );
 
     // Board idx = a1 to h8 inclusive
-    for( int idx=21; idx<=98; idx++ )
+    for( int idx=SQ_a1; idx<=SQ_h8; idx++ )
     {
         //  Address of White king position
         uint8_t *p = &m.POSK[0];
@@ -2991,7 +3014,7 @@ void ROYALT()
     }
 
     // leave M1 at h8, not padding beyond h8 [probably not needed]
-    m.M1 = 98;
+    m.M1 = SQ_h8;
 }
 
 //
