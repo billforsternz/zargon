@@ -16,6 +16,11 @@
 #include "sargon-interface.h"
 #include "sargon-asm-interface.h"
 #include "sargon-pv.h"
+#include "zargon.h"
+#include "zargon_functions.h"
+
+// Sargon data structure
+static emulated_memory &m = gbl_emulated_memory;
 
 // A move in Sargon's evaluation graph, in this program a move that is marked as
 //  the best move found so far at a given level
@@ -89,18 +94,18 @@ rel015: MOV     bx,MTRL                         ; Net material on board
 static unsigned char end_of_points_color;
 void sargon_pv_callback_end_of_points()
 {
-    end_of_points_color = peekb(COLOR);
+    end_of_points_color = m.COLOR;
 }
 
 void sargon_pv_callback_yes_best_move()
 {
     // Collect the best moves' attributes
-    unsigned int p      = peekw(MLPTRJ);
-    unsigned int level  = peekb(NPLY);
-    unsigned char from  = peekb(p+2);
-    unsigned char to    = peekb(p+3);
-    //unsigned char flags = peekb(p+4);
-    //unsigned char value = peekb(p+5);
+    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
+    unsigned int level  = m.NPLY;
+    unsigned char from  = *(p+2);
+    unsigned char to    = *(p+3);
+    //unsigned char flags = *(p+4);
+    //unsigned char value = *(p+5);
 
     // In this 'value' is used by Sargon for minimax. It is the value
     //  we convert to and from centipawns in sargon_import_value()
@@ -127,7 +132,7 @@ void sargon_pv_callback_yes_best_move()
 //         JZ      rel013                          ; Yes - jump
 //         DEC     al                              ; Decrement it
 // rel013: MOV     ch,al                           ; Save it
-    char ptsl  = static_cast<char>(peekb(PTSL));
+    char ptsl  = static_cast<char>(m.PTSL);
     if( ptsl != 0 )
         ptsl--;
 
@@ -139,8 +144,8 @@ void sargon_pv_callback_yes_best_move()
 //         JZ      rel014                          ; Yes - jump
 //         DEC     al                              ; Decrement it
 //         SHR     al,1                            ; Divide it by 2
-    char ptsw1 = static_cast<char>(peekb(PTSW1));
-    char ptsw2 = static_cast<char>(peekb(PTSW2));
+    char ptsw1 = static_cast<char>(m.PTSW1);
+    char ptsw2 = static_cast<char>(m.PTSW2);
     char val = ptsw1;
     if( ptsw1 != 0 )
     {
@@ -165,7 +170,7 @@ void sargon_pv_callback_yes_best_move()
 // rel015: MOV     bx,MTRL                         ; Net material on board
 //         ADD     al,byte ptr [ebp+ebx]           ; Add exchange adjustments
 //         MOV     _gbl_adjusted_material,al
-    char mtrl = static_cast<char>(peekb(MTRL));
+    char mtrl = static_cast<char>(m.MTRL);
     char adjusted_material = (val + mtrl);
 
     //  It took a few goes to get the calculation working right, we
@@ -176,8 +181,8 @@ void sargon_pv_callback_yes_best_move()
     //   Sargon's COLOR had toggled since the POINTS() function ran,
     //   so now we save the value of COLOR in POINTS() [which we
     //   have a callback for].
-    char brdc = static_cast<char>(peekb(BRDC));
-    if( peekb(PTSCK) )
+    char brdc = static_cast<char>(m.BRDC);
+    if( m.PTSCK )
         brdc = 0;
     NODE n(level,from,to,adjusted_material,brdc);
     nodes.push_back(n);
@@ -209,7 +214,7 @@ static void calculate_pv( PV &pv )
     std::vector<NODE> nodes_pv;
     int nbr = (int)nodes.size();
     int target = 1;
-    int plymax = peekb(PLYMAX);
+    int plymax = m.PLYMAX;
     for( int i=nbr-1; i>=0; i-- )
     {
         NODE *p = &nodes[i];

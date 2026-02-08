@@ -21,7 +21,11 @@
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "sargon-pv.h"
+#include "zargon.h"
 #include "zargon_functions.h"
+
+// Sargon data structure
+static emulated_memory &m = gbl_emulated_memory;
 
 // Individual tests
 bool sargon_position_tests( bool quiet, int comprehensive );
@@ -965,39 +969,31 @@ Level 6: ..................................   34 tests
 static void show()
 {
     unsigned char nply = peekb(NPLY);
-    if( nply == 1 )
+    thc::ChessPosition cp;
+    sargon_export_position(cp);
+    std::string s = cp.ToDebugStr();
+    printf( "%s\n", s.c_str() );
+    printf( "NPLY = %02x\n", nply );
+    printf( "Ply ptrs;\n" );
+    for( int i=0; i<4; i++ )
     {
-        thc::ChessPosition cp;
-        sargon_export_position(cp);
-        std::string s = cp.ToDebugStr();
-        printf( "%s\n", s.c_str() );
-        printf( "NPLY = %02x\n", nply );
-        unsigned int addr = PLYIX;
-        unsigned int ptr  = peekw(addr);
-        printf( "Ply ptrs;\n" );
-        for( int i=0; i<4; i++ )
-        {
-            printf( "%04x", ptr );
-            addr += 2;
-            ptr  = peekw(addr);
-            printf( i+1<4 ? " " : "\n" );
-        }
-        printf( "MLPTRI=%04x\n", peekw(MLPTRI) );
-        printf( "MLPTRJ=%04x\n", peekw(MLPTRJ) );
-        printf( "MLLST=%04x\n",  peekw(MLLST) );
-        printf( "MLNXT=%04x\n",  peekw(MLNXT) );
-        addr = 0x400;
-        unsigned int mlnxt = peekw(MLNXT);
-        for( int i=0; i<256; i++ )
-        {
-            ptr  = peekw(addr);
-            printf( "%04x: %04x ", addr, ptr );
-            printf( "%02x %02x %02x %02x ", peekb(addr+2), peekb(addr+3), peekb(addr+4), peekb(addr+5) );
-            printf( "%s\n", sargon_export_move(addr,false).c_str() );
-            if( addr == mlnxt )
-                break;
-            addr += 6;
-        }
+        printf( "%04x", m.PLYIX[i] );
+        printf( i+1<4 ? " " : "\n" );
+    }
+    printf( "MLPTRI=%04x\n", m.MLPTRI );
+    printf( "MLPTRJ=%04x\n", m.MLPTRJ );
+    printf( "MLLST=%04x\n",  m.MLLST );
+    printf( "MLNXT=%04x\n",  m.MLNXT );
+    uint8_t *move = (uint8_t *)&m.MLIST[0];
+    uint8_t *mlnxt = BIN_TO_PTR(m.MLNXT);
+    for( int i=0; i<256; i++ )
+    {
+        printf( "%04x: %04x ", PTR_TO_BIN(move), PTR_TO_BIN(mlnxt) );
+        printf( "%02x %02x %02x %02x ", move[2], move[3], move[4], move[5] );
+        printf( "%s\n", sargon_export_move(PTR_TO_BIN(move),false).c_str() );
+        if( move == mlnxt )
+            break;
+        move += 6;
     }
 }
 
