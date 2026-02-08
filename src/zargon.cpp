@@ -44,12 +44,34 @@ zargon_data_defs_check_and_regen regen;
 inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
 inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
 
-// Misc
+// Flag definitions
+// These definitions apply to pieces on the board array and to move flags
+// Always bit 7 is color (1=black) and bits 2-0 indicate piece type
+// Other bits
+//  6 - move flags only - double move flag (set for castling and en passant)
+//  5 - move flags only - pawn promotion flag
+//  4 - board array     - has castled flag for kings only
+//      move flags      - first move flag for the piece on the move
+//  3   board array     - piece has moved flag
+//      move flags      - captured piece (in bits 2-0) has moved flag
 inline bool IS_WHITE( uint8_t piece ) { return (piece&0x80) == 0;  }
 inline bool IS_BLACK( uint8_t piece ) { return (piece&0x80) != 0;  }
 inline void TOGGLE  ( uint8_t &color) { color = (color==0?0x80:0); }
 inline bool IS_SAME_COLOR( uint8_t piece1, uint8_t piece2 )      { return (piece1&0x80) == (piece2&0x80); }
 inline bool IS_DIFFERENT_COLOR( uint8_t piece1, uint8_t piece2 ) { return ((piece1&0x80) ^ (piece2&0x80)) != 0; }
+inline bool HAS_MOVED( uint8_t piece ) { return (piece&0x08) != 0;  }
+inline bool HAS_NOT_MOVED( uint8_t piece ) { return (piece&0x08) == 0;  }
+inline void SET_MOVED( uint8_t &piece ) { piece|=0x08;  }
+inline void CLR_MOVED( uint8_t &piece ) { piece&=0xf7;  }
+inline bool IS_DOUBLE_MOVE( uint8_t piece ) { return (piece&0x40) != 0;  }
+inline void SET_DOUBLE_MOVE( uint8_t &piece ) { piece|=0x40;  }
+inline bool IS_PROMOTION( uint8_t piece ) { return (piece&0x20) != 0;  }
+inline void SET_PROMOTION( uint8_t &piece ) { piece|=0x20;  }
+inline bool IS_FIRST_MOVE( uint8_t piece ) { return (piece&0x10) != 0;  }
+inline void SET_FIRST_MOVE( uint8_t &piece ) { piece|=0x10;  }
+inline bool IS_CASTLED( uint8_t piece ) { return (piece&0x10) != 0;  }
+inline void SET_CASTLED( uint8_t &piece ) { piece|=0x10;  }
+inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 
 // Sargon squares
 #define SQ_a1 21
@@ -686,7 +708,7 @@ void MPIECE()
 
     // TODO: Maybe make piece a named parameter
     uint8_t piece = m.P1;
-    piece &= 0x87;   // clear flag bits
+    piece &= 0x87;   // clear DOUBLE, PROMOTION and FIRST/CASTLED flag bits
     bool empty = false;
 
     //  Decrement black pawns (so pawns, the only directional type, are 0 black and 1 white
@@ -798,14 +820,14 @@ void MPIECE()
                         {
 
                             // Check promotion
-                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )  // destination on 1st or 8th rank?
-                                m.P2 |= 0x20;         //  Set promote flag
+                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )    // destination on 1st or 8th rank?
+                                SET_PROMOTION(m.P2);            // set promotion flag
 
                             // Add single step move to move list
                             ADMOVE();
 
                             // Check Pawn moved flag, for double step
-                            if( (m.P1 & 0x08) == 0 )
+                            if( HAS_NOT_MOVED(m.P1) )
                             {
 
                                 // This is the only pawn path that continues the inner PATH() stepping
@@ -833,9 +855,9 @@ void MPIECE()
                             ENPSNT();               //  Try en passant capture
                         else
                         {
-                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )  // destination on 1st or 8th rank?
-                                m.P2 |= 0x20;           // set promote flag
-                            ADMOVE();                   // add to move list
+                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )    // destination on 1st or 8th rank?
+                                SET_PROMOTION(m.P2);            // set promotion flag
+                            ADMOVE();                           // add to move list
                         }
                     }
                 }
@@ -881,7 +903,7 @@ void ENPSNT()
     uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
 
     // Must be first move for that piece
-    if( (*(p+MLFLG) & 0x10) == 0)
+    if( !IS_FIRST_MOVE(*(p+MLFLG)) )
         return;
 
     // Get "to" position for previous move
@@ -901,7 +923,7 @@ void ENPSNT()
         return;
 
     // Set double move flag and add en-passant move in two steps
-    m.P2 |= 0x40;
+    SET_DOUBLE_MOVE(m.P2);
     ADMOVE();       // first step, move the pawn
     m.M3 = m.M1;    // save initial pawn position
 
@@ -962,7 +984,7 @@ void CASTLE()
     callback_zargon_bridge(CB_CASTLE);
 
     // If king has moved return
-    if( m.P1 & 0x08 )
+    if( HAS_MOVED(m.P1) )
         return;
 
     // If king is in check return
@@ -1014,7 +1036,8 @@ void CASTLE()
                 m.M2 = m.M3;
                 m.M2 -= step;
                 m.M2 -= step;
-                m.P2 = 0x40;    // set double move flag
+                m.P2 = 0;
+                SET_DOUBLE_MOVE(m.P2);    // set double move flag
                 ADMOVE();       // add to list
 
                 // M1 is rook "from" position, M2 is rook "to" position, one step from king
@@ -1073,15 +1096,9 @@ void ADMOVE()
     // Store as link address
     WR_BIN( p, bin );
 
-    // Address of moved piece
-    p = &m.P1;
-
-    // If it hasn't moved before set first move flag
-    if( (*p & 0x08) == 0 )
-    {
-        q = &m.P2;          //  Address of move flags
-        *q |= 0x10;         //  Set first move flag
-    }
+    // If piece hasn't moved before set first move flag
+    if( HAS_NOT_MOVED(m.P1) )
+        SET_FIRST_MOVE(m.P2);
 
     // Now write move details
     p = BIN_TO_PTR(bin);
@@ -1818,7 +1835,7 @@ void POINTS()
         {
 
             // If bishop or knight has not moved, 2 point penalty
-            if( (m.P1&0x08) == 0 )  // if piece not moved
+            if( HAS_NOT_MOVED(m.P1) )
             {
                 int8_t bonus = -2;
                 if( IS_BLACK(m.P1) )
@@ -1832,7 +1849,7 @@ void POINTS()
         {
 
             // 6 point bonus for castling
-            if( (m.P1&0x10) != 0 )
+            if( IS_CASTLED(m.P1) )
             {
                 int8_t bonus = +6;
                 if( IS_BLACK(m.P1) )
@@ -1841,7 +1858,7 @@ void POINTS()
             }
 
             // Else if king has not castled but has moved, 2 point penalty
-            else if( (m.P1&0x08) != 0 )  // if piece has moved
+            else if( HAS_MOVED(m.P1) )
             {
                 int8_t bonus = -2;
                 if( IS_BLACK(m.P1) )
@@ -1855,10 +1872,10 @@ void POINTS()
         {
 
             // If rook or queen early in the game HAS moved, 2 point penalty
-            if( (m.P1&0x08) != 0 )  // if piece has moved
+            if( HAS_MOVED(m.P1) )
             {
                 int8_t bonus = -2;
-                if( IS_BLACK(m.P1) )  // if Black
+                if( IS_BLACK(m.P1) )
                     bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
             }
@@ -2088,15 +2105,15 @@ void MOVE()
         m.M2 = *p++;
 
         // Get captured piece plus flags
-        uint8_t captured_piece_flags = *p;
+        uint8_t captured_piece_plus_flags = *p;
 
         // Get piece moved from "from" pos board index
         uint8_t piece = m.BOARDA[m.M1];
 
         // Promote pawn if required
-        if( captured_piece_flags & 0x20 )
+        if( IS_PROMOTION(captured_piece_plus_flags) )
         {
-            piece |= 4; // change pawn to a queen
+            piece |= 4; // change pawn to a queen 0x01->0x05 or 0x81->0x85
         }
 
         // Update queen position if required
@@ -2112,15 +2129,15 @@ void MOVE()
         else if( (piece&7) == KING )
         {
             uint8_t *q = &m.POSK[0];    // addr of saved king position
-            if( (captured_piece_flags & 0x40) != 0 )  // castling ?
-                piece |= 0x10;
+            if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )  // castling ?
+                SET_CASTLED(piece);
             if( IS_BLACK(piece ) )      // is king black ?
                 q++;                    // increment to black king pos
             *q = m.M2;                  // set new king position
         }
 
         // Set piece moved flag
-        piece |= 0x08;
+        SET_MOVED(piece);
 
         // Insert piece at new position
         m.BOARDA[m.M2] = piece;
@@ -2129,7 +2146,7 @@ void MOVE()
         m.BOARDA[m.M1] = 0;
 
         // Double move ?
-        if( (captured_piece_flags & 0x40) != 0 )
+        if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
             p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
             p += 8;                     //  jump to next move
@@ -2138,12 +2155,12 @@ void MOVE()
         {
 
             // Was captured piece a queen
-            if( (captured_piece_flags & 7) == QUEEN )
+            if( (captured_piece_plus_flags & 7) == QUEEN )
             {
 
                 // Clear queen royalty position after capture
                 uint8_t *q = &m.POSQ[0];
-                if( IS_BLACK(captured_piece_flags) )  // is queen black ?
+                if( IS_BLACK(captured_piece_plus_flags) )  // is queen black ?
                     q++; // increment to black queen pos
                 *q = 0;
             }
@@ -2188,15 +2205,15 @@ void UNMOVE()
         m.M2 = *p++;
 
         // Get captured piece plus flags
-        uint8_t captured_piece_flags = *p;
+        uint8_t captured_piece_plus_flags = *p;
 
         // Get piece moved from "to" pos board index
         uint8_t piece = m.BOARDA[m.M2];
 
         // Unpromote pawn if required
-        if( captured_piece_flags & 0x20 )
+        if( IS_PROMOTION(captured_piece_plus_flags) )
         {
-            piece &= 0xfb; // change queen to a pawn
+            piece &= 0xfb; // change queen to a pawn 0x05->0x01 or 0x85->0x81
         }
 
         // Update queen position if required
@@ -2212,27 +2229,27 @@ void UNMOVE()
         else if( (piece&7) == KING )
         {
             uint8_t *q = &m.POSK[0];    // addr of saved king position
-            if( (captured_piece_flags & 0x40) != 0 )  // castling ?
-                piece &= 0xef;  // clear castled flag
+            if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )  // castling ?
+                CLR_CASTLED(piece);     // clear castled flag
             if( IS_BLACK(piece) )       // is king black ?
                 q++;                    // increment to black king pos
             *q = m.M1;                  // set previous king position
         }
 
         // If this is the first move for piece, clear piece moved flag
-        if( (captured_piece_flags&0x10) != 0 )
+        if( IS_FIRST_MOVE(captured_piece_plus_flags) )
         {
-            piece &= 0xf7;
+            CLR_MOVED(piece);
         }
 
         // Return piece to previous board position
         m.BOARDA[m.M1] = piece;
 
         // Restore captured piece with cleared flags
-        m.BOARDA[m.M2] = captured_piece_flags & 0x8f;
+        m.BOARDA[m.M2] = captured_piece_plus_flags & 0x8f;
 
         // Double move ?
-        if( (captured_piece_flags & 0x40) != 0 )
+        if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
             p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
             p += 8;                     //  jump to next move
@@ -2241,12 +2258,12 @@ void UNMOVE()
         {
 
             // Was captured piece a queen
-            if( (captured_piece_flags & 7) == QUEEN )
+            if( (captured_piece_plus_flags & 7) == QUEEN )
             {
 
                 // Restore queen royalty position after capture
                 uint8_t *q = &m.POSQ[0];
-                if( IS_BLACK(captured_piece_flags) )  // is queen black ?
+                if( IS_BLACK(captured_piece_plus_flags) )  // is queen black ?
                     q++; // increment to black queen pos
                 *q = m.M2;
             }
