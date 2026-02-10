@@ -2311,15 +2311,15 @@ static bool repetition_test()
     memcpy(buf,q,18);
 
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
-    pokew(PLYIX,mlist);
-    unsigned char *p = poke(mlist);
+    m.PLYIX[0] = mlist;
+    uint8_t *p = BIN_TO_PTR(mlist);
     *p++ = 6;
     *p++ = 4;
     *p++ = SQ_f3;
     *p++ = SQ_e5;
     *p++ = 0;
     *p++ = 0;
-    pokew(MLLST,0x406);
+    m.MLLST = mlist+6;
 
     // O-O
     *p++ = 0;
@@ -2336,7 +2336,7 @@ static bool repetition_test()
     *p++ = SQ_f1;
     *p++ = 0;
     *p++ = 0;
-    pokew(MLNXT,0x412);
+    m.MLNXT = mlist+3*6;
     //show();
 
     // Remove f3e5
@@ -2379,11 +2379,11 @@ static bool repetition_test()
         ok = false;
 
     // Undo all changes
-    p = poke(mlist);
+    p = BIN_TO_PTR(mlist);
     memcpy(p,buf,18);
-    pokew(PLYIX,plyix);
-    pokew(MLLST,mllst);
-    pokew(MLNXT,mlnxt);
+    m.PLYIX[0] = plyix;
+    m.MLLST = mllst;
+    m.MLNXT = mlnxt;
     return ok;
 }
 

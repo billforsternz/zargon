@@ -1493,8 +1493,8 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 
     // Eval takes place after undoing last move, so need to add it back to
     //  show position meaningfully
-    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
-    unsigned char from  = *(p+2);
+    uint8_t *mlptrj = BIN_TO_PTR(m.MLPTRJ);
+    unsigned char from  = *(mlptrj+2);
     thc::Square sq;
     sargon_export_square(from,sq);
     char c = thc::get_file(sq);
