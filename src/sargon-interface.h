@@ -46,9 +46,6 @@ std::string algebraic( unsigned int sq );
 void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool avoid_book );
 
 // Peek and poke at Sargon
-const unsigned char *peek(int offset);
-unsigned char peekb(int offset);
-unsigned int peekw(int offset);
 unsigned char *poke(int offset);
 void pokeb( int offset, unsigned char b );
 void pokew( int offset, unsigned int w );

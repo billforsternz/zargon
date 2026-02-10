@@ -163,7 +163,7 @@ void sargon_pv_callback_yes_best_move()
 //         JZ      rel015                          ; Yes - jump
 //         NEG     al                              ; Negate for black
     val -= ptsl;
-    //unsigned char color = peekb(COLOR);
+    //unsigned char color = m.COLOR;
     if( (end_of_points_color&0x80) != 0 )
         val = 0 - val;
 

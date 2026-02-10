@@ -648,29 +648,6 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
     pv = sargon_pv_get(); // only update if CPTRMV completes (engine uses longjmp to abort if timeout)
 }
 
-const unsigned char *peek(int offset)
-{
-    unsigned char *addr = sargon_base_address + offset;
-    return addr;
-}
-
-unsigned char peekb(int offset)
-{
-    const unsigned char *addr = peek(offset);
-    return *addr;
-}
-
-unsigned int peekw(int offset)
-{
-    const unsigned char *addr = peek(offset);
-    const unsigned char lo = *addr++;
-    const unsigned char hi = *addr++;
-    unsigned int ret = hi;
-    ret = ret << 8;
-    ret += lo;
-    return ret;
-}
-
 unsigned char *poke(int offset)
 {
     unsigned char *addr = sargon_base_address + offset;

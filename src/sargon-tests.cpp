@@ -968,7 +968,7 @@ Level 6: ..................................   34 tests
 
 static void show()
 {
-    unsigned char nply = peekb(NPLY);
+    unsigned char nply = m.NPLY;
     thc::ChessPosition cp;
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
