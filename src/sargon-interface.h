@@ -45,9 +45,4 @@ std::string algebraic( unsigned int sq );
 // Run Sargon move calculation
 void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool avoid_book );
 
-// Peek and poke at Sargon
-unsigned char *poke(int offset);
-void pokeb( int offset, unsigned char b );
-void pokew( int offset, unsigned int w );
-
 #endif // SARGON_INTERFACE_H_INCLUDED

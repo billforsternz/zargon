@@ -259,17 +259,20 @@ bool sargon_play_move( thc::Move &mv )
         uint8_t board_index = ASNTBI( file, rank );    // ASNTBI = ASCII square name to board index
         ok = (board_index>0);
         if( ok )
-            pokeb(MVEMSG+i,board_index);
+        {
+            uint8_t *p = (uint8_t *)&m.MVEMSG[0];
+            *(p+i) = board_index;
+        }
     }
     if( ok )
         ok = VALMOV();
 
     // Restore COLOR and KOLOR
-    pokeb( KOLOR, kolor );
+    m.KOLOR = kolor;
     if( ok )
-        pokeb( COLOR, color==0?0x80:0 );  // toggle side to move
+        m.COLOR = (color==0?0x80:0);  // toggle side to move
     else
-        pokeb( COLOR, color );
+        m.COLOR = color;
     return ok;
 }
 
@@ -378,8 +381,8 @@ void sargon_export_position( thc::ChessPosition &cp )
 // Write chess position into Sargon
 void sargon_import_position( const thc::ChessPosition &cp, bool avoid_book )
 {
-    pokeb(MLPTRJ,0);    // There is an apparent bug in Sargon. Variable MLPTRJ is not explicitly initialised
-    pokeb(MLPTRJ+1,0);  //  by Sargon CPTRMV(). The score (MLVAL) of the root node is stored early in
+    m.MLPTRJ = 0;       // There is an apparent bug in Sargon. Variable MLPTRJ is not explicitly initialised
+                        //  by Sargon CPTRMV(). The score (MLVAL) of the root node is stored early in
                         //  the calculation at the MLVAL offset from MLPTRJ. If MLPTRJ has its initial
                         //  default value of 0, this means MLVAL is poked into address 5. In the Sargon
                         //  emulation, we leave the whole 256 bytes emulating the start of memory unused,
@@ -522,14 +525,14 @@ void sargon_import_position( const thc::ChessPosition &cp, bool avoid_book )
     //  its play in the opening judging the opening phase with a MOVENO threshold, so it's
     //  worth getting it right if possible
     if( cp.full_move_count > 1 )
-        pokeb(MOVENO,cp.full_move_count);
+        m.MOVENO = cp.full_move_count;
 }
 
 // Write chess position into Sargon (inner-most part)
 static void sargon_import_position_inner( const thc::ChessPosition &cp )
 {
-    pokeb(COLOR,cp.white?0:0x80);
-    pokeb(MOVENO,cp.full_move_count);
+    m.COLOR  = cp.white?0:0x80;
+    m.MOVENO = cp.full_move_count;
     static unsigned char board_position[120] =
     {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -629,7 +632,7 @@ static void sargon_import_position_inner( const thc::ChessPosition &cp )
             *dst-- = b;
         }
     }
-    memcpy( poke(BOARDA), board_position, sizeof(board_position) );
+    memcpy( &m.BOARDA[0], board_position, sizeof(board_position) );
     ROYALT();
 }
 
@@ -641,32 +644,11 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
         plymax = 1;
     else if( plymax > 20 )
         plymax = 20;
-    pokeb( PLYMAX, plymax );
+    m.PLYMAX = plymax;
     sargon_import_position( cp, avoid_book );
     m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
     pv = sargon_pv_get(); // only update if CPTRMV completes (engine uses longjmp to abort if timeout)
-}
-
-unsigned char *poke(int offset)
-{
-    unsigned char *addr = sargon_base_address + offset;
-    return addr;
-}
-
-void pokeb( int offset, unsigned char b )
-{
-    unsigned char *addr = poke(offset);
-    *addr = b;
-}
-
-void pokew( int offset, unsigned int w )
-{
-    unsigned char *addr = poke(offset);
-    unsigned char lo = w&0xff;
-    unsigned char hi = (w>>8)&0xff;
-    *addr++ = lo;
-    *addr++ = hi;
 }
 
 std::string algebraic( unsigned int sq )

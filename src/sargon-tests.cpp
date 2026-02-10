@@ -274,11 +274,11 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
         bool regenerate_position=true;
         int nbr_moves_played = 0;
         unsigned char moveno=1;
-        pokeb(MOVENO,moveno);
+        m.MOVENO = moveno;
         while( nbr_moves_played < 200 )
         {
-            pokeb(KOLOR,0); // Sargon is white
-            pokeb(PLYMAX, plymax );
+            m.KOLOR  = 0; // Sargon is white
+            m.PLYMAX = plymax;
             if( regenerate_position )
                 sargon_import_position(cr);
             CPTRMV();
@@ -327,7 +327,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             game_text += " ";
             game_text += s;
             nbr_moves_played++;
-            pokeb(COLOR,0x80);
+            m.COLOR = 0x80;
             ok = sargon_play_move(mv);
             cr.PlayMove(mv);
             if( ok )
@@ -341,7 +341,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             }
             if( moveno <= 254 )
                 moveno++;
-            pokeb(MOVENO,moveno);
+            m.MOVENO = moveno;
             regenerate_position = !ok;
             if( regenerate_position )
                 printf( "Move by move operation has broken down, need to regenerate position ??\n" );
@@ -402,9 +402,9 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
         thc::ChessRules cr;
         sargon_import_position(cr);
         unsigned char moveno=1;
-        pokeb(MOVENO,moveno);
-        pokeb(KOLOR,0x80); // Sargon is black
-        pokeb(PLYMAX,2);
+        m.MOVENO = moveno;
+        m.KOLOR  = 0x80; // Sargon is black
+        m.PLYMAX = 0;
         std::string game_text;
         int idx = 0;
         for( thc::Move mv: moves )
@@ -416,14 +416,14 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
             thc::ChessRules cr_after;
             if( white_to_move )
             {
-                pokeb(COLOR,0); // White to move
+                m.COLOR = 0; // White to move
                 ok = sargon_play_move(mv);
                 sargon_export_position(cr_after);
                 natural_move = mv.NaturalOut(&cr);
             }
             else
             {
-                pokeb(COLOR,0x80); // Black to move
+                m.COLOR = 0x80; // Black to move
                 if( dummy )
                     ok = sargon_play_move(mv);
                 else
@@ -437,7 +437,7 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
                 if( moveno <= 254 )
                 {
                     moveno++;
-                    pokeb(MOVENO,moveno);
+                    m.MOVENO = moveno;
                 }
             }
             if( ok )
