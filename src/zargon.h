@@ -74,6 +74,10 @@ inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 #define SQ_d8 94
 #define SQ_e8 95
 #define SQ_h8 98
+#define SQ_f3 46
+#define SQ_e5 65
+#define SQ_f1 26
+#define SQ_g1 27
 
 // Initially at least we were emulating 64K of Z80 memory
 //  at some point we will probably rename this to simply

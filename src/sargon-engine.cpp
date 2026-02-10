@@ -2243,7 +2243,7 @@ struct NativeMove
 
 static void show()
 {
-    unsigned char nply = peekb(NPLY);
+    unsigned char nply = m.NPLY;
     thc::ChessPosition cp;
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
@@ -2277,6 +2277,8 @@ static void show()
 // Returns book okay
 static bool repetition_test()
 {
+    uint16_t mlist = PTR_TO_BIN(&m.MLIST[0]);
+
     // Test function repetition_calculate()
     //  After 1. Nf3 Nf6 2. Ng1 the move 2... Nf6-g8 repeats the initial position
     thc::ChessRules cr;
@@ -2301,42 +2303,20 @@ static bool repetition_test()
     }
 
     // Non destructive test of function  repetition_remove_moves()
-    unsigned int plyix = peekw(PLYIX);
-    unsigned int mllst = peekw(MLLST);
-    unsigned int mlnxt = peekw(MLNXT);
+    unsigned int plyix = m.PLYIX[0];
+    unsigned int mllst = m.MLLST;
+    unsigned int mlnxt = m.MLNXT;
     const uint8_t *q = (const uint8_t *)&m.MLIST[0];
     unsigned char buf[18];
     memcpy(buf,q,18);
 
-    // Calculate some Sargon squares (no sargon_import_square() unfortunately)
-    unsigned int f3, e5, e1, f1, g1, h1;
-    for( unsigned int j=0; j<256; j++ )
-    {
-        thc::Square sq;
-        if( sargon_export_square(j,sq) )
-        {
-            if( sq == thc::f3 )
-                f3 = j;
-            else if( sq == thc::e5 )
-                e5 = j;
-            else if( sq == thc::e1 )
-                e1 = j;
-            else if( sq == thc::f1 )
-                f1 = j;
-            else if( sq == thc::g1 )
-                g1 = j;
-            else if( sq == thc::h1 )
-                h1 = j;
-        }
-    }
-
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
-    pokew(PLYIX,0x400);
-    unsigned char *p = poke(0x400);
+    pokew(PLYIX,mlist);
+    unsigned char *p = poke(mlist);
     *p++ = 6;
     *p++ = 4;
-    *p++ = f3;
-    *p++ = e5;
+    *p++ = SQ_f3;
+    *p++ = SQ_e5;
     *p++ = 0;
     *p++ = 0;
     pokew(MLLST,0x406);
@@ -2344,16 +2324,16 @@ static bool repetition_test()
     // O-O
     *p++ = 0;
     *p++ = 0;
-    *p++ = e1;
-    *p++ = g1;
+    *p++ = SQ_e1;
+    *p++ = SQ_g1;
     *p++ = 0x40;
     *p++ = 0;
 
     // O-O second move
     *p++ = 0;
     *p++ = 0;
-    *p++ = h1;
-    *p++ = f1;
+    *p++ = SQ_h1;
+    *p++ = SQ_f1;
     *p++ = 0;
     *p++ = 0;
     pokew(MLNXT,0x412);
@@ -2368,18 +2348,18 @@ static bool repetition_test()
     //show();
 
     // Check whether it matches our expectations
-    if( 0x400 != peekw(MLLST) )
+    if( mlist != m.MLLST )
         ok = false;
-    if( 0x40c != peekw(MLNXT) )
+    if( mlist+12 != m.MLNXT )
         ok = false;
     q = (const uint8_t *)&m.MLIST[0];
     if( *q++ != 0 )
         ok = false;
     if( *q++ != 0 )
         ok = false;
-    if( *q++ != e1 )
+    if( *q++ != SQ_e1 )
         ok = false;
-    if( *q++ != g1 )
+    if( *q++ != SQ_g1 )
         ok = false;
     if( *q++ != 0x40 )
         ok = false;
@@ -2389,9 +2369,9 @@ static bool repetition_test()
         ok = false;
     if( *q++ != 0 )
         ok = false;
-    if( *q++ != h1 )
+    if( *q++ != SQ_h1 )
         ok = false;
-    if( *q++ != f1 )
+    if( *q++ != SQ_f1 )
         ok = false;
     if( *q++ != 0 )
         ok = false;
@@ -2399,7 +2379,7 @@ static bool repetition_test()
         ok = false;
 
     // Undo all changes
-    p = poke(0x400);
+    p = poke(mlist);
     memcpy(p,buf,18);
     pokew(PLYIX,plyix);
     pokew(MLLST,mllst);
@@ -2411,27 +2391,28 @@ static bool repetition_test()
 static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_moves  )
 {
     //show();
+    uint16_t mlist = PTR_TO_BIN(&m.MLIST[0]);
 
-    // Locate the list of candidate moves (ptr ends up being 0x400 always)
-    unsigned int addr = PLYIX;
-    unsigned int base = peekw(addr);
-    unsigned int ptr  = base;
+    // Locate the list of candidate moves (ptr ends up being 0x400=mlist always)
+    uint16_t bin_ptr = m.PLYIX[0];
 
     // Read a vector of NativeMove
-    unsigned int mlnxt = peekw(MLNXT);
-    if( ptr!=0x400 || mlnxt<=ptr || ((mlnxt-ptr)%6)!=0 || ((mlnxt-ptr)/6>250) )
+    uint16_t mlnxt = m.MLNXT;
+    if( bin_ptr!=mlist || mlnxt<=bin_ptr || ((mlnxt-bin_ptr)%6)!=0 || ((mlnxt-bin_ptr)/6>250) )
         return; // sanity checks
     std::vector<NativeMove> vin;
-    while( ptr < mlnxt )
+    while( bin_ptr < mlnxt )
     {
+        uint8_t *p = BIN_TO_PTR(bin_ptr);
         NativeMove nm;
-        nm.ptr_lo = peekb(ptr++);
-        nm.ptr_hi = peekb(ptr++);
-        nm.square_src = peekb(ptr++);
-        nm.square_dst = peekb(ptr++);
-        nm.flags = peekb(ptr++);
-        nm.value = peekb(ptr++);
+        nm.ptr_lo =     *p++;
+        nm.ptr_hi =     *p++;
+        nm.square_src = *p++;
+        nm.square_dst = *p++;
+        nm.flags =      *p++;
+        nm.value =      *p++;
         vin.push_back(nm);
+        bin_ptr += 6;
     }
 
     // Create an edited (reduced) vector
@@ -2465,9 +2446,9 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     }
 
     // Fixup ptr fields
-    ptr = base;
-    unsigned int ptr_final_move = ptr;
-    unsigned int ptr_end = (unsigned int)(ptr + 6*vout.size());
+    bin_ptr = m.PLYIX[0];
+    unsigned int ptr_final_move = bin_ptr;
+    unsigned int ptr_end = (unsigned int)(bin_ptr + 6*vout.size());
     second_byte=false;
     for( NativeMove &nm: vout )
     {
@@ -2481,30 +2462,30 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
         {
             if( nm.flags & 0x40 )
                 second_byte = true;
-            ptr_final_move = ptr;
-            unsigned int ptr_next = (second_byte ? ptr+12 : ptr+6);
+            ptr_final_move = bin_ptr;
+            unsigned int ptr_next = (second_byte ? bin_ptr+12 : bin_ptr+6);
             if( ptr_next == ptr_end )
                 ptr_next = 0;
             nm.ptr_lo = ((ptr_next)&0xff);
             nm.ptr_hi = (((ptr_next)>>8)&0xff);
         }
-        ptr += 6;
+        bin_ptr += 6;
     }
 
     // Write vector back
     if( vout.size() )  // but if no moves left, make no changes
     {
-        pokew( MLLST, ptr_final_move );
-        pokew( MLNXT, ptr_end );
-        ptr = base;
+        m.MLLST = ptr_final_move;
+        m.MLNXT = ptr_end;
+        uint8_t *p = BIN_TO_PTR(m.PLYIX[0]);
         for( NativeMove nm: vout )
         {
-            pokeb( ptr++, nm.ptr_lo );
-            pokeb( ptr++, nm.ptr_hi );
-            pokeb( ptr++, nm.square_src );
-            pokeb( ptr++, nm.square_dst );
-            pokeb( ptr++, nm.flags );
-            pokeb( ptr++, nm.value );
+            *p++ = nm.ptr_lo;
+            *p++ = nm.ptr_hi;
+            *p++ = nm.square_src;
+            *p++ = nm.square_dst;
+            *p++ = nm.flags;
+            *p++ = nm.value;
         }
     }
 
@@ -2520,7 +2501,7 @@ void callback_uci_after_genmove()
 {
     total_callbacks++;
     genmov_callbacks++;
-    if( peekb(NPLY)==1 && the_repetition_moves.size()>0 )
+    if( m.NPLY==1 && the_repetition_moves.size()>0 )
         repetition_remove_moves( the_repetition_moves );
 }
 
@@ -2538,7 +2519,7 @@ void callback_uci_end_of_points()
 
     // Abort run_sargon() if new event in queue (and not PLYMAX==1 which is
     //  effectively instantaneous, finds a baseline move)
-    if( !async_queue.empty() && peekb(PLYMAX)>1 )
+    if( !async_queue.empty() && m.PLYMAX>1 )
     {
         longjmp( jmp_buf_env, 1 );
     }

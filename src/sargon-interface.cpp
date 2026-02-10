@@ -160,9 +160,14 @@ std::string sargon_export_move( unsigned int sargon_move_ptr, bool indirect )
 {
     char buf[5];
     buf[0] = '\0';
-    unsigned int  p    = indirect ? peekw(sargon_move_ptr) : sargon_move_ptr;
-    unsigned char from = peekb(p+2);
-    unsigned char to   = peekb(p+3);
+    uint8_t *p = BIN_TO_PTR(sargon_move_ptr);
+    if( indirect )
+    {
+        uint16_t bin = RD_BIN(p);
+        p = BIN_TO_PTR(bin);
+    }
+    unsigned char from = *(p+2);
+    unsigned char to   = *(p+3);
     thc::Square f, t;
     if( sargon_export_square(from,f) )
     {
@@ -243,9 +248,9 @@ bool sargon_play_move( thc::Move &mv )
     */
 
     bool ok=false;
-    unsigned char color = peekb(COLOR); // who to move?
-    unsigned char kolor = peekb(KOLOR); // which side is Sargon?
-    pokeb( KOLOR, color==0?0x80:0 );    // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
+    unsigned char color = m.COLOR; // who to move?
+    unsigned char kolor = m.KOLOR; // which side is Sargon?
+    m.KOLOR, color==0?0x80:0;      // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
     std::string terse = mv.TerseOut();
     for( int i=0; i<2; i++ )
     {
@@ -307,8 +312,8 @@ void sargon_export_position( thc::ChessPosition &cp )
     }
 
     // Start attending to all the details other than just which pieces are on each square
-    cp.white = (peekb(COLOR) == 0x00);
-    cp.full_move_count = peekb(MOVENO);
+    cp.white = IS_WHITE(m.COLOR);
+    cp.full_move_count = m.MOVENO;
 
     // Before clearing the temporary 'have moved' marks, check for castling legality
     //  (note moved Kings and Rooks won't be 'K', 'R' etc because of the marks)
@@ -331,11 +336,11 @@ void sargon_export_position( thc::ChessPosition &cp )
 
     // This is a bit insane, but why not. Let's figure out the enpassant target square
     //  if there is one. By default of course Init() has set it to thc::SQUARE_INVALID
-    unsigned int last_move_ptr = peekw(MLPTRJ);
+    uint8_t *last_move_ptr = BIN_TO_PTR(m.MLPTRJ);
     if( last_move_ptr )
     {
-        int from = peekb(last_move_ptr + 2);
-        int to   = peekb(last_move_ptr + 3);
+        int from = *(last_move_ptr + 2);
+        int to   = *(last_move_ptr + 3);
         thc::Square sq_from, sq_to;
         bool ok = sargon_export_square(from,sq_from);
         if( ok )
@@ -638,7 +643,7 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
         plymax = 20;
     pokeb( PLYMAX, plymax );
     sargon_import_position( cp, avoid_book );
-    pokeb( KOLOR, peekb(COLOR) );  // Set KOLOR (Sargon's colour) to COLOR (side to move)
+    m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
     pv = sargon_pv_get(); // only update if CPTRMV completes (engine uses longjmp to abort if timeout)
 }
