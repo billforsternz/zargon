@@ -404,7 +404,7 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
         unsigned char moveno=1;
         m.MOVENO = moveno;
         m.KOLOR  = 0x80; // Sargon is black
-        m.PLYMAX = 0;
+        m.PLYMAX = 2;
         std::string game_text;
         int idx = 0;
         for( thc::Move mv: moves )
