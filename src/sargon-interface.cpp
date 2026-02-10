@@ -250,7 +250,7 @@ bool sargon_play_move( thc::Move &mv )
     bool ok=false;
     unsigned char color = m.COLOR; // who to move?
     unsigned char kolor = m.KOLOR; // which side is Sargon?
-    m.KOLOR, color==0?0x80:0;      // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
+    m.KOLOR = (color==0?0x80:0);   // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
     std::string terse = mv.TerseOut();
     for( int i=0; i<2; i++ )
     {
