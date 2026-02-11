@@ -35,6 +35,119 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 #endif
 emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 
+typedef uint8_t *byte_ptr;
+
+struct transition
+{
+    //***********************************************************      
+    // SCORE   --  Score Array. Used during Alpha-Beta pruning to      
+    //             hold the scores at each ply. It includes two        
+    //             "dummy" entries for ply -1 and ply 0.               
+    //***********************************************************      
+    uint16_t    SCORE[22] = {                                          
+        0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,
+        0,0
+    };
+
+    //***********************************************************      
+    // PLYIX   --  Ply Table. Contains pairs of pointers, a pair       
+    //             for each ply. The first pointer points to the       
+    //             top of the list of possible moves at that ply.      
+    //             The second pointer points to which move in the      
+    //             list is the one currently being considered.         
+    //***********************************************************      
+    byte_ptr    PLYIX[40] = {                                          
+        0,0,0,0,0,0,0,0,0,0,                                           
+        0,0,0,0,0,0,0,0,0,0,                                            
+        0,0,0,0,0,0,0,0,0,0,                                           
+        0,0,0,0,0,0,0,0,0,0                                            
+    };                                                                 
+
+
+    // MLPTRI  --  Pointer into the ply table which tells                 
+    //             which pair of pointers are in current use.             
+    //                                                                    
+    // MLPTRJ  --  Pointer into the move list to the move that is         
+    //             currently being processed.                             
+    //                                                                    
+    // SCRIX   --  Score Index. Pointer to the score table for            
+    //             the ply being examined.                                
+    //                                                                    
+    // BESTM   --  Pointer into the move list for the move that           
+    //             is currently considered the best by the                
+    //             Alpha-Beta pruning process.                            
+    //                                                                    
+    // MLLST   --  Pointer to the previous move placed in the move        
+    //             list. Used during generation of the move list.         
+    //                                                                    
+    // MLNXT   --  Pointer to the next available space in the move        
+    //             list.                                                  
+    //                                                                    
+    //***********************************************************         
+    byte_ptr MLPTRI  =      (byte_ptr)&PLYIX;              
+    byte_ptr MLPTRJ  =      dummy_move;                                            
+    byte_ptr SCRIX   =      0;                                            
+    byte_ptr BESTM   =      0;                                            
+    byte_ptr MLLST   =      0;                                            
+    byte_ptr MLNXT   =      MLIST;              
+    uint8_t  dummy_move[10];
+                                                                      
+    //
+    // 4) MOVE ARRAY
+    //
+    //***********************************************************         
+    // MOVE LIST SECTION                                                  
+    //                                                                    
+    // MLIST   --  A 2048 byte storage area for generated moves.          
+    //             This area must be large enough to hold all             
+    //             the moves for a single leg of the move tree.           
+    //                                                                    
+    // MLEND   --  The address of the last available location             
+    //             in the move list.                                      
+    //                                                                    
+    // MLPTR   --  The Move List is a linked list of individual           
+    //             moves each of which is 6 bytes in length. The          
+    //             move list pointer(MLPTR) is the link field             
+    //             within a move.                                         
+    //                                                                    
+    // MLFRP   --  The field in the move entry which gives the            
+    //             board position from which the piece is moving.         
+    //                                                                    
+    // MLTOP   --  The field in the move entry which gives the            
+    //             board position to which the piece is moving.           
+    //                                                                    
+    // MLFLG   --  A field in the move entry which contains flag          
+    //             information. The meaning of each bit is as             
+    //             follows:                                               
+    //             Bit 7  --  The color of any captured piece             
+    //                        0 -- White                                  
+    //                        1 -- Black                                  
+    //             Bit 6  --  Double move flag (set for castling and      
+    //                        en passant pawn captures)                   
+    //             Bit 5  --  Pawn Promotion flag; set when pawn          
+    //                        promotes.                                   
+    //             Bit 4  --  When set, this flag indicates that          
+    //                        this is the first move for the              
+    //                        piece on the move.                          
+    //             Bit 3  --  This flag is set is there is a piece        
+    //                        captured, and that piece has moved at       
+    //                        least once.                                 
+    //             Bits 2-0   Describe the captured piece.  A             
+    //                        zero value indicates no capture.            
+    //                                                                    
+    // MLVAL   --  The field in the move entry which contains the         
+    //             score assigned to the move.                            
+    //                                                                    
+    //***********************************************************         
+    uint8_t MLIST[60000];
+    uint8_t MLEND;                                                        
+};
+
+// Variables as we transition to native ptrs
+static transition z;
+
+
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
 
@@ -52,484 +165,12 @@ zargon_data_defs_check_and_regen regen;
 #define BLACK   0x80
 #define BPAWN   (BLACK+PAWN)
 
-//
-// 1) TABLES
-//
-
-// Data section now actually defined in zargon.h, for now at least
-//  we reproduce it here for comparison to original Sargon Z80 code
-#ifndef ZARGON_H_INCLUDED
-//***********************************************************
-// TABLES SECTION
-//***********************************************************
-//
-//
-#define TBASE 0x100     // The following tables begin at this
-                        //  low but non-zero page boundary in
-                        //  in our 64K emulated memory
-struct emulated_memory {
-uint8_t padding[TBASE];
-
-//There are multiple tables used for fast table look ups
-//that are declared relative to TBASE. In each case there
-//is a table (say DIRECT) and one or more variables that
-//index into the table (say INDX2). The table is declared
-//as a relative offset from the TBASE like this;
-//
-//DIRECT = .-TBASE  ;In this . is the current location
-//                  ;($ rather than . is used in most assemblers)
-//
-//The index variable is declared as;
-//INDX2    .WORD TBASE
-//
-//TBASE itself is page aligned, for example TBASE = 100h
-//Although 2 bytes are allocated for INDX2 the most significant
-//never changes (so in our example it's 01h). If we want
-//to index 5 bytes into DIRECT we set the low byte of INDX2
-//to 5 (now INDX2 = 105h) and load IDX2 into an index
-//register. The following sequence loads register C with
-//the 5th byte of the DIRECT table (Z80 mnemonics)
-//        LD      A,5
-//        LD      [INDX2],A
-//        LD      IY,[INDX2]
-//        LD      C,[IY+DIRECT]
-//
-//It's a bit like the little known C trick where array[5]
-//can also be written as 5[array].
-//
-//The Z80 indexed addressing mode uses a signed 8 bit
-//displacement offset (here DIRECT) in the range -128
-//to 127. Sargon needs most of this range, which explains
-//why DIRECT is allocated 80h bytes after start and 80h
-//bytes *before* TBASE, this arrangement sets the DIRECT
-//displacement to be -80h bytes (-128 bytes). After the 24
-//byte DIRECT table comes the DPOINT table. So the DPOINT
-//displacement is -128 + 24 = -104. The final tables have
-//positive displacements.
-//
-//The negative displacements are not necessary in X86 where
-//the equivalent mov reg,[di+offset] indexed addressing
-//is not limited to 8 bit offsets, so in the X86 port we
-//put the first table DIRECT at the same address as TBASE,
-//a more natural arrangement I am sure you'll agree.
-//
-//In general it seems Sargon doesn't want memory allocated
-//in the first page of memory, so we start TBASE at 100h not
-//at 0h. One reason is that Sargon extensively uses a trick
-//to test for a NULL pointer; it tests whether the hi byte of
-//a pointer == 0 considers this as a equivalent to testing
-//whether the whole pointer == 0 (works as long as pointers
-//never point to page 0).
-//
-//Also there is an apparent bug in Sargon, such that MLPTRJ
-//is left at 0 for the root node and the MLVAL for that root
-//node is therefore written to memory at offset 5 from 0 (so
-//in page 0). It's a bit wasteful to waste a whole 256 byte
-//page for this, but it is compatible with the goal of making
-//as few changes as possible to the inner heart of Sargon.
-//In the X86 port we lock the uninitialised MLPTRJ bug down
-//so MLPTRJ is always set to zero and rendering the bug
-//harmless (search for MLPTRJ to find the relevant code).
-//
-//**********************************************************
-// DIRECT  --  Direction Table.  Used to determine the dir-
-//             ection of movement of each piece.
-//***********************************************************
-#define DIRECT (addr(direct)-TBASE)
-int8_t direct[24] = {
-    +9,+11,-11,-9,
-    +10,-10,+1,-1,
-    -21,-12,+8,+19,
-    +21,+12,-8,-19,
-    +10,+10,+11,+9,
-    -10,-10,-11,-9
-};
-//***********************************************************
-// DPOINT  --  Direction Table Pointer. Used to determine
-//             where to begin in the direction table for any
-//             given piece.
-//***********************************************************
-#define DPOINT (addr(dpoint)-TBASE)
-uint8_t dpoint[7] = {
-    20,16,8,0,4,0,0
-};
-
-//***********************************************************
-// DCOUNT  --  Direction Table Counter. Used to determine
-//             the number of directions of movement for any
-//             given piece.
-//***********************************************************
-#define DCOUNT (addr(dcount)-TBASE)
-uint8_t dcount[7] = {
-    4,4,8,4,4,8,8
-};
-
-//***********************************************************
-// PVALUE  --  Point Value. Gives the point value of each
-//             piece, or the worth of each piece.
-//***********************************************************
-#define PVALUE (addr(pvalue)-TBASE-1)  //-1 because PAWN is 1 not 0
-uint8_t pvalue[6] = {
-    1,3,3,5,9,10
-};
-
-//***********************************************************
-// PIECES  --  The initial arrangement of the first rank of
-//             pieces on the board. Use to set up the board
-//             for the start of the game.
-//***********************************************************
-#define PIECES  (addr(pieces)-TBASE)
-uint8_t pieces[8] = {
-    4,2,3,5,6,3,2,4
-};
-
-//***********************************************************
-// BOARD   --  Board Array.  Used to hold the current position
-//             of the board during play. The board itself
-//             looks like:
-//             FFFFFFFFFFFFFFFFFFFF
-//             FFFFFFFFFFFFFFFFFFFF
-//             FF0402030506030204FF
-//             FF0101010101010101FF
-//             FF0000000000000000FF
-//             FF0000000000000000FF
-//             FF0000000000000060FF
-//             FF0000000000000000FF
-//             FF8181818181818181FF
-//             FF8482838586838284FF
-//             FFFFFFFFFFFFFFFFFFFF
-//             FFFFFFFFFFFFFFFFFFFF
-//             The values of FF form the border of the
-//             board, and are used to indicate when a piece
-//             moves off the board. The individual bits of
-//             the other bytes in the board array are as
-//             follows:
-//             Bit 7 -- Color of the piece
-//                     1 -- Black
-//                     0 -- White
-//             Bit 6 -- Not used
-//             Bit 5 -- Not used
-//             Bit 4 --Castle flag for Kings only
-//             Bit 3 -- Piece has moved flag
-//             Bits 2-0 Piece type
-//                     1 -- Pawn
-//                     2 -- Knight
-//                     3 -- Bishop
-//                     4 -- Rook
-//                     5 -- Queen
-//                     6 -- King
-//                     7 -- Not used
-//                     0 -- Empty Square
-//***********************************************************
-#define BOARD (addr(BOARDA)-TBASE)
-uint8_t BOARDA[120];
-
-//***********************************************************
-// ATKLIST -- Attack List. A two part array, the first
-//            half for white and the second half for black.
-//            It is used to hold the attackers of any given
-//            square in the order of their value.
-//
-// WACT   --  White Attack Count. This is the first
-//            byte of the array and tells how many pieces are
-//            in the white portion of the attack list.
-//
-// BACT   --  Black Attack Count. This is the eighth byte of
-//            the array and does the same for black.
-//***********************************************************
-#define WACT addr(ATKLST)
-#define BACT (addr(ATKLST)+7)
-union
-{
-    uint16_t    ATKLST[7];
-        uint8_t     wact[7];
-/*    struct wact_bact
-    {
-        uint8_t     wact[7];
-        uint8_t     bact[7];
-    }; */
-};
-
-//***********************************************************
-// PLIST   --  Pinned Piece Array. This is a two part array.
-//             PLISTA contains the pinned piece position.
-//             PLISTD contains the direction from the pinned
-//             piece to the attacker.
-//***********************************************************
-#define PLIST (addr(PLISTA)-TBASE-1)    ///TODO -1 why?
-#define PLISTD (PLIST+10)
-uint8_t     PLISTA[10];     // pinned pieces
-uint8_t     plistd[10];     // corresponding directions
-
-//***********************************************************
-// POSK    --  Position of Kings. A two byte area, the first
-//             byte of which hold the position of the white
-//             king and the second holding the position of
-//             the black king.
-//
-// POSQ    --  Position of Queens. Like POSK,but for queens.
-//***********************************************************
-uint8_t     POSK[2] = {
-    SQ_e1,SQ_e8
-};
-uint8_t     POSQ[2] = {
-    SQ_d1,SQ_d8
-};
-int8_t padding2 = -1;
-
-//***********************************************************
-// SCORE   --  Score Array. Used during Alpha-Beta pruning to
-//             hold the scores at each ply. It includes two
-//             "dummy" entries for ply -1 and ply 0.
-//***********************************************************
-uint8_t padding3[44];
-uint16_t    SCORE[20] = {
-    0,0,0,0,0,0,0,0,0,0,                // Z80 max 6 ply
-    0,0,0,0,0,0,0,0,0,0                 // x86 max 20 ply
-};
-
-//***********************************************************
-// PLYIX   --  Ply Table. Contains pairs of pointers, a pair
-//             for each ply. The first pointer points to the
-//             top of the list of possible moves at that ply.
-//             The second pointer points to which move in the
-//             list is the one currently being considered.
-//***********************************************************
-uint8_t padding4[2];
-uint16_t    PLYIX[20] = {
-    0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0
-};
-
-//
-// 2) PTRS to TABLES
-//
-
-//***********************************************************
-// 2) TABLE INDICES SECTION
-//
-// M1-M4   --  Working indices used to index into
-//             the board array.
-//
-// T1-T3   --  Working indices used to index into Direction
-//             Count, Direction Value, and Piece Value tables.
-//
-// INDX1   --  General working indices. Used for various
-// INDX2       purposes.
-//
-// NPINS   --  Number of Pins. Count and pointer into the
-//             pinned piece list.
-//
-// MLPTRI  --  Pointer into the ply table which tells
-//             which pair of pointers are in current use.
-//
-// MLPTRJ  --  Pointer into the move list to the move that is
-//             currently being processed.
-//
-// SCRIX   --  Score Index. Pointer to the score table for
-//             the ply being examined.
-//
-// BESTM   --  Pointer into the move list for the move that
-//             is currently considered the best by the
-//             Alpha-Beta pruning process.
-//
-// MLLST   --  Pointer to the previous move placed in the move
-//             list. Used during generation of the move list.
-//
-// MLNXT   --  Pointer to the next available space in the move
-//             list.
-//
-//***********************************************************
-uint8_t padding5[174];
-uint16_t M1      =      TBASE;
-uint16_t M2      =      TBASE;
-uint16_t M3      =      TBASE;
-uint16_t M4      =      TBASE;
-uint16_t T1      =      TBASE;
-uint16_t T2      =      TBASE;
-uint16_t T3      =      TBASE;
-uint16_t INDX1   =      TBASE;
-uint16_t INDX2   =      TBASE;
-uint16_t NPINS   =      TBASE;
-uint16_t MLPTRI  =      addr(PLYIX);
-uint16_t MLPTRJ  =      0;
-uint16_t SCRIX   =      0;
-uint16_t BESTM   =      0;
-uint16_t MLLST   =      0;
-uint16_t MLNXT   =      addr(MLIST);
-
-//
-// 3) MISC VARIABLES
-//
-
-//***********************************************************
-// VARIABLES SECTION
-//
-// KOLOR   --  Indicates computer's color. White is 0, and
-//             Black is 80H.
-//
-// COLOR   --  Indicates color of the side with the move.
-//
-// P1-P3   --  Working area to hold the contents of the board
-//             array for a given square.
-//
-// PMATE   --  The move number at which a checkmate is
-//             discovered during look ahead.
-//
-// MOVENO  --  Current move number.
-//
-// PLYMAX  --  Maximum depth of search using Alpha-Beta
-//             pruning.
-//
-// NPLY    --  Current ply number during Alpha-Beta
-//             pruning.
-//
-// CKFLG   --  A non-zero value indicates the king is in check.
-//
-// MATEF   --  A zero value indicates no legal moves.
-//
-// VALM    --  The score of the current move being examined.
-//
-// BRDC    --  A measure of mobility equal to the total number
-//             of squares white can move to minus the number
-//             black can move to.
-//
-// PTSL    --  The maximum number of points which could be lost
-//             through an exchange by the player not on the
-//             move.
-//
-// PTSW1   --  The maximum number of points which could be won
-//             through an exchange by the player not on the
-//             move.
-//
-// PTSW2   --  The second highest number of points which could
-//             be won through a different exchange by the player
-//             not on the move.
-//
-// MTRL    --  A measure of the difference in material
-//             currently on the board. It is the total value of
-//             the white pieces minus the total value of the
-//             black pieces.
-//
-// BC0     --  The value of board control(BRDC) at ply 0.
-//
-// MV0     --  The value of material(MTRL) at ply 0.
-//
-// PTSCK   --  A non-zero value indicates that the piece has
-//             just moved itself into a losing exchange of
-//             material.
-//
-// BMOVES  --  Our very tiny book of openings. Determines
-//             the first move for the computer.
-//
-//***********************************************************
-uint8_t KOLOR   =      0;               //
-uint8_t COLOR   =      0;               //
-uint8_t P1      =      0;               //
-uint8_t P2      =      0;               //
-uint8_t P3      =      0;               //
-uint8_t PMATE   =      0;               //
-uint8_t MOVENO  =      0;               //
-uint8_t PLYMAX  =      2;               //
-uint8_t NPLY    =      0;               //
-uint8_t CKFLG   =      0;               //
-uint8_t MATEF   =      0;               //
-uint8_t VALM    =      0;               //
-uint8_t BRDC    =      0;               //
-uint8_t PTSL    =      0;               //
-uint8_t PTSW1   =      0;               //
-uint8_t PTSW2   =      0;               //
-uint8_t MTRL    =      0;               //
-uint8_t BC0     =      0;               //
-uint8_t MV0     =      0;               //
-uint8_t PTSCK   =      0;               //
-uint8_t BMOVES[12] = {
-    35,55,0x10,
-    34,54,0x10,
-    85,65,0x10,
-    84,64,0x10
-};
-uint8_t LINECT = 0;
-char MVEMSG[5]; // = {'a','1','-','a','1'};
-char O_O[3];    //    = { '0', '-', '0' };
-char O_O_O[5];  //  = { '0', '-', '0', '-', '0' };
-
-//
-// 4) MOVE ARRAY
-//
-
-//***********************************************************
-// MOVE LIST SECTION
-//
-// MLIST   --  A 2048 byte storage area for generated moves.
-//             This area must be large enough to hold all
-//             the moves for a single leg of the move tree.
-//
-// MLEND   --  The address of the last available location
-//             in the move list.
-//
-// MLPTR   --  The Move List is a linked list of individual
-//             moves each of which is 6 bytes in length. The
-//             move list pointer(MLPTR) is the link field
-//             within a move.
-//
-// MLFRP   --  The field in the move entry which gives the
-//             board position from which the piece is moving.
-//
-// MLTOP   --  The field in the move entry which gives the
-//             board position to which the piece is moving.
-//
-// MLFLG   --  A field in the move entry which contains flag
-//             information. The meaning of each bit is as
-//             follows:
-//             Bit 7  --  The color of any captured piece
-//                        0 -- White
-//                        1 -- Black
-//             Bit 6  --  Double move flag (set for castling and
-//                        en passant pawn captures)
-//             Bit 5  --  Pawn Promotion flag; set when pawn
-//                        promotes.
-//             Bit 4  --  When set, this flag indicates that
-//                        this is the first move for the
-//                        piece on the move.
-//             Bit 3  --  This flag is set is there is a piece
-//                        captured, and that piece has moved at
-//                        least once.
-//             Bits 2-0   Describe the captured piece.  A
-//                        zero value indicates no capture.
-//
-// MLVAL   --  The field in the move entry which contains the
-//             score assigned to the move.
-//
-//***********************************************************
-uint8_t padding6[178];
-struct ML {
-    uint16_t    MLPTR_;
-    uint8_t     MLFRP_;
-    uint8_t     MLTOP_;
-    uint8_t     MLFLG_;
-    uint8_t     MLVAL_;
-}  MLIST[10000];
-uint8_t MLEND;
-};
-#endif // ZARGON_H_INCLUDED
-
 // Macros not actually defined in zargon.h to avoid namespace pollution
 #define MLPTR 0
 #define MLFRP 2
 #define MLTOP 3
 #define MLFLG 4
 #define MLVAL 5
-// #define DIRECT (addr(direct)-TBASE)
-// #define DPOINT (addr(dpoint)-TBASE)
-// #define DCOUNT (addr(dcount)-TBASE)
-// #define PVALUE (addr(pvalue)-TBASE-1)
-// #define PIECES  (addr(pieces)-TBASE)
-// #define BOARD (addr(BOARDA)-TBASE)
-// #define WACT addr(ATKLST)
-// #define BACT (addr(ATKLST)+7)
-// #define PLIST (addr(PLISTA)-TBASE-1)
-// #define PLISTD (PLIST+10)
 
 //**********************************************************
 // PROGRAM CODE SECTION

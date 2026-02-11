@@ -1397,6 +1397,8 @@ void callback_ldar( uint8_t &out_random_number )
     }
 }
 
+#ifdef FULL_CALLBACK_IMPLEMENTATIONS
+
 // The name of this callback derives from the previous CB_YES_BEST_MOVE.
 // It doesn't make much sense by itself, in our original Sargon X86
 // project the callbacks had longer string identifiers and
@@ -1567,4 +1569,53 @@ void callback_no_best_move( uint8_t score, const uint8_t *p )
     }
     running_example->progress.push_back(prog);
 }
+
+
+// Else callback stubs
+#else
+
+void callback_yes_best_move()
+{
+}
+
+// End of POINTS routine
+void callback_end_of_points( int8_t &points )
+{
+}
+
+// After GENMOV() routine
+void callback_after_genmov()
+{
+}
+
+//
+//    Remaining Callbacks only apply when we are running our minimax tests and
+//    heavily manipulating Sargon's operations
+//
+
+// For purposes of minimax tracing experiment, we only want two possible
+//  moves in each position - achieved by suppressing King moves
+bool callback_suppress_king_moves( uint8_t piece )
+{
+    return false;
+}
+
+// For purposes of minimax tracing experiment, describe and annotate the
+//  best move calculation, part 1
+// (Name 'Alpha beta cutoff?' -> CB_ALPHA_BETA_CUTOFF)
+void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
+{
+}
+
+// For purposes of minimax tracing experiment, describe and annotate the
+//  best move calculation, part 2
+// (Name 'No! is this the best move?' -> CB_NO_BEST_MOVE)
+void callback_no_best_move( uint8_t score, const uint8_t *p )
+{
+}
+
+#endif
+
+
+
 
