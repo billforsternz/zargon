@@ -897,7 +897,7 @@ static void cmd_go_infinite()
     if( stop_rsp == "" )    // Shouldn't actually ever happen as callback polling doesn't abort
     {                       //  run_sargon() if plymax is 1
         run_sargon(1,false);
-        std::string bestmove = sargon_export_move(BESTM);
+        std::string bestmove = sargon_export_best_move_temp();
         stop_rsp = util::sprintf( "bestmove %s\n", bestmove.c_str() ); 
     }
 }
@@ -1607,7 +1607,7 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
         // The special case, where Sargon minimax never ran should only be book move
         if( the_pv.variation.size() == 0 )    
         {
-            std::string bestmove_terse = sargon_export_move(BESTM);
+            std::string bestmove_terse = sargon_export_best_move_temp();
             thc::Move bestmove;
             bestmove.Invalid();
             bool have_move = bestmove.TerseIn( &the_position, bestmove_terse.c_str() );
@@ -1633,7 +1633,7 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
         else
         {
             std::string s = the_pv.variation[0].TerseOut();
-            std::string bestm = sargon_export_move(BESTM);
+            std::string bestm = sargon_export_best_move_temp();
             if( s.substr(0,4) != bestm )
                 log( "Unexpected event: BESTM=%s != PV[0]=%s\n%s", bestm.c_str(), s.c_str(), the_position.ToDebugStr().c_str() );
             info = generate_progress_report( we_are_forcing_mate, we_are_stalemating_now );
@@ -2027,7 +2027,7 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
         if( the_pv.variation.size() == 0 )    
         {
             // maybe book move
-            bestmove_terse = sargon_export_move(BESTM);
+            bestmove_terse = sargon_export_best_move_temp();
             plymax = 0; // to set plymax_target for next time
             break;
         }
@@ -2052,7 +2052,7 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
 
             // Best move found
             bestmove_terse = the_pv.variation[0].TerseOut();
-            std::string bestm = sargon_export_move(BESTM);
+            std::string bestm = sargon_export_best_move_temp();
             if( !aborted && bestmove_terse.substr(0,4) != bestm )
                 log( "Unexpected event: BESTM=%s != PV[0]=%s\n%s", bestm.c_str(), bestmove_terse.c_str(), the_position.ToDebugStr().c_str() );
 

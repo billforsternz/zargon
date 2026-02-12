@@ -284,7 +284,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             CPTRMV();
             thc::ChessRules cr_after;
             sargon_export_position(cr_after);
-            std::string terse = sargon_export_move(BESTM);
+            std::string terse = sargon_export_best_move_temp();
             thc::Move mv;
             bool ok = mv.TerseIn( &cr, terse.c_str() );
             if( !ok )
@@ -429,7 +429,7 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
                 else
                 {
                     CPTRMV();
-                    std::string terse = sargon_export_move(BESTM);
+                    std::string terse = sargon_export_best_move_temp();
                     ok = mv.TerseIn( &cr, terse.c_str() );
                 }
                 natural_move = ok ? mv.NaturalOut(&cr) : "??";
@@ -766,7 +766,7 @@ bool sargon_position_tests( bool quiet, int comprehensive )
             s_pv += mv.NaturalOut(&cr);
             cr.PlayMove(mv);
         }
-        std::string sargon_move = sargon_export_move(BESTM);
+        std::string sargon_move = sargon_export_best_move_temp();
         bool pass = (s_pv==std::string(pt->pv));
         if( !pass )
             printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );

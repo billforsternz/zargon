@@ -154,6 +154,29 @@ bool sargon_export_square( unsigned int sargon_square, thc::Square &sq )
     return ok;
 }
 
+std::string sargon_export_best_move_temp()
+{
+    uint8_t *p = BIN_TO_PTR(m.BESTM);
+    unsigned char from = *(p+2);
+    unsigned char to   = *(p+3);
+    char buf[5];
+    buf[0] = '\0';
+    thc::Square f, t;
+    if( sargon_export_square(from,f) )
+    {
+        if( sargon_export_square(to,t) )
+        {
+            buf[0] = thc::get_file(f);
+            buf[1] = thc::get_rank(f);
+            buf[2] = thc::get_file(t);
+            buf[3] = thc::get_rank(t);
+            buf[4] = '\0';
+        }
+    }
+    std::string ret = std::string(buf);
+    return ret;
+}
+
 // Read a chess move out of Sargon (returns "Terse" form - eg "e1g1" for White O-O, note
 //  that Sargon always promotes to Queen, so four character form is sufficient)
 std::string sargon_export_move( unsigned int sargon_move_ptr, bool indirect )
@@ -166,6 +189,7 @@ std::string sargon_export_move( unsigned int sargon_move_ptr, bool indirect )
         uint16_t bin = RD_BIN(p);
         p = BIN_TO_PTR(bin);
     }
+    printf( "%p\n", p );
     unsigned char from = *(p+2);
     unsigned char to   = *(p+3);
     thc::Square f, t;
@@ -337,6 +361,9 @@ void sargon_export_position( thc::ChessPosition &cp )
             cp.bking_square = static_cast<thc::Square>(i);
     }
 
+    // TEMPORARILY REMOVE THIS WHILE WE WORK on native pointer transition
+    #if 0
+
     // This is a bit insane, but why not. Let's figure out the enpassant target square
     //  if there is one. By default of course Init() has set it to thc::SQUARE_INVALID
     uint8_t *last_move_ptr = BIN_TO_PTR(m.MLPTRJ);
@@ -376,6 +403,7 @@ void sargon_export_position( thc::ChessPosition &cp )
             }
         }
     }
+    #endif
 }
 
 // Write chess position into Sargon
