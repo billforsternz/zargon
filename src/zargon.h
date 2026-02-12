@@ -13,6 +13,23 @@ emulated_memory *zargon_get_ptr_emulated_memory();
 // Now export emulated memory as a global, transitional I think
 extern emulated_memory gbl_emulated_memory;
 
+// Linked move
+typedef uint8_t *byte_ptr;
+struct ML
+{
+    byte_ptr    link_ptr;
+    uint8_t     from;
+    uint8_t     to;
+    uint8_t     flags;
+    uint8_t     val;
+};
+
+#define MLPTR 0
+#define MLFRP offsetof(ML,from)
+#define MLTOP offsetof(ML,to)
+#define MLFLG offsetof(ML,flags)
+#define MLVAL offsetof(ML,val)
+
 // Transitional (maybe) pointer manipulation macros
 //  Note: a "bin" for our purposes is the binary representation of
 //        a Sargon pointer, it is a uint16_t offset from the start
@@ -530,13 +547,7 @@ char O_O_O[5];  //  = { '0', '-', '0', '-', '0' };
 //                                                                         //0419: ;
 //***********************************************************              //0420: ;***********************************************************
 uint8_t padding6[178];                                                     //0421:         ORG     START+300H
-struct ML {                                                                //0422: MLIST   DS      2048
-    uint16_t    MLPTR_;
-    uint8_t     MLFRP_;
-    uint8_t     MLTOP_;
-    uint8_t     MLFLG_;
-    uint8_t     MLVAL_;
-}  MLIST[10000];
+ML      MLIST[3750];                                                       //0422: MLIST   DS      2048
 uint8_t MLEND;                                                             //0423: MLEND   EQU     MLIST+2040
 };   //  end struct emulated_memory
 

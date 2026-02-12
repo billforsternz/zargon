@@ -157,8 +157,8 @@ bool sargon_export_square( unsigned int sargon_square, thc::Square &sq )
 std::string sargon_export_best_move_temp()
 {
     uint8_t *p = BIN_TO_PTR(m.BESTM);
-    unsigned char from = *(p+2);
-    unsigned char to   = *(p+3);
+    unsigned char from = *(p+MLFRP);
+    unsigned char to   = *(p+MLTOP);
     char buf[5];
     buf[0] = '\0';
     thc::Square f, t;
@@ -190,8 +190,8 @@ std::string sargon_export_move( unsigned int sargon_move_ptr, bool indirect )
         p = BIN_TO_PTR(bin);
     }
     printf( "%p\n", p );
-    unsigned char from = *(p+2);
-    unsigned char to   = *(p+3);
+    unsigned char from = *(p+MLFRP);
+    unsigned char to   = *(p+MLTOP);
     thc::Square f, t;
     if( sargon_export_square(from,f) )
     {
@@ -369,8 +369,8 @@ void sargon_export_position( thc::ChessPosition &cp )
     uint8_t *last_move_ptr = BIN_TO_PTR(m.MLPTRJ);
     if( last_move_ptr )
     {
-        int from = *(last_move_ptr + 2);
-        int to   = *(last_move_ptr + 3);
+        int from = *(last_move_ptr + MLFRP);
+        int to   = *(last_move_ptr + MLTOP);
         thc::Square sq_from, sq_to;
         bool ok = sargon_export_square(from,sq_from);
         if( ok )

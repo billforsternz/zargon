@@ -35,8 +35,6 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 #endif
 emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 
-typedef uint8_t *byte_ptr;
-
 struct transition
 {
     //***********************************************************      
@@ -90,7 +88,7 @@ struct transition
     byte_ptr SCRIX   =      0;                                            
     byte_ptr BESTM   =      0;                                            
     byte_ptr MLLST   =      0;                                            
-    byte_ptr MLNXT   =      MLIST;              
+    byte_ptr MLNXT   =      (byte_ptr)&MLIST;              
     uint8_t  dummy_move[10];
                                                                       
     //
@@ -140,8 +138,8 @@ struct transition
     //             score assigned to the move.                            
     //                                                                    
     //***********************************************************         
-    uint8_t MLIST[60000];
-    uint8_t MLEND;                                                        
+    ML      MLIST[5000];                                                       //0422: MLIST   DS      2048
+    uint8_t MLEND;                                                             //0423: MLEND   EQU     MLIST+2040
 };
 
 // Variables as we transition to native ptrs
@@ -164,13 +162,6 @@ zargon_data_defs_check_and_regen regen;
 #define WHITE   0
 #define BLACK   0x80
 #define BPAWN   (BLACK+PAWN)
-
-// Macros not actually defined in zargon.h to avoid namespace pollution
-#define MLPTR 0
-#define MLFRP 2
-#define MLTOP 3
-#define MLFLG 4
-#define MLVAL 5
 
 //**********************************************************
 // PROGRAM CODE SECTION
@@ -542,10 +533,10 @@ inline void ADJPTR()
     callback_zargon_bridge(CB_ADJPTR);
 
     // Adjust list pointer to point at previous move
-    uint8_t *p = BIN_TO_PTR(m.MLLST -= 6);
+    ML *p = (ML*)BIN_TO_PTR(m.MLLST -= sizeof(ML));
 
-    // Zero link = first two bytes
-    WR_BIN(p,0);
+    // Zero link
+    p->link_ptr = 0;
 }
 
 //***********************************************************
@@ -686,12 +677,13 @@ void ADMOVE()
 
     // Now write move details
     p = BIN_TO_PTR(bin);
-    WR_BIN(p,0);                // store zero in link address
-    p += 2;
-    *p++ = m.M1;                // store "from" move position
-    *p++ = m.M2;                // store "to" move position
-    *p++ = m.P2;                // store move flags/capt. piece
-    *p++ = 0;                   // store initial move value
+    ML *ml = (ML *)p;
+    ml->link_ptr = 0;           // store zero in link address
+    ml->from  = m.M1;           // store "from" move position
+    ml->to    = m.M2;           // store "to" move position
+    ml->flags = m.P2;           // store move flags/capt. piece
+    ml->val   = 0;              // store initial move value
+    p += sizeof(ML);
 
     // Save next slot address
     m.MLNXT = PTR_TO_BIN(p);
@@ -1684,7 +1676,7 @@ void MOVE()
 
     //  Load move list pointer
     uint8_t *p = BIN_TO_PTR( m.MLPTRJ);
-    p += 2;     // increment past link bytes
+    p += MLFRP;     // increment past link bytes
 
     // Loop for possible double move
     for(;;)
@@ -1741,7 +1733,7 @@ void MOVE()
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
             p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
-            p += 8;                     //  jump to next move
+            p += (sizeof(ML)+MLFRP);    //  jump to next move
         }
         else
         {
@@ -1784,7 +1776,7 @@ void UNMOVE()
 
     //  Load move list pointer
     uint8_t *p = BIN_TO_PTR( m.MLPTRJ);
-    p += 2;     // increment past link bytes
+    p += MLFRP;     // increment past link bytes
 
     // Loop for possible double move
     for(;;)
@@ -1844,7 +1836,7 @@ void UNMOVE()
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
             p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
-            p += 8;                     //  jump to next move
+            p += (sizeof(ML) + MLFRP);  //  jump to next move
         }
         else
         {
@@ -2126,7 +2118,7 @@ void FNDMOV()
                 if( IS_WHITE(m.COLOR) )
                     m.MOVENO++;
 
-                //  Load score table pointer
+                // Load score table pointer
                 p = z.SCRIX;
 
                 //  Get score two plys above

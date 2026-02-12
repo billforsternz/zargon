@@ -2268,7 +2268,7 @@ static void show()
         printf( "%s\n", sargon_export_move(PTR_TO_BIN(move),false).c_str() );
         if( move == mlnxt )
             break;
-        move += 6;
+        move += sizeof(ML);
     }
 }
 
@@ -2306,37 +2306,34 @@ static bool repetition_test()
     unsigned int plyix = m.PLYIX[0];
     unsigned int mllst = m.MLLST;
     unsigned int mlnxt = m.MLNXT;
-    const uint8_t *q = (const uint8_t *)&m.MLIST[0];
-    unsigned char buf[18];
-    memcpy(buf,q,18);
+    const uint8_t *src = (const uint8_t *)&m.MLIST[0];
+    unsigned char buf[sizeof(ML)*3];
+    memcpy(buf,src,sizeof(buf));
 
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
     m.PLYIX[0] = mlist;
-    uint8_t *p = BIN_TO_PTR(mlist);
-    *p++ = 6;
-    *p++ = 4;
-    *p++ = SQ_f3;
-    *p++ = SQ_e5;
-    *p++ = 0;
-    *p++ = 0;
-    m.MLLST = mlist+6;
+    ML *p = (ML *)BIN_TO_PTR(mlist);
+    p->link_ptr = (byte_ptr)(p+1); 
+    p->from     = SQ_f3;
+    p->to       = SQ_e5;
+    p->flags    = 0;
+    p->val      = 0;
+    m.MLLST = mlist+sizeof(ML);
 
     // O-O
-    *p++ = 0;
-    *p++ = 0;
-    *p++ = SQ_e1;
-    *p++ = SQ_g1;
-    *p++ = 0x40;
-    *p++ = 0;
+    p->link_ptr = 0;
+    p->from     = SQ_e1;
+    p->to       = SQ_g1;
+    p->flags    = 0x40;
+    p->val      = 0;
 
     // O-O second move
-    *p++ = 0;
-    *p++ = 0;
-    *p++ = SQ_h1;
-    *p++ = SQ_f1;
-    *p++ = 0;
-    *p++ = 0;
-    m.MLNXT = mlist+3*6;
+    p->link_ptr = 0;
+    p->from     = SQ_h1;
+    p->to       = SQ_f1;
+    p->flags    = 0;
+    p->val      = 0;
+    m.MLNXT = mlist+3*sizeof(ML);
     //show();
 
     // Remove f3e5
@@ -2350,37 +2347,34 @@ static bool repetition_test()
     // Check whether it matches our expectations
     if( mlist != m.MLLST )
         ok = false;
-    if( mlist+12 != m.MLNXT )
+    if( mlist+2*sizeof(ML) != m.MLNXT )
         ok = false;
-    q = (const uint8_t *)&m.MLIST[0];
-    if( *q++ != 0 )
+    const ML *q = (const ML *)&m.MLIST[0];
+    if( q->link_ptr != 0 )
         ok = false;
-    if( *q++ != 0 )
+    if( q->from != SQ_e1 )
         ok = false;
-    if( *q++ != SQ_e1 )
+    if( q->to != SQ_g1 )
         ok = false;
-    if( *q++ != SQ_g1 )
+    if( q->flags != 0x40 )
         ok = false;
-    if( *q++ != 0x40 )
+    if( q->val != 0 )
         ok = false;
-    if( *q++ != 0 )
+    q++;
+    if( q->link_ptr != 0 )
         ok = false;
-    if( *q++ != 0 )
+    if( q->from != SQ_h1 )
         ok = false;
-    if( *q++ != 0 )
+    if( q->to != SQ_f1 )
         ok = false;
-    if( *q++ != SQ_h1 )
+    if( q->flags != 0 )
         ok = false;
-    if( *q++ != SQ_f1 )
-        ok = false;
-    if( *q++ != 0 )
-        ok = false;
-    if( *q++ != 0 )
+    if( q->val != 0 )
         ok = false;
 
     // Undo all changes
-    p = BIN_TO_PTR(mlist);
-    memcpy(p,buf,18);
+    uint8_t *dst = BIN_TO_PTR(mlist);
+    memcpy(dst,buf,sizeof(buf));
     m.PLYIX[0] = plyix;
     m.MLLST = mllst;
     m.MLNXT = mlnxt;
@@ -2398,21 +2392,21 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
 
     // Read a vector of NativeMove
     uint16_t mlnxt = m.MLNXT;
-    if( bin_ptr!=mlist || mlnxt<=bin_ptr || ((mlnxt-bin_ptr)%6)!=0 || ((mlnxt-bin_ptr)/6>250) )
+    if( bin_ptr!=mlist || mlnxt<=bin_ptr || ((mlnxt-bin_ptr)%sizeof(ML))!=0 || ((mlnxt-bin_ptr)/sizeof(ML)>250) )
         return; // sanity checks
     std::vector<NativeMove> vin;
     while( bin_ptr < mlnxt )
     {
-        uint8_t *p = BIN_TO_PTR(bin_ptr);
+        ML *p = (ML *)BIN_TO_PTR(bin_ptr);
         NativeMove nm;
-        nm.ptr_lo =     *p++;
-        nm.ptr_hi =     *p++;
-        nm.square_src = *p++;
-        nm.square_dst = *p++;
-        nm.flags =      *p++;
-        nm.value =      *p++;
+        nm.ptr_lo =     0; // FIXME
+        nm.ptr_hi =     0; // FIXME
+        nm.square_src = p->from;
+        nm.square_dst = p->to;
+        nm.flags =      p->flags;
+        nm.value =      p->val;
         vin.push_back(nm);
-        bin_ptr += 6;
+        bin_ptr += sizeof(ML);
     }
 
     // Create an edited (reduced) vector
@@ -2448,7 +2442,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     // Fixup ptr fields
     bin_ptr = m.PLYIX[0];
     unsigned int ptr_final_move = bin_ptr;
-    unsigned int ptr_end = (unsigned int)(bin_ptr + 6*vout.size());
+    unsigned int ptr_end = (unsigned int)(bin_ptr + sizeof(ML)*vout.size());
     second_byte=false;
     for( NativeMove &nm: vout )
     {
@@ -2463,13 +2457,13 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
             if( nm.flags & 0x40 )
                 second_byte = true;
             ptr_final_move = bin_ptr;
-            unsigned int ptr_next = (second_byte ? bin_ptr+12 : bin_ptr+6);
+            unsigned int ptr_next = (second_byte ? bin_ptr+2*sizeof(ML) : bin_ptr+sizeof(ML));
             if( ptr_next == ptr_end )
                 ptr_next = 0;
             nm.ptr_lo = ((ptr_next)&0xff);
             nm.ptr_hi = (((ptr_next)>>8)&0xff);
         }
-        bin_ptr += 6;
+        bin_ptr += sizeof(ML);
     }
 
     // Write vector back

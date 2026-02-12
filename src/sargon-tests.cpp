@@ -993,7 +993,7 @@ static void show()
         printf( "%s\n", sargon_export_move(PTR_TO_BIN(move),false).c_str() );
         if( move == mlnxt )
             break;
-        move += 6;
+        move += sizeof(ML);
     }
 }
 
