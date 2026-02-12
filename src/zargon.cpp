@@ -2027,7 +2027,7 @@ void FNDMOV()
 
     // Initialize score index and clear table
     p = (uint8_t *)(&m.SCORE);
-    m.SCRIX = PTR_TO_BIN(p);
+    z.SCRIX = p;
     for( int i=0; i<m.PLYMAX+2; i++ )
         *p++ = 0;
 
@@ -2127,7 +2127,7 @@ void FNDMOV()
                     m.MOVENO++;
 
                 //  Load score table pointer
-                p = BIN_TO_PTR(m.SCRIX);
+                p = z.SCRIX;
 
                 //  Get score two plys above
                 score = *p;
@@ -2137,7 +2137,7 @@ void FNDMOV()
                 // Save score as initial value
                 *p = score;
                 p--;                        // decrement pointer
-                m.SCRIX = PTR_TO_BIN(p);    // save it
+                z.SCRIX = p;                // save it
                 genmove_needed = true;      // go to top of loop
                 continue;
             }
@@ -2151,7 +2151,7 @@ void FNDMOV()
             if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
             ASCEND();               // ascend one ply in tree
-            p = BIN_TO_PTR(m.SCRIX);// load score table pointer
+            p = z.SCRIX;            // load score table pointer
             p++;                    // increment to current ply
             p++;                    //
             score = *p;             // get score
@@ -2173,7 +2173,7 @@ void FNDMOV()
             UNMOVE();
             score = m.VALM;             // get value of move
             m.MATEF |= 1;               // set mate flag
-            p = BIN_TO_PTR(m.SCRIX);    // load score table pointer
+            p = z.SCRIX;                // load score table pointer
         }
 
         // Else if terminal position ?
@@ -2186,7 +2186,7 @@ void FNDMOV()
                 m.PMATE= m.MOVENO;
             }
             m.MATEF |= 1;               // set mate flag
-            p = BIN_TO_PTR(m.SCRIX);    // load score table pointer
+            p = z.SCRIX;                // load score table pointer
         }
 
         // Alpa Beta cutoff ?
@@ -2260,7 +2260,7 @@ void ASCEND()
         m.MOVENO--;
 
     // Decrement score table index
-    m.SCRIX--;
+    z.SCRIX--;
 
     // Decrement ply counter
     m.NPLY--;
