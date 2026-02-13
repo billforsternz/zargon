@@ -2241,39 +2241,6 @@ struct NativeMove
     unsigned char value;
 };
 
-static void show()
-{
-    unsigned char nply = m.NPLY;
-    thc::ChessPosition cp;
-    sargon_export_position(cp);
-    std::string s = cp.ToDebugStr();
-    printf( "%s\n", s.c_str() );
-    printf( "NPLY = %02x\n", nply );
-    printf( "Ply ptrs;\n" );
-    for( int i=0; i<4; i++ )
-    {
-        printf( "%04x", m.PLYIX[i] );
-        printf( i+1<4 ? " " : "\n" );
-    }
-    printf( "MLPTRI=%04x\n", m.MLPTRI );
-    printf( "MLPTRJ=%04x\n", m.MLPTRJ );
-    printf( "MLLST=%04x\n",  m.MLLST );
-    printf( "MLNXT=%04x\n",  m.MLNXT );
-    uint8_t *move = (uint8_t *)&m.MLIST[0];
-    uint8_t *mlnxt = BIN_TO_PTR(m.MLNXT);
-    for( int i=0; i<256; i++ )
-    {
-        printf( "%04x: %04x ", PTR_TO_BIN(move), PTR_TO_BIN(mlnxt) );
-        printf( "%02x %02x %02x %02x ", move[2], move[3], move[4], move[5] );
-        printf( "%s\n", sargon_export_move(PTR_TO_BIN(move),false).c_str() );
-        if( move == mlnxt )
-            break;
-        move += sizeof(ML);
-    }
-}
-
-
-
 // Returns book okay
 static bool repetition_test()
 {
@@ -2334,7 +2301,7 @@ static bool repetition_test()
     p->flags    = 0;
     p->val      = 0;
     m.MLNXT = mlist+3*sizeof(ML);
-    //show();
+    //sargon_show();
 
     // Remove f3e5
     std::vector<thc::Move> v;
@@ -2342,7 +2309,7 @@ static bool repetition_test()
     mv.dst = thc::e5;
     v.push_back(mv);
     repetition_remove_moves(v);
-    //show();
+    //sargon_show();
 
     // Check whether it matches our expectations
     if( mlist != m.MLLST )
@@ -2384,7 +2351,7 @@ static bool repetition_test()
 // Remove candidate moves that will cause the position to repeat
 static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_moves  )
 {
-    //show();
+    //sargon_show();
     uint16_t mlist = PTR_TO_BIN(&m.MLIST[0]);
 
     // Locate the list of candidate moves (ptr ends up being 0x400=mlist always)
@@ -2483,7 +2450,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
         }
     }
 
-    //show();
+    //sargon_show();
 }
 
 //

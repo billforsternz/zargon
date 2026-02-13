@@ -46,4 +46,6 @@ std::string algebraic( unsigned int sq );
 // Run Sargon move calculation
 void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool avoid_book );
 
+// Show Sargon data struture
+void sargon_show();
 #endif // SARGON_INTERFACE_H_INCLUDED

@@ -989,7 +989,8 @@ Level 6: ..................................   34 tests
     return ok;
 }
 
-static void show()
+// Show Sargon data struture
+void sargon_show()
 {
     unsigned char nply = m.NPLY;
     thc::ChessPosition cp;
