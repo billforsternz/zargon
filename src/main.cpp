@@ -23,9 +23,9 @@ int main( int argc, const char *argv[] )
     #ifdef _DEBUG
     const char *test_args[] =
     {
-        "Debug/sargon-tests.exe",
-        "cg",
-        "-3"
+        "Debug/zargon.exe", "u"
+        //"cg",
+        //"-3"
     };
     argc = sizeof(test_args) / sizeof(test_args[0]);
     argv = test_args;

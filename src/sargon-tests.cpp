@@ -31,6 +31,7 @@ static emulated_memory &m = gbl_emulated_memory;
 bool sargon_position_tests( bool quiet, int comprehensive );
 bool sargon_timing_tests( bool quiet, int comprehensive );
 bool sargon_whole_game_tests( bool quiet, int comprehensive );
+bool sargon_undocumented_dev_test();
 bool sargon_timed_game_test( bool quiet, int comprehensive, bool dummy=false );
 extern void sargon_minimax_main();
 extern bool sargon_minimax_regression_test( bool quiet);
@@ -80,7 +81,7 @@ int main_tests( int argc, const char *argv[] )
     for( int i=1; i<argc; i++ )
     {
         std::string s = argv[i];
-        if( i==1 && s.find_first_not_of("gptmc") == std::string::npos )
+        if( i==1 && s.find_first_not_of("gptmcu") == std::string::npos )
         {
             test_types = s;
             ok = true;
@@ -171,6 +172,12 @@ int main_tests( int argc, const char *argv[] )
                         else if( c == 'm' )
                         {
                             passed = sargon_minimax_regression_test(quiet);
+                            if( !passed )
+                                ok = false;
+                        }
+                        else if( c == 'u' )
+                        {
+                            passed = sargon_undocumented_dev_test();
                             if( !passed )
                                 ok = false;
                         }
@@ -717,6 +724,22 @@ static TEST tests[]=
         //  depth 9 score cp 300;  Rxf6 Nxf6 Rf1 Rc4 Rxf6 Rh4 Qxh4 Kg7 Qh6+ Kg8
 
 };
+
+// One off test
+bool sargon_undocumented_dev_test()
+{
+    thc::ChessPosition cp;
+    cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
+    sargon_import_position( cp, true );
+    sargon_pv_clear( cp );
+    m.PLYMAX = 5;
+    m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
+    CPTRMV();
+    std::string terse = sargon_export_best_move_temp();
+    printf( "Best move = %s\n", terse.c_str() );
+    bool ok = (terse == "b7c6");
+    return ok;
+}
 
 bool sargon_position_tests( bool quiet, int comprehensive )
 {
