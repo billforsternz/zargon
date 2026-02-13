@@ -9,6 +9,7 @@
 extern unsigned char *sargon_base_address;
 
 // Data offsets for peeking and poking
+#if 0
 const int BOARDA = 0x0134; // (0x0134 in sargon_x86.asm)
 const int ATKLST = 0x01ac; // (0x01ac in sargon_x86.asm)
 const int PLISTA = 0x01ba; // (0x01ba in sargon_x86.asm)
@@ -57,5 +58,6 @@ const int LINECT = 0x0340; // (0x0340 in sargon_x86.asm)
 const int MVEMSG = 0x0341; // (0x0341 in sargon_x86.asm)
 const int MLIST  = 0x0400; // (0x0400 in sargon_x86.asm)
 const int MLEND  = 0xee60; // (0xee60 in sargon_x86.asm)
+#endif
 
 #endif //SARGON_ASM_INTERFACE_H_INCLUDED

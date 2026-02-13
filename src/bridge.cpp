@@ -127,6 +127,8 @@ std::string reg_dump( const z80_registers *reg )
 
 std::string mem_dump()
 {
+    std::string s;
+#if 0
     std::vector<std::pair<int,const char *>> vars=
     {
         { BOARDA  ,"BOARDA" },
@@ -266,5 +268,6 @@ std::string mem_dump()
         s += util::sprintf("%-6s %04x:\n", v.second, offset );
     }
     s += "\n";
+#endif
     return s;
 }

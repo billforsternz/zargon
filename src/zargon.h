@@ -558,6 +558,7 @@ class zargon_data_defs_check_and_regen
     public:
     zargon_data_defs_check_and_regen()
     {
+#if 0
         bool match =
                (BOARDA == offsetof(emulated_memory,BOARDA) )
             && (ATKLST == offsetof(emulated_memory,ATKLST) )
@@ -665,6 +666,7 @@ class zargon_data_defs_check_and_regen
             printf( "const int MLEND  = 0x%04zx; // (0xee60 in sargon_x86.asm)\n", offsetof(emulated_memory,MLEND) );
             exit(0);
         }
+#endif
     }
 };
 
