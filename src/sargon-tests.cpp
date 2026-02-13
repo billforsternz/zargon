@@ -1001,13 +1001,13 @@ void sargon_show()
     printf( "Ply ptrs;\n" );
     for( int i=0; i<4; i++ )
     {
-        printf( "%04x", m.PLYIX[i] );
+        printf( "%04llx", m.PLYIX[i] );
         printf( i+1<4 ? " " : "\n" );
     }
-    printf( "MLPTRI=%04x\n", m.MLPTRI );
-    printf( "MLPTRJ=%04x\n", m.MLPTRJ );
-    printf( "MLLST=%04x\n",  m.MLLST );
-    printf( "MLNXT=%04x\n",  m.MLNXT );
+    printf( "MLPTRI=%04llx\n", m.MLPTRI );
+    printf( "MLPTRJ=%04llx\n", m.MLPTRJ );
+    printf( "MLLST=%04llx\n",  m.MLLST );
+    printf( "MLNXT=%04llx\n",  m.MLNXT );
     uint8_t *move = (uint8_t *)&m.MLIST[0];
     uint8_t *mlnxt = BIN_TO_PTR(m.MLNXT);
     for( int i=0; i<256; i++ )

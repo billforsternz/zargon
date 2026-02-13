@@ -339,8 +339,8 @@ uint16_t    SCORE[20] = {                                                  //022
 //             The second pointer points to which move in the              //0226: ;             The second pointer points to which move in the
 //             list is the one currently being considered.                 //0227: ;             list is the one currently being considered.
 //***********************************************************              //0228: ;***********************************************************
-uint16_t padding4[2];
-uint16_t    PLYIX[20] = {                                                  //0229: PLYIX   DW      0,0,0,0,0,0,0,0,0,0
+uint64_t padding4[2];
+uint64_t    PLYIX[20] = {                                                  //0229: PLYIX   DW      0,0,0,0,0,0,0,0,0,0
     0,0,0,0,0,0,0,0,0,0,                                                   //0230:         DW      0,0,0,0,0,0,0,0,0,0
     0,0,0,0,0,0,0,0,0,0                                                    //0231:
 };                                                                         //0232: ;***********************************************************
@@ -395,12 +395,12 @@ uint8_t  T3      =      0;              uint8_t tbase_hi6 = 1;             //028
 uint8_t  INDX1   =      0;              uint8_t tbase_hi7 = 1;             //0281: INDX1   DW      TBASE
 uint8_t  INDX2   =      0;              uint8_t tbase_hi8 = 1;             //0282: INDX2   DW      TBASE
 uint8_t  NPINS   =      0;              uint8_t tbase_hi9 = 1;             //0283: NPINS   DW      TBASE
-uint16_t MLPTRI  =      offsetof(emulated_memory,PLYIX);                   //0284: MLPTRI  DW      PLYIX
-uint16_t MLPTRJ  =      0;                                                 //0285: MLPTRJ  DW      0
+uint64_t MLPTRI  =      offsetof(emulated_memory,PLYIX);                   //0284: MLPTRI  DW      PLYIX
+uint64_t MLPTRJ  =      0;                                                 //0285: MLPTRJ  DW      0
 byte_ptr SCRIX   =      0;                                                 //0286: SCRIX   DW      0
-uint16_t BESTM   =      0;                                                 //0287: BESTM   DW      0
-uint16_t MLLST   =      0;                                                 //0288: MLLST   DW      0
-uint16_t MLNXT   =      offsetof(emulated_memory,MLIST);                   //0289: MLNXT   DW      MLIST
+uint64_t BESTM   =      0;                                                 //0287: BESTM   DW      0
+uint64_t MLLST   =      0;                                                 //0288: MLLST   DW      0
+uint64_t MLNXT   =      offsetof(emulated_memory,MLIST);                   //0289: MLNXT   DW      MLIST
                                                                            //0290:
 //
 // 3) MISC VARIABLES

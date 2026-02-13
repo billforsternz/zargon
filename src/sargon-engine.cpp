@@ -2270,9 +2270,9 @@ static bool repetition_test()
     }
 
     // Non destructive test of function  repetition_remove_moves()
-    unsigned int plyix = m.PLYIX[0];
-    unsigned int mllst = m.MLLST;
-    unsigned int mlnxt = m.MLNXT;
+    uint64_t plyix = m.PLYIX[0];
+    uint64_t mllst = m.MLLST;
+    uint64_t mlnxt = m.MLNXT;
     const uint8_t *src = (const uint8_t *)&m.MLIST[0];
     unsigned char buf[sizeof(ML)*3];
     memcpy(buf,src,sizeof(buf));
@@ -2355,10 +2355,10 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     uint16_t mlist = PTR_TO_BIN(&m.MLIST[0]);
 
     // Locate the list of candidate moves (ptr ends up being 0x400=mlist always)
-    uint16_t bin_ptr = m.PLYIX[0];
+    uint64_t bin_ptr = m.PLYIX[0];
 
     // Read a vector of NativeMove
-    uint16_t mlnxt = m.MLNXT;
+    uint64_t mlnxt = m.MLNXT;
     if( bin_ptr!=mlist || mlnxt<=bin_ptr || ((mlnxt-bin_ptr)%sizeof(ML))!=0 || ((mlnxt-bin_ptr)/sizeof(ML)>250) )
         return; // sanity checks
     std::vector<NativeMove> vin;
@@ -2408,8 +2408,8 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
 
     // Fixup ptr fields
     bin_ptr = m.PLYIX[0];
-    unsigned int ptr_final_move = bin_ptr;
-    unsigned int ptr_end = (unsigned int)(bin_ptr + sizeof(ML)*vout.size());
+    uint64_t ptr_final_move = bin_ptr;
+    uint64_t ptr_end = (unsigned int)(bin_ptr + sizeof(ML)*vout.size());
     second_byte=false;
     for( NativeMove &nm: vout )
     {
@@ -2424,7 +2424,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
             if( nm.flags & 0x40 )
                 second_byte = true;
             ptr_final_move = bin_ptr;
-            unsigned int ptr_next = (second_byte ? bin_ptr+2*sizeof(ML) : bin_ptr+sizeof(ML));
+            uint64_t ptr_next = (second_byte ? bin_ptr+2*sizeof(ML) : bin_ptr+sizeof(ML));
             if( ptr_next == ptr_end )
                 ptr_next = 0;
             nm.ptr_lo = ((ptr_next)&0xff);
