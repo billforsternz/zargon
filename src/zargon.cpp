@@ -143,7 +143,7 @@ struct transition
 };
 
 // Variables as we transition to native ptrs
-static transition z;
+// static transition z;
 
 
 // Regenerate defines for sargon-asm-interface.h as needed
@@ -2019,7 +2019,7 @@ void FNDMOV()
 
     // Initialize score index and clear table
     p = (uint8_t *)(&m.SCORE);
-    z.SCRIX = p;
+    m.SCRIX = p;
     for( int i=0; i<m.PLYMAX+2; i++ )
         *p++ = 0;
 
@@ -2119,7 +2119,7 @@ void FNDMOV()
                     m.MOVENO++;
 
                 // Load score table pointer
-                p = z.SCRIX;
+                p = m.SCRIX;
 
                 //  Get score two plys above
                 score = *p;
@@ -2129,7 +2129,7 @@ void FNDMOV()
                 // Save score as initial value
                 *p = score;
                 p--;                        // decrement pointer
-                z.SCRIX = p;                // save it
+                m.SCRIX = p;                // save it
                 genmove_needed = true;      // go to top of loop
                 continue;
             }
@@ -2143,7 +2143,7 @@ void FNDMOV()
             if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
             ASCEND();               // ascend one ply in tree
-            p = z.SCRIX;            // load score table pointer
+            p = m.SCRIX;            // load score table pointer
             p++;                    // increment to current ply
             p++;                    //
             score = *p;             // get score
@@ -2165,7 +2165,7 @@ void FNDMOV()
             UNMOVE();
             score = m.VALM;             // get value of move
             m.MATEF |= 1;               // set mate flag
-            p = z.SCRIX;                // load score table pointer
+            p = m.SCRIX;                // load score table pointer
         }
 
         // Else if terminal position ?
@@ -2178,7 +2178,7 @@ void FNDMOV()
                 m.PMATE= m.MOVENO;
             }
             m.MATEF |= 1;               // set mate flag
-            p = z.SCRIX;                // load score table pointer
+            p = m.SCRIX;                // load score table pointer
         }
 
         // Alpa Beta cutoff ?
@@ -2252,7 +2252,7 @@ void ASCEND()
         m.MOVENO--;
 
     // Decrement score table index
-    z.SCRIX--;
+    m.SCRIX--;
 
     // Decrement ply counter
     m.NPLY--;
