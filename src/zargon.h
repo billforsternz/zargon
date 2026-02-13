@@ -13,11 +13,23 @@ emulated_memory *zargon_get_ptr_emulated_memory();
 // Now export emulated memory as a global, transitional I think
 extern emulated_memory gbl_emulated_memory;
 
-// Linked move
+// Transitional (maybe) pointer manipulation macros
+//  Note: a "bin" for our purposes is the binary representation of
+//        a Sargon pointer, it is a uint16_t offset from the start
+//        of Sargon's memory
 typedef uint8_t *byte_ptr;
+typedef uint64_t mig_t;
+#define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
+#define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
+#define HI(bin)             ((bin>>8)&0xff)
+#define LO(bin)             (bin&0xff)
+inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
+inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
+
+// Linked move
 struct ML
 {
-    byte_ptr    link_ptr;
+    mig_t       link_ptr;
     uint8_t     from;
     uint8_t     to;
     uint8_t     flags;
@@ -29,17 +41,6 @@ struct ML
 #define MLTOP offsetof(ML,to)
 #define MLFLG offsetof(ML,flags)
 #define MLVAL offsetof(ML,val)
-
-// Transitional (maybe) pointer manipulation macros
-//  Note: a "bin" for our purposes is the binary representation of
-//        a Sargon pointer, it is a uint16_t offset from the start
-//        of Sargon's memory
-#define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
-#define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
-#define HI(bin)             ((bin>>8)&0xff)
-#define LO(bin)             (bin&0xff)
-inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
-inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
 
 // Flag definitions
 // These definitions apply to pieces on the board array and to move flags

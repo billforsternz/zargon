@@ -2280,7 +2280,7 @@ static bool repetition_test()
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
     m.PLYIX[0] = mlist;
     ML *p = (ML *)BIN_TO_PTR(mlist);
-    p->link_ptr = (byte_ptr)(p+1); 
+    p->link_ptr = (mig_t)(p+1); 
     p->from     = SQ_f3;
     p->to       = SQ_e5;
     p->flags    = 0;
