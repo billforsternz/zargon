@@ -714,14 +714,14 @@ void GENMOV()
     // Setup move list pointers
     uint16_t bin_de = m.MLNXT;  // addr of next avail list space
     uint16_t bin_hl = m.MLPTRI; // ply list pointer index
-    bin_hl += 2; //@sizeof(ptr)?                // increment to next ply
+    bin_hl += sizeof(mig_t);    // increment to next ply
 
     // Save move list pointer
     uint8_t *p = BIN_TO_PTR(bin_hl);
     WR_BIN(p,bin_de);
-    bin_hl += 2; //@sizeof(ptr)?
-    m.MLPTRI = bin_hl;   // save new index
-    m.MLLST  = bin_hl;   // last pointer for chain init.
+    bin_hl += sizeof(mig_t);
+    m.MLPTRI = bin_hl;          // save new index
+    m.MLLST  = bin_hl;          // last pointer for chain init.
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -2011,7 +2011,7 @@ void FNDMOV()
     uint8_t *p = (uint8_t *)(&m.MLIST[0]);
     m.MLNXT = PTR_TO_BIN(p);
     p = (uint8_t *)(&m.PLYIX);
-    p -= 2;     //@sizeof(ptr) ?
+    p -= sizeof(mig_t);
     m.MLPTRI = PTR_TO_BIN(p);
 
     // Initialise color
@@ -2261,13 +2261,13 @@ void ASCEND()
     uint8_t *p = BIN_TO_PTR(m.MLPTRI);
 
     // Decrement by ptr size
-    p -= sizeof(int16_t);
+    p -= sizeof(mig_t);
 
     // Update move list avail ptr
     m.MLNXT = RD_BIN(p);
 
     // Get ptr to next move to undo
-    p -= sizeof(int16_t);
+    p -= sizeof(mig_t);
     m.MLPTRJ = RD_BIN(p);
 
     // Save new ply list pointer
@@ -2509,7 +2509,7 @@ bool VALMOV()
 
     // Load move list index
     uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
-    p -= 2;     //@sizeof(ptr) ?
+    p -= sizeof(mig_t);
     m.MLPTRI = PTR_TO_BIN(p);
 
     // Next available list pointer

@@ -725,19 +725,33 @@ static TEST tests[]=
 
 };
 
+#define DIFFICULT
+
 // One off test
+std::string mem_dump();
 bool sargon_undocumented_dev_test()
 {
     thc::ChessPosition cp;
+    #ifdef DIFFICULT
     cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
+    m.PLYMAX = 5;
+    #else
+    cp.Forsyth("8/8/8/7r/3kN3/1P6/1KP5/5r2 w - - 0 1");
+    m.PLYMAX = 1;
+    #endif
     sargon_import_position( cp, true );
     sargon_pv_clear( cp );
-    m.PLYMAX = 5;
     m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
     std::string terse = sargon_export_best_move_temp();
     printf( "Best move = %s\n", terse.c_str() );
+    #ifdef DIFFICULT
     bool ok = (terse == "b7c6");
+    #else
+    bool ok = (terse == "e4g3");
+    #endif
+    // std::string s = mem_dump();
+    // printf( "%s\n", s.c_str() );
     return ok;
 }
 

@@ -7,7 +7,9 @@
 #include "util.h"
 #include "bridge.h"
 #include "sargon-asm-interface.h"
+#include "sargon-interface.h"
 #include "z80_registers.h"
+#include "zargon.h"
 
 // Init hooks
 static const unsigned char *sargon_mem_base;
@@ -92,7 +94,7 @@ void bridge_callback_trace( CB cb, const z80_registers *reg )
         //    printf("This call to ATTACK() should not set P2 to 0\n" );
         if( pnck && pnck_count == 5046 )
             printf("This call to PNCK() should set wact[0] to 1\n" );
-        bool in_range = THRES>=0 && (THRES<=run_count && run_count<=THRES+1000);
+        bool in_range = true; //THRES>=0 && (THRES<=run_count && run_count<=THRES+1000);
         if( in_range )
             printf( "%s(%llu) %s\n", name, pnck?pnck_count:run_count, mem_dump().c_str() );
     }
@@ -125,77 +127,126 @@ std::string reg_dump( const z80_registers *reg )
     return s;
 }
 
+// Sargon data structure
+static emulated_memory &m = gbl_emulated_memory;
+
 std::string mem_dump()
 {
+#define xBOARDA  offsetof(emulated_memory,BOARDA)
+#define xATKLST  offsetof(emulated_memory,ATKLST)
+#define xPLISTA  offsetof(emulated_memory,PLISTA)
+#define xPOSK    offsetof(emulated_memory,POSK)
+#define xPOSQ    offsetof(emulated_memory,POSQ)
+#define xSCORE   offsetof(emulated_memory,SCORE)
+#define xPLYIX   offsetof(emulated_memory,PLYIX)
+#define xM1      offsetof(emulated_memory,M1)
+#define xM2      offsetof(emulated_memory,M2)
+#define xM3      offsetof(emulated_memory,M3)
+#define xM4      offsetof(emulated_memory,M4)
+#define xT1      offsetof(emulated_memory,T1)
+#define xT2      offsetof(emulated_memory,T2)
+#define xT3      offsetof(emulated_memory,T3)
+#define xINDX1   offsetof(emulated_memory,INDX1)
+#define xINDX2   offsetof(emulated_memory,INDX2)
+#define xNPINS   offsetof(emulated_memory,NPINS)
+#define xMLPTRI  offsetof(emulated_memory,MLPTRI)
+#define xMLPTRJ  offsetof(emulated_memory,MLPTRJ)
+#define xSCRIX   offsetof(emulated_memory,SCRIX)
+#define xBESTM   offsetof(emulated_memory,BESTM)
+#define xMLLST   offsetof(emulated_memory,MLLST)
+#define xMLNXT   offsetof(emulated_memory,MLNXT)
+#define xKOLOR   offsetof(emulated_memory,KOLOR)
+#define xCOLOR   offsetof(emulated_memory,COLOR)
+#define xP1      offsetof(emulated_memory,P1)
+#define xP2      offsetof(emulated_memory,P2)
+#define xP3      offsetof(emulated_memory,P3)
+#define xPMATE   offsetof(emulated_memory,PMATE)
+#define xMOVENO  offsetof(emulated_memory,MOVENO)
+#define xPLYMAX  offsetof(emulated_memory,PLYMAX)
+#define xNPLY    offsetof(emulated_memory,NPLY)
+#define xCKFLG   offsetof(emulated_memory,CKFLG)
+#define xMATEF   offsetof(emulated_memory,MATEF)
+#define xVALM    offsetof(emulated_memory,VALM)
+#define xBRDC    offsetof(emulated_memory,BRDC)
+#define xPTSL    offsetof(emulated_memory,PTSL)
+#define xPTSW1   offsetof(emulated_memory,PTSW1)
+#define xPTSW2   offsetof(emulated_memory,PTSW2)
+#define xMTRL    offsetof(emulated_memory,MTRL)
+#define xBC0     offsetof(emulated_memory,BC0)
+#define xMV0     offsetof(emulated_memory,MV0)
+#define xPTSCK   offsetof(emulated_memory,PTSCK)
+#define xBMOVES  offsetof(emulated_memory,BMOVES)
+#define xLINECT  offsetof(emulated_memory,LINECT)
+#define xMVEMSG  offsetof(emulated_memory,MVEMSG)
+#define xMLIST   offsetof(emulated_memory,MLIST)
+#define xMLEND   offsetof(emulated_memory,MLEND)
     std::string s;
-#if 0
-    std::vector<std::pair<int,const char *>> vars=
+    std::vector<std::pair<size_t,const char *>> vars=
     {
-        { BOARDA  ,"BOARDA" },
-        { ATKLST  ,"ATKLST" },
-        { PLISTA  ,"PLISTA" },
-        { POSK    ,"POSK" },
-        { POSQ    ,"POSQ" },
-        { SCORE   ,"SCORE" },
-        { PLYIX   ,"PLYIX" },
-        { M1      ,"M1" },
-        { M2      ,"M2" },
-        { M3      ,"M3" },
-        { M4      ,"M4" },
-        { T1      ,"T1" },
-        { T2      ,"T2" },
-        { T3      ,"T3" },
-        { INDX1   ,"INDX1" },
-        { INDX2   ,"INDX2" },
-        { NPINS   ,"NPINS" },
-        { MLPTRI  ,"MLPTRI" },
-        { MLPTRJ  ,"MLPTRJ" },
-        { SCRIX   ,"SCRIX" },
-        { BESTM   ,"BESTM" },
-        { MLLST   ,"MLLST" },
-        { MLNXT   ,"MLNXT" },
-        { KOLOR   ,"KOLOR" },
-        { COLOR   ,"COLOR" },
-        { P1      ,"P1" },
-        { P2      ,"P2" },
-        { P3      ,"P3" },
-        { PMATE   ,"PMATE" },
-        { MOVENO  ,"MOVENO" },
-        { PLYMAX  ,"PLYMAX" },
-        { NPLY    ,"NPLY" },
-        { CKFLG   ,"CKFLG" },
-        { MATEF   ,"MATEF" },
-        { VALM    ,"VALM" },
-        { BRDC    ,"BRDC" },
-        { PTSL    ,"PTSL" },
-        { PTSW1   ,"PTSW1" },
-        { PTSW2   ,"PTSW2" },
-        { MTRL    ,"MTRL" },
-        { BC0     ,"BC0" },
-        { MV0     ,"MV0" },
-        { PTSCK   ,"PTSCK" },
-        { BMOVES  ,"BMOVES" },
-        { LINECT  ,"LINECT" },
-        { MVEMSG  ,"MVEMSG" },
-        { MLIST   ,"MLIST" },
-        { MLEND   ,"MLEND" }
+        { xBOARDA  ,"BOARDA" },
+        { xATKLST  ,"ATKLST" },
+        { xPLISTA  ,"PLISTA" },
+        { xPOSK    ,"POSK" },
+        { xPOSQ    ,"POSQ" },
+        { xSCORE   ,"SCORE" },
+        { xPLYIX   ,"PLYIX" },
+        { xM1      ,"M1" },
+        { xM2      ,"M2" },
+        { xM3      ,"M3" },
+        { xM4      ,"M4" },
+        { xT1      ,"T1" },
+        { xT2      ,"T2" },
+        { xT3      ,"T3" },
+        { xINDX1   ,"INDX1" },
+        { xINDX2   ,"INDX2" },
+        { xNPINS   ,"NPINS" },
+        { xMLPTRI  ,"MLPTRI" },
+        { xMLPTRJ  ,"MLPTRJ" },
+        { xSCRIX   ,"SCRIX" },
+        { xBESTM   ,"BESTM" },
+        { xMLLST   ,"MLLST" },
+        { xMLNXT   ,"MLNXT" },
+        { xKOLOR   ,"KOLOR" },
+        { xCOLOR   ,"COLOR" },
+        { xP1      ,"P1" },
+        { xP2      ,"P2" },
+        { xP3      ,"P3" },
+        { xPMATE   ,"PMATE" },
+        { xMOVENO  ,"MOVENO" },
+        { xPLYMAX  ,"PLYMAX" },
+        { xNPLY    ,"NPLY" },
+        { xCKFLG   ,"CKFLG" },
+        { xMATEF   ,"MATEF" },
+        { xVALM    ,"VALM" },
+        { xBRDC    ,"BRDC" },
+        { xPTSL    ,"PTSL" },
+        { xPTSW1   ,"PTSW1" },
+        { xPTSW2   ,"PTSW2" },
+        { xMTRL    ,"MTRL" },
+        { xBC0     ,"BC0" },
+        { xMV0     ,"MV0" },
+        { xPTSCK   ,"PTSCK" },
+        { xBMOVES  ,"BMOVES" },
+        { xLINECT  ,"LINECT" },
+        { xMVEMSG  ,"MVEMSG" },
+        { xMLIST   ,"MLIST" },
+        { xMLEND   ,"MLEND" }
     };
     bool need_newline = false;
     int offset=0;
     std::string line;
-    std::string s;
-    for( const std::pair<int,const char *> v: vars )
+    for( const std::pair<size_t,const char *> v: vars )
     {
         int nlines=16;
         switch( v.first )
         {
-            case M1:        nlines=2;   break;
-            case MLIST:     nlines=2;   break;
+            case xM1:        nlines=2;   break;
+            case xMLIST:     nlines=2;   break;
         }
         int len = v.first-offset;
         int blank_lines = 0;
         line.clear();
-        for( int lines=0, i=0; v.first!=BOARDA && i<len; i++ )
+        for( int lines=0, i=0; v.first!=xBOARDA && i<len; i++ )
         {
             bool blank = false;
             if( i%16==0 && i+16<=len && 0==memcmp(sargon_mem_base+offset+i,"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",16) )
@@ -207,7 +258,17 @@ std::string mem_dump()
             else
             {
                 if( i%8 == 0 )
+                {
                     line += " ";
+                    if( v.first == xMLEND && i%16!=0 )
+                    {
+                        thc::Square from, to;
+                        bool ok1 = sargon_export_square( *(sargon_mem_base+offset+i), from );
+                        bool ok2 = sargon_export_square( *(sargon_mem_base+offset+i+1), to  );
+                        if( ok1 && ok2 )
+                            line += util::sprintf( " %c%c->%c%c", get_file(from), get_rank(from), get_file(to), get_rank(to) );
+                    }
+                }
                 line += util::sprintf( " %02x", *(sargon_mem_base+offset+i) );
                 need_newline = true;
             }
@@ -266,8 +327,11 @@ std::string mem_dump()
             s += "\n";
         }
         s += util::sprintf("%-6s %04x:\n", v.second, offset );
+        if( v.first == xSCRIX )
+        {
+            s += util::sprintf( "  (SCRIX offset = 0x%llx)\n", (m.SCRIX - (byte_ptr)&m) );
+        }
     }
     s += "\n";
-#endif
     return s;
 }
