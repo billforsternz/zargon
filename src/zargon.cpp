@@ -27,9 +27,6 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 #endif
 emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 
-// Regenerate defines for sargon-asm-interface.h as needed
-zargon_data_defs_check_and_regen regen;
-
 //***********************************************************
 // EQUATES
 //***********************************************************
