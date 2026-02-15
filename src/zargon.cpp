@@ -1890,7 +1890,7 @@ void SORTM()
         WR_BIN( p, bin_de );
 
         // Return if end of list
-        if( HI(bin_bc) == 0 )
+        if( bin_bc == 0 )
             return;
 
         // Save list pointer
@@ -1910,7 +1910,7 @@ void SORTM()
             bin_de = RD_BIN(p);
 
             // End of list ?
-            if( HI(bin_de) == 0 )
+            if( bin_de == 0 )
                 break;
 
             // Compare value to list value
@@ -2063,7 +2063,7 @@ void FNDMOV()
 
         //  End of move list ?
         bool points_needed = false;
-        if( HI(bin) != 0 )
+        if( bin != 0 )
         {
             m.MLPTRJ = bin;             // save current move pointer
             p = BIN_TO_PTR(m.MLPTRI);   // save in ply pointer list
@@ -2538,7 +2538,7 @@ bool VALMOV()
         //  Pointer to next list move
         uint16_t bin = RD_BIN(p+MLPTR);
         p = BIN_TO_PTR(bin);
-        if( HI(bin) == 0 ) // At end of list ?
+        if( bin == 0 ) // At end of list ?
         {
 
             // Invalid move, restore last move pointer
