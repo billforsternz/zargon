@@ -853,12 +853,8 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
         scan_count = dir;   // reproduce bug in original Sargon
     }
 
-    // Point at White attack list
-    uint8_t *p = &m.wact[0];    // Attack list
-
-    // Skip to Black attack list if Black
-    if( IS_BLACK(m.P2) )
-        p += sizeof(m.ATKLST)/2;    // (bact)
+    // Point at White or Black attack list
+    uint8_t *p = IS_BLACK(m.P2) ? m.bact : m.wact;
 
     // First byte of attack list is count, increment it
     (*p)++;
@@ -1049,11 +1045,12 @@ void PINFND()
 
                             // If queen do an attackers v defenders calculation
                             m.T1 = 7;
-                            memset( m.ATKLST, 0, sizeof(m.ATKLST) );
+                            memset( m.wact, 0, sizeof(m.wact) );
+                            memset( m.bact, 0, sizeof(m.bact) );
                             ATTACK();
                             int8_t defenders_minus_attackers;
-                            int8_t *wact = (int8_t *)&(m.ATKLST);
-                            int8_t *bact = wact + sizeof(m.ATKLST)/2;
+                            int8_t *wact = (int8_t *)m.wact;
+                            int8_t *bact = (int8_t *)m.bact;
                             if( IS_BLACK(m.P1) )   // Is queen black ?
                             {
                                 defenders_minus_attackers = *bact - *wact;
@@ -1098,8 +1095,8 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
     bool black = IS_BLACK(m.P1);
     bool side_flag = true;
 
-    uint8_t *wact = (uint8_t *)&(m.ATKLST);
-    uint8_t *bact = wact + sizeof(m.ATKLST)/2;
+    uint8_t *wact = m.wact;
+    uint8_t *bact = m.bact;
 
     uint8_t count_white = *wact;
     uint8_t count_black = *bact;
@@ -1249,8 +1246,8 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 void POINTS()
 {
     callback_zargon_bridge(CB_POINTS);
-    int8_t *wact = (int8_t *)&(m.ATKLST);
-    int8_t *bact = wact + sizeof(m.ATKLST)/2;
+    int8_t *wact = (int8_t *)m.wact;
+    int8_t *bact = (int8_t *)m.bact;
 
     // Init points algorithm variables
     m.MTRL  = 0;
@@ -1335,8 +1332,9 @@ void POINTS()
             }
         }
 
-        // Zero out attack list
-        memset( m.ATKLST, 0, sizeof(m.ATKLST) );
+        // Zero out attack lists
+        memset( m.wact, 0, sizeof(m.wact) );
+        memset( m.bact, 0, sizeof(m.bact) );
 
         // Build attack list for square
         ATTACK();

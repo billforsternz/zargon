@@ -133,7 +133,7 @@ static emulated_memory &m = gbl_emulated_memory;
 std::string mem_dump()
 {
 #define xBOARDA  offsetof(emulated_memory,BOARDA)
-#define xATKLST  offsetof(emulated_memory,ATKLST)
+#define xATKLST  offsetof(emulated_memory,wact)
 #define xPLISTA  offsetof(emulated_memory,PLISTA)
 #define xPOSK    offsetof(emulated_memory,POSK)
 #define xPOSQ    offsetof(emulated_memory,POSQ)
