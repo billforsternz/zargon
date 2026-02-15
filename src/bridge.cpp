@@ -243,7 +243,7 @@ std::string mem_dump()
             case xM1:        nlines=2;   break;
             case xMLIST:     nlines=2;   break;
         }
-        int len = v.first-offset;
+        int len = (int)(v.first-offset);
         int blank_lines = 0;
         line.clear();
         for( int lines=0, i=0; v.first!=xBOARDA && i<len; i++ )
@@ -318,7 +318,7 @@ std::string mem_dump()
                 line.clear();
             }
         }
-        offset = v.first;
+        offset = (int)v.first;
         if( need_newline)
         {
             if( blank_lines > 0 )

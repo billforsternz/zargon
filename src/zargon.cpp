@@ -19,6 +19,12 @@
 #include "zargon.h"
 #include "z80_cpu.h"
 
+#define MIG_TO_PTR(mig)     ((uint8_t*) ((mig) + ((uint8_t*)(&m))))
+#define PTR_TO_MIG(p)       (mig_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
+inline mig_t    RD_MIG( const uint8_t *p) { mig_t temp=*(p+1); return (temp<<8)|*p; }
+inline void     WR_MIG( uint8_t *p, mig_t mig ) { *p = (uint8_t)LO(mig); *(p+1) = (uint8_t)HI(mig); }
+
+
 // Have now eliminated Z80 simulation after completing conversion to C/C++
 // #include "z80_opcodes.h" // include last, uses aggressive macros
                             //  that might upset other .h files
@@ -475,7 +481,7 @@ void ENPSNT()
         return;  // not on fifth rank
 
     // Test pointer to previous move
-    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
+    uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
 
     // Must be first move for that piece
     if( !IS_FIRST_MOVE(*(p+MLFLG)) )
@@ -483,7 +489,7 @@ void ENPSNT()
 
     // Get "to" position for previous move
     m.M4 = *(p+MLTOP);
-    p = BIN_TO_PTR(m.M4);
+    p = MIG_TO_PTR(m.M4);
     uint8_t piece = m.BOARDA[m.M4];
     m.P3 = piece;
 
@@ -533,7 +539,7 @@ inline void ADJPTR()
     callback_zargon_bridge(CB_ADJPTR);
 
     // Adjust list pointer to point at previous move
-    ML *p = (ML*)BIN_TO_PTR(m.MLLST -= sizeof(ML));
+    ML *p = (ML*)MIG_TO_PTR(m.MLLST -= sizeof(ML));
 
     // Zero link
     p->link_ptr = 0;
@@ -648,8 +654,8 @@ void ADMOVE()
     callback_zargon_bridge(CB_ADMOVE);
 
     // Address of next location in move list
-    uint16_t bin = m.MLNXT;
-    uint8_t *p = BIN_TO_PTR(bin);
+    mig_t mig = m.MLNXT;
+    uint8_t *p = MIG_TO_PTR(mig);
 
     // Check that we haven't run out of memory
     uint8_t *q = &m.MLEND;
@@ -663,20 +669,20 @@ void ADMOVE()
     }
 
     // Address of previous list area
-    p = BIN_TO_PTR(m.MLLST);
+    p = MIG_TO_PTR(m.MLLST);
 
     // Save next as previous
-    m.MLLST = bin;
+    m.MLLST = mig;
 
     // Store as link address
-    WR_BIN( p, bin );
+    WR_MIG( p, mig );
 
     // If piece hasn't moved before set first move flag
     if( HAS_NOT_MOVED(m.P1) )
         SET_FIRST_MOVE(m.P2);
 
     // Now write move details
-    p = BIN_TO_PTR(bin);
+    p = MIG_TO_PTR(mig);
     ML *ml = (ML *)p;
     ml->link_ptr = 0;           // store zero in link address
     ml->from  = m.M1;           // store "from" move position
@@ -686,7 +692,7 @@ void ADMOVE()
     p += sizeof(ML);
 
     // Save next slot address
-    m.MLNXT = PTR_TO_BIN(p);
+    m.MLNXT = PTR_TO_MIG(p);
 }
 
 //***********************************************************
@@ -712,16 +718,16 @@ void GENMOV()
     m.CKFLG = inchk;
 
     // Setup move list pointers
-    uint16_t bin_de = m.MLNXT;  // addr of next avail list space
-    uint16_t bin_hl = m.MLPTRI; // ply list pointer index
-    bin_hl += sizeof(mig_t);    // increment to next ply
+    mig_t mig_de = m.MLNXT;  // addr of next avail list space
+    mig_t mig_hl = m.MLPTRI; // ply list pointer index
+    mig_hl += sizeof(mig_t);    // increment to next ply
 
     // Save move list pointer
-    uint8_t *p = BIN_TO_PTR(bin_hl);
-    WR_BIN(p,bin_de);
-    bin_hl += sizeof(mig_t);
-    m.MLPTRI = bin_hl;          // save new index
-    m.MLLST  = bin_hl;          // last pointer for chain init.
+    uint8_t *p = MIG_TO_PTR(mig_hl);
+    WR_MIG(p,mig_de);
+    mig_hl += sizeof(mig_t);
+    m.MLPTRI = mig_hl;          // save new index
+    m.MLLST  = mig_hl;          // last pointer for chain init.
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -1495,7 +1501,7 @@ void POINTS()
                     m.PTSL = points;
 
                     // Load pointer to this move
-                    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
+                    uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
 
                     // Is the lost piece the one moving ?
                     if( m.M3 == *(p+MLTOP) )
@@ -1613,7 +1619,7 @@ void POINTS()
     m.VALM = points;
 
     // Save score value to move pointed to by current move ptr
-    uint8_t *p = BIN_TO_PTR( m.MLPTRJ );
+    uint8_t *p = MIG_TO_PTR( m.MLPTRJ );
     *(p+MLVAL) = m.VALM;
 }
 
@@ -1675,7 +1681,7 @@ void MOVE()
     callback_zargon_bridge(CB_MOVE);
 
     //  Load move list pointer
-    uint8_t *p = BIN_TO_PTR( m.MLPTRJ);
+    uint8_t *p = MIG_TO_PTR( m.MLPTRJ);
     p += MLFRP;     // increment past link bytes
 
     // Loop for possible double move
@@ -1732,7 +1738,7 @@ void MOVE()
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
-            p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
+            p = MIG_TO_PTR( m.MLPTRJ);  // reload move list pointer
             p += (sizeof(ML)+MLFRP);    //  jump to next move
         }
         else
@@ -1775,7 +1781,7 @@ void UNMOVE()
     callback_zargon_bridge(CB_UNMOVE);
 
     //  Load move list pointer
-    uint8_t *p = BIN_TO_PTR( m.MLPTRJ);
+    uint8_t *p = MIG_TO_PTR( m.MLPTRJ);
     p += MLFRP;     // increment past link bytes
 
     // Loop for possible double move
@@ -1835,7 +1841,7 @@ void UNMOVE()
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
-            p = BIN_TO_PTR( m.MLPTRJ);  // reload move list pointer
+            p = MIG_TO_PTR( m.MLPTRJ);  // reload move list pointer
             p += (sizeof(ML) + MLFRP);  //  jump to next move
         }
         else
@@ -1874,56 +1880,56 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Init working pointers
-    uint16_t bin_bc = m.MLPTRI;       //  Move list begin pointer
-    uint16_t bin_de = 0;
+    mig_t mig_bc = m.MLPTRI;       //  Move list begin pointer
+    mig_t mig_de = 0;
 
     // Loop
     for(;;)
     {
-        uint16_t bin_hl = bin_bc;
+        mig_t mig_hl = mig_bc;
 
         // Get link to next move
-        uint8_t *p = BIN_TO_PTR(bin_hl);
-        bin_bc = RD_BIN(p);
+        uint8_t *p = MIG_TO_PTR(mig_hl);
+        mig_bc = RD_MIG(p);
 
         // Make linked list
-        WR_BIN( p, bin_de );
+        WR_MIG( p, mig_de );
 
         // Return if end of list
-        if( bin_bc == 0 )
+        if( mig_bc == 0 )
             return;
 
         // Save list pointer
-        m.MLPTRJ = bin_bc;
+        m.MLPTRJ = mig_bc;
 
         // Evaluate move
         EVAL();
-        bin_hl = m.MLPTRI;       //  Beginning of move list
-        bin_bc = m.MLPTRJ;       //  Restore list pointer
+        mig_hl = m.MLPTRI;       //  Beginning of move list
+        mig_bc = m.MLPTRJ;       //  Restore list pointer
 
         // Next move loop
         for(;;)
         {
 
             // Get next move
-            p = BIN_TO_PTR(bin_hl);
-            bin_de = RD_BIN(p);
+            p = MIG_TO_PTR(mig_hl);
+            mig_de = RD_MIG(p);
 
             // End of list ?
-            if( bin_de == 0 )
+            if( mig_de == 0 )
                 break;
 
             // Compare value to list value
-            uint8_t *q = BIN_TO_PTR(bin_de);
+            uint8_t *q = MIG_TO_PTR(mig_de);
             if( m.VALM < *(q+MLVAL) )
                 break;
 
             // Swap pointers if value not less than list value
-            bin_hl = bin_de;
+            mig_hl = mig_de;
         }
 
         // Link new move into list
-        WR_BIN(p,bin_bc);
+        WR_MIG(p,mig_bc);
     }
 }
 
@@ -2009,10 +2015,10 @@ void FNDMOV()
 
     //  Initialize ply list pointers
     uint8_t *p = (uint8_t *)(&m.MLIST[0]);
-    m.MLNXT = PTR_TO_BIN(p);
+    m.MLNXT = PTR_TO_MIG(p);
     p = (uint8_t *)(&m.PLYIX);
     p -= sizeof(mig_t);
-    m.MLPTRI = PTR_TO_BIN(p);
+    m.MLPTRI = PTR_TO_MIG(p);
 
     // Initialise color
     m.COLOR = m.KOLOR;
@@ -2058,16 +2064,16 @@ void FNDMOV()
         // Traverse move list
         uint8_t score = 0;
         int8_t iscore = 0;
-        p = BIN_TO_PTR(m.MLPTRJ);   // load last move pointer
-        uint16_t bin = RD_BIN(p);
+        p = MIG_TO_PTR(m.MLPTRJ);   // load last move pointer
+        mig_t mig = RD_MIG(p);
 
         //  End of move list ?
         bool points_needed = false;
-        if( bin != 0 )
+        if( mig != 0 )
         {
-            m.MLPTRJ = bin;             // save current move pointer
-            p = BIN_TO_PTR(m.MLPTRI);   // save in ply pointer list
-            WR_BIN(p,bin);
+            m.MLPTRJ = mig;             // save current move pointer
+            p = MIG_TO_PTR(m.MLPTRI);   // save in ply pointer list
+            WR_MIG(p,mig);
 
             // Max depth reached ?
             if( m.NPLY >= m.PLYMAX )
@@ -2097,7 +2103,7 @@ void FNDMOV()
             {
 
                 //  Load move pointer
-                p = BIN_TO_PTR(m.MLPTRJ);
+                p = MIG_TO_PTR(m.MLPTRJ);
 
                 //  If score is zero (illegal move) continue looping
                 if( *(p+MLVAL) == 0 )
@@ -2258,20 +2264,20 @@ void ASCEND()
     m.NPLY--;
 
     // Get ply list pointer
-    uint8_t *p = BIN_TO_PTR(m.MLPTRI);
+    uint8_t *p = MIG_TO_PTR(m.MLPTRI);
 
     // Decrement by ptr size
     p -= sizeof(mig_t);
 
     // Update move list avail ptr
-    m.MLNXT = RD_BIN(p);
+    m.MLNXT = RD_MIG(p);
 
     // Get ptr to next move to undo
     p -= sizeof(mig_t);
-    m.MLPTRJ = RD_BIN(p);
+    m.MLPTRJ = RD_MIG(p);
 
     // Save new ply list pointer
-    m.MLPTRI = PTR_TO_BIN(p);
+    m.MLPTRI = PTR_TO_MIG(p);
 
     // Restore board to previous ply
     UNMOVE();
@@ -2317,15 +2323,15 @@ void BOOK()
 
         // Play e4 or d4 randomly
         if( (rand&1) == 0 )
-            m.BESTM = PTR_TO_BIN(e4);
+            m.BESTM = PTR_TO_MIG(e4);
         else
-            m.BESTM = PTR_TO_BIN(d4);
+            m.BESTM = PTR_TO_MIG(d4);
     }
 
     // Else computer is Black
     else
     {
-        p = BIN_TO_PTR(m.MLPTRJ);       //  Pointer to opponents 1st move
+        p = MIG_TO_PTR(m.MLPTRJ);       //  Pointer to opponents 1st move
         uint8_t from = *(p+MLFRP);      //  Get "from" position
 
         // Play d5 after all White first moves except a,b,c or e pawn moves
@@ -2333,9 +2339,9 @@ void BOOK()
         if( from==SQ_a2 || from==SQ_b2 || from==SQ_c2 || from==SQ_e2 )
             play_d5 = false;
         if( play_d5 )
-            m.BESTM = PTR_TO_BIN(d5);
+            m.BESTM = PTR_TO_MIG(d5);
         else
-            m.BESTM = PTR_TO_BIN(e5);
+            m.BESTM = PTR_TO_MIG(e5);
     }
 }
 
@@ -2377,7 +2383,7 @@ void CPTRMV()
     //  (the MLPTRJ is initialised to NULL and this results in
     //  a value being poked into absolute address 5, so initialise
     //  it to something harmless instead)
-    //m.MLPTRJ = PTR_TO_BIN(&m.dummy_move);
+    //m.MLPTRJ = PTR_TO_MIG(&m.dummy_move);
 
     //  Select best move
     FNDMOV();
@@ -2508,7 +2514,7 @@ bool VALMOV()
     bool ok=false;
 
     //  Save last move pointer
-    uint16_t mlptrj_save = m.MLPTRJ;
+    mig_t mlptrj_save = m.MLPTRJ;
 
     // Set user color to opposite of computer's color
     m.COLOR = IS_WHITE(m.KOLOR) ? BLACK : WHITE;
@@ -2516,12 +2522,12 @@ bool VALMOV()
     // Load move list index
     uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
     p -= sizeof(mig_t);
-    m.MLPTRI = PTR_TO_BIN(p);
+    m.MLPTRI = PTR_TO_MIG(p);
 
     // Next available list pointer
     p = (uint8_t *)(&m.MLIST[0]);
     p += 1024;
-    m.MLNXT = PTR_TO_BIN(p);
+    m.MLNXT = PTR_TO_MIG(p);
 
     // Generate opponent's moves
     GENMOV();
@@ -2536,9 +2542,9 @@ bool VALMOV()
             break;  // yes
 
         //  Pointer to next list move
-        uint16_t bin = RD_BIN(p+MLPTR);
-        p = BIN_TO_PTR(bin);
-        if( bin == 0 ) // At end of list ?
+        mig_t mig = RD_MIG(p+MLPTR);
+        p = MIG_TO_PTR(mig);
+        if( mig == 0 ) // At end of list ?
         {
 
             // Invalid move, restore last move pointer
@@ -2548,7 +2554,7 @@ bool VALMOV()
     }
 
     //  Save opponents move pointer
-    m.MLPTRJ = PTR_TO_BIN(p);
+    m.MLPTRJ = PTR_TO_MIG(p);
 
     //  Make move on board array
     MOVE();

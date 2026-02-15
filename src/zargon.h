@@ -25,7 +25,6 @@ typedef uint64_t mig_t;
 #define LO(bin)             (bin&0xff)
 inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
 inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
-#define PLYSZ 2  //2  // 2 works 6 fails
 
 // Linked move
 struct ML
