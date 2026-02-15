@@ -392,8 +392,8 @@ static std::string get_key()
         {
             // In other three move cases we can't work out the whole sequence of moves unless we know
             //  the last move, try to rely on this as little as possible
-            uint8_t *p = /*BIN_TO_PTR*/(m.MLPTRJ);  // Load ptr to last move
-            unsigned char from  = p ? *(p+MLFRP) : 0;
+            ML *p = (ML *)m.MLPTRJ;  // Load ptr to last move
+            unsigned char from  = p ? p->from : 0;
             thc::Square sq_from;
             bool ok_from = sargon_export_square(from,sq_from);
             if( ok_from )
@@ -1397,6 +1397,7 @@ void callback_ldar( uint8_t &out_random_number )
     }
 }
 
+#define FULL_CALLBACK_IMPLEMENTATIONS
 #ifdef FULL_CALLBACK_IMPLEMENTATIONS
 
 // The name of this callback derives from the previous CB_YES_BEST_MOVE.
@@ -1495,10 +1496,9 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 
     // Eval takes place after undoing last move, so need to add it back to
     //  show position meaningfully
-    uint8_t *mlptrj = BIN_TO_PTR(m.MLPTRJ);
-    unsigned char from  = *(mlptrj+MLFRP);
+    ML *mlptrj = (ML *)(m.MLPTRJ);
     thc::Square sq;
-    sargon_export_square(from,sq);
+    sargon_export_square(mlptrj->from,sq);
     char c = thc::get_file(sq);
     if( key == "(root)" )
         key = "";

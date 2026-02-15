@@ -100,12 +100,12 @@ void sargon_pv_callback_end_of_points()
 void sargon_pv_callback_yes_best_move()
 {
     // Collect the best moves' attributes
-    uint8_t *p = /*BIN_TO_PTR*/(m.MLPTRJ);
+    ML *p = (ML *)m.MLPTRJ;
     unsigned int level  = m.NPLY;
-    unsigned char from  = *(p+MLFRP);
-    unsigned char to    = *(p+MLTOP);
-    //unsigned char flags = *(p+4);
-    //unsigned char value = *(p+5);
+    unsigned char from  = p->from;
+    unsigned char to    = p->to;
+    //unsigned char flags = p->flags;
+    //unsigned char value = p->val;
 
     // In this 'value' is used by Sargon for minimax. It is the value
     //  we convert to and from centipawns in sargon_import_value()

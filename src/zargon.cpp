@@ -19,19 +19,6 @@
 #include "zargon.h"
 #include "z80_cpu.h"
 
-#ifdef MIG_PTR
-#define MIG_TO_PTR(mig)     ((byte_ptr)(mig))
-#define PTR_TO_MIG(p)       ((mig_t)(p))
-inline mig_t    RD_MIG( const uint8_t *p) { return *((mig_t*)(p)); }
-inline void     WR_MIG( uint8_t *p, mig_t mig ) { *((mig_t*)(p)) = mig; }
-#else
-#define MIG_TO_PTR(mig)     ((uint8_t*) ((mig) + ((uint8_t*)(&m))))
-#define PTR_TO_MIG(p)       (mig_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
-inline mig_t    RD_MIG( const uint8_t *p) { mig_t temp=*(p+1); return (temp<<8)|*p; }
-inline void     WR_MIG( uint8_t *p, mig_t mig ) { *p = (uint8_t)LO(mig); *(p+1) = (uint8_t)HI(mig); }
-#endif
-
-
 // Have now eliminated Z80 simulation after completing conversion to C/C++
 // #include "z80_opcodes.h" // include last, uses aggressive macros
                             //  that might upset other .h files
@@ -491,7 +478,7 @@ void ENPSNT()
     uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
 
     // Must be first move for that piece
-    if( !IS_FIRST_MOVE(*(p+MLFLG)) )
+    if( !p || !IS_FIRST_MOVE(*(p+MLFLG)) )
         return;
 
     // Get "to" position for previous move
@@ -1511,7 +1498,7 @@ void POINTS()
                     uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
 
                     // Is the lost piece the one moving ?
-                    if( m.M3 == *(p+MLTOP) )
+                    if( p && m.M3 == *(p+MLTOP) )
                         m.PTSCK = m.M3; // yes, save position as a flag
                 }
             }

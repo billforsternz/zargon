@@ -733,7 +733,8 @@ bool sargon_undocumented_dev_test()
 {
     thc::ChessPosition cp;
     #ifdef DIFFICULT
-    cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
+    //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
+    cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
     m.PLYMAX = 5;
     #else
     cp.Forsyth("8/8/8/7r/3kN3/1P6/1KP5/5r2 w - - 0 1");
@@ -746,7 +747,8 @@ bool sargon_undocumented_dev_test()
     std::string terse = sargon_export_best_move_temp();
     printf( "Best move = %s\n", terse.c_str() );
     #ifdef DIFFICULT
-    bool ok = (terse == "b7c6");
+    //bool ok = (terse == "b7c6");
+    bool ok = (terse == "g8f8");
     #else
     bool ok = (terse == "e4g3");
     #endif
@@ -1015,20 +1017,21 @@ void sargon_show()
     printf( "Ply ptrs;\n" );
     for( int i=0; i<4; i++ )
     {
-        printf( "%04llx", m.PLYIX[i] );
+        printf( "%04llx", (uint8_t *)m.PLYIX[i] - (uint8_t*)&m );
         printf( i+1<4 ? " " : "\n" );
     }
-    printf( "MLPTRI=%04llx\n", m.MLPTRI );
-    printf( "MLPTRJ=%04llx\n", m.MLPTRJ );
-    printf( "MLLST=%04llx\n",  m.MLLST );
-    printf( "MLNXT=%04llx\n",  m.MLNXT );
+    printf( "MLPTRI=%04llx\n", (uint8_t *)m.MLPTRI - (uint8_t*)&m );
+    printf( "MLPTRJ=%04llx\n", (uint8_t *)m.MLPTRJ - (uint8_t*)&m );
+    printf( "MLLST =%04llx\n", (uint8_t *)m.MLLST  - (uint8_t*)&m );
+    printf( "MLNXT =%04llx\n", (uint8_t *)m.MLNXT  - (uint8_t*)&m );
     uint8_t *move = (uint8_t *)&m.MLIST[0];
-    uint8_t *mlnxt = /*BIN_TO_PTR*/(m.MLNXT);
+    uint8_t *mlnxt = (uint8_t *)(m.MLNXT);
     for( int i=0; i<256; i++ )
     {
-        printf( "%04x: %04x ", PTR_TO_BIN(move), PTR_TO_BIN(mlnxt) );
-        printf( "%02x %02x %02x %02x ", move[2], move[3], move[4], move[5] );
-        printf( "%s\n", sargon_export_move(PTR_TO_BIN(move),false).c_str() );
+        printf( "%04llx: %04llx ", move-(uint8_t *)&m, mlnxt-(uint8_t *)&m );
+        ML *ml = (ML *)move;
+        printf( "%02x %02x %02x %02x ", ml->from, ml->to, ml->flags, ml->val );
+        printf( "%s\n", sargon_export_move(ml).c_str() );
         if( move == mlnxt )
             break;
         move += sizeof(ML);

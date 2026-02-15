@@ -2244,10 +2244,7 @@ struct NativeMove
 // Returns book okay
 static bool repetition_test()
 {
-    #if 1
-    return true;
-    #else
-    uint16_t mlist = PTR_TO_BIN(&m.MLIST[0]);
+    mig_t mlist = PTR_TO_MIG(&m.MLIST[0]);
 
     // Test function repetition_calculate()
     //  After 1. Nf3 Nf6 2. Ng1 the move 2... Nf6-g8 repeats the initial position
@@ -2273,16 +2270,16 @@ static bool repetition_test()
     }
 
     // Non destructive test of function  repetition_remove_moves()
-    uint64_t plyix = m.PLYIX[0];
-    uint64_t mllst = m.MLLST;
-    uint64_t mlnxt = m.MLNXT;
+    mig_t plyix = m.PLYIX[0];
+    mig_t mllst = m.MLLST;
+    mig_t mlnxt = m.MLNXT;
     const uint8_t *src = (const uint8_t *)&m.MLIST[0];
     unsigned char buf[sizeof(ML)*3];
     memcpy(buf,src,sizeof(buf));
 
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
     m.PLYIX[0] = mlist;
-    ML *p = (ML *)BIN_TO_PTR(mlist);
+    ML *p = (ML *)MIG_TO_PTR(mlist);
     p->link_ptr = (mig_t)(p+1); 
     p->from     = SQ_f3;
     p->to       = SQ_e5;
@@ -2343,33 +2340,31 @@ static bool repetition_test()
         ok = false;
 
     // Undo all changes
-    uint8_t *dst = BIN_TO_PTR(mlist);
+    uint8_t *dst = MIG_TO_PTR(mlist);
     memcpy(dst,buf,sizeof(buf));
     m.PLYIX[0] = plyix;
     m.MLLST = mllst;
     m.MLNXT = mlnxt;
     return ok;
-    #endif
 }
 
 // Remove candidate moves that will cause the position to repeat
 static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_moves  )
 {
-    #if 0
     //sargon_show();
-    uint16_t mlist = PTR_TO_BIN(&m.MLIST[0]);
+    mig_t mlist = PTR_TO_MIG(&m.MLIST[0]);
 
     // Locate the list of candidate moves (ptr ends up being 0x400=mlist always)
-    uint64_t bin_ptr = m.PLYIX[0];
+    mig_t bin_ptr = m.PLYIX[0];
 
     // Read a vector of NativeMove
-    uint64_t mlnxt = m.MLNXT;
+    mig_t mlnxt = m.MLNXT;
     if( bin_ptr!=mlist || mlnxt<=bin_ptr || ((mlnxt-bin_ptr)%sizeof(ML))!=0 || ((mlnxt-bin_ptr)/sizeof(ML)>250) )
         return; // sanity checks
     std::vector<NativeMove> vin;
     while( bin_ptr < mlnxt )
     {
-        ML *p = (ML *)BIN_TO_PTR(bin_ptr);
+        ML *p = (ML *)MIG_TO_PTR(bin_ptr);
         NativeMove nm;
         nm.ptr_lo =     0; // FIXME
         nm.ptr_hi =     0; // FIXME
@@ -2413,8 +2408,8 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
 
     // Fixup ptr fields
     bin_ptr = m.PLYIX[0];
-    uint64_t ptr_final_move = bin_ptr;
-    uint64_t ptr_end = (unsigned int)(bin_ptr + sizeof(ML)*vout.size());
+    mig_t ptr_final_move = bin_ptr;
+    mig_t ptr_end = (mig_t)(bin_ptr + sizeof(ML)*vout.size());
     second_byte=false;
     for( NativeMove &nm: vout )
     {
@@ -2429,11 +2424,11 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
             if( nm.flags & 0x40 )
                 second_byte = true;
             ptr_final_move = bin_ptr;
-            uint64_t ptr_next = (second_byte ? bin_ptr+2*sizeof(ML) : bin_ptr+sizeof(ML));
+            mig_t ptr_next = (second_byte ? bin_ptr+2*sizeof(ML) : bin_ptr+sizeof(ML));
             if( ptr_next == ptr_end )
                 ptr_next = 0;
-            nm.ptr_lo = ((ptr_next)&0xff);
-            nm.ptr_hi = (((ptr_next)>>8)&0xff);
+            nm.ptr_lo = 0; //FIXME((ptr_next)&0xff);
+            nm.ptr_hi = 0; //FIXME(((ptr_next)>>8)&0xff);
         }
         bin_ptr += sizeof(ML);
     }
@@ -2443,7 +2438,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     {
         m.MLLST = ptr_final_move;
         m.MLNXT = ptr_end;
-        uint8_t *p = BIN_TO_PTR(m.PLYIX[0]);
+        uint8_t *p = MIG_TO_PTR(m.PLYIX[0]);
         for( NativeMove nm: vout )
         {
             *p++ = nm.ptr_lo;
@@ -2456,7 +2451,6 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     }
 
     //sargon_show();
-    #endif
 }
 
 //
