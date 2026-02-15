@@ -359,7 +359,7 @@ void ENPSNT()
     uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
 
     // Must be first move for that piece
-    if( !p || !IS_FIRST_MOVE(*(p+MLFLG)) )
+    if( !IS_FIRST_MOVE(*(p+MLFLG)) )
         return;
 
     // Get "to" position for previous move
@@ -1379,7 +1379,7 @@ void POINTS()
                     uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
 
                     // Is the lost piece the one moving ?
-                    if( p && m.M3 == *(p+MLTOP) )
+                    if( m.M3 == *(p+MLTOP) )
                         m.PTSCK = m.M3; // yes, save position as a flag
                 }
             }
@@ -1495,8 +1495,7 @@ void POINTS()
 
     // Save score value to move pointed to by current move ptr
     uint8_t *p = MIG_TO_PTR( m.MLPTRJ );
-    if(p)
-        *(p+MLVAL) = m.VALM;
+    *(p+MLVAL) = m.VALM;
 }
 
 //***********************************************************
