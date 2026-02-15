@@ -417,9 +417,9 @@ mig_t    MLPTRI  =                                                         //028
 #endif
 mig_t    MLPTRJ  =                                                         //0285: MLPTRJ  DW      0
 #ifdef MIG_PTR
-                        (byte_ptr)&dummy_move;
+                        (byte_ptr)&MLIST;
 #else
-                        offsetof(emulated_memory,dummy_move);
+                        offsetof(emulated_memory,MLIST);
 #endif
 byte_ptr SCRIX   =      0;                                                 //0286: SCRIX   DW      0
 mig_t    BESTM   =      0;                                                 //0287: BESTM   DW      0
@@ -430,7 +430,6 @@ mig_t    MLNXT   =                                                         //028
 #else
                         offsetof(emulated_memory,MLIST);
 #endif
-    ML  dummy_move;
                                                                            //0290:
 //
 // 3) MISC VARIABLES

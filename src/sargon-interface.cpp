@@ -396,13 +396,16 @@ void sargon_export_position( thc::ChessPosition &cp )
 // Write chess position into Sargon
 void sargon_import_position( const thc::ChessPosition &cp, bool avoid_book )
 {
-    m.MLPTRJ = (mig_t)&m.dummy_move;       // There is an apparent bug in Sargon. Variable MLPTRJ is not explicitly initialised
-                        //  by Sargon CPTRMV(). The score (MLVAL) of the root node is stored early in
-                        //  the calculation at the MLVAL offset from MLPTRJ. If MLPTRJ has its initial
-                        //  default value of 0, this means MLVAL is poked into address 5. In the Sargon
-                        //  emulation, we leave the whole 256 bytes emulating the start of memory unused,
-                        //  in part to make this flaw harmless. We set MLPTRJ to 0 before any sequence of
-                        //  Sargon operations to lock down this behaviour.
+    // There is an apparent bug in Sargon. Variable MLPTRJ is not explicitly initialised
+    //  before the first Sargon CPTRMV(). The score (MLVAL) of the root node is stored early
+    //  in the calculation at the MLVAL offset from MLPTRJ. If MLPTRJ has its initial
+    //  default value of 0, this means MLVAL is poked into address 5.
+    //  In the Sargon x86 Z80 emulation, we leave the whole 256 bytes emulating the start of
+    //  memory unused, in part to make this flaw harmless. 
+    //  We used to set MLPTRJ to 0 here, but with the transition to native pointers that
+    //  obviously caused NULL pointer problems, so now set the pointer to point at a sensible
+    //  place in the data structure definition and here.
+    m.MLPTRJ = (mig_t)&m.MLIST[0];
 
     // Sargon's move evaluation takes some account of the full move number (it
     //  prioritises moving unmoved pieces early). So get an approximation to
