@@ -2372,6 +2372,12 @@ void BOOK()
 
 void CPTRMV()
 {
+    //FIXME this fix commented out, it doesn't work
+    // Fix Sargon Z80 bug that's relatively harmless for a Z80
+    //  (the MLPTRJ is initialised to NULL and this results in
+    //  a value being poked into absolute address 5, so initialise
+    //  it to something harmless instead)
+    //m.MLPTRJ = PTR_TO_BIN(&m.dummy_move);
 
     //  Select best move
     FNDMOV();
