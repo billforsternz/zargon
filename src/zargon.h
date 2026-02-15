@@ -24,12 +24,6 @@ typedef byte_ptr mig_t;
 #else
 typedef uint64_t mig_t;
 #endif
-#define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
-#define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
-#define HI(bin)             ((bin>>8)&0xff)
-#define LO(bin)             (bin&0xff)
-inline uint16_t RD_BIN( const uint8_t *p) { uint16_t temp=*(p+1); return (temp<<8)|*p; }
-inline void     WR_BIN( uint8_t *p, uint16_t bin ) { *p = LO(bin); *(p+1) = HI(bin); }
 
 #ifdef MIG_PTR
 #define MIG_TO_PTR(mig)     ((byte_ptr)(mig))
@@ -40,10 +34,10 @@ inline void     WR_MIG( uint8_t *p, mig_t mig ) { *((mig_t*)(p)) = mig; }
 #define MIG_TO_PTR(mig)     ((uint8_t*) ((mig) + ((uint8_t*)(&m))))
 #define PTR_TO_MIG(p)       (mig_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
 inline mig_t    RD_MIG( const uint8_t *p) { mig_t temp=*(p+1); return (temp<<8)|*p; }
+#define HI(bin)             ((bin>>8)&0xff)
+#define LO(bin)             (bin&0xff)
 inline void     WR_MIG( uint8_t *p, mig_t mig ) { *p = (uint8_t)LO(mig); *(p+1) = (uint8_t)HI(mig); }
 #endif
-
-
 
 // Linked move
 struct ML

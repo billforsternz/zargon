@@ -17,14 +17,6 @@
 #include "bridge.h"
 #include "zargon_functions.h"
 #include "zargon.h"
-#include "z80_cpu.h"
-
-// Have now eliminated Z80 simulation after completing conversion to C/C++
-// #include "z80_opcodes.h" // include last, uses aggressive macros
-                            //  that might upset other .h files
-
-// Emulate Z80 CPU and opcodes
-z80_cpu     gbl_z80_cpu;
 
 // Up to 64K of emulated memory
 emulated_memory gbl_emulated_memory;        // Now made available as simple global
@@ -34,117 +26,6 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 #define m gbl_emulated_memory                       // This is bad practice, but fast
 #endif
 emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
-
-struct transition
-{
-    //***********************************************************      
-    // SCORE   --  Score Array. Used during Alpha-Beta pruning to      
-    //             hold the scores at each ply. It includes two        
-    //             "dummy" entries for ply -1 and ply 0.               
-    //***********************************************************      
-    uint16_t    SCORE[22] = {                                          
-        0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,
-        0,0
-    };
-
-    //***********************************************************      
-    // PLYIX   --  Ply Table. Contains pairs of pointers, a pair       
-    //             for each ply. The first pointer points to the       
-    //             top of the list of possible moves at that ply.      
-    //             The second pointer points to which move in the      
-    //             list is the one currently being considered.         
-    //***********************************************************      
-    byte_ptr    PLYIX[40] = {                                          
-        0,0,0,0,0,0,0,0,0,0,                                           
-        0,0,0,0,0,0,0,0,0,0,                                            
-        0,0,0,0,0,0,0,0,0,0,                                           
-        0,0,0,0,0,0,0,0,0,0                                            
-    };                                                                 
-
-
-    // MLPTRI  --  Pointer into the ply table which tells                 
-    //             which pair of pointers are in current use.             
-    //                                                                    
-    // MLPTRJ  --  Pointer into the move list to the move that is         
-    //             currently being processed.                             
-    //                                                                    
-    // SCRIX   --  Score Index. Pointer to the score table for            
-    //             the ply being examined.                                
-    //                                                                    
-    // BESTM   --  Pointer into the move list for the move that           
-    //             is currently considered the best by the                
-    //             Alpha-Beta pruning process.                            
-    //                                                                    
-    // MLLST   --  Pointer to the previous move placed in the move        
-    //             list. Used during generation of the move list.         
-    //                                                                    
-    // MLNXT   --  Pointer to the next available space in the move        
-    //             list.                                                  
-    //                                                                    
-    //***********************************************************         
-    byte_ptr MLPTRI  =      (byte_ptr)&PLYIX;              
-    byte_ptr MLPTRJ  =      dummy_move;                                            
-    byte_ptr SCRIX   =      0;                                            
-    byte_ptr BESTM   =      0;                                            
-    byte_ptr MLLST   =      0;                                            
-    byte_ptr MLNXT   =      (byte_ptr)&MLIST;              
-    uint8_t  dummy_move[10];
-                                                                      
-    //
-    // 4) MOVE ARRAY
-    //
-    //***********************************************************         
-    // MOVE LIST SECTION                                                  
-    //                                                                    
-    // MLIST   --  A 2048 byte storage area for generated moves.          
-    //             This area must be large enough to hold all             
-    //             the moves for a single leg of the move tree.           
-    //                                                                    
-    // MLEND   --  The address of the last available location             
-    //             in the move list.                                      
-    //                                                                    
-    // MLPTR   --  The Move List is a linked list of individual           
-    //             moves each of which is 6 bytes in length. The          
-    //             move list pointer(MLPTR) is the link field             
-    //             within a move.                                         
-    //                                                                    
-    // MLFRP   --  The field in the move entry which gives the            
-    //             board position from which the piece is moving.         
-    //                                                                    
-    // MLTOP   --  The field in the move entry which gives the            
-    //             board position to which the piece is moving.           
-    //                                                                    
-    // MLFLG   --  A field in the move entry which contains flag          
-    //             information. The meaning of each bit is as             
-    //             follows:                                               
-    //             Bit 7  --  The color of any captured piece             
-    //                        0 -- White                                  
-    //                        1 -- Black                                  
-    //             Bit 6  --  Double move flag (set for castling and      
-    //                        en passant pawn captures)                   
-    //             Bit 5  --  Pawn Promotion flag; set when pawn          
-    //                        promotes.                                   
-    //             Bit 4  --  When set, this flag indicates that          
-    //                        this is the first move for the              
-    //                        piece on the move.                          
-    //             Bit 3  --  This flag is set is there is a piece        
-    //                        captured, and that piece has moved at       
-    //                        least once.                                 
-    //             Bits 2-0   Describe the captured piece.  A             
-    //                        zero value indicates no capture.            
-    //                                                                    
-    // MLVAL   --  The field in the move entry which contains the         
-    //             score assigned to the move.                            
-    //                                                                    
-    //***********************************************************         
-    ML      MLIST[5000];                                                       //0422: MLIST   DS      2048
-    uint8_t MLEND;                                                             //0423: MLEND   EQU     MLIST+2040
-};
-
-// Variables as we transition to native ptrs
-// static transition z;
-
 
 // Regenerate defines for sargon-asm-interface.h as needed
 zargon_data_defs_check_and_regen regen;
