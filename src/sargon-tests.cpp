@@ -1023,7 +1023,7 @@ void sargon_show()
     printf( "MLLST=%04llx\n",  m.MLLST );
     printf( "MLNXT=%04llx\n",  m.MLNXT );
     uint8_t *move = (uint8_t *)&m.MLIST[0];
-    uint8_t *mlnxt = BIN_TO_PTR(m.MLNXT);
+    uint8_t *mlnxt = /*BIN_TO_PTR*/(m.MLNXT);
     for( int i=0; i<256; i++ )
     {
         printf( "%04x: %04x ", PTR_TO_BIN(move), PTR_TO_BIN(mlnxt) );

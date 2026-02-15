@@ -17,8 +17,13 @@ extern emulated_memory gbl_emulated_memory;
 //  Note: a "bin" for our purposes is the binary representation of
 //        a Sargon pointer, it is a uint16_t offset from the start
 //        of Sargon's memory
+#define MIG_PTR
 typedef uint8_t *byte_ptr;
+#ifdef MIG_PTR
+typedef byte_ptr mig_t;
+#else
 typedef uint64_t mig_t;
+#endif
 #define BIN_TO_PTR(bin)     ((uint8_t*) ((bin) + ((uint8_t*)(&m))))
 #define PTR_TO_BIN(p)       (uint16_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
 #define HI(bin)             ((bin>>8)&0xff)

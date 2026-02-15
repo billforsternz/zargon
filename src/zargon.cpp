@@ -19,10 +19,17 @@
 #include "zargon.h"
 #include "z80_cpu.h"
 
+#ifdef MIG_PTR
+#define MIG_TO_PTR(mig)     ((byte_ptr)(mig))
+#define PTR_TO_MIG(p)       ((mig_t)(p))
+inline mig_t    RD_MIG( const uint8_t *p) { return *((mig_t*)(p)); }
+inline void     WR_MIG( uint8_t *p, mig_t mig ) { *((mig_t*)(p)) = mig; }
+#else
 #define MIG_TO_PTR(mig)     ((uint8_t*) ((mig) + ((uint8_t*)(&m))))
 #define PTR_TO_MIG(p)       (mig_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
 inline mig_t    RD_MIG( const uint8_t *p) { mig_t temp=*(p+1); return (temp<<8)|*p; }
 inline void     WR_MIG( uint8_t *p, mig_t mig ) { *p = (uint8_t)LO(mig); *(p+1) = (uint8_t)HI(mig); }
+#endif
 
 
 // Have now eliminated Z80 simulation after completing conversion to C/C++
@@ -1620,7 +1627,8 @@ void POINTS()
 
     // Save score value to move pointed to by current move ptr
     uint8_t *p = MIG_TO_PTR( m.MLPTRJ );
-    *(p+MLVAL) = m.VALM;
+    if(p)
+        *(p+MLVAL) = m.VALM;
 }
 
 //***********************************************************

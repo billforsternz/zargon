@@ -100,7 +100,7 @@ void sargon_pv_callback_end_of_points()
 void sargon_pv_callback_yes_best_move()
 {
     // Collect the best moves' attributes
-    uint8_t *p = BIN_TO_PTR(m.MLPTRJ);
+    uint8_t *p = /*BIN_TO_PTR*/(m.MLPTRJ);
     unsigned int level  = m.NPLY;
     unsigned char from  = *(p+MLFRP);
     unsigned char to    = *(p+MLTOP);

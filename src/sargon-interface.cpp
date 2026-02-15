@@ -156,7 +156,7 @@ bool sargon_export_square( unsigned int sargon_square, thc::Square &sq )
 
 std::string sargon_export_best_move_temp()
 {
-    uint8_t *p = BIN_TO_PTR(m.BESTM);
+    uint8_t *p = /*BIN_TO_PTR*/(m.BESTM);
     unsigned char from = *(p+MLFRP);
     unsigned char to   = *(p+MLTOP);
     char buf[5];

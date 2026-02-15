@@ -392,7 +392,7 @@ static std::string get_key()
         {
             // In other three move cases we can't work out the whole sequence of moves unless we know
             //  the last move, try to rely on this as little as possible
-            uint8_t *p = BIN_TO_PTR(m.MLPTRJ);  // Load ptr to last move
+            uint8_t *p = /*BIN_TO_PTR*/(m.MLPTRJ);  // Load ptr to last move
             unsigned char from  = p ? *(p+MLFRP) : 0;
             thc::Square sq_from;
             bool ok_from = sargon_export_square(from,sq_from);
