@@ -2077,7 +2077,7 @@ void FNDMOV()
             continue;   // no - loop
 
         // Set best move pointer = current move pointer
-        m.BESTM = (mig_t)m.MLPTRJ;
+        m.BESTM = m.MLPTRJ;
 
         // Point to best move score
         p = 1 + (uint8_t *)&m.SCORE;
@@ -2186,9 +2186,9 @@ void BOOK()
 
         // Play e4 or d4 randomly
         if( (rand&1) == 0 )
-            m.BESTM = PTR_TO_MIG(e4);
+            m.BESTM = (ML *)e4;
         else
-            m.BESTM = PTR_TO_MIG(d4);
+            m.BESTM = (ML *)d4;
     }
 
     // Else computer is Black
@@ -2202,9 +2202,9 @@ void BOOK()
         if( from==SQ_a2 || from==SQ_b2 || from==SQ_c2 || from==SQ_e2 )
             play_d5 = false;
         if( play_d5 )
-            m.BESTM = PTR_TO_MIG(d5);
+            m.BESTM = (ML *)d5;
         else
-            m.BESTM = PTR_TO_MIG(e5);
+            m.BESTM = (ML *)e5;
     }
 }
 

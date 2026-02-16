@@ -316,7 +316,7 @@ uint8_t  NPINS   =      0;
 mig_t    MLPTRI  =      (byte_ptr)&PLYIX[0];
 ML      *MLPTRJ  =      MLIST;
 byte_ptr SCRIX   =      0;
-mig_t    BESTM   =      0;
+ML      *BESTM   =      0;
 ML      *MLLST   =      0;
 ML      *MLNXT   =      MLIST;
 
