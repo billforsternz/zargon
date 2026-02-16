@@ -255,10 +255,8 @@ uint8_t     POSQ[2] = {
 //             "dummy" entries for ply -1 and ply 0.
 //***********************************************************
 uint8_t padding[8];
-uint16_t    SCORE[20] = {
-    0,0,0,0,0,0,0,0,0,0,                // Z80 max 6 ply
-    0,0,0,0,0,0,0,0,0,0                 // x86 max 20 ply
-};
+uint8_t SCORE[40];      // Z80 max 6 ply
+                        // x86 max 20 ply
 
 //***********************************************************
 // PLYIX   --  Ply Table. Contains pairs of pointers, a pair
@@ -268,10 +266,7 @@ uint16_t    SCORE[20] = {
 //             list is the one currently being considered.
 //***********************************************************
 uint64_t padding2[2];
-mig_t    PLYIX[20] = {
-    0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0
-};
+ML *PLYIX[40];
 
 //***********************************************************
 // 2) TABLE INDICES SECTION
@@ -308,14 +303,6 @@ mig_t    PLYIX[20] = {
 //             list.
 //
 //***********************************************************
-
-// MLPTRJ  --  Pointer into the move list to the move that is
-//             currently being processed.
-// MLNXT   --  Pointer to the next available space in the move
-//             list.
-// MLLST   --  Pointer to the previous move placed in the move
-//             list. Used during generation of the move list.
-
 uint8_t  M1      =      0;
 uint8_t  M2      =      0;
 uint8_t  M3      =      0;
@@ -331,7 +318,7 @@ mig_t    MLPTRJ  =      (byte_ptr)&MLIST;
 byte_ptr SCRIX   =      0;
 mig_t    BESTM   =      0;
 ML      *MLLST   =      0;
-ML      *MLNXT   =      (ML *)&MLIST;
+ML      *MLNXT   =      MLIST;
 
 //
 // 3) MISC VARIABLES
@@ -398,26 +385,26 @@ ML      *MLNXT   =      (ML *)&MLIST;
 //             the first move for the computer.
 //
 //***********************************************************
-uint8_t KOLOR   =      0;               //
-uint8_t COLOR   =      0;               //
-uint8_t P1      =      0;               //
-uint8_t P2      =      0;               //
-uint8_t P3      =      0;               //
-uint8_t PMATE   =      0;               //
-uint8_t MOVENO  =      0;               //
-uint8_t PLYMAX  =      2;               //
-uint8_t NPLY    =      0;               //
-uint8_t CKFLG   =      0;               //
-uint8_t MATEF   =      0;               //
-uint8_t VALM    =      0;               //
-uint8_t BRDC    =      0;               //
-uint8_t PTSL    =      0;               //
-uint8_t PTSW1   =      0;               //
-uint8_t PTSW2   =      0;               //
-uint8_t MTRL    =      0;               //
-uint8_t BC0     =      0;               //
-uint8_t MV0     =      0;               //
-uint8_t PTSCK   =      0;               //
+uint8_t KOLOR   =      0;
+uint8_t COLOR   =      0;
+uint8_t P1      =      0;
+uint8_t P2      =      0;
+uint8_t P3      =      0;
+uint8_t PMATE   =      0;
+uint8_t MOVENO  =      0;
+uint8_t PLYMAX  =      2;
+uint8_t NPLY    =      0;
+uint8_t CKFLG   =      0;
+uint8_t MATEF   =      0;
+uint8_t VALM    =      0;
+uint8_t BRDC    =      0;
+uint8_t PTSL    =      0;
+uint8_t PTSW1   =      0;
+uint8_t PTSW2   =      0;
+uint8_t MTRL    =      0;
+uint8_t BC0     =      0;
+uint8_t MV0     =      0;
+uint8_t PTSCK   =      0;
 uint8_t BMOVES[12] = {
     35,55,0x10,        // e2-e4 double move
     34,54,0x10,        // d2-d4 double move
