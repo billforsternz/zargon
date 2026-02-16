@@ -585,18 +585,18 @@ void GENMOV()
     m.CKFLG = inchk;
 
     // Setup move list pointers
-    ML *mlnxt    = m.MLNXT;     // addr of next avail list space
+    ML *mlnxt    = m.MLNXT;             // addr of next avail list space
     probe_read(4);
-    ML **mig_hl = (ML **)m.MLPTRI;    // ply list pointer index
-    mig_hl++;   // increment to next ply
+    ML **mig_hl = (ML **)m.MLPTRI;      // ply list pointer index
+    mig_hl++;                           // increment to next ply
 
     // Save move list pointer
     uint8_t *p = MIG_TO_PTR(mig_hl);
     *mig_hl = mlnxt;
     mig_hl++; 
     probe_write(0,(mig_t)mig_hl);
-    m.MLPTRI = (mig_t)mig_hl;          // save new index
-    m.MLLST  = (ML *)mig_hl;    // last pointer for chain init.
+    m.MLPTRI = (mig_t)mig_hl;           // save new index
+    m.MLLST  = (ML *)mig_hl;            // last pointer for chain init.
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -1749,14 +1749,13 @@ void SORTM()
     // Loop
     for(;;)
     {
-        mig_t mig_hl = mig_bc;
+        ML *mig_hl = (ML *)mig_bc;
 
         // Get link to next move
-        uint8_t *p = MIG_TO_PTR(mig_hl);
-        mig_bc = RD_MIG(p);
+        mig_bc = (mig_t)mig_hl->link_ptr;
 
         // Make linked list
-        WR_MIG( p, mig_de );
+        mig_hl->link_ptr = (ML *)mig_de;
 
         // Return if end of list
         if( mig_bc == 0 )
@@ -1768,7 +1767,7 @@ void SORTM()
         // Evaluate move
         EVAL();
         probe_read(6);
-        mig_hl = m.MLPTRI;          // beginning of move list
+        mig_hl = (ML *)m.MLPTRI;          // beginning of move list
         mig_bc = (mig_t)m.MLPTRJ;   // restore list pointer
 
         // Next move loop
@@ -1776,8 +1775,7 @@ void SORTM()
         {
 
             // Get next move
-            p = MIG_TO_PTR(mig_hl);
-            mig_de = RD_MIG(p);
+            mig_de = (mig_t)mig_hl->link_ptr;
 
             // End of list ?
             if( mig_de == 0 )
@@ -1789,11 +1787,11 @@ void SORTM()
                 break;
 
             // Swap pointers if value not less than list value
-            mig_hl = mig_de;
+            mig_hl = (ML *)mig_de;
         }
 
         // Link new move into list
-        WR_MIG(p,mig_bc);
+        mig_hl->link_ptr = (ML *)mig_bc;
     }
 }
 
