@@ -248,7 +248,6 @@ uint8_t     POSK[2] = {
 uint8_t     POSQ[2] = {
     24,94
 };
-int8_t mark_end_of_POSK_POSQ = -1;
 
 //***********************************************************
 // SCORE   --  Score Array. Used during Alpha-Beta pruning to
@@ -434,8 +433,6 @@ uint8_t BMOVES[12] = {
 };
 uint8_t LINECT = 0;
 char MVEMSG[5]; // = {'a','1','-','a','1'};
-char O_O[3];    //    = { '0', '-', '0' };
-char O_O_O[5];  //  = { '0', '-', '0', '-', '0' };
 
 //
 // 4) MOVE ARRAY

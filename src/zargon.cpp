@@ -976,8 +976,9 @@ void PINFND()
     m.NPINS = 0;
 
     // Loop over 4 royal pieces
-    for( uint8_t i=0, *p = &m.POSK[0]; i<4; i++, p++ )
+    for( uint8_t i=0; i<4; i++ )
     {
+        uint8_t *p = i<2 ? &m.POSK[i] : &m.POSQ[i-2];
 
         // Check piece is on the board
         if( *p == 0 )
@@ -2467,32 +2468,24 @@ void ROYALT()
 {
 
     // Clear royalty array
-    memset( &m.POSK[0], 0, 4 );
+    m.POSK[0] = 0;
+    m.POSK[1] = 0;
+    m.POSQ[0] = 0;
+    m.POSQ[1] = 0;
 
     // Board idx = a1 to h8 inclusive
     for( int idx=SQ_a1; idx<=SQ_h8; idx++ )
     {
-        //  Address of White king position
-        uint8_t *p = &m.POSK[0];
         uint8_t piece = m.BOARDA[idx];
 
-        // Is it a black piece ?
-        if( IS_BLACK(piece) )
-            p++;    // yes, increment to address of Black king position
-
-        // Delete flags, leave piece
-        piece &= 7;
-
         // Update king or queen position if king or queen found
-        if( piece == KING )
-            *p = idx;
-        else if( piece == QUEEN )
+        if( (piece&7) == KING )
         {
-
-            // Queen position is 2 bytes after corresponding king position
-            p++;
-            p++;
-            *p = idx;  // Update Queen position
+            m.POSK[IS_BLACK(piece)?1:0] = idx;
+        }
+        else if( (piece&7) == QUEEN )
+        {
+            m.POSQ[IS_BLACK(piece)?1:0] = idx;
         }
     }
 
