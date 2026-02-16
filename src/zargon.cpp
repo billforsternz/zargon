@@ -357,7 +357,7 @@ void ENPSNT()
         return;
 
     // Get "to" position for previous move
-    m.M4 = p->to;
+    m.M4 = m.MLPTRJ->to;
     uint8_t piece = m.BOARDA[m.M4];
     m.P3 = piece;
 

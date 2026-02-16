@@ -2231,23 +2231,10 @@ static bool test_whether_move_repeats( thc::ChessRules &cr, thc::Move mv )
     return (repetition_count > 1);
 }
 
-struct NativeMove
-{
-    unsigned char ptr_lo;
-    unsigned char ptr_hi;
-    unsigned char square_src;
-    unsigned char square_dst;
-    unsigned char flags;
-    unsigned char value;
-};
-
 // Returns book okay
 static bool repetition_test()
 {
-#if 1
-    return 0;
-#else
-    mig_t mlist = PTR_TO_MIG(&m.MLIST[0]);
+    ML *mlist = m.MLIST;
 
     // Test function repetition_calculate()
     //  After 1. Nf3 Nf6 2. Ng1 the move 2... Nf6-g8 repeats the initial position
@@ -2273,22 +2260,22 @@ static bool repetition_test()
     }
 
     // Non destructive test of function  repetition_remove_moves()
-    mig_t plyix = m.PLYIX[0];
-    mig_t mllst = m.MLLST;
-    mig_t mlnxt = m.MLNXT;
+    ML *plyix = m.PLYIX[0];
+    ML *mllst = m.MLLST;
+    ML *mlnxt = m.MLNXT;
     const uint8_t *src = (const uint8_t *)&m.MLIST[0];
     unsigned char buf[sizeof(ML)*3];
     memcpy(buf,src,sizeof(buf));
 
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
     m.PLYIX[0] = mlist;
-    ML *p = (ML *)MIG_TO_PTR(mlist);
+    ML *p       = mlist;
     p->link_ptr = (mig_t)(p+1); 
     p->from     = SQ_f3;
     p->to       = SQ_e5;
     p->flags    = 0;
     p->val      = 0;
-    m.MLLST = mlist+sizeof(ML);
+    m.MLLST     = mlist+1;
 
     // O-O
     p->link_ptr = 0;
@@ -2303,7 +2290,7 @@ static bool repetition_test()
     p->to       = SQ_f1;
     p->flags    = 0;
     p->val      = 0;
-    m.MLNXT = mlist+3*sizeof(ML);
+    m.MLNXT = mlist+3;
     //sargon_show();
 
     // Remove f3e5
@@ -2317,9 +2304,9 @@ static bool repetition_test()
     // Check whether it matches our expectations
     if( mlist != m.MLLST )
         ok = false;
-    if( mlist+2*sizeof(ML) != m.MLNXT )
+    if( mlist+2 != m.MLNXT )
         ok = false;
-    const ML *q = (const ML *)&m.MLIST[0];
+    const ML *q = (const ML *)&m.MLIST;
     if( q->link_ptr != 0 )
         ok = false;
     if( q->from != SQ_e1 )
@@ -2343,49 +2330,46 @@ static bool repetition_test()
         ok = false;
 
     // Undo all changes
-    uint8_t *dst = MIG_TO_PTR(mlist);
+    uint8_t *dst = (uint8_t *)mlist;
     memcpy(dst,buf,sizeof(buf));
     m.PLYIX[0] = plyix;
-    m.MLLST = mllst;
-    m.MLNXT = mlnxt;
+    m.MLLST    = mllst;
+    m.MLNXT    = mlnxt;
     return ok;
-#endif
 }
 
 // Remove candidate moves that will cause the position to repeat
 static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_moves  )
 {
-#if 0
     //sargon_show();
-    mig_t mlist = PTR_TO_MIG(&m.MLIST[0]);
+    ML *mlist = m.MLIST;
 
     // Locate the list of candidate moves (ptr ends up being 0x400=mlist always)
-    mig_t bin_ptr = m.PLYIX[0];
+    ML *bin_ptr = m.PLYIX[0];
 
     // Read a vector of NativeMove
-    mig_t mlnxt = m.MLNXT;
-    if( bin_ptr!=mlist || mlnxt<=bin_ptr || ((mlnxt-bin_ptr)%sizeof(ML))!=0 || ((mlnxt-bin_ptr)/sizeof(ML)>250) )
+    ML *mlnxt = m.MLNXT;
+    if( bin_ptr!=mlist || mlnxt<=bin_ptr || ((mlnxt-bin_ptr)>250) )
         return; // sanity checks
-    std::vector<NativeMove> vin;
+    std::vector<ML> vin;
     while( bin_ptr < mlnxt )
     {
-        ML *p = (ML *)MIG_TO_PTR(bin_ptr);
-        NativeMove nm;
-        nm.ptr_lo =     0; // FIXME
-        nm.ptr_hi =     0; // FIXME
-        nm.square_src = p->from;
-        nm.square_dst = p->to;
+        ML *p = bin_ptr;
+        ML nm;
+        nm.link_ptr =   p->link_ptr;
+        nm.from = p->from;
+        nm.to = p->to;
         nm.flags =      p->flags;
-        nm.value =      p->val;
+        nm.val =      p->val;
         vin.push_back(nm);
         bin_ptr += sizeof(ML);
     }
 
     // Create an edited (reduced) vector
-    std::vector<NativeMove> vout;
+    std::vector<ML> vout;
     bool second_byte=false;
     bool copy_move_and_second_byte_if_present = true;
-    for( NativeMove nm: vin )
+    for( ML nm: vin )
     {
         if( second_byte )
             second_byte = false;
@@ -2395,7 +2379,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
                 second_byte = true;
             thc::Square src, dst;
             copy_move_and_second_byte_if_present = true;
-            if( sargon_export_square(nm.square_src,src) && sargon_export_square(nm.square_dst,dst) )
+            if( sargon_export_square(nm.from,src) && sargon_export_square(nm.to,dst) )
             {
                 for( thc::Move mv: repetition_moves )
                 {
@@ -2413,48 +2397,38 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
 
     // Fixup ptr fields
     bin_ptr = m.PLYIX[0];
-    mig_t ptr_final_move = bin_ptr;
-    mig_t ptr_end = (mig_t)(bin_ptr + sizeof(ML)*vout.size());
+    ML *ptr_final_move = bin_ptr;
+    ML *ptr_end = bin_ptr + vout.size();
     second_byte=false;
-    for( NativeMove &nm: vout )
+    for( ML &nm: vout )
     {
         if( second_byte )
         {
             second_byte = false;
-            nm.ptr_lo = 0;
-            nm.ptr_hi = 0;
+            nm.link_ptr = 0;
         }
         else
         {
             if( nm.flags & 0x40 )
                 second_byte = true;
             ptr_final_move = bin_ptr;
-            mig_t ptr_next = (second_byte ? bin_ptr+2*sizeof(ML) : bin_ptr+sizeof(ML));
+            ML *ptr_next = (second_byte ? bin_ptr+2 : bin_ptr+1 );
             if( ptr_next == ptr_end )
                 ptr_next = 0;
-            nm.ptr_lo = 0; //FIXME((ptr_next)&0xff);
-            nm.ptr_hi = 0; //FIXME(((ptr_next)>>8)&0xff);
+            nm.link_ptr = (byte_ptr)ptr_next;
         }
-        bin_ptr += sizeof(ML);
+        bin_ptr++;
     }
 
     // Write vector back
     if( vout.size() )  // but if no moves left, make no changes
     {
-        m.MLLST = (ML *)ptr_final_move;
+        m.MLLST = ptr_final_move;
         m.MLNXT = ptr_end;
-        uint8_t *p = MIG_TO_PTR(m.PLYIX[0]);
-        for( NativeMove nm: vout )
-        {
-            *p++ = nm.ptr_lo;
-            *p++ = nm.ptr_hi;
-            *p++ = nm.square_src;
-            *p++ = nm.square_dst;
-            *p++ = nm.flags;
-            *p++ = nm.value;
-        }
+        ML *p   = m.PLYIX[0];
+        for( ML nm: vout )
+            *p++ = nm;
     }
-#endif
     //sargon_show();
 }
 
