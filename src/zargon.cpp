@@ -353,15 +353,14 @@ void ENPSNT()
         return;  // not on fifth rank
 
     // Test pointer to previous move
-    uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
+    ML *p = (ML *)m.MLPTRJ;
 
     // Must be first move for that piece
-    if( !IS_FIRST_MOVE(*(p+MLFLG)) )
+    if( !IS_FIRST_MOVE(p->flags) )
         return;
 
     // Get "to" position for previous move
-    m.M4 = *(p+MLTOP);
-    p = MIG_TO_PTR(m.M4);
+    m.M4 = p->to;
     uint8_t piece = m.BOARDA[m.M4];
     m.P3 = piece;
 
