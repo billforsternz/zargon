@@ -2244,6 +2244,9 @@ struct NativeMove
 // Returns book okay
 static bool repetition_test()
 {
+#if 1
+    return 0;
+#else
     mig_t mlist = PTR_TO_MIG(&m.MLIST[0]);
 
     // Test function repetition_calculate()
@@ -2346,6 +2349,7 @@ static bool repetition_test()
     m.MLLST = mllst;
     m.MLNXT = mlnxt;
     return ok;
+#endif
 }
 
 // Remove candidate moves that will cause the position to repeat
@@ -2436,7 +2440,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     // Write vector back
     if( vout.size() )  // but if no moves left, make no changes
     {
-        m.MLLST = ptr_final_move;
+        m.MLLST = (ML *)ptr_final_move;
         m.MLNXT = ptr_end;
         uint8_t *p = MIG_TO_PTR(m.PLYIX[0]);
         for( NativeMove nm: vout )

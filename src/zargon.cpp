@@ -411,10 +411,10 @@ inline void ADJPTR()
     callback_zargon_bridge(CB_ADJPTR);
 
     // Adjust list pointer to point at previous move
-    ML *p = (ML*)MIG_TO_PTR(m.MLLST -= sizeof(ML));
+    m.MLLST -= 1;
 
     // Zero link
-    p->link_ptr = 0;
+    m.MLLST->link_ptr = 0;
 }
 
 //***********************************************************
@@ -540,14 +540,14 @@ void ADMOVE()
         return;
     }
 
-    // Address of previous list area
-    p = MIG_TO_PTR(m.MLLST);
+    // Address of previous move
+    ML *previous_move = m.MLLST;
 
     // Save next as previous
-    m.MLLST = mig;
+    m.MLLST = (ML *)mig;
 
     // Store as link address
-    WR_MIG( p, mig );
+    previous_move->link_ptr = mig;
 
     // If piece hasn't moved before set first move flag
     if( HAS_NOT_MOVED(m.P1) )
@@ -599,7 +599,7 @@ void GENMOV()
     WR_MIG(p,mig_de);
     mig_hl += sizeof(mig_t);
     m.MLPTRI = mig_hl;          // save new index
-    m.MLLST  = mig_hl;          // last pointer for chain init.
+    m.MLLST  = (ML *)mig_hl;    // last pointer for chain init.
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )

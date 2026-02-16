@@ -308,6 +308,14 @@ mig_t    PLYIX[20] = {
 //             list.
 //
 //***********************************************************
+
+// MLPTRJ  --  Pointer into the move list to the move that is
+//             currently being processed.
+// MLNXT   --  Pointer to the next available space in the move
+//             list.
+// MLLST   --  Pointer to the previous move placed in the move
+//             list. Used during generation of the move list.
+
 uint8_t  M1      =      0;
 uint8_t  M2      =      0;
 uint8_t  M3      =      0;
@@ -318,27 +326,12 @@ uint8_t  T3      =      0;
 uint8_t  INDX1   =      0;
 uint8_t  INDX2   =      0;
 uint8_t  NPINS   =      0;
-mig_t    MLPTRI  =
-#ifdef MIG_PTR
-                        (byte_ptr)&PLYIX;
-#else
-                        offsetof(emulated_memory,PLYIX);
-#endif
-mig_t    MLPTRJ  =
-#ifdef MIG_PTR
-                        (byte_ptr)&MLIST;
-#else
-                        offsetof(emulated_memory,MLIST);
-#endif
+mig_t    MLPTRI  =      (byte_ptr)&PLYIX;
+mig_t    MLPTRJ  =      (byte_ptr)&MLIST;
 byte_ptr SCRIX   =      0;
 mig_t    BESTM   =      0;
-mig_t    MLLST   =      0;
-mig_t    MLNXT   =
-#ifdef MIG_PTR
-                        (byte_ptr)&MLIST;
-#else
-                        offsetof(emulated_memory,MLIST);
-#endif
+ML      *MLLST   =      0;
+mig_t    MLNXT   =      (byte_ptr)&MLIST;
 
 //
 // 3) MISC VARIABLES
