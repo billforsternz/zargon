@@ -528,6 +528,7 @@ void ADMOVE()
     // Address of next location in move list
     mig_t mig = m.MLNXT;
     uint8_t *p = MIG_TO_PTR(mig);
+    ML *ml = (ML *)mig;
 
     // Check that we haven't run out of memory
     uint8_t *q = &m.MLEND;
@@ -544,27 +545,24 @@ void ADMOVE()
     ML *previous_move = m.MLLST;
 
     // Save next as previous
-    m.MLLST = (ML *)mig;
+    m.MLLST = ml;
 
     // Store as link address
-    previous_move->link_ptr = mig;
+    previous_move->link_ptr = (mig_t)ml;
 
     // If piece hasn't moved before set first move flag
     if( HAS_NOT_MOVED(m.P1) )
         SET_FIRST_MOVE(m.P2);
 
     // Now write move details
-    p = MIG_TO_PTR(mig);
-    ML *ml = (ML *)p;
     ml->link_ptr = 0;           // store zero in link address
     ml->from  = m.M1;           // store "from" move position
     ml->to    = m.M2;           // store "to" move position
     ml->flags = m.P2;           // store move flags/capt. piece
     ml->val   = 0;              // store initial move value
-    p += sizeof(ML);
 
     // Save next slot address
-    m.MLNXT = PTR_TO_MIG(p);
+    m.MLNXT = (mig_t)(ml+1);
 }
 
 //***********************************************************
