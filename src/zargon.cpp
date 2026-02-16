@@ -587,15 +587,15 @@ void GENMOV()
     // Setup move list pointers
     ML *mlnxt    = m.MLNXT;     // addr of next avail list space
     probe_read(4);
-    mig_t mig_hl = m.MLPTRI;    // ply list pointer index
-    mig_hl += sizeof(mig_t);    // increment to next ply
+    ML **mig_hl = (ML **)m.MLPTRI;    // ply list pointer index
+    mig_hl++;   // increment to next ply
 
     // Save move list pointer
     uint8_t *p = MIG_TO_PTR(mig_hl);
-    WR_MIG(p,(mig_t)mlnxt);
-    mig_hl += sizeof(mig_t);
-    probe_write(0,mig_hl);
-    m.MLPTRI = mig_hl;          // save new index
+    *mig_hl = mlnxt;
+    mig_hl++; 
+    probe_write(0,(mig_t)mig_hl);
+    m.MLPTRI = (mig_t)mig_hl;          // save new index
     m.MLLST  = (ML *)mig_hl;    // last pointer for chain init.
 
     // Loop through the board
