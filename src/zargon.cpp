@@ -2194,8 +2194,8 @@ void BOOK()
     // Else computer is Black
     else
     {
-        p = MIG_TO_PTR(m.MLPTRJ);       //  Pointer to opponents 1st move
-        uint8_t from = *(p+MLFRP);      //  Get "from" position
+        ML *ml = (ML *)(m.MLPTRJ);      // pointer to opponents 1st move
+        uint8_t from = ml->from;        // get "from" position
 
         // Play d5 after all White first moves except a,b,c or e pawn moves
         bool play_d5 = true;
@@ -2241,12 +2241,6 @@ void BOOK()
 
 void CPTRMV()
 {
-    //FIXME this fix commented out, it doesn't work
-    // Fix Sargon Z80 bug that's relatively harmless for a Z80
-    //  (the MLPTRJ is initialised to NULL and this results in
-    //  a value being poked into absolute address 5, so initialise
-    //  it to something harmless instead)
-    //m.MLPTRJ = PTR_TO_MIG(&m.dummy_move);
 
     //  Select best move
     FNDMOV();
