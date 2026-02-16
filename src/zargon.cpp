@@ -1763,12 +1763,12 @@ void SORTM()
             return;
 
         // Save list pointer
-        m.MLPTRJ = mig_bc;
+        m.MLPTRJ = (ML *)mig_bc;
 
         // Evaluate move
         EVAL();
         mig_hl = m.MLPTRI;       //  Beginning of move list
-        mig_bc = m.MLPTRJ;       //  Restore list pointer
+        mig_bc = (mig_t)m.MLPTRJ;       //  Restore list pointer
 
         // Next move loop
         for(;;)
@@ -1921,21 +1921,21 @@ void FNDMOV()
             callback_after_genmov();
             if( m.PLYMAX > m.NPLY )
                 SORTM();                    // Not at max ply, so call sort
-            m.MLPTRJ = m.MLPTRI;            //  last move pointer = oad ply index pointer
+            m.MLPTRJ = (ML *)m.MLPTRI;            //  last move pointer = oad ply index pointer
         }
 
         // Traverse move list
         uint8_t score = 0;
         int8_t iscore = 0;
-        ML *ml = (ML *)m.MLPTRJ;   // load last move pointer
+        ML *ml = m.MLPTRJ;   // load last move pointer
         mig_t mig = ml->link_ptr;
 
         //  End of move list ?
         bool points_needed = false;
         if( mig != 0 )
         {
-            m.MLPTRJ = mig;         // save current move pointer
-            ml = (ML *)m.MLPTRI;     // save in ply pointer list
+            m.MLPTRJ = (ML *)mig;           // save current move pointer
+            ml = (ML *)m.MLPTRI;            // save in ply pointer list
             ml->link_ptr = mig;
 
             // Max depth reached ?
@@ -2077,7 +2077,7 @@ void FNDMOV()
             continue;   // no - loop
 
         // Set best move pointer = current move pointer
-        m.BESTM = m.MLPTRJ;
+        m.BESTM = (mig_t)m.MLPTRJ;
 
         // Point to best move score
         p = 1 + (uint8_t *)&m.SCORE;
@@ -2137,7 +2137,7 @@ void ASCEND()
 
     // Get ptr to next move to undo
     pp--;
-    m.MLPTRJ = (mig_t)*pp;
+    m.MLPTRJ = *pp;
 
     // Save new ply list pointer
     m.MLPTRI = (mig_t)pp;
@@ -2247,7 +2247,7 @@ void CPTRMV()
     callback_zargon_bridge(CB_AFTER_FNDMOV);
 
     // Save best move
-    m.MLPTRJ = m.BESTM;
+    m.MLPTRJ = (ML *)m.BESTM;
 
     // Make the move
     MOVE();
@@ -2371,7 +2371,7 @@ bool VALMOV()
     bool ok=false;
 
     //  Save last move pointer
-    mig_t mlptrj_save = m.MLPTRJ;
+    ML *mlptrj_save = m.MLPTRJ;
 
     // Set user color to opposite of computer's color
     m.COLOR = IS_WHITE(m.KOLOR) ? BLACK : WHITE;
@@ -2382,9 +2382,9 @@ bool VALMOV()
     m.MLPTRI = PTR_TO_MIG(p);
 
     // Next available list pointer
-    p = (uint8_t *)(&m.MLIST[0]);
-    p += 1024;
-    m.MLNXT = (ML *)p;
+    ML *ml = (ML *)m.MLIST;
+    ml += 1024/sizeof(ML);      // FIXME this is a mystery
+    m.MLNXT = ml;
 
     // Generate opponent's moves
     GENMOV();
@@ -2395,12 +2395,12 @@ bool VALMOV()
     {
 
         // Move found ?
-        if( *q == *(p+MLFRP) && *(q+1) == *(p+MLTOP) )
+        if( *q == ml->from && *(q+1) == ml->to )
             break;  // yes
 
         //  Pointer to next list move
-        mig_t mig = RD_MIG(p+MLPTR);
-        p = MIG_TO_PTR(mig);
+        mig_t mig = ml->link_ptr;
+        ml = (ML *)(mig);
         if( mig == 0 ) // At end of list ?
         {
 
@@ -2411,7 +2411,7 @@ bool VALMOV()
     }
 
     //  Save opponents move pointer
-    m.MLPTRJ = PTR_TO_MIG(p);
+    m.MLPTRJ = ml;
 
     //  Make move on board array
     MOVE();

@@ -405,7 +405,7 @@ void sargon_import_position( const thc::ChessPosition &cp, bool avoid_book )
     //  We used to set MLPTRJ to 0 here, but with the transition to native pointers that
     //  obviously caused NULL pointer problems, so now set the pointer to point at a sensible
     //  place in the data structure definition and here.
-    m.MLPTRJ = (mig_t)&m.MLIST[0];
+    m.MLPTRJ = &m.MLIST[0];
 
     // Sargon's move evaluation takes some account of the full move number (it
     //  prioritises moving unmoved pieces early). So get an approximation to
