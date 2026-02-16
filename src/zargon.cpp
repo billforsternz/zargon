@@ -526,13 +526,10 @@ void ADMOVE()
     callback_zargon_bridge(CB_ADMOVE);
 
     // Address of next location in move list
-    mig_t mig = m.MLNXT;
-    uint8_t *p = MIG_TO_PTR(mig);
-    ML *ml = (ML *)mig;
+    ML *ml = (ML *)m.MLNXT;
 
     // Check that we haven't run out of memory
-    uint8_t *q = &m.MLEND;
-    if( p > q )
+    if( ml > (ML *)&m.MLEND )
     {
 
         // TODO - Maybe this is probably what was intended in the original code,
