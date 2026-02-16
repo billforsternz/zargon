@@ -20,27 +20,12 @@ extern emulated_memory gbl_emulated_memory;
 //        we "migrated" to native pointers. Now we have native
 //        pointers but we still have migs at least until we have
 //        transitioned to specific pointer types with fewer casts
-#define MIG_PTR
 typedef uint8_t *byte_ptr;
-#ifdef MIG_PTR
 typedef byte_ptr mig_t;
-#else
-typedef uint64_t mig_t;
-#endif
-
-#ifdef MIG_PTR
 #define MIG_TO_PTR(mig)     ((byte_ptr)(mig))
 #define PTR_TO_MIG(p)       ((mig_t)(p))
 inline mig_t    RD_MIG( const uint8_t *p) { return *((mig_t*)(p)); }
 inline void     WR_MIG( uint8_t *p, mig_t mig ) { *((mig_t*)(p)) = mig; }
-#else
-#define MIG_TO_PTR(mig)     ((uint8_t*) ((mig) + ((uint8_t*)(&m))))
-#define PTR_TO_MIG(p)       (mig_t)(((uint8_t*)(p)) - (uint8_t*)(&m))
-inline mig_t    RD_MIG( const uint8_t *p) { mig_t temp=*(p+1); return (temp<<8)|*p; }
-#define HI(bin)             ((bin>>8)&0xff)
-#define LO(bin)             (bin&0xff)
-inline void     WR_MIG( uint8_t *p, mig_t mig ) { *p = (uint8_t)LO(mig); *(p+1) = (uint8_t)HI(mig); }
-#endif
 
 // Linked move
 struct ML

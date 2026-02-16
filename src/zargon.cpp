@@ -1776,8 +1776,8 @@ void SORTM()
                 break;
 
             // Compare value to list value
-            uint8_t *q = MIG_TO_PTR(mig_de);
-            if( m.VALM < *(q+MLVAL) )
+            ML *ml = (ML *)mig_de;
+            if( m.VALM < ml->val )
                 break;
 
             // Swap pointers if value not less than list value
