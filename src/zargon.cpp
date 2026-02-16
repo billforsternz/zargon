@@ -586,7 +586,7 @@ void GENMOV()
 
     // Setup move list pointers
     ML *mlnxt    = m.MLNXT;     // addr of next avail list space
-    probe_read(1);
+    probe_read(4);
     mig_t mig_hl = m.MLPTRI;    // ply list pointer index
     mig_hl += sizeof(mig_t);    // increment to next ply
 
@@ -594,7 +594,7 @@ void GENMOV()
     uint8_t *p = MIG_TO_PTR(mig_hl);
     WR_MIG(p,(mig_t)mlnxt);
     mig_hl += sizeof(mig_t);
-    probe_write(2,mig_hl);
+    probe_write(0,mig_hl);
     m.MLPTRI = mig_hl;          // save new index
     m.MLLST  = (ML *)mig_hl;    // last pointer for chain init.
 
@@ -1742,7 +1742,7 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Init working pointers
-    probe_read(3);
+    probe_read(5);
     mig_t mig_bc = m.MLPTRI;       //  Move list begin pointer
     mig_t mig_de = 0;
 
@@ -1767,7 +1767,7 @@ void SORTM()
 
         // Evaluate move
         EVAL();
-        probe_read(4);
+        probe_read(6);
         mig_hl = m.MLPTRI;          // beginning of move list
         mig_bc = (mig_t)m.MLPTRJ;   // restore list pointer
 
@@ -1882,7 +1882,7 @@ void FNDMOV()
     m.MLNXT = ml;
     uint8_t *q = (uint8_t *)(&m.PLYIX);
     q -= sizeof(mig_t);
-    probe_write(5,(mig_t)q);
+    probe_write(1,(mig_t)q);
     m.MLPTRI = PTR_TO_MIG(q);
 
     // Initialise color
@@ -1923,7 +1923,7 @@ void FNDMOV()
             callback_after_genmov();
             if( m.PLYMAX > m.NPLY )
                 SORTM();                    // Not at max ply, so call sort
-            probe_read(6);
+            probe_read(7);
             m.MLPTRJ = (ML *)m.MLPTRI;            //  last move pointer = oad ply index pointer
         }
 
@@ -1937,7 +1937,7 @@ void FNDMOV()
         if( ml->link_ptr != 0 )
         {
             m.MLPTRJ = ml->link_ptr;        // save current move pointer
-            probe_read(7);
+            probe_read(8);
             ml = (ML *)m.MLPTRI;            // save in ply pointer list
             ml->link_ptr = m.MLPTRJ;
 
@@ -2130,7 +2130,7 @@ void ASCEND()
     m.NPLY--;
 
     // Get ply list pointer
-    probe_read(8);
+    probe_read(9);
     ML **pp = (ML **)m.MLPTRI;
 
     // Decrement by ptr size
@@ -2144,7 +2144,7 @@ void ASCEND()
     m.MLPTRJ = *pp;
 
     // Save new ply list pointer
-    probe_write(9,(mig_t)pp);
+    probe_write(2,(mig_t)pp);
     m.MLPTRI = (mig_t)pp;
 
     // Restore board to previous ply
@@ -2383,7 +2383,7 @@ bool VALMOV()
     // Load move list index
     uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
     p -= sizeof(mig_t);
-    probe_write(0,(mig_t)p);
+    probe_write(3,(mig_t)p);
     m.MLPTRI = PTR_TO_MIG(p);
 
     // Next available list pointer
@@ -2526,7 +2526,7 @@ void probe_write( int tag, mig_t val )
     if( val == 0 )
         p->nil_hits++;
     bool is_list_ptr = (val>= (mig_t)m.MLIST);
-    bool is_plyix_ptr = (val>= (mig_t)m.PLYIX && val<(mig_t)&m.PLYIX[40]);
+    bool is_plyix_ptr = (val>= (mig_t)&m.PLYIX[-1] && val<(mig_t)&m.PLYIX[40]);
     if( is_list_ptr )
         p->list_hits++;
     else if( is_plyix_ptr )
@@ -2556,7 +2556,7 @@ void probe_read( int tag )
     if( val == 0 )
         p->nil_hits++;
     bool is_list_ptr = (val>= (mig_t)m.MLIST);
-    bool is_plyix_ptr = (val>= (mig_t)m.PLYIX && val<(mig_t)&m.PLYIX[40]);
+    bool is_plyix_ptr = (val>= (mig_t)&m.PLYIX[-1] && val<(mig_t)&m.PLYIX[40]);
     if( is_list_ptr )
         p->list_hits++;
     else if( is_plyix_ptr )
