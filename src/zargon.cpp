@@ -2194,8 +2194,7 @@ void BOOK()
     // Else computer is Black
     else
     {
-        ML *ml = (ML *)(m.MLPTRJ);      // pointer to opponents 1st move
-        uint8_t from = ml->from;        // get "from" position
+        uint8_t from = m.MLPTRJ->from;   // get "from" square for opponent's 1st move
 
         // Play d5 after all White first moves except a,b,c or e pawn moves
         bool play_d5 = true;
@@ -2247,7 +2246,7 @@ void CPTRMV()
     callback_zargon_bridge(CB_AFTER_FNDMOV);
 
     // Save best move
-    m.MLPTRJ = (ML *)m.BESTM;
+    m.MLPTRJ = m.BESTM;
 
     // Make the move
     MOVE();
