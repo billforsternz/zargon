@@ -352,11 +352,8 @@ void ENPSNT()
     if( idx<SQ_a5 || SQ_h5<idx )  // fifth rank a5-h5 ? So white captures black pawn
         return;  // not on fifth rank
 
-    // Test pointer to previous move
-    ML *p = (ML *)m.MLPTRJ;
-
-    // Must be first move for that piece
-    if( !IS_FIRST_MOVE(p->flags) )
+    // Previous move must be first move for that piece
+    if( !IS_FIRST_MOVE(m.MLPTRJ->flags) )
         return;
 
     // Get "to" position for previous move
@@ -1365,11 +1362,8 @@ void POINTS()
                     // Store new value as max lost
                     m.PTSL = points;
 
-                    // Load pointer to this move
-                    ML *p = (ML *)m.MLPTRJ;
-
                     // Is the lost piece the one moving ?
-                    if( m.M3 == p->to )
+                    if( m.M3 == m.MLPTRJ->to )
                         m.PTSCK = m.M3; // yes, save position as a flag
                 }
             }
@@ -1484,8 +1478,7 @@ void POINTS()
     m.VALM = points;
 
     // Save score value to move pointed to by current move ptr
-    ML *p = (ML *)m.MLPTRJ;
-    p->val = m.VALM;
+    m.MLPTRJ->val = m.VALM;
 }
 
 //***********************************************************
@@ -1767,8 +1760,8 @@ void SORTM()
 
         // Evaluate move
         EVAL();
-        mig_hl = m.MLPTRI;       //  Beginning of move list
-        mig_bc = (mig_t)m.MLPTRJ;       //  Restore list pointer
+        mig_hl = m.MLPTRI;          // beginning of move list
+        mig_bc = (mig_t)m.MLPTRJ;   // restore list pointer
 
         // Next move loop
         for(;;)
@@ -1965,14 +1958,14 @@ void FNDMOV()
             else
             {
 
-                //  Load move pointer
-                ml = (ML *)m.MLPTRJ;
+                // Load move pointer
+                ml = m.MLPTRJ;
 
-                //  If score is zero (illegal move) continue looping
+                // If score is zero (illegal move) continue looping
                 if( ml->val == 0 )
                     continue;
 
-                //  Execute move on board array
+                // Execute move on board array
                 MOVE();
             }
 

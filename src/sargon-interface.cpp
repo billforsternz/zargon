@@ -351,11 +351,9 @@ void sargon_export_position( thc::ChessPosition &cp )
             cp.bking_square = static_cast<thc::Square>(i);
     }
 
-    // TEMPORARILY REMOVE THIS WHILE WE WORK on native pointer transition
-
     // This is a bit insane, but why not. Let's figure out the enpassant target square
     //  if there is one. By default of course Init() has set it to thc::SQUARE_INVALID
-    ML *last_move_ptr = (ML *)(m.MLPTRJ);
+    ML *last_move_ptr = m.MLPTRJ;
     if( last_move_ptr )
     {
         thc::Square sq_from, sq_to;
@@ -404,7 +402,7 @@ void sargon_import_position( const thc::ChessPosition &cp, bool avoid_book )
     //  We used to set MLPTRJ to 0 here, but with the transition to native pointers that
     //  obviously caused NULL pointer problems, so now set the pointer to point at a sensible
     //  place in the data structure definition and here.
-    m.MLPTRJ = &m.MLIST[0];
+    m.MLPTRJ = m.MLIST;
 
     // Sargon's move evaluation takes some account of the full move number (it
     //  prioritises moving unmoved pieces early). So get an approximation to
