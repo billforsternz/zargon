@@ -1927,16 +1927,16 @@ void FNDMOV()
         // Traverse move list
         uint8_t score = 0;
         int8_t iscore = 0;
-        p = MIG_TO_PTR(m.MLPTRJ);   // load last move pointer
-        mig_t mig = RD_MIG(p);
+        ML *ml = (ML *)m.MLPTRJ;   // load last move pointer
+        mig_t mig = ml->link_ptr;
 
         //  End of move list ?
         bool points_needed = false;
         if( mig != 0 )
         {
-            m.MLPTRJ = mig;             // save current move pointer
-            p = MIG_TO_PTR(m.MLPTRI);   // save in ply pointer list
-            WR_MIG(p,mig);
+            m.MLPTRJ = mig;         // save current move pointer
+            ml = (ML *)m.MLPTRI;     // save in ply pointer list
+            ml->link_ptr = mig;
 
             // Max depth reached ?
             if( m.NPLY >= m.PLYMAX )
@@ -1966,10 +1966,10 @@ void FNDMOV()
             {
 
                 //  Load move pointer
-                p = MIG_TO_PTR(m.MLPTRJ);
+                ml = (ML *)m.MLPTRJ;
 
                 //  If score is zero (illegal move) continue looping
-                if( *(p+MLVAL) == 0 )
+                if( ml->val == 0 )
                     continue;
 
                 //  Execute move on board array
