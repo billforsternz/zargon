@@ -1546,21 +1546,20 @@ void MOVE()
     callback_zargon_bridge(CB_MOVE);
 
     //  Load move list pointer
-    uint8_t *p = MIG_TO_PTR( m.MLPTRJ);
-    p += MLFRP;     // increment past link bytes
+    ML *p = (ML *)m.MLPTRJ;
 
     // Loop for possible double move
     for(;;)
     {
 
         // "From" position
-        m.M1 = *p++;
+        m.M1 = p->from;
 
         // "To" position
-        m.M2 = *p++;
+        m.M2 = p->to;
 
         // Get captured piece plus flags
-        uint8_t captured_piece_plus_flags = *p;
+        uint8_t captured_piece_plus_flags = p->flags;
 
         // Get piece moved from "from" pos board index
         uint8_t piece = m.BOARDA[m.M1];
@@ -1603,8 +1602,8 @@ void MOVE()
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
-            p = MIG_TO_PTR( m.MLPTRJ);  // reload move list pointer
-            p += (sizeof(ML)+MLFRP);    //  jump to next move
+            p = (ML *)m.MLPTRJ;  // reload move list pointer
+            p++;                 // go to second move of double move
         }
         else
         {
