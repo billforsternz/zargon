@@ -261,6 +261,8 @@ int main_tests( int argc, const char *argv[] )
             }
         }
     }
+    extern void probe_report();
+    probe_report();
     return ok ? 0 : -1;
 }
 
