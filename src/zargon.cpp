@@ -1366,10 +1366,10 @@ void POINTS()
                     m.PTSL = points;
 
                     // Load pointer to this move
-                    uint8_t *p = MIG_TO_PTR(m.MLPTRJ);
+                    ML *p = (ML *)m.MLPTRJ;
 
                     // Is the lost piece the one moving ?
-                    if( m.M3 == *(p+MLTOP) )
+                    if( m.M3 == p->to )
                         m.PTSCK = m.M3; // yes, save position as a flag
                 }
             }
@@ -1484,8 +1484,8 @@ void POINTS()
     m.VALM = points;
 
     // Save score value to move pointed to by current move ptr
-    uint8_t *p = MIG_TO_PTR( m.MLPTRJ );
-    *(p+MLVAL) = m.VALM;
+    ML *p = (ML *)m.MLPTRJ;
+    p->val = m.VALM;
 }
 
 //***********************************************************
