@@ -30,7 +30,7 @@ inline void     WR_MIG( uint8_t *p, mig_t mig ) { *((mig_t*)(p)) = mig; }
 // Linked move
 struct ML
 {
-    mig_t       link_ptr;
+    struct ML  *link_ptr;
     uint8_t     from;
     uint8_t     to;
     uint8_t     flags;

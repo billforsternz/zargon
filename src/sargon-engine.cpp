@@ -2270,7 +2270,7 @@ static bool repetition_test()
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
     m.PLYIX[0] = mlist;
     ML *p       = mlist;
-    p->link_ptr = (mig_t)(p+1); 
+    p->link_ptr = p+1; 
     p->from     = SQ_f3;
     p->to       = SQ_e5;
     p->flags    = 0;
@@ -2415,7 +2415,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
             ML *ptr_next = (second_byte ? bin_ptr+2 : bin_ptr+1 );
             if( ptr_next == ptr_end )
                 ptr_next = 0;
-            nm.link_ptr = (byte_ptr)ptr_next;
+            nm.link_ptr = ptr_next;
         }
         bin_ptr++;
     }

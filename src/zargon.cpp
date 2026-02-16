@@ -541,7 +541,7 @@ void ADMOVE()
     m.MLLST = ml;
 
     // Store as link address
-    previous_move->link_ptr = (mig_t)ml;
+    previous_move->link_ptr = ml;
 
     // If piece hasn't moved before set first move flag
     if( HAS_NOT_MOVED(m.P1) )
@@ -1921,15 +1921,14 @@ void FNDMOV()
         uint8_t score = 0;
         int8_t iscore = 0;
         ML *ml = m.MLPTRJ;   // load last move pointer
-        mig_t mig = ml->link_ptr;
 
         //  End of move list ?
         bool points_needed = false;
-        if( mig != 0 )
+        if( ml->link_ptr != 0 )
         {
-            m.MLPTRJ = (ML *)mig;           // save current move pointer
+            m.MLPTRJ = ml->link_ptr;        // save current move pointer
             ml = (ML *)m.MLPTRI;            // save in ply pointer list
-            ml->link_ptr = mig;
+            ml->link_ptr = m.MLPTRJ;
 
             // Max depth reached ?
             if( m.NPLY >= m.PLYMAX )
@@ -2163,8 +2162,8 @@ void BOOK()
     //  are stored (so 3 bytes per move)
     p = &m.BMOVES[0];
 
-    // Adjust p so that p+MLFRP points at "from" (then "to", then "flags")
-    p -= MLFRP;
+    // Adjust p so that MLFRP points at "from" (then "to", then "flags")
+    p -= offsetof(ML,from);
 
     // Named pointers to each of the four book moves;
     uint8_t *e4=p, *d4=p+3, *e5=p+6, *d5=p+9;
@@ -2391,9 +2390,8 @@ bool VALMOV()
             break;  // yes
 
         //  Pointer to next list move
-        mig_t mig = ml->link_ptr;
-        ml = (ML *)(mig);
-        if( mig == 0 ) // At end of list ?
+        ml = ml->link_ptr;
+        if( ml == 0 )   // at end of list ?
         {
 
             // Invalid move, restore last move pointer
