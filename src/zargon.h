@@ -331,7 +331,7 @@ mig_t    MLPTRJ  =      (byte_ptr)&MLIST;
 byte_ptr SCRIX   =      0;
 mig_t    BESTM   =      0;
 ML      *MLLST   =      0;
-mig_t    MLNXT   =      (byte_ptr)&MLIST;
+ML      *MLNXT   =      (ML *)&MLIST;
 
 //
 // 3) MISC VARIABLES

@@ -526,7 +526,7 @@ void ADMOVE()
     callback_zargon_bridge(CB_ADMOVE);
 
     // Address of next location in move list
-    ML *ml = (ML *)m.MLNXT;
+    ML *ml = m.MLNXT;
 
     // Check that we haven't run out of memory
     if( ml > (ML *)&m.MLEND )
@@ -559,7 +559,7 @@ void ADMOVE()
     ml->val   = 0;              // store initial move value
 
     // Save next slot address
-    m.MLNXT = (mig_t)(ml+1);
+    m.MLNXT = ml + 1;
 }
 
 //***********************************************************
@@ -585,13 +585,13 @@ void GENMOV()
     m.CKFLG = inchk;
 
     // Setup move list pointers
-    mig_t mig_de = m.MLNXT;  // addr of next avail list space
-    mig_t mig_hl = m.MLPTRI; // ply list pointer index
+    ML *mlnxt    = m.MLNXT;     // addr of next avail list space
+    mig_t mig_hl = m.MLPTRI;    // ply list pointer index
     mig_hl += sizeof(mig_t);    // increment to next ply
 
     // Save move list pointer
     uint8_t *p = MIG_TO_PTR(mig_hl);
-    WR_MIG(p,mig_de);
+    WR_MIG(p,(mig_t)mlnxt);
     mig_hl += sizeof(mig_t);
     m.MLPTRI = mig_hl;          // save new index
     m.MLLST  = (ML *)mig_hl;    // last pointer for chain init.
@@ -1880,17 +1880,17 @@ void FNDMOV()
     m.BESTM = 0;
 
     //  Initialize ply list pointers
-    uint8_t *p = (uint8_t *)(&m.MLIST[0]);
-    m.MLNXT = PTR_TO_MIG(p);
-    p = (uint8_t *)(&m.PLYIX);
-    p -= sizeof(mig_t);
-    m.MLPTRI = PTR_TO_MIG(p);
+    ML *ml  = (&m.MLIST[0]);
+    m.MLNXT = ml;
+    uint8_t *q = (uint8_t *)(&m.PLYIX);
+    q -= sizeof(mig_t);
+    m.MLPTRI = PTR_TO_MIG(q);
 
     // Initialise color
     m.COLOR = m.KOLOR;
 
     // Initialize score index and clear table
-    p = (uint8_t *)(&m.SCORE);
+    uint8_t *p = (uint8_t *)(&m.SCORE);
     m.SCRIX = p;
     for( int i=0; i<m.PLYMAX+2; i++ )
         *p++ = 0;
@@ -2130,20 +2130,20 @@ void ASCEND()
     m.NPLY--;
 
     // Get ply list pointer
-    uint8_t *p = MIG_TO_PTR(m.MLPTRI);
+    ML **pp = (ML **)m.MLPTRI;
 
     // Decrement by ptr size
-    p -= sizeof(mig_t);
+    pp--;
 
     // Update move list avail ptr
-    m.MLNXT = RD_MIG(p);
+    m.MLNXT = *pp;
 
     // Get ptr to next move to undo
-    p -= sizeof(mig_t);
-    m.MLPTRJ = RD_MIG(p);
+    pp--;
+    m.MLPTRJ = (mig_t)*pp;
 
     // Save new ply list pointer
-    m.MLPTRI = PTR_TO_MIG(p);
+    m.MLPTRI = (mig_t)pp;
 
     // Restore board to previous ply
     UNMOVE();
@@ -2393,7 +2393,7 @@ bool VALMOV()
     // Next available list pointer
     p = (uint8_t *)(&m.MLIST[0]);
     p += 1024;
-    m.MLNXT = PTR_TO_MIG(p);
+    m.MLNXT = (ML *)p;
 
     // Generate opponent's moves
     GENMOV();

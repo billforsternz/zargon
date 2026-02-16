@@ -2355,6 +2355,7 @@ static bool repetition_test()
 // Remove candidate moves that will cause the position to repeat
 static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_moves  )
 {
+#if 0
     //sargon_show();
     mig_t mlist = PTR_TO_MIG(&m.MLIST[0]);
 
@@ -2453,7 +2454,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
             *p++ = nm.value;
         }
     }
-
+#endif
     //sargon_show();
 }
 
