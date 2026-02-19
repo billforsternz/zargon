@@ -1743,55 +1743,55 @@ void SORTM()
 
     // Init working pointers
     probe_read(5);
-    mig_t mig_bc = m.MLPTRI;       //  Move list begin pointer
-    mig_t mig_de = 0;
+    ML *mig_bc = (ML *)m.MLPTRI;       //  Move list begin pointer
+    ML *mig_de = 0;
 
     // Loop
     for(;;)
     {
-        ML *mig_hl = (ML *)mig_bc;
+        ML *mig_hl = mig_bc;
 
         // Get link to next move
-        mig_bc = (mig_t)mig_hl->link_ptr;
+        mig_bc = mig_hl->link_ptr;
 
         // Make linked list
-        mig_hl->link_ptr = (ML *)mig_de;
+        mig_hl->link_ptr = mig_de;
 
         // Return if end of list
         if( mig_bc == 0 )
             return;
 
         // Save list pointer
-        m.MLPTRJ = (ML *)mig_bc;
+        m.MLPTRJ = mig_bc;
 
         // Evaluate move
         EVAL();
         probe_read(6);
-        mig_hl = (ML *)m.MLPTRI;          // beginning of move list
-        mig_bc = (mig_t)m.MLPTRJ;   // restore list pointer
+        mig_hl = (ML *)m.MLPTRI;    // beginning of move list
+        mig_bc = m.MLPTRJ;          // restore list pointer
 
         // Next move loop
         for(;;)
         {
 
             // Get next move
-            mig_de = (mig_t)mig_hl->link_ptr;
+            mig_de = mig_hl->link_ptr;
 
             // End of list ?
             if( mig_de == 0 )
                 break;
 
             // Compare value to list value
-            ML *ml = (ML *)mig_de;
+            ML *ml = mig_de;
             if( m.VALM < ml->val )
                 break;
 
             // Swap pointers if value not less than list value
-            mig_hl = (ML *)mig_de;
+            mig_hl = mig_de;
         }
 
         // Link new move into list
-        mig_hl->link_ptr = (ML *)mig_bc;
+        mig_hl->link_ptr = mig_bc;
     }
 }
 
@@ -1920,9 +1920,9 @@ void FNDMOV()
             GENMOV();                   //  Generate list of moves
             callback_after_genmov();
             if( m.PLYMAX > m.NPLY )
-                SORTM();                    // Not at max ply, so call sort
+                SORTM();                    // not at max ply, so call sort
             probe_read(7);
-            m.MLPTRJ = (ML *)m.MLPTRI;            //  last move pointer = oad ply index pointer
+            m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
         }
 
         // Traverse move list
@@ -2506,6 +2506,7 @@ static STAT stats[10];
 
 void probe_write( int tag, mig_t val )
 {
+    return;
     if( tag > 9 )
     {
         printf( "Unexpected tag\n" );
@@ -2537,6 +2538,7 @@ void probe_write( int tag, mig_t val )
 
 void probe_read( int tag )
 {
+    return;
     if( tag > 9 )
     {
         printf( "Unexpected tag\n" );
@@ -2566,6 +2568,7 @@ void probe_read( int tag )
 
 void probe_report()
 {
+    return;
     for( int tag=0; tag<10; tag++ )
     {
         STAT *p = &stats[tag];
