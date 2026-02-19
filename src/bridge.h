@@ -7,15 +7,6 @@
 #include "z80_registers.h"
 #include "z80_cpu.h"
 
-// Include callback tracing code
-//#define BRIDGE_CALLBACK_TRACE
-//#define BRIDGE_CALLBACK_TRACE_DETAILED
-#ifdef BRIDGE_CALLBACK_TRACE_DETAILED
-#define callback_zargon_bridge(cb) bridge_callback_trace(cb,0)
-#else
-#define callback_zargon_bridge(cb)
-#endif
-
 void bridge_init( const unsigned char *mem_base );
 std::string reg_dump( const z80_registers *reg=0 );
 std::string mem_dump();
@@ -54,7 +45,24 @@ enum CB
     CB_ASCEND
 };
 
-void bridge_callback_trace( CB cb, const z80_registers *reg );
+class function_in_out
+{
+    CB saved_cb;
+public:
+    function_in_out( CB cb );
+    ~function_in_out();
+    void log( CB cb, bool in );
+};
+
+//void bridge_callback_trace( CB cb );
+// Include callback tracing code
+//#define BRIDGE_CALLBACK_TRACE
+#define BRIDGE_CALLBACK_TRACE_DETAILED
+#ifdef BRIDGE_CALLBACK_TRACE_DETAILED
+#define callback_zargon_bridge(cb)  function_in_out temp_fio(cb)
+#else
+#define callback_zargon_bridge(cb)
+#endif
 
 #endif  // BRIDGE_H_INCLUDED
 

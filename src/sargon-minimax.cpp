@@ -442,7 +442,7 @@ struct Model
 };
 
 // Keep track of progress through Sargon's calculation
-enum ProgressType {create,eval,alpha_beta_yes,alpha_beta_no,bestmove_yes,bestmove_no,bestmove_confirmed};
+enum ProgressType {create,eval,alpha_beta_yes,alpha_beta_no,bestmove_yes,bestmove_no,bestmove_confirmed,misc};
 struct Progress
 {
     ProgressType pt;
@@ -1570,6 +1570,13 @@ void callback_no_best_move( uint8_t score, const uint8_t *p )
     running_example->progress.push_back(prog);
 }
 
+void minimax_log( std::string msg )
+{
+    Progress prog;
+    prog.pt  = misc;
+    prog.msg = msg;
+    running_example->progress.push_back(prog);
+}
 
 // Else callback stubs
 #else

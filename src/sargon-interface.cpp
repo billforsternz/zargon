@@ -681,3 +681,45 @@ std::string algebraic( unsigned int sq )
     return s;
 }
 
+std::string sargon_ptr_print()
+{
+    std::string s;
+    int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
+    int final_ply = 0;
+    for( int i = sizeof(m.PLYIX)/sizeof(m.PLYIX[0]) - 1; i>=0; i-- )
+    {
+        ML *ml = m.PLYIX[i];
+        if( ml )
+        {
+            final_ply = i;
+            break;
+        }
+    }
+    for( int i=first_ply; i<=final_ply; i++ )
+    {
+        s += util::sprintf( "%d: ", i );
+        ML *ml = m.PLYIX[i];
+        if( m.MLPTRI && m.MLPTRI == &m.PLYIX[i] )
+            s += " <-MLPTRI";
+        for( int j=0; j<10 && ml; j++ )
+        {
+            if( m.MLPTRJ == ml )
+                s += " MLPTRJ";
+            if( m.MLNXT == ml )
+                s += " MLNXT";
+            if( m.MLLST == ml )
+                s += " MLLST";
+            if( m.BESTM == ml )
+                s += " BESTM";
+            if( ml >= m.MLIST )
+                s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+            else
+                s += " ?";
+            std::string t = sargon_export_move( ml );
+            s += t;
+            ml = ml->link_ptr;
+        }
+        s += "\n";
+    }
+    return s;
+}

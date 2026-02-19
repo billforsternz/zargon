@@ -1937,7 +1937,7 @@ void FNDMOV()
                 bool inchk = INCHK(m.COLOR);             //  Check for legal move
 
                 //  If move not legal, restore board position and continue looping
-                if( inchk )       //  Is move legal
+                if( inchk )       // if move illegal
                 {
                     UNMOVE();
                     continue;
