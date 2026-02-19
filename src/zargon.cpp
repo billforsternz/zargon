@@ -27,10 +27,6 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 #endif
 emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 
-// Temp probes
-void probe_write( int tag, mig_t val );
-void probe_read( int tag );
-
 //***********************************************************
 // EQUATES
 //***********************************************************
@@ -586,17 +582,14 @@ void GENMOV()
 
     // Setup move list pointers
     ML *mlnxt    = m.MLNXT;             // addr of next avail list space
-    probe_read(4);
-    ML **mig_hl = (ML **)m.MLPTRI;      // ply list pointer index
+    ML **mig_hl = m.MLPTRI;             // ply list pointer index
     mig_hl++;                           // increment to next ply
 
     // Save move list pointer
-    uint8_t *p = MIG_TO_PTR(mig_hl);
     *mig_hl = mlnxt;
     mig_hl++; 
-    probe_write(0,(mig_t)mig_hl);
-    m.MLPTRI = (mig_t)mig_hl;           // save new index
-    m.MLLST  = (ML *)mig_hl;            // last pointer for chain init.
+    m.MLPTRI = mig_hl;                  // save new index
+    m.MLLST  = (ML *)mig_hl;            // last pointer for chain
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -1742,7 +1735,6 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Init working pointers
-    probe_read(5);
     ML *mig_bc = (ML *)m.MLPTRI;       //  Move list begin pointer
     ML *mig_de = 0;
 
@@ -1766,7 +1758,6 @@ void SORTM()
 
         // Evaluate move
         EVAL();
-        probe_read(6);
         mig_hl = (ML *)m.MLPTRI;    // beginning of move list
         mig_bc = m.MLPTRJ;          // restore list pointer
 
@@ -1878,10 +1869,9 @@ void FNDMOV()
     //  Initialize ply list pointers
     ML *ml  = (&m.MLIST[0]);
     m.MLNXT = ml;
-    uint8_t *q = (uint8_t *)(&m.PLYIX);
-    q -= sizeof(mig_t);
-    probe_write(1,(mig_t)q);
-    m.MLPTRI = PTR_TO_MIG(q);
+    ML **q = m.PLYIX;
+    q--;
+    m.MLPTRI = q;
 
     // Initialise color
     m.COLOR = m.KOLOR;
@@ -1921,7 +1911,6 @@ void FNDMOV()
             callback_after_genmov();
             if( m.PLYMAX > m.NPLY )
                 SORTM();                    // not at max ply, so call sort
-            probe_read(7);
             m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
         }
 
@@ -1935,7 +1924,6 @@ void FNDMOV()
         if( ml->link_ptr != 0 )
         {
             m.MLPTRJ = ml->link_ptr;        // save current move pointer
-            probe_read(8);
             ml = (ML *)m.MLPTRI;            // save in ply pointer list
             ml->link_ptr = m.MLPTRJ;
 
@@ -2128,8 +2116,7 @@ void ASCEND()
     m.NPLY--;
 
     // Get ply list pointer
-    probe_read(9);
-    ML **pp = (ML **)m.MLPTRI;
+    ML **pp = m.MLPTRI;
 
     // Decrement by ptr size
     pp--;
@@ -2142,8 +2129,7 @@ void ASCEND()
     m.MLPTRJ = *pp;
 
     // Save new ply list pointer
-    probe_write(2,(mig_t)pp);
-    m.MLPTRI = (mig_t)pp;
+    m.MLPTRI = pp;
 
     // Restore board to previous ply
     UNMOVE();
@@ -2379,10 +2365,9 @@ bool VALMOV()
     m.COLOR = IS_WHITE(m.KOLOR) ? BLACK : WHITE;
 
     // Load move list index
-    uint8_t *p = (uint8_t *)(&m.PLYIX[0]);
-    p -= sizeof(mig_t);
-    probe_write(3,(mig_t)p);
-    m.MLPTRI = PTR_TO_MIG(p);
+    ML **p = m.PLYIX;
+    p--;
+    m.MLPTRI = p;
 
     // Next available list pointer
     ML *ml = (ML *)m.MLIST;
@@ -2490,99 +2475,4 @@ static bool have_written=false;
 static mig_t previous;
 static uint64_t trace;
 static int tag_most_recent_write;
-
-struct STAT
-{
-    bool read;
-    uint64_t hits;
-    uint64_t tag_most_recent_write[10];
-    uint64_t nil_hits;
-    uint64_t list_hits;
-    uint64_t plyix_hits;
-    uint64_t other_hits;
-};
-
-static STAT stats[10];
-
-void probe_write( int tag, mig_t val )
-{
-    return;
-    if( tag > 9 )
-    {
-        printf( "Unexpected tag\n" );
-        exit(0);
-    }
-    if( !have_written )
-        have_written = true;
-    else
-    {
-        if( previous != m.MLPTRI )
-            printf( "*** %llu PROBE_WRITE() *** %d %p %p\n", ++trace, tag, previous, m.MLPTRI );
-    }
-    STAT *p = &stats[tag];
-    p->read = false;
-    p->hits++;
-    if( val == 0 )
-        p->nil_hits++;
-    bool is_list_ptr = (val>= (mig_t)m.MLIST);
-    bool is_plyix_ptr = (val>= (mig_t)&m.PLYIX[-1] && val<(mig_t)&m.PLYIX[40]);
-    if( is_list_ptr )
-        p->list_hits++;
-    else if( is_plyix_ptr )
-        p->plyix_hits++;
-    else
-        p->other_hits++;
-    tag_most_recent_write = tag;
-    previous = val;
-}
-
-void probe_read( int tag )
-{
-    return;
-    if( tag > 9 )
-    {
-        printf( "Unexpected tag\n" );
-        exit(0);
-    }
-    if( have_written )
-    {
-        if( previous != m.MLPTRI )
-            printf( "*** %llu PROBE_READ() *** %d %p %p\n", ++trace, tag, previous, m.MLPTRI );
-    }
-    STAT *p = &stats[tag];
-    p->read = true;
-    p->hits++;
-    mig_t val = m.MLPTRI;
-    if( val == 0 )
-        p->nil_hits++;
-    bool is_list_ptr = (val>= (mig_t)m.MLIST);
-    bool is_plyix_ptr = (val>= (mig_t)&m.PLYIX[-1] && val<(mig_t)&m.PLYIX[40]);
-    if( is_list_ptr )
-        p->list_hits++;
-    else if( is_plyix_ptr )
-        p->plyix_hits++;
-    else
-        p->other_hits++;
-    (p->tag_most_recent_write[tag_most_recent_write]) ++;
-}
-
-void probe_report()
-{
-    return;
-    for( int tag=0; tag<10; tag++ )
-    {
-        STAT *p = &stats[tag];
-        printf( "%d %s\n", tag, p->read?"Read":"Write" );
-        printf( "  %llu hits\n", p->hits );
-        for( int i=0; i<10; i++ )
-        {
-            if( p->tag_most_recent_write[i] > 0 )
-                printf("    most recent write tag %d: %llu hits\n", i, p->tag_most_recent_write[i] );
-        }
-        printf( "  %llu nil hits\n", p->nil_hits );
-        printf( "  %llu list hits \n", p->list_hits );
-        printf( "  %llu plyix hits \n", p->plyix_hits );
-        printf( "  %llu other hits\n", p->other_hits );
-    }
-}
 
