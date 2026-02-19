@@ -329,7 +329,7 @@ std::string mem_dump()
         s += util::sprintf("%-6s %04x:\n", v.second, offset );
         if( v.first == xSCRIX )
         {
-            s += util::sprintf( "  (SCRIX offset = 0x%llx)\n", (m.SCRIX - (byte_ptr)&m) );
+            s += util::sprintf( "  (SCRIX offset = 0x%llx)\n", (m.SCRIX - (uint8_t *)&m) );
         }
     }
     s += "\n";

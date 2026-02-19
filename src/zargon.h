@@ -13,20 +13,6 @@ emulated_memory *zargon_get_ptr_emulated_memory();
 // Now export emulated memory as a global, transitional I think
 extern emulated_memory gbl_emulated_memory;
 
-// Transitional pointer manipulation macros
-//  Note: a "bin" for our purposes is the binary representation of
-//        a Sargon pointer, it is a uint16_t offset from the start
-//        of Sargon's memory. Later we renamed "bin" to "mig" as
-//        we "migrated" to native pointers. Now we have native
-//        pointers but we still have migs at least until we have
-//        transitioned to specific pointer types with fewer casts
-typedef uint8_t *byte_ptr;
-typedef byte_ptr mig_t;
-#define MIG_TO_PTR(mig)     ((byte_ptr)(mig))
-#define PTR_TO_MIG(p)       ((mig_t)(p))
-inline mig_t    RD_MIG( const uint8_t *p) { return *((mig_t*)(p)); }
-inline void     WR_MIG( uint8_t *p, mig_t mig ) { *((mig_t*)(p)) = mig; }
-
 // Linked move
 struct ML
 {
@@ -300,7 +286,7 @@ uint8_t  INDX2   =      0;
 uint8_t  NPINS   =      0;
 ML     **MLPTRI  =      PLYIX;
 ML      *MLPTRJ  =      MLIST;
-byte_ptr SCRIX   =      0;
+uint8_t *SCRIX   =      0;
 ML      *BESTM   =      0;
 ML      *MLLST   =      0;
 ML      *MLNXT   =      MLIST;

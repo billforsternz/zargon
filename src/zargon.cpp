@@ -2471,8 +2471,3 @@ void ROYALT()
 //  DSPBRD, BSETUP, INSPCE, CONVRT, DIVIDE, MLTPLY, BLNKER, EXECMV
 //
 
-static bool have_written=false;
-static mig_t previous;
-static uint64_t trace;
-static int tag_most_recent_write;
-
