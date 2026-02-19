@@ -407,7 +407,7 @@ inline void ADJPTR()
     callback_zargon_bridge(CB_ADJPTR);
 
     // Adjust list pointer to point at previous move
-    m.MLLST -= 1;
+    m.MLLST--;
 
     // Zero link
     m.MLLST->link_ptr = 0;
@@ -582,14 +582,14 @@ void GENMOV()
 
     // Setup move list pointers
     ML *mlnxt    = m.MLNXT;             // addr of next avail list space
-    ML **mig_hl = m.MLPTRI;             // ply list pointer index
-    mig_hl++;                           // increment to next ply
+    ML **pp      = m.MLPTRI;            // ply list pointer index
+    pp++;                               // increment to next ply
 
     // Save move list pointer
-    *mig_hl = mlnxt;
-    mig_hl++; 
-    m.MLPTRI = mig_hl;                  // save new index
-    m.MLLST  = (ML *)mig_hl;            // last pointer for chain
+    *pp = mlnxt;
+    pp++; 
+    m.MLPTRI = pp;                      // save new index
+    m.MLLST  = (ML *)pp;                // last pointer for chain
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -1538,7 +1538,7 @@ void MOVE()
     callback_zargon_bridge(CB_MOVE);
 
     //  Load move list pointer
-    ML *p = (ML *)m.MLPTRJ;
+    ML *p = m.MLPTRJ;
 
     // Loop for possible double move
     for(;;)
@@ -1594,8 +1594,8 @@ void MOVE()
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
-            p = (ML *)m.MLPTRJ;  // reload move list pointer
-            p++;                 // go to second move of double move
+            p = m.MLPTRJ;  // reload move list pointer
+            p++;           // go to second move of double move
         }
         else
         {
@@ -1637,7 +1637,7 @@ void UNMOVE()
     callback_zargon_bridge(CB_UNMOVE);
 
     //  Load move list pointer
-    ML *p = (ML *) m.MLPTRJ;
+    ML *p = m.MLPTRJ;
 
     // Loop for possible double move
     for(;;)
@@ -1696,8 +1696,8 @@ void UNMOVE()
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
-            p = (ML *)m.MLPTRJ;  // reload move list pointer
-            p++;                 // go to second move of double move
+            p = m.MLPTRJ;  // reload move list pointer
+            p++;           // go to second move of double move
         }
         else
         {
@@ -1735,54 +1735,54 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Init working pointers
-    ML *mig_bc = (ML *)m.MLPTRI;       //  Move list begin pointer
-    ML *mig_de = 0;
+    ML *ptr_bc = (ML *)m.MLPTRI;       //  Move list begin pointer
+    ML *ptr_de = 0;
 
     // Loop
     for(;;)
     {
-        ML *mig_hl = mig_bc;
+        ML *ptr_hl = ptr_bc;
 
         // Get link to next move
-        mig_bc = mig_hl->link_ptr;
+        ptr_bc = ptr_hl->link_ptr;
 
         // Make linked list
-        mig_hl->link_ptr = mig_de;
+        ptr_hl->link_ptr = ptr_de;
 
         // Return if end of list
-        if( mig_bc == 0 )
+        if( ptr_bc == 0 )
             return;
 
         // Save list pointer
-        m.MLPTRJ = mig_bc;
+        m.MLPTRJ = ptr_bc;
 
         // Evaluate move
         EVAL();
-        mig_hl = (ML *)m.MLPTRI;    // beginning of move list
-        mig_bc = m.MLPTRJ;          // restore list pointer
+        ptr_hl = (ML *)m.MLPTRI;    // beginning of move list
+        ptr_bc = m.MLPTRJ;          // restore list pointer
 
         // Next move loop
         for(;;)
         {
 
             // Get next move
-            mig_de = mig_hl->link_ptr;
+            ptr_de = ptr_hl->link_ptr;
 
             // End of list ?
-            if( mig_de == 0 )
+            if( ptr_de == 0 )
                 break;
 
             // Compare value to list value
-            ML *ml = mig_de;
+            ML *ml = ptr_de;
             if( m.VALM < ml->val )
                 break;
 
             // Swap pointers if value not less than list value
-            mig_hl = mig_de;
+            ptr_hl = ptr_de;
         }
 
         // Link new move into list
-        mig_hl->link_ptr = mig_bc;
+        ptr_hl->link_ptr = ptr_bc;
     }
 }
 
