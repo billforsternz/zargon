@@ -1735,54 +1735,53 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Init working pointers
-    ML *ptr_bc = (ML *)m.MLPTRI;       //  Move list begin pointer
-    ML *ptr_de = 0;
+    ML *ptr_list = (ML *)m.MLPTRI;       //  Move list begin pointer
+    ML *ptr_next = 0;
 
     // Loop
     for(;;)
     {
-        ML *ptr_hl = ptr_bc;
+        ML *ml = ptr_list;
 
         // Get link to next move
-        ptr_bc = ptr_hl->link_ptr;
+        ptr_list = ml->link_ptr;
 
         // Make linked list
-        ptr_hl->link_ptr = ptr_de;
+        ml->link_ptr = ptr_next;
 
         // Return if end of list
-        if( ptr_bc == 0 )
+        if( ptr_list == 0 )
             return;
 
         // Save list pointer
-        m.MLPTRJ = ptr_bc;
+        m.MLPTRJ = ptr_list;
 
         // Evaluate move
         EVAL();
-        ptr_hl = (ML *)m.MLPTRI;    // beginning of move list
-        ptr_bc = m.MLPTRJ;          // restore list pointer
+        ml = (ML *)m.MLPTRI;    // beginning of move list
+        ptr_list = m.MLPTRJ;    // restore list pointer
 
         // Next move loop
         for(;;)
         {
 
             // Get next move
-            ptr_de = ptr_hl->link_ptr;
+            ptr_next = ml->link_ptr;
 
             // End of list ?
-            if( ptr_de == 0 )
+            if( ptr_next == 0 )
                 break;
 
             // Compare value to list value
-            ML *ml = ptr_de;
-            if( m.VALM < ml->val )
+            if( m.VALM < ptr_next->val )
                 break;
 
             // Swap pointers if value not less than list value
-            ptr_hl = ptr_de;
+            ml = ptr_next;
         }
 
         // Link new move into list
-        ptr_hl->link_ptr = ptr_bc;
+        ml->link_ptr = ptr_list;
     }
 }
 
@@ -2370,7 +2369,7 @@ bool VALMOV()
     m.MLPTRI = p;
 
     // Next available list pointer
-    ML *ml = (ML *)m.MLIST;
+    ML *ml = m.MLIST;
     ml += 1024/sizeof(ML);      // FIXME this is a mystery
     m.MLNXT = ml;
 
