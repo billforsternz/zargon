@@ -519,7 +519,7 @@ void CASTLE()
 
 void ADMOVE()
 {
-    callback_zargon_bridge(CB_ADMOVE);
+    callback_zargon_bridge_void(CB_ADMOVE);
 
     // Address of next location in move list
     ML *ml = m.MLNXT;

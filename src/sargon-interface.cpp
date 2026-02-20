@@ -701,7 +701,7 @@ std::string sargon_ptr_print()
         ML *ml = m.PLYIX[i];
         if( m.MLPTRI && m.MLPTRI == &m.PLYIX[i] )
             s += " <-MLPTRI";
-        for( int j=0; j<10 && ml; j++ )
+        for( int j=0; j<100 && ml; j++ )
         {
             if( m.MLPTRJ == ml )
                 s += " MLPTRJ";

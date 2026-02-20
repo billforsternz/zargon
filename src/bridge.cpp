@@ -27,94 +27,6 @@ class bridge_exit
 };
 //static bridge_exit bridge_exit_instance;
 
-#ifdef BRIDGE_CALLBACK_TRACE
-void bridge_callback_trace( CB cb, const z80_registers *reg )
-{
-    
-    // static bool trigger;
-    // static int count = 0;
-    // static bool detail = false;
-    const char *name = 0; //"??";
-    bool pnck = false;
-    const int64_t THRES=-1; // 151000;
-    //if( (cb==CB_END_OF_POINTS || cb==CB_YES_BEST_MOVE) )
-    //{
-    //    detail = false;
-    //    count++;
-    //    if( count == 4859 )
-    //        trigger = true;
-    //    if( count == 4862 )
-    //        exit(0);
-    //}
-    switch(cb)
-    {
-        //case CB_END_OF_POINTS:
-        //{
-        //    name = "END_OF_POINTS";
-        ////    printf( "CB_END_OF_POINTS(%u) %s\n", count, reg_dump(reg).c_str() );
-        ////    if( count > 4850 )
-        ////        printf( "%s", mem_dump().c_str() );
-        //    break;
-        //}
-        //case CB_YES_BEST_MOVE:
-        //{
-        //    name = "YES_BEST_MOVE";
-        ////    printf( "CB_YES_BEST_MOVE(%u) %s\n", count, reg_dump(reg).c_str() );
-        ////    if( count > 4850 )
-        ////        printf( "%s", mem_dump().c_str() );
-        //    break;
-        //}
-        case CB_PATH  :  name = "PATH";   break;
-        case CB_MPIECE:  name = "MPIECE"; break;
-        case CB_ENPSNT:  name = "ENPSNT"; break;
-        case CB_ADJPTR:  name = "ADJPTR"; break;
-        case CB_CASTLE:  name = "CASTLE"; break;
-        case CB_ADMOVE:  name = "ADMOVE"; break;
-        case CB_GENMOV:  name = "GENMOV"; break;
-        case CB_ATTACK:  name = "ATTACK"; break;
-        case CB_ATKSAV:  name = "ATKSAV"; break;
-        case CB_PNCK  :  name = "PNCK";
-                         pnck = true;
-                         pnck_count++;    break;
-        case CB_PINFND:  name = "PINFND"; break;
-        case CB_XCHNG :  name = "XCHNG";  break;
-        case CB_NEXTAD:  name = "NEXTAD"; break;
-        case CB_POINTS:  name = "POINTS"; break;
-        case CB_MOVE  :  name = "MOVE";   break;
-        case CB_UNMOVE:  name = "UNMOVE"; break;
-        case CB_SORTM:   name = "SORTM";  break;
-        case CB_EVAL:    name = "EVAL";   break;
-        case CB_FNDMOV:  name = "FNDMOV"; break;
-        case CB_ASCEND:  name = "ASCEND"; break;
-    }
-    if( name )
-    {
-        run_count++;
-        //if( run_count == 161 )
-        //    printf("This call to ATTACK() should not set P2 to 0\n" );
-        if( pnck && pnck_count == 5046 )
-            printf("This call to PNCK() should set wact[0] to 1\n" );
-        bool in_range = true; //THRES>=0 && (THRES<=run_count && run_count<=THRES+1000);
-        if( in_range )
-            printf( "%s(%llu) %s\n", name, pnck?pnck_count:run_count, mem_dump().c_str() );
-    }
-    // run_count++;
-    // if( detail )
-    // {
-    //       printf( "%s(%llu) %s\n", name, run_count, mem_dump().c_str() );
-    //    static int second_level_count;
-    //    if( trigger )
-    //    {
-    //        printf( "%s(%u) %s\n", name, ++second_level_count, reg_dump(reg).c_str() );
-    //        printf( "%s", mem_dump().c_str() );
-    //        if( second_level_count == 2124 )
-    //            printf("");
-    //    }
-    // }
-}
-#endif
-
-
 // Callback function names
 const char *lookup[] =
 {
@@ -150,12 +62,17 @@ const char *lookup[] =
 };
 
 std::string current_status;
-extern std::string sargon_ptr_print();
+std::string sargon_ptr_print();
+void callback_genmov();
+bool callback_admove();
 
 function_in_out::function_in_out( CB cb )
 {
+    early_exit = false;
     saved_cb = cb;
     if( cb == CB_PATH ) return;
+    else if( cb == CB_GENMOV ) callback_genmov();
+    else if( cb == CB_ADMOVE ) early_exit = callback_admove();
     log( cb, true );
 }
 function_in_out::~function_in_out()
@@ -171,109 +88,12 @@ void function_in_out::log( CB cb, bool in )
     {
         current_status = diag;
         std::string msg = util::sprintf( "%s() %s\n%s", lookup[cb], in?"IN":"OUT", diag.c_str() );
-        //printf( "%s\n", msg.c_str() );
-        extern void minimax_log( std::string msg );
-        minimax_log( msg );
+        printf( "%s\n", msg.c_str() );
+        //extern void minimax_log( std::string msg );
+        //minimax_log( msg );
     }
 }
 
-void bridge_callback_trace( CB cb, const z80_registers *reg )
-{
-    
-    // static bool trigger;
-    // static int count = 0;
-    // static bool detail = false;
-    const char *name = 0; //"??";
-    bool pnck = false;
-    const int64_t THRES=-1; // 151000;
-    //if( (cb==CB_END_OF_POINTS || cb==CB_YES_BEST_MOVE) )
-    //{
-    //    detail = false;
-    //    count++;
-    //    if( count == 4859 )
-    //        trigger = true;
-    //    if( count == 4862 )
-    //        exit(0);
-    //}
-    switch(cb)
-    {
-        //case CB_END_OF_POINTS:
-        //{
-        //    name = "END_OF_POINTS";
-        ////    printf( "CB_END_OF_POINTS(%u) %s\n", count, reg_dump(reg).c_str() );
-        ////    if( count > 4850 )
-        ////        printf( "%s", mem_dump().c_str() );
-        //    break;
-        //}
-        //case CB_YES_BEST_MOVE:
-        //{
-        //    name = "YES_BEST_MOVE";
-        ////    printf( "CB_YES_BEST_MOVE(%u) %s\n", count, reg_dump(reg).c_str() );
-        ////    if( count > 4850 )
-        ////        printf( "%s", mem_dump().c_str() );
-        //    break;
-        //}
-        case CB_PATH  :  name = "PATH";   break;
-        case CB_MPIECE:  name = "MPIECE"; break;
-        case CB_ENPSNT:  name = "ENPSNT"; break;
-        case CB_ADJPTR:  name = "ADJPTR"; break;
-        case CB_CASTLE:  name = "CASTLE"; break;
-        case CB_ADMOVE:  name = "ADMOVE"; break;
-        case CB_GENMOV:  name = "GENMOV"; break;
-        case CB_ATTACK:  name = "ATTACK"; break;
-        case CB_ATKSAV:  name = "ATKSAV"; break;
-        case CB_PNCK  :  name = "PNCK";
-                         pnck = true;
-                         pnck_count++;    break;
-        case CB_PINFND:  name = "PINFND"; break;
-        case CB_XCHNG :  name = "XCHNG";  break;
-        case CB_NEXTAD:  name = "NEXTAD"; break;
-        case CB_POINTS:  name = "POINTS"; break;
-        case CB_MOVE  :  name = "MOVE";   break;
-        case CB_UNMOVE:  name = "UNMOVE"; break;
-        case CB_SORTM:   name = "SORTM";  break;
-        case CB_EVAL:    name = "EVAL";   break;
-        case CB_FNDMOV:  name = "FNDMOV"; break;
-        case CB_ASCEND:  name = "ASCEND"; break;
-    }
-    if( name )
-    {
-        run_count++;
-        //if( run_count == 161 )
-        //    printf("This call to ATTACK() should not set P2 to 0\n" );
-        if( pnck && pnck_count == 5046 )
-            printf("This call to PNCK() should set wact[0] to 1\n" );
-        bool in_range = true; //THRES>=0 && (THRES<=run_count && run_count<=THRES+1000);
-        if( in_range )
-            printf( "%s(%llu) %s\n", name, pnck?pnck_count:run_count, mem_dump().c_str() );
-    }
-    // run_count++;
-    // if( detail )
-    // {
-    //       printf( "%s(%llu) %s\n", name, run_count, mem_dump().c_str() );
-    //    static int second_level_count;
-    //    if( trigger )
-    //    {
-    //        printf( "%s(%u) %s\n", name, ++second_level_count, reg_dump(reg).c_str() );
-    //        printf( "%s", mem_dump().c_str() );
-    //        if( second_level_count == 2124 )
-    //            printf("");
-    //    }
-    // }
-}
-
-std::string reg_dump( const z80_registers *reg )
-{
-    std::string s;
-    if( !reg )
-        s = "Z80 registers not available";
-    else
-    {
-        s = util::sprintf( "a=%02x, bc=%04x, de=%04x, hl=%04x, ix=%04x, iy=%04x",
-                reg->af & 0xff, reg->bc, reg->de, reg->hl, reg->ix, reg->iy );
-    }
-    return s;
-}
 
 // Sargon data structure
 static emulated_memory &m = gbl_emulated_memory;
@@ -483,3 +303,24 @@ std::string mem_dump()
     s += "\n";
     return s;
 }
+
+static int admove_count = 0;
+static int admove_limit = 2;
+
+
+void callback_genmov()
+{
+    static int nbr_calls;
+    printf( "GENMOV call %d\n", ++nbr_calls );
+    admove_count = 0;
+    admove_limit = m.NPLY+1;
+}
+
+bool callback_admove()
+{
+    if( admove_count >= admove_limit )
+        return true;
+    admove_count++;
+    return false;
+}
+

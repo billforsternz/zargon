@@ -725,36 +725,39 @@ static TEST tests[]=
 
 };
 
-#define DIFFICULT
-
 // One off test
 std::string mem_dump();
 bool sargon_undocumented_dev_test()
 {
     thc::ChessPosition cp;
-    #ifdef DIFFICULT
-    //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
-    cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
-    m.PLYMAX = 5;
-    #else
-    cp.Forsyth("8/8/8/7r/3kN3/1P6/1KP5/5r2 w - - 0 1");
-    m.PLYMAX = 1;
-    #endif
+
+    #define WIKIPEDIA_ALPHA_BETA_EXAMPLE
+    #ifdef  WIKIPEDIA_ALPHA_BETA_EXAMPLE
+    cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");  // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
+    m.PLYMAX = 4;
     sargon_import_position( cp, true );
     sargon_pv_clear( cp );
     m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
     std::string terse = sargon_export_best_move_temp();
     printf( "Best move = %s\n", terse.c_str() );
-    #ifdef DIFFICULT
-    //bool ok = (terse == "b7c6");
-    bool ok = (terse == "g8f8");
-    #else
-    bool ok = (terse == "e4g3");
-    #endif
-    // std::string s = mem_dump();
-    // printf( "%s\n", s.c_str() );
+    bool ok = (terse == "g1f3");
     return ok;
+    #endif
+
+    #ifdef DIFFICULT
+    //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
+    cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
+    m.PLYMAX = 5;
+    sargon_import_position( cp, true );
+    sargon_pv_clear( cp );
+    m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
+    CPTRMV();
+    std::string terse = sargon_export_best_move_temp();
+    printf( "Best move = %s\n", terse.c_str() );
+    bool ok = (terse == "g8f8");
+    return ok;
+    #endif
 }
 
 bool sargon_position_tests( bool quiet, int comprehensive )
