@@ -52,7 +52,7 @@ public:
     bool early_exit;
     function_in_out( CB cb );
     ~function_in_out();
-    void log( CB cb, bool in );
+    void log( CB cb, bool in, bool insist );
 };
 
 //void bridge_callback_trace( CB cb );

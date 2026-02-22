@@ -1236,7 +1236,7 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 
 void POINTS()
 {
-    callback_zargon_bridge(CB_POINTS);
+    callback_zargon_bridge_void(CB_POINTS);
     int8_t *wact = (int8_t *)m.wact;
     int8_t *bact = (int8_t *)m.bact;
 

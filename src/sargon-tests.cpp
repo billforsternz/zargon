@@ -733,7 +733,8 @@ bool sargon_undocumented_dev_test()
 
     #define WIKIPEDIA_ALPHA_BETA_EXAMPLE
     #ifdef  WIKIPEDIA_ALPHA_BETA_EXAMPLE
-    cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");  // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
+    cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
+    //cp.Forsyth("2k1K3/8/8/8/8/1r1qN1Q1/b2Bn2R/2N2n2 w - - 0 1");            // A knight munching fest on plies one and two
     m.PLYMAX = 4;
     sargon_import_position( cp, true );
     sargon_pv_clear( cp );

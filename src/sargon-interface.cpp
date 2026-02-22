@@ -681,9 +681,53 @@ std::string algebraic( unsigned int sq )
     return s;
 }
 
+static std::string normalise_val( uint8_t val )
+{
+    int n = val>=0x80 ? val-0x80 : 0-(0x80-val);
+    double f = sargon_export_value( val );
+    std::string s = util::sprintf( "%d,%.2f", n, f );
+    return s;
+}
+
 std::string sargon_ptr_print()
 {
     std::string s;
+    uint8_t *p = m.SCORE;
+    int run=0;
+    s += util::sprintf( "VALM: %s\n", normalise_val(m.VALM).c_str() );
+    s += "SCORE[]:";
+    for( int i=0; i<sizeof(m.SCORE); i++ )
+    {
+        if( p == m.SCRIX )
+        {
+            while( run > 0 )
+            {
+                run--;
+                s += " 0";
+            }
+            s += " SCRIX->";
+            if( *p == 0 )
+                s += " 0";
+            else
+                s += util::sprintf( " %s", normalise_val(*p).c_str() );
+        }
+        else
+        {
+            if( *p == 0 )
+                run++;
+            else
+            {
+                while( run > 0 )
+                {
+                    run--;
+                    s += " 0";
+                }
+                s += util::sprintf( " %s", normalise_val(*p).c_str() );
+            }
+        }
+        p++;
+    }
+    s += "\nPLYIX[]\n";
     int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
     int final_ply = 0;
     for( int i = sizeof(m.PLYIX)/sizeof(m.PLYIX[0]) - 1; i>=0; i-- )
@@ -695,29 +739,91 @@ std::string sargon_ptr_print()
             break;
         }
     }
+    if( m.MLPTRI - m.PLYIX >final_ply )
+        final_ply = (int)(m.MLPTRI - m.PLYIX);
+    bool flag_mlptri=false, flag_mlptrj=false, flag_mlnxt=false, flag_mllst=false, flag_bestm=false;
     for( int i=first_ply; i<=final_ply; i++ )
     {
         s += util::sprintf( "%d: ", i );
         ML *ml = m.PLYIX[i];
-        if( m.MLPTRI && m.MLPTRI == &m.PLYIX[i] )
+        if( m.MLPTRI == &m.PLYIX[i] )
+        {
             s += " <-MLPTRI";
+            flag_mlptri = true;
+        }
         for( int j=0; j<100 && ml; j++ )
         {
             if( m.MLPTRJ == ml )
+            {
                 s += " MLPTRJ";
+                flag_mlptrj = true;
+            }
             if( m.MLNXT == ml )
+            {
                 s += " MLNXT";
+                flag_mlnxt = true;
+            }
             if( m.MLLST == ml )
+            {
                 s += " MLLST";
+                flag_mllst = true;
+            }
             if( m.BESTM == ml )
+            {
                 s += " BESTM";
+                flag_bestm = true;
+            }
             if( ml >= m.MLIST )
                 s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
             else
-                s += " ?";
+                s += " ???";
             std::string t = sargon_export_move( ml );
+            if( t == "" )
+                t = "----";
             s += t;
+            s += util::sprintf( "[%s]",  normalise_val(ml->val).c_str() );
             ml = ml->link_ptr;
+        }
+        s += "\n";
+    }
+    if( !flag_mlptri || !flag_mlptrj || !flag_mlnxt || !flag_mllst || !flag_bestm )
+    {
+        s += "others:";
+        const char *desc="?";
+        ML *ml = 0;
+        bool flag = false;
+        for( int i=0; i<5; i++ )
+        {
+            switch(i)
+            {
+                case 0: desc=" MLPTRI->";    flag = flag_mlptri;     ml = *m.MLPTRI;     break;
+                case 1: desc=" MLPTRJ";      flag = flag_mlptrj;     ml = m.MLPTRJ;      break;
+                case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;       break;
+                case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;       break;
+                case 4: desc=" BESTM";       flag = flag_bestm;      ml = m.BESTM;       break;
+            }
+            if( !flag )
+            {
+                s += desc;
+                if( !ml )
+                    s += " NULL";
+                else if( ml < m.MLIST )
+                {
+                    if( desc == " MLLST" && ml == (ML *)m.MLPTRI )
+                        s += "->MLPTRI";
+                    else
+                        s += " ???";
+                }
+                else
+                {
+                    s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+                    std::string t = sargon_export_move( ml );
+                    if( t == "" )
+                        t = "----";
+                    s += t;
+                    s += util::sprintf( "[%s]",  normalise_val(ml->val).c_str() );
+                }
+            }
         }
         s += "\n";
     }
