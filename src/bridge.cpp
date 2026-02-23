@@ -109,33 +109,58 @@ std::string mem_dump()
     return "";
 }
 
+//
+// Alpha-Beta pruning example
+// 
+// From https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
+//
+//  ### indicates pruned branches
+// 
+//                             SCORE                                        MOVE ORDER
+// 
+// 1 MAX->                       6                                                
+//                             _/|\_                                           _/|\_
+//                         ___/  |  \___                                   ___/  |  \___    
+//                    ____/      |      \____                         ____/      |      \____
+//                   /           |           \                       /           |           \
+// 2 MIN->          3			 6		      5                     0			 1		      2            
+//                 / \           |\          /#                    / \           |\          /#
+//                /   \          | \        / #                   /   \          | \        / #
+// 3 MAX->       5     3         6  7      5  8                  3     4        14 15     23 24            
+//              / \     \       / \  \     |  ##                / \     \       / \  \     |  ##
+//             /   \     \     /   \  \    |  # #              /   \     \     /   \  \    |  # #
+// 4 MIN->    5     4     3   6     6  7   5  8  6            5     6    12  16    17 21  25  x  x         
+//           /|    /|#    |   |    /#  |   |  ##  #          /|    /|#    |   |    /#  |   |  ##  #
+//          / |   / | #   |   |   / #  |   |  # #  #        / |   / | #   |   |   / #  |   |  # #  #
+//         5  6  7  4  5  3   6  6  9  7   5  9  8  6      7  8  9 10 11 13  18 19 20 22  26  x  x  x      
+
+
 const char *wikipedia_tree[] =
 {
-  //"06",       // 0   6
-    "1365",     // 1   3,6,5
-    "253",      // 2   5,3
-    "354",      // 3   5,4
-    "456",      // 4   5,6
-    "4745",     // 4   7,4,5
-    "33",       // 3   3
-    "43",       // 4   3
-    "267",      // 2   6,7
-    "366",      // 3   6,6
-    "46",       // 4   6
-    "469",      // 4   6,9
-    "37",       // 3   7
-    "47",       // 4   7
-    "258",      // 2   5,8
-    "35",       // 3   5
-    "45",       // 4   5
-    "386",      // 3   8,6
-    "498",      // 4   9,8
-    "46"        // 4   6
+    "1 365",     // 0,1,2
+    "2 53",      // 3,4
+    "3 54",      // 5,6    
+    "4 56",      // 7,8 
+    "4 74@5",    // 9,10,11  
+    "3 3",       // 12   
+    "4 3",       // 13   
+    "2 67",      // 14,15  
+    "3 66",      // 16,17  
+    "4 6",       // 18   
+    "4 6@9",     // 19,20   
+    "3 7",       // 21   
+    "4 7",       // 22   
+    "2 58",      // 23,24  
+    "3 5",       // 25   
+    "4 5",       // 26   
+    "@ 86",      //        
+    "@ 98",      //         
+    "@ 6"        //       
 };
 
 static int wikipedia_nbr_strings = sizeof(wikipedia_tree)/sizeof(wikipedia_tree[0]);
 static int wikipedia_string_nbr    = 0;
-static int wikipedia_string_offset = 1;
+static int wikipedia_string_offset = 2;
 
 static int admove_count = 0;
 static int admove_limit = 2;
@@ -153,8 +178,16 @@ void callback_genmov()
         && *wikipedia_tree[wikipedia_string_nbr] == ('0'+m.NPLY)
     )
     {
+        const char *s = wikipedia_tree[wikipedia_string_nbr] + 2;
+        const char *t = s;
+        int nbr_pruned=0;
+        while( *t )
+        {
+            if( *t++ == '@' )
+                nbr_pruned++;
+        }
         admove_count = 0;
-        admove_limit = (int)strlen(wikipedia_tree[wikipedia_string_nbr]) - 1;
+        admove_limit = (int)strlen(s) - nbr_pruned;     // eg "74@5" -> 3. '5' is pruned but the move must be generated
         if( m.NPLY < 4 )
             wikipedia_string_nbr++;
         printf( "GENMOV() %d moves please!\n", admove_limit );
@@ -196,9 +229,11 @@ bool callback_points()
         unsigned int val = sargon_import_value( 1.0 * score );
         m.VALM = val;
         m.MLPTRJ->val = m.VALM;
+        if( wikipedia_tree[wikipedia_string_nbr][wikipedia_string_offset] == '@' )
+            wikipedia_string_offset += 2;   // skip over a pruned move
         if( wikipedia_tree[wikipedia_string_nbr][wikipedia_string_offset] == '\0' )
         {
-            wikipedia_string_offset=1;
+            wikipedia_string_offset=2;
             wikipedia_string_nbr++;
         }
         printf( "POINTS() injected %d,%f\n", val, score*1.0 );

@@ -742,7 +742,7 @@ bool sargon_undocumented_dev_test()
     CPTRMV();
     std::string terse = sargon_export_best_move_temp();
     printf( "Best move = %s\n", terse.c_str() );
-    bool ok = (terse == "g1f3");
+    bool ok = (terse == "b1c3");
     return ok;
     #endif
 
