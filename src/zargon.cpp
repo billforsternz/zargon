@@ -1895,28 +1895,21 @@ void FNDMOV()
     m.BC0 = m.BRDC;
     m.MV0 = m.MTRL;
 
-    // Loop
-    bool genmove_needed = true;
+    // Generate moves at ply 0
+    m.NPLY++;                   //  Increment ply count
+    m.MATEF = 0;                //  Initialize mate flag
+    GENMOV();                   //  Generate list of moves
+    callback_after_genmov();
+    if( m.PLYMAX > m.NPLY )
+        SORTM();                    // not at max ply, so call sort
+    m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
+
+    // Loop through the moves
     for(;;)
     {
-
-        // Generate moves
-        if( genmove_needed )
-        {
-            genmove_needed = false;
-            m.NPLY++;                   //  Increment ply count
-            m.MATEF = 0;                //  Initialize mate flag
-            GENMOV();                   //  Generate list of moves
-            callback_after_genmov();
-            if( m.PLYMAX > m.NPLY )
-                SORTM();                    // not at max ply, so call sort
-            m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
-        }
-
-        // Traverse move list
+        ML *ml = m.MLPTRJ;   // load last move pointer
         uint8_t score = 0;
         int8_t iscore = 0;
-        ML *ml = m.MLPTRJ;   // load last move pointer
 
         //  End of move list ?
         bool points_needed = false;
@@ -1975,19 +1968,20 @@ void FNDMOV()
                 if( IS_WHITE(m.COLOR) )
                     m.MOVENO++;
 
-                // Load score table pointer
+                // Update score pointer and score
                 p = m.SCRIX;
-
-                //  Get score two plys above
                 score = *p;
-                p++;                   // increment to current ply
-                p++;
+                *(p+2) = score;
+                m.SCRIX++;
 
-                // Save score as initial value
-                *p = score;
-                p--;                        // decrement pointer
-                m.SCRIX = p;                // save it
-                genmove_needed = true;      // go to top of loop
+                // Generate moves at ply > 0
+                m.NPLY++;                   //  Increment ply count
+                m.MATEF = 0;                //  Initialize mate flag
+                GENMOV();                   //  Generate list of moves
+                callback_after_genmov();
+                if( m.PLYMAX > m.NPLY )
+                    SORTM();                    // not at max ply, so call sort
+                m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
                 continue;
             }
         }
