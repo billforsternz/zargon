@@ -1919,8 +1919,23 @@ void FNDMOV()
             ml = (ML *)m.MLPTRI;            // save in ply pointer list
             ml->link_ptr = m.MLPTRJ;
 
-            // Max depth reached ?
-            if( m.NPLY >= m.PLYMAX )
+            // Not yet at max depth, make the move
+            if( m.NPLY < m.PLYMAX )
+            {
+
+                // Load move pointer
+                ml = m.MLPTRJ;
+
+                // If score is zero (illegal move) continue looping
+                if( ml->val == 0 )
+                    continue;
+
+                // Execute move on board array
+                MOVE();
+            }
+
+            // Else max depth
+            else
             {
 
                 //  Execute move on board array
@@ -1937,24 +1952,22 @@ void FNDMOV()
                 }
 
                 // If beyond max ply or king not in check time to calculate points
-                if( m.NPLY != m.PLYMAX )
+                if( m.NPLY != m.PLYMAX || ! INCHK(m.COLOR^0x80) )
+                {
                     points_needed = true;
-                inchk = INCHK(m.COLOR^0x80);
-                if( !inchk )
-                    points_needed = true;
-            }
-            else
-            {
 
-                // Load move pointer
-                ml = m.MLPTRJ;
+                    //  Compile pin list
+                    PINFND();
 
-                // If score is zero (illegal move) continue looping
-                if( ml->val == 0 )
-                    continue;
+                    // Evaluate move
+                    POINTS();
 
-                // Execute move on board array
-                MOVE();
+                    // Restore board position
+                    UNMOVE();
+                    score = m.VALM;             // get value of move
+                    m.MATEF |= 1;               // set mate flag
+                    p = m.SCRIX;                // load score table pointer
+                }
             }
 
             // points_needed flag avoids a goto from where the flag is set
@@ -1987,7 +2000,6 @@ void FNDMOV()
         }
 
         // Common case, don't evaluate points yet, not mate or stalemate
-        score = 0;
         if( !points_needed && m.MATEF!=0 )
         {
             if( m.NPLY == 1 )       // at top of tree ?
@@ -2001,25 +2013,8 @@ void FNDMOV()
             p--;                    //
         }
 
-        // Time to evaluate points ?
-        else if( points_needed )
-        {
-
-            //  Compile pin list
-            PINFND();
-
-            // Evaluate move
-            POINTS();
-
-            // Restore board position
-            UNMOVE();
-            score = m.VALM;             // get value of move
-            m.MATEF |= 1;               // set mate flag
-            p = m.SCRIX;                // load score table pointer
-        }
-
         // Else if terminal position ?
-        else if( m.MATEF == 0 ) // checkmate or stalemate ?
+        else if( !points_needed && m.MATEF == 0 ) // checkmate or stalemate ?
         {
             score = 0x80;       // stalemate score
             if( m.CKFLG != 0 )  // test check flag
