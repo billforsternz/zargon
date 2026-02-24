@@ -1992,7 +1992,6 @@ void FNDMOV()
             }
         }
 
-
         // Common case, don't evaluate points yet, not mate or stalemate
         score = 0;
         if( !points_needed && m.MATEF!=0 )
@@ -2075,7 +2074,10 @@ void FNDMOV()
             continue;   // no - loop
 
         // Subtract 2 from maximum ply number
-        m.PLYMAX -= 2;
+        //  (Presumably so Sargon will find the mate faster when it is
+        //   its turn to play next - but this is not really necessary
+        //   or desirable in Sargon x86 / C++ ports so commented out)
+        // m.PLYMAX -= 2;
 
         // Calculate checkmate move number and return
         if( IS_BLACK(m.KOLOR) )  // if computer's color is black decrement

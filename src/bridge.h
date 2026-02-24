@@ -58,12 +58,13 @@ public:
 //void bridge_callback_trace( CB cb );
 // Include callback tracing code
 //#define BRIDGE_CALLBACK_TRACE
-#define BRIDGE_CALLBACK_TRACE_DETAILED
+//#define BRIDGE_CALLBACK_TRACE_DETAILED
 #ifdef BRIDGE_CALLBACK_TRACE_DETAILED
 #define callback_zargon_bridge(cb)      function_in_out temp_fio(cb)
 #define callback_zargon_bridge_void(cb) function_in_out temp_fio(cb);  if(temp_fio.early_exit) return
 #else
 #define callback_zargon_bridge(cb)
+#define callback_zargon_bridge_void(cb)
 #endif
 
 #endif  // BRIDGE_H_INCLUDED

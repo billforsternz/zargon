@@ -87,12 +87,13 @@ function_in_out::~function_in_out()
 
 void function_in_out::log( CB cb, bool in, bool insist )
 {
+    static uint64_t log_nbr;
     std::string diag = sargon_ptr_print();
     bool diff = (diag != current_status);
     if( diff || insist )
     {
         current_status = diag;
-        std::string msg = util::sprintf( "%s() %s%s\n%s", lookup[cb], in?"IN":"OUT", diff?"":" (unchanged)", diag.c_str() );
+        std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[cb], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
         printf( "%s\n", msg.c_str() );
         //extern void minimax_log( std::string msg );
         //minimax_log( msg );
@@ -118,21 +119,21 @@ std::string mem_dump()
 // 
 //                             SCORE                                        MOVE ORDER
 // 
-// 1 MAX->                       6                                                
+// 0 MAX->                       6                                                
 //                             _/|\_                                           _/|\_
 //                         ___/  |  \___                                   ___/  |  \___    
 //                    ____/      |      \____                         ____/      |      \____
 //                   /           |           \                       /           |           \
-// 2 MIN->          3			 6		      5                     0			 1		      2            
+// 1 MIN->          3			 6		      5                     0			 1		      2            
 //                 / \           |\          /#                    / \           |\          /#
 //                /   \          | \        / #                   /   \          | \        / #
-// 3 MAX->       5     3         6  7      5  8                  3     4        14 15     23 24            
+// 2 MAX->       5     3         6  7      5  8                  3     4        14 15     23 24            
 //              / \     \       / \  \     |  ##                / \     \       / \  \     |  ##
 //             /   \     \     /   \  \    |  # #              /   \     \     /   \  \    |  # #
-// 4 MIN->    5     4     3   6     6  7   5  8  6            5     6    12  16    17 21  25  x  x         
+// 3 MIN->    5     4     3   6     6  7   5  8  6            5     6    12  16    17 21  25  x  x         
 //           /|    /|#    |   |    /#  |   |  ##  #          /|    /|#    |   |    /#  |   |  ##  #
 //          / |   / | #   |   |   / #  |   |  # #  #        / |   / | #   |   |   / #  |   |  # #  #
-//         5  6  7  4  5  3   6  6  9  7   5  9  8  6      7  8  9 10 11 13  18 19 20 22  26  x  x  x      
+// 4       5  6  7  4  5  3   6  6  9  7   5  9  8  6      7  8  9 10 11 13  18 19 20 22  26  x  x  x      
 
 
 const char *wikipedia_tree[] =
