@@ -14,12 +14,10 @@
 #include "util.h"
 #include "thc.h"
 #include "sargon-interface.h"
-#include "sargon-asm-interface.h"
 #include "zargon.h"
 #include "zargon_functions.h"
 
-// First byte of Sargon data
-unsigned char *sargon_base_address = (unsigned char *)zargon_get_ptr_emulated_memory();
+// Sargon data
 static emulated_memory &m = gbl_emulated_memory;
 
 // Write chess position into Sargon (inner-most part)
@@ -41,7 +39,11 @@ double sargon_export_value( unsigned int value )
 //     0x80=-128, 0x81=-127 ... 0xff=-1, 0x00=0, 0x01=1 ... 0x7e=126, 0x7f=127
 //
 //   Sargon scoring points instead use the convention;
-//    0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127, 0x00=128
+//    0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127 0x00=flag/illegal
+//
+//   (I realised that 0x00 = illegal giving a balanced system of 127 negative
+//   values and 127 positive values, one zero value and one flag value very
+//   recently - the following paragraphs don't reflect this new understanding)
 //
 //   I am not sure why this is so, it could be just that this method was more
 //   convenient or comfortable for the programmer - using a highly constrained
@@ -685,7 +687,14 @@ static std::string normalise_val( uint8_t val )
 {
     int n = val>=0x80 ? val-0x80 : 0-(0x80-val);
     double f = sargon_export_value( val );
-    std::string s = util::sprintf( "%d,%.2f", n, f );
+
+    // Sargon points system is;
+    //    0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127 0x00=flag/illegal
+    //  127 positive scores uint8_t 0x7f-0x01 (8 points is one pawn, so 127/8 = 15.75 pawns is max score)
+    //    1 zero score 0x80
+    //  127 negative scores uint8_t 0x81-0xff
+    //    1 special flag/sentinel value 0, means eg illegal move
+    std::string s = (val==0 ? "0" : util::sprintf( "%d,%.2f", n, f ));
     return s;
 }
 
@@ -774,12 +783,20 @@ std::string sargon_ptr_print()
                 flag_bestm = true;
             }
             if( ml >= m.MLIST )
+            #ifdef BRIDGE_CALLBACK_TRACE
+                s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
+            #else
                 s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+            #endif
             else
                 s += " ???";
             std::string t = sargon_export_move( ml );
             if( t == "" )
                 t = "----";
+            #ifdef BRIDGE_CALLBACK_TRACE
+            else
+                t = ml->creation_piece + t;
+            #endif
             s += t;
             s += util::sprintf( "[%s]",  normalise_val(ml->val).c_str() );
             ml = ml->link_ptr;

@@ -14,7 +14,6 @@
 #include "util.h"
 #include "thc.h"
 #include "sargon-interface.h"
-#include "sargon-asm-interface.h"
 #include "sargon-pv.h"
 #include "zargon.h"
 #include "zargon_functions.h"

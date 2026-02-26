@@ -141,14 +141,10 @@
   <ItemGroup>
     <ClInclude Include="src\bridge.h" />
     <ClInclude Include="src\main.h" />
-    <ClInclude Include="src\sargon-asm-interface.h" />
     <ClInclude Include="src\sargon-interface.h" />
     <ClInclude Include="src\sargon-pv.h" />
     <ClInclude Include="src\thc.h" />
     <ClInclude Include="src\util.h" />
-    <ClInclude Include="src\z80_cpu.h" />
-    <ClInclude Include="src\z80_opcodes.h" />
-    <ClInclude Include="src\z80_registers.h" />
     <ClInclude Include="src\zargon.h" />
     <ClInclude Include="src\zargon_functions.h" />
   </ItemGroup>

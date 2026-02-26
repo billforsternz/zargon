@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include "main.h"
-#include "sargon-asm-interface.h"
 #include "bridge.h"
 #include "zargon_functions.h"
 #include "zargon.h"
@@ -26,7 +25,6 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 #else
 #define m gbl_emulated_memory                       // This is bad practice, but fast
 #endif
-emulated_memory *zargon_get_ptr_emulated_memory() {return &m;}
 
 //***********************************************************
 // EQUATES

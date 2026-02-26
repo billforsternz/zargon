@@ -4,13 +4,10 @@
 #ifndef ZARGON_H_INCLUDED
 #define ZARGON_H_INCLUDED
 #include <stdio.h>
-#include "sargon-asm-interface.h"   // for zargon_data_defs_check_and_regen
-
-// Provide ptr to the 64K emulated memory
-struct emulated_memory;
-emulated_memory *zargon_get_ptr_emulated_memory();
+#include "bridge.h"
 
 // Now export emulated memory as a global, transitional I think
+struct emulated_memory;
 extern emulated_memory gbl_emulated_memory;
 
 // Linked move
@@ -21,6 +18,11 @@ struct ML
     uint8_t     to;
     uint8_t     flags;
     uint8_t     val;
+    #ifdef BRIDGE_CALLBACK_TRACE
+    uint8_t     creation_ply;
+    char        creation_piece;
+    uint32_t    creation_count;
+    #endif
 };
 
 #define MLPTR 0
@@ -433,7 +435,7 @@ char MVEMSG[5]; // = {'a','1','-','a','1'};
 //             score assigned to the move.
 //
 //***********************************************************
-ML      MLIST[3750];
+ML      MLIST[4000];
 uint8_t MLEND;
 };   //  end struct emulated_memory
 

@@ -8,15 +8,15 @@
 enum CB
 {
     CB_null,
-    CB_LDAR,
+    CB_LDAR,                    // First of the original Sargon x86 callbacks
     CB_AFTER_GENMOV,
     CB_END_OF_POINTS,
     CB_AFTER_FNDMOV,
     CB_YES_BEST_MOVE,
     CB_NO_BEST_MOVE,
     CB_SUPPRESS_KING_MOVES,
-    CB_ALPHA_BETA_CUTOFF,
-    CB_PATH,
+    CB_ALPHA_BETA_CUTOFF,       // Last of the original Sargon x86 callbacks
+    CB_PATH,                    // First of the Zargon function callbacks
     CB_MPIECE,
     CB_ENPSNT,
     CB_ADJPTR,
@@ -35,7 +35,7 @@ enum CB
     CB_SORTM,
     CB_EVAL,
     CB_FNDMOV,
-    CB_ASCEND
+    CB_ASCEND                   // Last of the Zargon function callbacks
 };
 
 class function_in_out
@@ -48,9 +48,16 @@ public:
     void log( CB cb, bool in, bool insist );
 };
 
-//#define BRIDGE_CALLBACK_TRACE
-//#define BRIDGE_CALLBACK_TRACE_DETAILED
-#ifdef BRIDGE_CALLBACK_TRACE_DETAILED
+//
+//  Optionally include Zargon function tracing. Useful for
+//   1. Debugging
+//   2. Building tree building models to understand Sargon's
+//      tree construction - the heart of the program
+
+#ifdef _DEBUG
+#define BRIDGE_CALLBACK_TRACE
+#endif
+#ifdef  BRIDGE_CALLBACK_TRACE
 #define callback_zargon_bridge(cb)      function_in_out temp_fio(cb)
 #define callback_zargon_bridge_void(cb) function_in_out temp_fio(cb);  if(temp_fio.early_exit) return
 #else

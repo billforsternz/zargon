@@ -6,7 +6,6 @@
 #include <vector>
 #include "util.h"
 #include "bridge.h"
-#include "sargon-asm-interface.h"
 #include "sargon-interface.h"
 #include "zargon.h"
 
@@ -49,6 +48,7 @@ std::string sargon_ptr_print();
 void callback_genmov();
 bool callback_points();
 bool callback_admove();
+void callback_admove_exit();
 
 function_in_out::function_in_out( CB cb )
 {
@@ -65,6 +65,7 @@ function_in_out::function_in_out( CB cb )
 function_in_out::~function_in_out()
 {
     if( saved_cb == CB_PATH ) return;
+    else if( saved_cb==CB_ADMOVE && !early_exit ) callback_admove_exit();
     log( saved_cb, false, false );
 }
 
@@ -149,14 +150,11 @@ void callback_genmov()
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
     printf( "GENMOV() call %d, NPLY=%d%s\n", ++nbr_calls, m.NPLY, s.c_str() );
-
-    if( wikipedia_string_nbr < wikipedia_nbr_strings
-        && *wikipedia_tree[wikipedia_string_nbr] <= '4'
-        && *wikipedia_tree[wikipedia_string_nbr] == ('0'+m.NPLY)
-    )
+    bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
+    const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
+    if( guide && *guide == ('0'+m.NPLY) )
     {
-        const char *s = wikipedia_tree[wikipedia_string_nbr] + 2;
-        const char *t = s;
+        const char *t = guide+2;
         int nbr_pruned=0;
         while( *t )
         {
@@ -164,7 +162,7 @@ void callback_genmov()
                 nbr_pruned++;
         }
         admove_count = 0;
-        admove_limit = (int)strlen(s) - nbr_pruned;     // eg "74@5" -> 3. '5' is pruned but the move must be generated
+        admove_limit = (int)strlen(guide+2) - nbr_pruned;     // eg "74@5" -> 3. '5' is pruned but the move must be generated
         if( m.NPLY < 4 )
             wikipedia_string_nbr++;
         printf( "GENMOV() %d moves please!\n", admove_limit );
@@ -172,21 +170,23 @@ void callback_genmov()
     else
     {
         printf( "ERROR: GENMOV() tree wikipedia_string_nbr=%d\n",  wikipedia_string_nbr );
-        if( wikipedia_string_nbr < wikipedia_nbr_strings )
-            printf( "*wikipedia_tree[wikipedia_string_nbr]=%c m.NPLY=%d\n", *wikipedia_tree[wikipedia_string_nbr], m.NPLY );
+        if( guide )
+            printf( "*guide=%c m.NPLY=%d\n", *guide, m.NPLY );
         exit(0);
     }
 }
 
 bool callback_points()
 {
-    if( m.NPLY == 0 )
+    if( m.NPLY == 0 )   // single call to POINTS() at ply 0
         return false;
     static int nbr_calls;
     thc::ChessPosition cp;
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
     printf( "POINTS() call %d, NPLY=%d%s\n", ++nbr_calls, m.NPLY, s.c_str() );
+    bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
+    const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
     if( m.NPLY < 4 )
     {
         int score = 0;
@@ -195,20 +195,16 @@ bool callback_points()
         m.MLPTRJ->val = m.VALM;
         printf( "POINTS() injected placeholder %d,%f\n", val, score*1.0 );
     }
-    else if( wikipedia_string_nbr < wikipedia_nbr_strings
-        && *wikipedia_tree[wikipedia_string_nbr] == ('0'+m.NPLY)
-        && *wikipedia_tree[wikipedia_string_nbr] == '4'
-        &&  wikipedia_string_offset < strlen(wikipedia_tree[wikipedia_string_nbr])
-    )
+    else if( guide && *guide=='4' && wikipedia_string_offset < strlen(guide) )
     {
-        int score = wikipedia_tree[wikipedia_string_nbr][wikipedia_string_offset++] - '0';
+        int score = *(guide  + wikipedia_string_offset++) - '0';
         score = 0-score;
         unsigned int val = sargon_import_value( 1.0 * score );
         m.VALM = val;
         m.MLPTRJ->val = m.VALM;
-        if( wikipedia_tree[wikipedia_string_nbr][wikipedia_string_offset] == '@' )
+        if( *(guide  + wikipedia_string_offset) == '@' )
             wikipedia_string_offset += 2;   // skip over a pruned move
-        if( wikipedia_tree[wikipedia_string_nbr][wikipedia_string_offset] == '\0' )
+        if( *(guide  + wikipedia_string_offset) == '\0' )
         {
             wikipedia_string_offset=2;
             wikipedia_string_nbr++;
@@ -233,3 +229,19 @@ bool callback_admove()
     return false;
 }
 
+void callback_admove_exit()
+{
+    static uint32_t creation_count;
+    if( m.MLNXT )
+    {
+        ML *ml = m.MLNXT-1;
+        #ifdef BRIDGE_CALLBACK_TRACE
+        ml->creation_count = ++creation_count;
+        ml->creation_ply   = m.NPLY;
+        uint8_t piece = m.BOARDA[ml->from];
+        const char *lookup = (piece&0x80) ? "?pnbrqk?" : "?PNBRQK?";
+        char c = lookup[piece&7];
+        ml->creation_piece = c;
+        #endif
+    }
+}
