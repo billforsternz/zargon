@@ -143,6 +143,17 @@ static int wikipedia_string_offset = 2;
 static int admove_count = 0;
 static int admove_limit = 2;
 
+static std::vector<std::string> restricted_moves;
+void callback_restricted_moves_register( std::string guide )
+{
+    restricted_moves.push_back(guide);
+}
+
+void callback_restricted_moves_clear()
+{
+    restricted_moves.clear();
+}
+
 void callback_genmov()
 {
     static int nbr_calls;
@@ -150,6 +161,8 @@ void callback_genmov()
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
     printf( "GENMOV() call %d, NPLY=%d%s\n", ++nbr_calls, m.NPLY, s.c_str() );
+    if( restricted_moves.size() != 0 )
+        return;        
     bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
     const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
     if( guide && *guide == ('0'+m.NPLY) )
@@ -179,7 +192,9 @@ void callback_genmov()
 bool callback_points()
 {
     if( m.NPLY == 0 )   // single call to POINTS() at ply 0
-        return false;
+        return false;   // Normal processing
+    if( restricted_moves.size() != 0 )
+        return false;   // Normal processing     
     static int nbr_calls;
     thc::ChessPosition cp;
     sargon_export_position(cp);
@@ -223,10 +238,47 @@ bool callback_points()
 
 bool callback_admove()
 {
-    if( admove_count >= admove_limit )
-        return true;
-    admove_count++;
-    return false;
+    bool early_exit=true;
+
+    // Wikipedia guide
+    if( restricted_moves.size() == 0 )
+    {
+        if( admove_count < admove_limit )
+        {
+            admove_count++;
+            early_exit = false;
+        }
+    }
+
+    // Restricted move guide, early exit UNLESS we find pending move in
+    //  restricted move list
+    else
+    {
+        thc::Square from, to;
+        sargon_export_square(m.M1,from);
+        sargon_export_square(m.M2,to);
+        int ply = 1;
+        for( const std::string s: restricted_moves )
+        {
+            if( ply == m.NPLY )
+            {
+                size_t len = s.length();
+                for( size_t offset=0; offset+4 <= len; offset+=5 )
+                {
+                    std::string terse = s.substr(offset,4);
+                    thc::Square src = thc::make_square( terse[0], terse[1] );
+                    thc::Square dst = thc::make_square( terse[2], terse[3] );
+                    if( from==src && to==dst )
+                    {
+                        early_exit = false;
+                        return early_exit;
+                    }
+                }
+            }
+            ply++;
+        }
+    }
+    return early_exit;
 }
 
 void callback_admove_exit()

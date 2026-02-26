@@ -722,12 +722,89 @@ static TEST tests[]=
 
 };
 
+
+//
+//  New Zargon tests
+//
+
+static TEST ply1_restricted_move_test =
+{
+    "6k1/8/2r5/5q2/3N4/8/8/7K w - - 0 1",
+    1,
+    "d4f5",
+    -275,
+    "Nxf5"
+};
+
+static const char *ply1_restricted_move_test_moves[] =
+{
+    "d4c6 d4f5",    // ply 1 moves allowed
+    NULL
+};
+
+bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int nbr_tests_to_run, bool quiet )
+{
+    bool ok = true;
+    callback_restricted_moves_clear();
+    const char *restricted_moves = *guide++;
+    while( restricted_moves )
+    {
+        callback_restricted_moves_register( restricted_moves );
+        restricted_moves = *guide++;
+    }
+    thc::ChessRules cr;
+    cr.Forsyth(pt->fen);
+    if( !quiet )
+    {
+        std::string intro = util::sprintf("\nTest position %d is", test_nbr );
+        std::string s = cr.ToDebugStr( intro.c_str() );
+        printf( "%s\n", s.c_str() );
+        printf( "Expected PV=%s\n", pt->pv );
+    }
+    printf( "Test %d of %d: PLYMAX=%d:", test_nbr, nbr_tests_to_run, pt->plymax_required );
+    PV pv;
+    sargon_run_engine( cr, pt->plymax_required, pv, false );
+    std::vector<thc::Move> &v = pv.variation;
+    std::string s_pv;
+    std::string spacer;
+    for( thc::Move mv: v )
+    {
+        s_pv += spacer;
+        spacer = " ";
+        s_pv += mv.NaturalOut(&cr);
+        cr.PlayMove(mv);
+    }
+    std::string sargon_move = sargon_export_best_move_temp();
+    bool pass = (s_pv==std::string(pt->pv));
+    if( !pass )
+        printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
+    else
+    {
+        pass = (sargon_move==std::string(pt->solution));
+        if( !pass )
+            printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
+        else if( *pt->pv  )
+        {
+            pass = (pv.value==pt->centipawns);
+            if( !pass )
+                printf( "FAIL\n Fail reason: Expected centipawns=%d, Calculated centipawns=%d\n", pt->centipawns, pv.value );
+        }
+    }
+    if( pass )
+        printf( " PASS\n" );
+    else
+        ok = false;
+    return ok;
+}
+
+
 // One off test
-std::string mem_dump();
 bool sargon_undocumented_dev_test()
 {
-    thc::ChessPosition cp;
+    bool ok = sargon_guided_test( &ply1_restricted_move_test, ply1_restricted_move_test_moves, 1, 1, false );
+    return ok;
 
+    thc::ChessPosition cp;
     #define WIKIPEDIA_ALPHA_BETA_EXAMPLE
     #ifdef  WIKIPEDIA_ALPHA_BETA_EXAMPLE
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
@@ -739,7 +816,7 @@ bool sargon_undocumented_dev_test()
     CPTRMV();
     std::string terse = sargon_export_best_move_temp();
     printf( "Best move = %s\n", terse.c_str() );
-    bool ok = (terse == "b1c3");
+    ok = (terse == "b1c3");
     return ok;
     #endif
 

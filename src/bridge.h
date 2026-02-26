@@ -3,6 +3,7 @@
 //
 #ifndef BRIDGE_H_INCLUDED
 #define BRIDGE_H_INCLUDED
+#include <string>
 
 // Callback enumeration
 enum CB
@@ -64,5 +65,9 @@ public:
 #define callback_zargon_bridge(cb)
 #define callback_zargon_bridge_void(cb)
 #endif
+
+// For guided tests
+void callback_restricted_moves_register( std::string guide );
+void callback_restricted_moves_clear();
 
 #endif  // BRIDGE_H_INCLUDED
