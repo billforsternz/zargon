@@ -8,24 +8,7 @@
 #include "bridge.h"
 #include "sargon-asm-interface.h"
 #include "sargon-interface.h"
-#include "z80_registers.h"
 #include "zargon.h"
-
-// Init hooks
-static const unsigned char *sargon_mem_base;
-void bridge_init( const unsigned char *mem_base )
-{
-    sargon_mem_base = mem_base;
-}
-
-static uint64_t pnck_count;
-static uint64_t run_count;
-class bridge_exit
-{
-    public:
-    ~bridge_exit() {printf("run_count=%llu\n", run_count );};    
-};
-//static bridge_exit bridge_exit_instance;
 
 // Callback function names
 const char *lookup[] =
@@ -100,15 +83,8 @@ void function_in_out::log( CB cb, bool in, bool insist )
     }
 }
 
-
 // Sargon data structure
 static emulated_memory &m = gbl_emulated_memory;
-
-
-std::string mem_dump()
-{
-    return "";
-}
 
 //
 // Alpha-Beta pruning example

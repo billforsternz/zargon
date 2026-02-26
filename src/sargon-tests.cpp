@@ -110,8 +110,6 @@ int main_tests( int argc, const char *argv[] )
         printf( usage );
         return -1;
     }
-
-    bridge_init(sargon_base_address);
     util::tests();
     if( minimax_doc )
         sargon_minimax_main();

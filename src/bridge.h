@@ -3,13 +3,6 @@
 //
 #ifndef BRIDGE_H_INCLUDED
 #define BRIDGE_H_INCLUDED
-#include <string>
-#include "z80_registers.h"
-#include "z80_cpu.h"
-
-void bridge_init( const unsigned char *mem_base );
-std::string reg_dump( const z80_registers *reg=0 );
-std::string mem_dump();
 
 // Callback enumeration
 enum CB
@@ -55,8 +48,6 @@ public:
     void log( CB cb, bool in, bool insist );
 };
 
-//void bridge_callback_trace( CB cb );
-// Include callback tracing code
 //#define BRIDGE_CALLBACK_TRACE
 //#define BRIDGE_CALLBACK_TRACE_DETAILED
 #ifdef BRIDGE_CALLBACK_TRACE_DETAILED
@@ -68,4 +59,3 @@ public:
 #endif
 
 #endif  // BRIDGE_H_INCLUDED
-

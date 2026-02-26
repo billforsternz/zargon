@@ -11,6 +11,7 @@
 
 #ifndef MAIN_H_INCLUDED
 #define MAIN_H_INCLUDED
+#include <stdint.h>
 #include "bridge.h"
 
 extern int main( int argc, const char *argv[] );
