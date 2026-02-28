@@ -1903,8 +1903,6 @@ void FNDMOV()
     for(;;)
     {
         ML *ml = m.MLPTRJ;      // Point at current move
-        uint8_t score = 0;
-        int8_t iscore = 0;
         bool is_leaf_node = false;
 
         //  If more moves in move list
@@ -1972,8 +1970,7 @@ void FNDMOV()
 
                 // Update score pointer and score
                 uint8_t *p = m.SCRIX;
-                score = *p;
-                *(p+2) = score;
+                *(p+2) = *p;
                 m.SCRIX++;
 
                 // Generate moves at next ply
@@ -1992,6 +1989,8 @@ void FNDMOV()
 
         // Resolve a node, is it a leaf node?
         uint8_t *p = m.SCRIX;                // load score table pointer
+        uint8_t score = 0;
+        int8_t iscore = 0;
         if( is_leaf_node )
         {
             // Compile pin list
@@ -2057,11 +2056,8 @@ void FNDMOV()
         // Set best move pointer = current move pointer
         m.BESTM = m.MLPTRJ;
 
-        // Point to best move score
-        p = 1 + (uint8_t *)&m.SCORE;
-
         //  Was it a checkmate ?
-        if( *p != 0xff )
+        if( m.SCORE[1] != 0xff )
             continue;   // no - loop
 
         // Subtract 2 from maximum ply number
