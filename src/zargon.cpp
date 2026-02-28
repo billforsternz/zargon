@@ -581,14 +581,14 @@ void GENMOV()
 
     // Setup move list pointers
     ML *mlnxt    = m.MLNXT;             // addr of next avail list space
-    ML **pp      = m.MLPTRI;            // ply list pointer index
-    pp++;                               // increment to next ply
+    ML *ply      = m.MLPTRI;            // ply list pointer
+    ply++;                              // increment to next ply
 
     // Save move list pointer
-    *pp = mlnxt;
-    pp++; 
-    m.MLPTRI = pp;                      // save new index
-    m.MLLST  = (ML *)pp;                // last pointer for chain
+    ply->link_ptr = mlnxt;
+    ply++; 
+    m.MLPTRI = ply;                     // save new ply pointer
+    m.MLLST  = ply;                     // last pointer for chain
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -1734,7 +1734,7 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Init working pointers
-    ML *ptr_list = (ML *)m.MLPTRI;       //  Move list begin pointer
+    ML *ptr_list = m.MLPTRI;       //  Move list begin pointer
     ML *ptr_next = 0;
 
     // Loop
@@ -1757,7 +1757,7 @@ void SORTM()
 
         // Evaluate move
         EVAL();
-        ml = (ML *)m.MLPTRI;    // beginning of move list
+        ml = m.MLPTRI;          // beginning of move list
         ptr_list = m.MLPTRJ;    // restore list pointer
 
         // Next move loop
@@ -1897,7 +1897,7 @@ void FNDMOV()
     callback_after_genmov();
     if( m.PLYMAX > m.NPLY )
         SORTM();                // If not at max ply, score and sort (for alpha-beta) the moves
-    m.MLPTRJ = (ML *)m.MLPTRI;  // Current move is first move in the move list for this ply
+    m.MLPTRJ = m.MLPTRI;        // Current move is first move in the move list for this ply
 
     // Loop through the moves
     for(;;)
@@ -1909,7 +1909,7 @@ void FNDMOV()
         if( ml->link_ptr != 0 )
         {
             m.MLPTRJ = ml->link_ptr;        // next move in move list
-            ml = (ML *)m.MLPTRI;            // update ply pointer to point at last move in list
+            ml = m.MLPTRI;                  // update ply pointer to point at last move in list
             ml->link_ptr = m.MLPTRJ;
 
             // Not yet at max depth, make the move
@@ -1980,7 +1980,7 @@ void FNDMOV()
                 callback_after_genmov();
                 if( m.PLYMAX > m.NPLY )
                     SORTM();                    // not at max ply, so call sort
-                m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
+                m.MLPTRJ = m.MLPTRI;            // last move pointer = ply pointer
 
                 // Continue loop to iterate through the new move list
                 continue;   
@@ -2104,20 +2104,20 @@ void ASCEND()
     m.NPLY--;
 
     // Get ply list pointer
-    ML **pp = m.MLPTRI;
+    ML *ply = m.MLPTRI;
 
     // Decrement by ptr size
-    pp--;
+    ply--;
 
     // Update move list avail ptr
-    m.MLNXT = *pp;
+    m.MLNXT = ply->link_ptr;
 
     // Get ptr to next move to undo
-    pp--;
-    m.MLPTRJ = *pp;
+    ply--;
+    m.MLPTRJ = ply->link_ptr;
 
     // Save new ply list pointer
-    m.MLPTRI = pp;
+    m.MLPTRI = ply;
 
     // Restore board to previous ply
     UNMOVE();
@@ -2353,7 +2353,7 @@ bool VALMOV()
     m.COLOR = IS_WHITE(m.KOLOR) ? BLACK : WHITE;
 
     // Load move list index
-    ML **p = m.PLYIX;
+    ML *p = m.PLYIX;
     p--;
     m.MLPTRI = p;
 

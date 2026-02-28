@@ -2259,7 +2259,7 @@ static bool repetition_test()
     }
 
     // Non destructive test of function  repetition_remove_moves()
-    ML *plyix = m.PLYIX[0];
+    ML *plyix = m.PLYIX[0].link_ptr;
     ML *mllst = m.MLLST;
     ML *mlnxt = m.MLNXT;
     const uint8_t *src = (const uint8_t *)&m.MLIST[0];
@@ -2267,7 +2267,7 @@ static bool repetition_test()
     memcpy(buf,src,sizeof(buf));
 
     // Write 2 candidate moves into Sargon, with ptrs; First move is f3e5
-    m.PLYIX[0] = mlist;
+    m.PLYIX[0].link_ptr = mlist;
     ML *p       = mlist;
     p->link_ptr = p+1; 
     p->from     = SQ_f3;
@@ -2331,7 +2331,7 @@ static bool repetition_test()
     // Undo all changes
     uint8_t *dst = (uint8_t *)mlist;
     memcpy(dst,buf,sizeof(buf));
-    m.PLYIX[0] = plyix;
+    m.PLYIX->link_ptr = plyix;
     m.MLLST    = mllst;
     m.MLNXT    = mlnxt;
     return ok;
@@ -2344,7 +2344,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     ML *mlist = m.MLIST;
 
     // Locate the list of candidate moves (ptr ends up being 0x400=mlist always)
-    ML *bin_ptr = m.PLYIX[0];
+    ML *bin_ptr = m.PLYIX->link_ptr;
 
     // Read a vector of NativeMove
     ML *mlnxt = m.MLNXT;
@@ -2395,7 +2395,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     }
 
     // Fixup ptr fields
-    bin_ptr = m.PLYIX[0];
+    bin_ptr = m.PLYIX->link_ptr;
     ML *ptr_final_move = bin_ptr;
     ML *ptr_end = bin_ptr + vout.size();
     second_byte=false;
@@ -2424,7 +2424,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     {
         m.MLLST = ptr_final_move;
         m.MLNXT = ptr_end;
-        ML *p   = m.PLYIX[0];
+        ML *p   = m.PLYIX->link_ptr;
         for( ML nm: vout )
             *p++ = nm;
     }

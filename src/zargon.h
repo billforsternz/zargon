@@ -239,7 +239,7 @@ uint8_t SCORE[40];      // Z80 max 6 ply
 //             list is the one currently being considered.
 //***********************************************************
 uint64_t padding2[2];
-ML *PLYIX[40];
+ML PLYIX[40];
 
 //***********************************************************
 // 2) TABLE INDICES SECTION
@@ -286,7 +286,7 @@ uint8_t  T3      =      0;
 uint8_t  INDX1   =      0;
 uint8_t  INDX2   =      0;
 uint8_t  NPINS   =      0;
-ML     **MLPTRI  =      PLYIX;
+ML      *MLPTRI  =      PLYIX;
 ML      *MLPTRJ  =      MLIST;
 uint8_t *SCRIX   =      0;
 ML      *BESTM   =      0;

@@ -741,7 +741,7 @@ std::string sargon_ptr_print()
     int final_ply = 0;
     for( int i = sizeof(m.PLYIX)/sizeof(m.PLYIX[0]) - 1; i>=0; i-- )
     {
-        ML *ml = m.PLYIX[i];
+        ML *ml = m.PLYIX->link_ptr;
         if( ml )
         {
             final_ply = i;
@@ -754,7 +754,7 @@ std::string sargon_ptr_print()
     for( int i=first_ply; i<=final_ply; i++ )
     {
         s += util::sprintf( "%d: ", i );
-        ML *ml = m.PLYIX[i];
+        ML *ml = &m.PLYIX[i];
         if( m.MLPTRI == &m.PLYIX[i] )
         {
             s += " <-MLPTRI";
@@ -813,7 +813,7 @@ std::string sargon_ptr_print()
         {
             switch(i)
             {
-                case 0: desc=" MLPTRI->";    flag = flag_mlptri;     ml = *m.MLPTRI;     break;
+                case 0: desc=" MLPTRI";      flag = flag_mlptri;     ml = m.MLPTRI;     break;
                 case 1: desc=" MLPTRJ";      flag = flag_mlptrj;     ml = m.MLPTRJ;      break;
                 case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;       break;
                 case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;       break;
@@ -826,7 +826,7 @@ std::string sargon_ptr_print()
                     s += " NULL";
                 else if( ml < m.MLIST )
                 {
-                    if( desc == " MLLST" && ml == (ML *)m.MLPTRI )
+                    if( desc == " MLLST" && ml == m.MLPTRI )
                         s += "->MLPTRI";
                     else
                         s += " ???";

@@ -1114,7 +1114,7 @@ void sargon_show()
     printf( "Ply ptrs;\n" );
     for( int i=0; i<4; i++ )
     {
-        printf( "%04llx", (uint8_t *)m.PLYIX[i] - (uint8_t*)&m );
+        printf( "%04llx", (uint8_t *)m.PLYIX[i].link_ptr - (uint8_t*)&m );
         printf( i+1<4 ? " " : "\n" );
     }
     printf( "MLPTRI=%04llx\n", (uint8_t *)m.MLPTRI - (uint8_t*)&m );
