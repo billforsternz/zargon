@@ -742,6 +742,25 @@ static const char *ply1_restricted_move_test_moves[] =
     NULL
 };
 
+static TEST ply5_restricted_move_test =
+{
+    // CTWBFK Pos 26, page 23 - solution Rc8xc4
+    "2r1r1k1/p3q1pp/bp1pp3/8/2B5/4P3/PP2QPPP/2R2RK1 b - - 0 1", 5, "c8c4",
+        -200, "Rxc4 Rxc4 d5 b3 dxc4"
+};
+
+static const char *ply5_restricted_move_test_moves[] =
+{
+    "a6c4 c8c4",        // ply 1 moves allowed
+    "c1c4 e2c4",
+    "d6d5 e6e5",
+    "b2b3 c4c1 f1c1",
+    "d5c4 a6e2 h7h6",   // ply 5 moves allowed
+    NULL
+};
+
+
+
 bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int nbr_tests_to_run, bool quiet )
 {
     bool ok = true;
@@ -801,7 +820,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 // One off test
 bool sargon_undocumented_dev_test()
 {
-    bool ok = sargon_guided_test( &ply1_restricted_move_test, ply1_restricted_move_test_moves, 1, 1, false );
+    bool ok = sargon_guided_test( &ply5_restricted_move_test, ply5_restricted_move_test_moves, 1, 1, false );
     return ok;
 
     thc::ChessPosition cp;
