@@ -1866,7 +1866,11 @@ void FNDMOV()
 
     //  Initialize ply list pointers
     m.MLNXT  = m.MLIST;
-    m.MLPTRI = &m.PLYIX[-1];    // don't worry, it's incremented just before first use
+    m.MLPTRI = m.PLYIX;
+    
+    // The original Sargon code actually sets it this way which is
+    //  a tricky way of saving one element in the PLYIX array
+    //m.MLPTRI = &m.PLYIX[-1];    // don't worry, it's incremented just before first ptr store
 
     // Initialise color
     m.COLOR = m.KOLOR;
@@ -1901,7 +1905,7 @@ void FNDMOV()
         ML *ml = m.MLPTRJ;      // Point at current move
         uint8_t score = 0;
         int8_t iscore = 0;
-        bool points_needed = false;
+        bool is_leaf_node = false;
 
         //  If more moves in move list
         if( ml->link_ptr != 0 )
@@ -1933,24 +1937,30 @@ void FNDMOV()
                 MOVE();
 
                 // Check move legality
-                bool inchk = INCHK(m.COLOR);             //  Check for legal move
+                bool inchk = INCHK(m.COLOR); // illegal if we are in check after making move
 
                 //  If move not legal, restore board position and continue looping
-                if( inchk )       // if move illegal
+                if( inchk )
                 {
                     UNMOVE();
                     continue;
                 }
 
-                // If beyond max ply or king not in check time to calculate points
-                if( m.NPLY != m.PLYMAX || ! INCHK(m.COLOR^0x80) )
+                // At max depth we normally make the leaf POINTS() calculation that's
+                //  subsequently backed up to non-leaf nodes by minimax (plus alpha-beta)
+                // But
+                //  If move gives check, go one ply deeper to check for mate
+                // So
+                //  leaf node if move does not check or if we have already gone one move
+                //  deeper
+                if( m.NPLY > m.PLYMAX || !INCHK(m.COLOR^0x80) )
                 {
-                    points_needed = true;
+                    is_leaf_node = true;
                 }
             }
 
-            // points_needed flag avoids a goto from where the flag is set
-            if( !points_needed )
+            // If not leaf node generate a move list for this node
+            if( !is_leaf_node )
             {
 
                 // Toggle color
@@ -1966,22 +1976,25 @@ void FNDMOV()
                 *(p+2) = score;
                 m.SCRIX++;
 
-                // Generate moves at ply > 0
-                m.NPLY++;                   //  Increment ply count
-                m.MATEF = 0;                //  Initialize mate flag
-                GENMOV();                   //  Generate list of moves
+                // Generate moves at next ply
+                m.NPLY++;                       // increment ply count
+                m.MATEF = 0;                    // initialize mate flag
+                GENMOV();                       // generate list of moves
                 callback_after_genmov();
                 if( m.PLYMAX > m.NPLY )
                     SORTM();                    // not at max ply, so call sort
                 m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
-                continue;
+
+                // Continue loop to iterate through the new move list
+                continue;   
             }
         }
 
+        // Resolve a node, is it a leaf node?
         uint8_t *p = m.SCRIX;                // load score table pointer
-        if( points_needed )
+        if( is_leaf_node )
         {
-            //  Compile pin list
+            // Compile pin list
             PINFND();
 
             // Evaluate move
@@ -1993,8 +2006,8 @@ void FNDMOV()
             m.MATEF |= 1;               // set mate flag
         }
 
-        // Common case, don't evaluate points yet, not mate or stalemate
-        else if( m.MATEF!=0 )
+        // Else if not mate or stalemate after going one ply deeper
+        else if( m.MATEF != 0 )
         {
             if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
@@ -2003,8 +2016,8 @@ void FNDMOV()
             score = *(p+2);         // get score
         }
 
-        // Else if terminal position ?
-        else if( m.MATEF == 0 ) // checkmate or stalemate ?
+        // Else if mate or stalemate after going one ply deeper
+        else
         {
             score = 0x80;       // stalemate score
             if( m.CKFLG != 0 )  // test check flag
