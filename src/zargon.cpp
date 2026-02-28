@@ -1861,24 +1861,19 @@ void FNDMOV()
     }
 
     //  Initialize ply number, best move
-    m.NPLY  = 0;
+    m.NPLY  = 1;
     m.BESTM = 0;
 
     //  Initialize ply list pointers
-    ML *ml  = (&m.MLIST[0]);
-    m.MLNXT = ml;
-    ML **q = m.PLYIX;
-    q--;
-    m.MLPTRI = q;
+    m.MLNXT  = m.MLIST;
+    m.MLPTRI = &m.PLYIX[-1];    // don't worry, it's incremented just before first use
 
     // Initialise color
     m.COLOR = m.KOLOR;
 
     // Initialize score index and clear table
-    uint8_t *p = (uint8_t *)(&m.SCORE);
-    m.SCRIX = p;
-    for( int i=0; i<m.PLYMAX+2; i++ )
-        *p++ = 0;
+    m.SCRIX = m.SCORE;
+    memset( m.SCORE, 0, sizeof(m.SCORE) );
 
     // Init board control and material
     m.BC0 = 0;
@@ -1889,33 +1884,30 @@ void FNDMOV()
 
     //  Evaluate board at ply 0
     POINTS();
-
-    // Update board control and material
     m.BC0 = m.BRDC;
     m.MV0 = m.MTRL;
 
-    // Generate moves at ply 0
-    m.NPLY++;                   //  Increment ply count
-    m.MATEF = 0;                //  Initialize mate flag
-    GENMOV();                   //  Generate list of moves
+    // Generate move list for ply 1, from start position
+    m.MATEF = 0;                // Initialize mate flag
+    GENMOV();                   // Generate list of moves
     callback_after_genmov();
     if( m.PLYMAX > m.NPLY )
-        SORTM();                    // not at max ply, so call sort
-    m.MLPTRJ = (ML *)m.MLPTRI;      // last move pointer = load ply index pointer
+        SORTM();                // If not at max ply, score and sort (for alpha-beta) the moves
+    m.MLPTRJ = (ML *)m.MLPTRI;  // Current move is first move in the move list for this ply
 
     // Loop through the moves
     for(;;)
     {
-        ML *ml = m.MLPTRJ;   // load last move pointer
+        ML *ml = m.MLPTRJ;      // Point at current move
         uint8_t score = 0;
         int8_t iscore = 0;
-
-        //  End of move list ?
         bool points_needed = false;
+
+        //  If more moves in move list
         if( ml->link_ptr != 0 )
         {
-            m.MLPTRJ = ml->link_ptr;        // save current move pointer
-            ml = (ML *)m.MLPTRI;            // save in ply pointer list
+            m.MLPTRJ = ml->link_ptr;        // next move in move list
+            ml = (ML *)m.MLPTRI;            // update ply pointer to point at last move in list
             ml->link_ptr = m.MLPTRJ;
 
             // Not yet at max depth, make the move
@@ -1954,18 +1946,6 @@ void FNDMOV()
                 if( m.NPLY != m.PLYMAX || ! INCHK(m.COLOR^0x80) )
                 {
                     points_needed = true;
-
-                    //  Compile pin list
-                    PINFND();
-
-                    // Evaluate move
-                    POINTS();
-
-                    // Restore board position
-                    UNMOVE();
-                    score = m.VALM;             // get value of move
-                    m.MATEF |= 1;               // set mate flag
-                    p = m.SCRIX;                // load score table pointer
                 }
             }
 
@@ -1981,7 +1961,7 @@ void FNDMOV()
                     m.MOVENO++;
 
                 // Update score pointer and score
-                p = m.SCRIX;
+                uint8_t *p = m.SCRIX;
                 score = *p;
                 *(p+2) = score;
                 m.SCRIX++;
@@ -1998,22 +1978,33 @@ void FNDMOV()
             }
         }
 
+        uint8_t *p = m.SCRIX;                // load score table pointer
+        if( points_needed )
+        {
+            //  Compile pin list
+            PINFND();
+
+            // Evaluate move
+            POINTS();
+
+            // Restore board position
+            UNMOVE();
+            score = m.VALM;             // get value of move
+            m.MATEF |= 1;               // set mate flag
+        }
+
         // Common case, don't evaluate points yet, not mate or stalemate
-        if( !points_needed && m.MATEF!=0 )
+        else if( m.MATEF!=0 )
         {
             if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
             ASCEND();               // ascend one ply in tree
-            p = m.SCRIX;            // load score table pointer
-            p++;                    // increment to current ply
-            p++;                    //
-            score = *p;             // get score
-            p--;                    // restore pointer
-            p--;                    //
+            p = m.SCRIX;            // load updated score table pointer
+            score = *(p+2);         // get score
         }
 
         // Else if terminal position ?
-        else if( !points_needed && m.MATEF == 0 ) // checkmate or stalemate ?
+        else if( m.MATEF == 0 ) // checkmate or stalemate ?
         {
             score = 0x80;       // stalemate score
             if( m.CKFLG != 0 )  // test check flag
@@ -2022,7 +2013,6 @@ void FNDMOV()
                 m.PMATE= m.MOVENO;
             }
             m.MATEF |= 1;               // set mate flag
-            p = m.SCRIX;                // load score table pointer
         }
 
         // Alpa Beta cutoff ?
