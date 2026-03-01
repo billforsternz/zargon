@@ -1902,25 +1902,21 @@ void FNDMOV()
     // Loop through the moves
     for(;;)
     {
-        ML *ml = m.MLPTRJ;      // Point at current move
         bool is_leaf_node = false;
 
         //  If more moves in move list
-        if( ml->link_ptr != 0 )
+        if( m.MLPTRJ->link_ptr != 0 )
         {
-            m.MLPTRJ = ml->link_ptr;        // next move in move list
-            ml = m.MLPTRI;                  // update ply pointer to point at last move in list
-            ml->link_ptr = m.MLPTRJ;
+
+            m.MLPTRJ           = m.MLPTRJ->link_ptr;    // next move in move list
+            m.MLPTRI->link_ptr = m.MLPTRJ;              // update ply pointer to point current move
 
             // Not yet at max depth, make the move
             if( m.NPLY < m.PLYMAX )
             {
 
-                // Load move pointer
-                ml = m.MLPTRJ;
-
                 // If score is zero (illegal move) continue looping
-                if( ml->val == 0 )
+                if( m.MLPTRJ->val == 0 )
                     continue;
 
                 // Execute move on board array
@@ -1980,7 +1976,8 @@ void FNDMOV()
                 callback_after_genmov();
                 if( m.PLYMAX > m.NPLY )
                     SORTM();                    // not at max ply, so call sort
-                m.MLPTRJ = m.MLPTRI;            // last move pointer = ply pointer
+                m.MLPTRJ = m.MLPTRI;            // set current move to first move in
+                                                // the move list for this ply
 
                 // Continue loop to iterate through the new move list
                 continue;   

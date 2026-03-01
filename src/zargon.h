@@ -20,8 +20,9 @@ struct ML
     uint8_t     val;
     #ifdef BRIDGE_CALLBACK_TRACE
     uint8_t     creation_ply;
-    char        creation_piece;
     uint32_t    creation_count;
+    char        creation_piece;
+    char        terse[5];
     #endif
 };
 

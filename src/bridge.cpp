@@ -295,6 +295,9 @@ void callback_admove_exit()
         const char *lookup = (piece&0x80) ? "?pnbrqk?" : "?PNBRQK?";
         char c = lookup[piece&7];
         ml->creation_piece = c;
+        std::string terse = sargon_export_move(ml);
+        memcpy( ml->terse, terse.c_str(), 4 );
+        ml->terse[4] = '\0';
         #endif
     }
 }
@@ -414,12 +417,14 @@ std::string show_ply_chains()
             #endif
             else
                 s += " ???";
-            std::string t = sargon_export_move( ml );
+            std::string t;
+            #ifdef BRIDGE_CALLBACK_TRACE
+            t += ml->creation_piece;
+            t += ml->terse;
+            #else
+            t = sargon_export_move( ml );
             if( t == "" )
                 t = "----";
-            #ifdef BRIDGE_CALLBACK_TRACE
-            else
-                t = ml->creation_piece + t;
             #endif
             s += t;
             s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
