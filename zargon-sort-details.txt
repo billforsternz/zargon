@@ -1,0 +1,832 @@
+
+Test position 1 is
+White to move
+.....K.k
+........
+....q...
+.r......
+...N....
+.....b..
+..p.....
+........
+
+Expected PV=Nxe6 Kh7
+Test 1 of 1: PLYMAX=2:FNDMOV() IN 1
+VALM: 0
+SCORE[]:
+PLYIX[]
+0: <-MLPTRI
+others: MLPTRJ (0)----[0] MLNXT (0)----[0] MLLST NULL BESTM NULL
+
+PINFND() IN 2
+VALM: 0
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: <-MLPTRI
+others: MLPTRJ (0)----[0] MLNXT (0)----[0] MLLST NULL BESTM NULL
+
+POINTS() IN (unchanged) 3
+VALM: 0
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: <-MLPTRI
+others: MLPTRJ (0)----[0] MLNXT (0)----[0] MLLST NULL BESTM NULL
+
+POINTS() OUT 4
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: <-MLPTRI
+others: MLPTRJ (0)----[222:94,-11.75] MLNXT (0)----[222:94,-11.75] MLLST NULL BESTM NULL
+
+GENMOV() call 1, NPLY=1
+White to move
+.....K.k
+........
+....q...
+.r......
+...N....
+.....b..
+..p.....
+........
+
+GENMOV() IN (unchanged) 5
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: <-MLPTRI
+others: MLPTRJ (0)----[222:94,-11.75] MLNXT (0)----[222:94,-11.75] MLLST NULL BESTM NULL
+
+MPIECE() IN 6
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ MLNXT (0,0,0)
+ADMOVE() OUT 7
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ MLLST (0,1,1)Nd4c2[0]
+2: <-MLPTRI MLPTRJ MLLST (0,1,1)Nd4c2[0]
+others: MLNXT (1)----[0] BESTM NULL
+
+ADMOVE() OUT 8
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] MLLST (1,2,1)Nd4b5[0]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[0] MLLST (1,2,1)Nd4b5[0]
+others: MLNXT (2)----[0] BESTM NULL
+
+ADMOVE() OUT 9
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] MLLST (2,3,1)Nd4e6[0]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] MLLST (2,3,1)Nd4e6[0]
+others: MLNXT (3)----[0] BESTM NULL
+
+ADMOVE() OUT 10
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() IN (unchanged) 11
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: outer->link_ptr = ptr_next
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL
+
+EVAL() IN 12
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL
+
+POINTS() IN (unchanged) 13
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL
+
+POINTS() OUT 14
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL
+
+EVAL() OUT (unchanged) 15
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() inner loop start
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() inner loop break 1
+SORTM() outer loop bottom
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: outer->link_ptr = ptr_next
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+EVAL() IN 16
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[0] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+POINTS() IN (unchanged) 17
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[0] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+POINTS() OUT 18
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+EVAL() OUT (unchanged) 19
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+SORTM() inner loop start
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+SORTM() inner loop break 2; 98 < 136
+SORTM() outer loop bottom
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: outer->link_ptr = ptr_next
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+EVAL() IN 20
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[0] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+POINTS() IN (unchanged) 21
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[0] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+POINTS() OUT 22
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+EVAL() OUT (unchanged) 23
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+SORTM() inner loop start
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+SORTM() inner loop break 2; 66 < 98
+SORTM() outer loop bottom
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: outer->link_ptr = ptr_next
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+EVAL() IN 24
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[0] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+POINTS() IN (unchanged) 25
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[0] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+POINTS() OUT 26
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+
+EVAL() OUT (unchanged) 27
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+
+SORTM() inner loop start
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+
+SORTM() inner loop start
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+
+SORTM() inner loop start
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+
+SORTM() inner loop break 2; 114 < 136
+SORTM() outer loop bottom
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: outer->link_ptr = ptr_next
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: return
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() OUT 28
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL
+
+MOVE() IN 29
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL
+
+GENMOV() call 2, NPLY=2
+Black to move
+.....K.k
+........
+....N...
+.r......
+........
+.....b..
+..p.....
+........
+
+GENMOV() IN 30
+VALM: 114:-14,1.75
+SCORE[]: 0 SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL
+
+MPIECE() IN 31
+VALM: 114:-14,1.75
+SCORE[]: 0 SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT (4,0,0)
+ADMOVE() OUT 32
+VALM: 114:-14,1.75
+SCORE[]: 0 SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLLST (4,5,2)kh8h7[0]
+4: <-MLPTRI MLLST (4,5,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM NULL
+
+MOVE() IN 33
+VALM: 114:-14,1.75
+SCORE[]: 0 SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,5,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,5,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM NULL
+
+POINTS() IN (unchanged) 34
+VALM: 114:-14,1.75
+SCORE[]: 0 SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,5,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,5,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM NULL
+
+POINTS() OUT 35
+VALM: 190:62,-7.75
+SCORE[]: 0 SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,5,2)kh8h7[190:62,-7.75]
+4: <-MLPTRI MLPTRJ MLLST (4,5,2)kh8h7[190:62,-7.75]
+others: MLNXT (5)----[0] BESTM NULL
+
+Alpha-beta cutoff if score<=two ply above: NO (score=190:62,-7.75, two ply above=0)
+This is the best move if score>ply score: YES (score=66:-62,7.75, ply score=0)
+ASCEND() IN 36
+VALM: 190:62,-7.75
+SCORE[]: 0 SCRIX-> 0 66:-62,7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,5,2)kh8h7[190:62,-7.75]
+4: <-MLPTRI MLPTRJ MLLST (4,5,2)kh8h7[190:62,-7.75]
+others: MLNXT (5)----[0] BESTM NULL
+
+UNMOVE() IN 37
+VALM: 190:62,-7.75
+SCORE[]: SCRIX-> 0 0 66:-62,7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,5,2)kh8h7[190:62,-7.75]
+4:  MLNXT MLLST (4,5,2)kh8h7[190:62,-7.75]
+others: BESTM NULL
+
+Alpha-beta cutoff if score<=two ply above: NO (score=66:-62,7.75, two ply above=0)
+This is the best move if score>ply score: YES (score=190:62,-7.75, ply score=0)
+MOVE() IN 38
+VALM: 190:62,-7.75
+SCORE[]: SCRIX-> 0 190:62,-7.75 66:-62,7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,5,2)kh8h7[190:62,-7.75]
+4:  MLNXT MLLST (4,5,2)kh8h7[190:62,-7.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+GENMOV() call 3, NPLY=2
+Black to move
+.....K.k
+........
+....q...
+.N......
+........
+.....b..
+..p.....
+........
+
+GENMOV() IN 39
+VALM: 190:62,-7.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,5,2)kh8h7[190:62,-7.75]
+4:  MLNXT MLLST (4,5,2)kh8h7[190:62,-7.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+MPIECE() IN 40
+VALM: 190:62,-7.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT (4,5,2)kh8h7[190:62,-7.75]
+4: <-MLPTRI<-MLLST MLNXT (4,5,2)kh8h7[190:62,-7.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+ADMOVE() OUT 41
+VALM: 190:62,-7.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLLST (4,6,2)kh8h7[0]
+4: <-MLPTRI MLLST (4,6,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+MOVE() IN 42
+VALM: 190:62,-7.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,6,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,6,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+POINTS() IN (unchanged) 43
+VALM: 190:62,-7.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,6,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,6,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+POINTS() OUT 44
+VALM: 158:30,-3.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,6,2)kh8h7[158:30,-3.75]
+4: <-MLPTRI MLPTRJ MLLST (4,6,2)kh8h7[158:30,-3.75]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+Alpha-beta cutoff if score<=two ply above: YES (score=158:30,-3.75, two ply above=190:62,-7.75)
+UNMOVE() IN 45
+VALM: 158:30,-3.75
+SCORE[]: SCRIX-> 0 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,6,2)kh8h7[158:30,-3.75]
+4:  MLNXT MLLST (4,6,2)kh8h7[158:30,-3.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+MOVE() IN 46
+VALM: 158:30,-3.75
+SCORE[]: SCRIX-> 0 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,6,2)kh8h7[158:30,-3.75]
+4:  MLNXT MLLST (4,6,2)kh8h7[158:30,-3.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+GENMOV() call 4, NPLY=2
+Black to move
+.....K.k
+........
+....q...
+.r......
+........
+.....N..
+..p.....
+........
+
+GENMOV() IN 47
+VALM: 158:30,-3.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,6,2)kh8h7[158:30,-3.75]
+4:  MLNXT MLLST (4,6,2)kh8h7[158:30,-3.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+MPIECE() IN 48
+VALM: 158:30,-3.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT (4,6,2)kh8h7[158:30,-3.75]
+4: <-MLPTRI<-MLLST MLNXT (4,6,2)kh8h7[158:30,-3.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+ADMOVE() OUT 49
+VALM: 158:30,-3.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLLST (4,7,2)kh8h7[0]
+4: <-MLPTRI MLLST (4,7,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+MOVE() IN 50
+VALM: 158:30,-3.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,7,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,7,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+POINTS() IN (unchanged) 51
+VALM: 158:30,-3.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,7,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,7,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+POINTS() OUT 52
+VALM: 142:14,-1.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,7,2)kh8h7[142:14,-1.75]
+4: <-MLPTRI MLPTRJ MLLST (4,7,2)kh8h7[142:14,-1.75]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+Alpha-beta cutoff if score<=two ply above: YES (score=142:14,-1.75, two ply above=190:62,-7.75)
+UNMOVE() IN 53
+VALM: 142:14,-1.75
+SCORE[]: SCRIX-> 0 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,7,2)kh8h7[142:14,-1.75]
+4:  MLNXT MLLST (4,7,2)kh8h7[142:14,-1.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+MOVE() IN 54
+VALM: 142:14,-1.75
+SCORE[]: SCRIX-> 0 190:62,-7.75
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,7,2)kh8h7[142:14,-1.75]
+4:  MLNXT MLLST (4,7,2)kh8h7[142:14,-1.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+GENMOV() call 5, NPLY=2
+Black to move
+.....K.k
+........
+....q...
+.r......
+........
+.....b..
+..N.....
+........
+
+GENMOV() IN 55
+VALM: 142:14,-1.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,7,2)kh8h7[142:14,-1.75]
+4:  MLNXT MLLST (4,7,2)kh8h7[142:14,-1.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+MPIECE() IN 56
+VALM: 142:14,-1.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT (4,7,2)kh8h7[142:14,-1.75]
+4: <-MLPTRI<-MLLST MLNXT (4,7,2)kh8h7[142:14,-1.75]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+ADMOVE() OUT 57
+VALM: 142:14,-1.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+2:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLLST (4,8,2)kh8h7[0]
+4: <-MLPTRI MLLST (4,8,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+MOVE() IN 58
+VALM: 142:14,-1.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,8,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,8,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+POINTS() IN (unchanged) 59
+VALM: 142:14,-1.75
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,8,2)kh8h7[0]
+4: <-MLPTRI MLPTRJ MLLST (4,8,2)kh8h7[0]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+POINTS() OUT 60
+VALM: 118:-10,1.25
+SCORE[]: 0 SCRIX-> 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2:  (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLPTRJ MLLST (4,8,2)kh8h7[118:-10,1.25]
+4: <-MLPTRI MLPTRJ MLLST (4,8,2)kh8h7[118:-10,1.25]
+others: MLNXT (5)----[0] BESTM (2)d4e6[66:-62,7.75]
+
+Alpha-beta cutoff if score<=two ply above: YES (score=118:-10,1.25, two ply above=190:62,-7.75)
+UNMOVE() IN 61
+VALM: 118:-10,1.25
+SCORE[]: SCRIX-> 0 190:62,-7.75
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,8,2)kh8h7[118:-10,1.25]
+4:  MLNXT MLLST (4,8,2)kh8h7[118:-10,1.25]
+others: BESTM (2)d4e6[66:-62,7.75]
+
+MOVE() IN 62
+VALM: 118:-10,1.25
+SCORE[]: SCRIX-> 0 190:62,-7.75
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+3:  MLNXT MLLST (4,8,2)kh8h7[118:-10,1.25]
+4:  MLNXT MLLST (4,8,2)kh8h7[118:-10,1.25]
+others: MLPTRJ (2)d4e6[66:-62,7.75] BESTM (2)d4e6[66:-62,7.75]
+
+ PASS
+
+All tests passed. Elapsed time = 0.185 seconds

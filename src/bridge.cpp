@@ -56,6 +56,7 @@ function_in_out::function_in_out( CB cb )
     bool insist = false;
     if( cb == CB_PATH ) return;
     else if( cb == CB_SORTM )  insist=true;
+    else if( cb == CB_EVAL )   insist=true;
     else if( cb == CB_GENMOV ) { callback_genmov(); insist=true; }
     else if( cb == CB_POINTS ) { early_exit = callback_points(); insist=true; }
     else if( cb == CB_ADMOVE ) early_exit = callback_admove();
@@ -66,6 +67,7 @@ function_in_out::~function_in_out()
     bool insist = false;
     if( saved_cb == CB_PATH ) return;
     else if( saved_cb == CB_SORTM )  insist=true;
+    else if( saved_cb == CB_EVAL  )  insist=true;
     else if( saved_cb==CB_ADMOVE && !early_exit ) callback_admove_exit();
     log( saved_cb, false, insist );
 }

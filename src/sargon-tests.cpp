@@ -727,18 +727,21 @@ static TEST tests[]=
 //  New Zargon tests
 //
 
-static TEST ply1_restricted_move_test =
+// Knight can capture P,R,Q or B (original order)
+//                    Q,R,B,P    (after SORTM())
+static TEST ply2_restricted_move_test =
 {
-    "5K1k/8/4q3/1r6/3N4/8/2b5/8 w - - 0 1",
+    "5K1k/8/4q3/1r6/3N4/5b2/2p5/8 w - - 0 1",
     2,
-    "d4c2",
-    -575,
-    "Nxc2"
+    "d4e6",
+    -675,
+    "Nxe6 Kh7"
 };
 
-static const char *ply1_restricted_move_test_moves[] =
+static const char *ply2_restricted_move_test_moves[] =
 {
-    "d4c2 d4b5 d4e6",    // ply 1 moves allowed
+    "d4c2 d4b5 d4e6 d4f3",  // ply 1 moves allowed
+    "h8h7",                 // ply 2 moves allowed      
     NULL
 };
 
@@ -820,7 +823,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 // One off test
 bool sargon_undocumented_dev_test()
 {
-    bool ok = sargon_guided_test( &ply1_restricted_move_test, ply1_restricted_move_test_moves, 1, 1, false );
+    bool ok = sargon_guided_test( &ply2_restricted_move_test, ply2_restricted_move_test_moves, 1, 1, false );
     return ok;
 
     thc::ChessPosition cp;

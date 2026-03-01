@@ -1741,11 +1741,17 @@ void SORTM()
 
         // Make linked list
         outer->link_ptr = ptr_next;
+        printf( "SORTM() outer loop: outer->link_ptr = ptr_next\n" );
+        printf( "%s\n", show_ply_chains().c_str() );
 
         // Return if end of list
         outer = temp;
         if( outer == 0 )
+        {
+            printf( "SORTM() outer loop: return\n" );
+            printf( "%s\n", show_ply_chains().c_str() );
             return;
+        }
 
         // Save list pointer
         m.MLPTRJ = outer;
@@ -1758,17 +1764,25 @@ void SORTM()
         ML *inner = m.MLPTRI;          // beginning of move list
         for(;;)
         {
+            printf( "SORTM() inner loop start\n" );
+            printf( "%s\n", show_ply_chains().c_str() );
 
             // Get next move
             ptr_next = inner->link_ptr;
 
             // End of list ?
             if( ptr_next == 0 )
+            {
+                printf( "SORTM() inner loop break 1\n" );
                 break;
+            }
 
             // Compare value to list value
             if( m.VALM < ptr_next->val )
+            {
+                printf( "SORTM() inner loop break 2; %u < %u\n", m.VALM, ptr_next->val );
                 break;
+            }
 
             // Swap pointers if value not less than list value
             inner = ptr_next;
@@ -1776,6 +1790,8 @@ void SORTM()
 
         // Link new move into list
         inner->link_ptr = outer;
+        printf( "SORTM() outer loop bottom\n" );
+        printf( "%s\n", show_ply_chains().c_str() );
     }
 }
 
