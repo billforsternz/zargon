@@ -39,6 +39,9 @@ enum CB
     CB_ASCEND                   // Last of the Zargon function callbacks
 };
 
+std::string show_score( uint8_t val );
+std::string show_ply_chains();
+
 class function_in_out
 {
     CB saved_cb;

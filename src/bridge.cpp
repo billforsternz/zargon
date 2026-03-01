@@ -44,7 +44,6 @@ const char *lookup[] =
 };
 
 std::string current_status;
-std::string sargon_ptr_print();
 void callback_genmov();
 bool callback_points();
 bool callback_admove();
@@ -64,15 +63,17 @@ function_in_out::function_in_out( CB cb )
 }
 function_in_out::~function_in_out()
 {
+    bool insist = false;
     if( saved_cb == CB_PATH ) return;
+    else if( saved_cb == CB_SORTM )  insist=true;
     else if( saved_cb==CB_ADMOVE && !early_exit ) callback_admove_exit();
-    log( saved_cb, false, false );
+    log( saved_cb, false, insist );
 }
 
 void function_in_out::log( CB cb, bool in, bool insist )
 {
     static uint64_t log_nbr;
-    std::string diag = sargon_ptr_print();
+    std::string diag = show_ply_chains();
     bool diff = (diag != current_status);
     if( diff || insist )
     {
@@ -296,4 +297,171 @@ void callback_admove_exit()
         ml->creation_piece = c;
         #endif
     }
+}
+
+std::string show_score( uint8_t val )
+{
+    int n = val>=0x80 ? val-0x80 : 0-(0x80-val);
+    double f = sargon_export_value( val );
+
+    // Sargon points system is;
+    //    0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127 0x00=flag/illegal
+    //  127 positive scores uint8_t 0x7f-0x01 (8 points is one pawn, so 127/8 = 15.75 pawns is max score)
+    //    1 zero score 0x80
+    //  127 negative scores uint8_t 0x81-0xff
+    //    1 special flag/sentinel value 0, means eg illegal move
+    std::string s = (val==0 ? "0" : util::sprintf( "%u:%d,%.2f", val, n, f ));
+    return s;
+}
+
+std::string show_ply_chains()
+{
+    std::string s;
+    uint8_t *p = m.SCORE;
+    int run=0;
+    s += util::sprintf( "VALM: %s\n", show_score(m.VALM).c_str() );
+    s += "SCORE[]:";
+    for( int i=0; i<sizeof(m.SCORE); i++ )
+    {
+        if( p == m.SCRIX )
+        {
+            while( run > 0 )
+            {
+                run--;
+                s += " 0";
+            }
+            s += " SCRIX->";
+            s += util::sprintf( " %s", show_score(*p).c_str() );
+        }
+        else
+        {
+            if( *p == 0 )
+                run++;
+            else
+            {
+                while( run > 0 )
+                {
+                    run--;
+                    s += " 0";
+                }
+                s += util::sprintf( " %s", show_score(*p).c_str() );
+            }
+        }
+        p++;
+    }
+    s += "\nPLYIX[]\n";
+    int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
+    int final_ply = 0;
+    for( int i = sizeof(m.PLYIX)/sizeof(m.PLYIX[0]) - 1; i>=0; i-- )
+    {
+        ML *ml = m.PLYIX[i].link_ptr;
+        if( ml )
+        {
+            final_ply = i;
+            break;
+        }
+    }
+    if( m.MLPTRI - m.PLYIX >final_ply )
+        final_ply = (int)(m.MLPTRI - m.PLYIX);
+    bool flag_mlptri=false, flag_mlptrj=false, flag_mlnxt=false, flag_mllst=false, flag_bestm=false;
+    for( int i=first_ply; i<=final_ply; i++ )
+    {
+        s += util::sprintf( "%d: ", i );
+        ML *ml = &m.PLYIX[i];
+        if( m.MLPTRI == ml )
+        {
+            s += "<-MLPTRI";
+            flag_mlptri = true;
+        }
+        if( m.MLPTRJ == ml )
+        {
+            s += "<-MLPTRJ";
+            flag_mlptrj = true;
+        }
+        if( m.MLLST == ml )
+        {
+            s += "<-MLLST";
+            flag_mllst = true;
+        }
+        ml = ml->link_ptr;
+        for( int j=0; j<1000 && ml; j++ )
+        {
+            if( m.MLPTRJ == ml )
+            {
+                s += " MLPTRJ";
+                flag_mlptrj = true;
+            }
+            if( m.MLNXT == ml )
+            {
+                s += " MLNXT";
+                flag_mlnxt = true;
+            }
+            if( m.MLLST == ml )
+            {
+                s += " MLLST";
+                flag_mllst = true;
+            }
+            if( m.BESTM == ml )
+            {
+                s += " BESTM";
+                flag_bestm = true;
+            }
+            if( ml >= m.MLIST )
+            #ifdef BRIDGE_CALLBACK_TRACE
+                s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
+            #else
+                s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+            #endif
+            else
+                s += " ???";
+            std::string t = sargon_export_move( ml );
+            if( t == "" )
+                t = "----";
+            #ifdef BRIDGE_CALLBACK_TRACE
+            else
+                t = ml->creation_piece + t;
+            #endif
+            s += t;
+            s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
+            ml = ml->link_ptr;
+        }
+        s += "\n";
+    }
+    if( !flag_mlptri || !flag_mlptrj || !flag_mlnxt || !flag_mllst || !flag_bestm )
+    {
+        s += "others:";
+        const char *desc="?";
+        ML *ml = 0;
+        bool flag = false;
+        for( int i=0; i<5; i++ )
+        {
+            switch(i)
+            {
+                case 0: desc=" MLPTRI";      flag = flag_mlptri;     ml = m.MLPTRI;      break;
+                case 1: desc=" MLPTRJ";      flag = flag_mlptrj;     ml = m.MLPTRJ;      break;
+                case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;       break;
+                case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;       break;
+                case 4: desc=" BESTM";       flag = flag_bestm;      ml = m.BESTM;       break;
+            }
+            if( !flag )
+            {
+                s += desc;
+                if( !ml )
+                    s += " NULL";
+                else if( ml < m.MLIST )
+                    s += " ???";
+                else
+                {
+                    s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+                    std::string t = sargon_export_move( ml );
+                    if( t == "" )
+                        t = "----";
+                    s += t;
+                    s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
+                }
+            }
+        }
+        s += "\n";
+    }
+    return s;
 }
