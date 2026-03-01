@@ -272,9 +272,11 @@ ML PLYIX[40];
 //
 // MLLST   --  Pointer to the previous move placed in the move
 //             list. Used during generation of the move list.
+//             LST = last
 //
 // MLNXT   --  Pointer to the next available space in the move
 //             list.
+//             NXT = next
 //
 //***********************************************************
 uint8_t  M1      =      0;

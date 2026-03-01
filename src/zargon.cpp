@@ -580,12 +580,11 @@ void GENMOV()
     m.CKFLG = inchk;
 
     // Setup move list pointers
-    ML *mlnxt    = m.MLNXT;             // addr of next avail list space
     ML *ply      = m.MLPTRI;            // ply list pointer
     ply++;                              // increment to next ply
+    ply->link_ptr = m.MLNXT;            // point at next move to be generated
 
     // Save move list pointer
-    ply->link_ptr = mlnxt;
     ply++; 
     m.MLPTRI = ply;                     // save new ply pointer
     m.MLLST  = ply;                     // last pointer for chain
@@ -1732,40 +1731,36 @@ void UNMOVE()
 void SORTM()
 {
     callback_zargon_bridge(CB_SORTM);
+    ML *ptr_next = 0;   // next best move, initially unknown
 
-    // Init working pointers
-    ML *ptr_list = m.MLPTRI;       //  Move list begin pointer
-    ML *ptr_next = 0;
-
-    // Loop
+    // Loop over ply list starting at MLPTRI
+    ML *outer = m.MLPTRI;
     for(;;)
     {
-        ML *ml = ptr_list;
-
-        // Get link to next move
-        ptr_list = ml->link_ptr;
+        ML *temp = outer->link_ptr;
 
         // Make linked list
-        ml->link_ptr = ptr_next;
+        outer->link_ptr = ptr_next;
 
         // Return if end of list
-        if( ptr_list == 0 )
+        outer = temp;
+        if( outer == 0 )
             return;
 
         // Save list pointer
-        m.MLPTRJ = ptr_list;
+        m.MLPTRJ = outer;
 
         // Evaluate move
         EVAL();
-        ml = m.MLPTRI;          // beginning of move list
-        ptr_list = m.MLPTRJ;    // restore list pointer
+        outer = m.MLPTRJ;    // restore list pointer
 
-        // Next move loop
+        // Inner loop, find next move
+        ML *inner = m.MLPTRI;          // beginning of move list
         for(;;)
         {
 
             // Get next move
-            ptr_next = ml->link_ptr;
+            ptr_next = inner->link_ptr;
 
             // End of list ?
             if( ptr_next == 0 )
@@ -1776,11 +1771,11 @@ void SORTM()
                 break;
 
             // Swap pointers if value not less than list value
-            ml = ptr_next;
+            inner = ptr_next;
         }
 
         // Link new move into list
-        ml->link_ptr = ptr_list;
+        inner->link_ptr = outer;
     }
 }
 

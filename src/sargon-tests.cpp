@@ -729,16 +729,16 @@ static TEST tests[]=
 
 static TEST ply1_restricted_move_test =
 {
-    "6k1/8/2r5/5q2/3N4/8/8/7K w - - 0 1",
-    1,
-    "d4f5",
-    -275,
-    "Nxf5"
+    "5K1k/8/4q3/1r6/3N4/8/2b5/8 w - - 0 1",
+    2,
+    "d4c2",
+    -575,
+    "Nxc2"
 };
 
 static const char *ply1_restricted_move_test_moves[] =
 {
-    "d4c6 d4f5",    // ply 1 moves allowed
+    "d4c2 d4b5 d4e6",    // ply 1 moves allowed
     NULL
 };
 
@@ -820,7 +820,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 // One off test
 bool sargon_undocumented_dev_test()
 {
-    bool ok = sargon_guided_test( &ply5_restricted_move_test, ply5_restricted_move_test_moves, 1, 1, false );
+    bool ok = sargon_guided_test( &ply1_restricted_move_test, ply1_restricted_move_test_moves, 1, 1, false );
     return ok;
 
     thc::ChessPosition cp;
