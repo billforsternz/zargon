@@ -1742,14 +1742,14 @@ void SORTM()
         // Make linked list
         outer->link_ptr = ptr_next;
         printf( "SORTM() outer loop: outer->link_ptr = ptr_next\n" );
-        printf( "%s\n", show_ply_chains().c_str() );
+        printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer").c_str() );
 
         // Return if end of list
         outer = temp;
         if( outer == 0 )
         {
             printf( "SORTM() outer loop: return\n" );
-            printf( "%s\n", show_ply_chains().c_str() );
+            printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer").c_str() );
             return;
         }
 
@@ -1765,7 +1765,7 @@ void SORTM()
         for(;;)
         {
             printf( "SORTM() inner loop start\n" );
-            printf( "%s\n", show_ply_chains().c_str() );
+            printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
 
             // Get next move
             ptr_next = inner->link_ptr;
@@ -1774,6 +1774,7 @@ void SORTM()
             if( ptr_next == 0 )
             {
                 printf( "SORTM() inner loop break 1\n" );
+                printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
                 break;
             }
 
@@ -1781,6 +1782,7 @@ void SORTM()
             if( m.VALM < ptr_next->val )
             {
                 printf( "SORTM() inner loop break 2; %u < %u\n", m.VALM, ptr_next->val );
+                printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
                 break;
             }
 
@@ -1791,7 +1793,7 @@ void SORTM()
         // Link new move into list
         inner->link_ptr = outer;
         printf( "SORTM() outer loop bottom\n" );
-        printf( "%s\n", show_ply_chains().c_str() );
+        printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
     }
 }
 

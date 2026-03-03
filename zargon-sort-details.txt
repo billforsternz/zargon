@@ -1,3 +1,244 @@
+Highlights first, full trace second
+
+==== Highlights
+
+SORTM() IN (unchanged) 11
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: outer->link_ptr = ptr_next
+VALM: 222:94,-11.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL outer PLYIX[2]
+
+EVAL() OUT (unchanged) 15       P
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() inner loop start  Nd4c2   after this: ptr_next = inner->link_ptr
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL inner PLYIX[2]
+
+SORTM() inner loop break 1       no next_ptr
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL inner PLYIX[2]
+
+SORTM() outer loop bottom       inner->link_ptr = outer         h->P      next NULL
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL inner PLYIX[2]
+
+SORTM() outer loop: outer->link_ptr = ptr_next
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL ptr_next NULL
+
+EVAL() OUT (unchanged) 19   R
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+SORTM() inner loop start        R   after this: ptr_next = inner->link_ptr
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL ptr_next NULL outer (1)d4b5[98:-30,3.75] inner PLYIX[2]
+
+SORTM() inner loop break 2; 98 < 136    R beats P       (current move beats ptr_next)
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL outer (1)d4b5[98:-30,3.75] inner PLYIX[2]
+
+SORTM() outer loop bottom      inner->link_ptr = outer      h->R   next->P
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (1,2,1)Nd4b5[98:-30,3.75] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL inner PLYIX[2]
+
+SORTM() outer loop: outer->link_ptr = ptr_next   R->P
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (1,2,1)Nd4b5[98:-30,3.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+EVAL() OUT (unchanged) 23       Q
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+SORTM() inner loop start  Q  after this: ptr_next = inner->link_ptr
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL outer (2)d4e6[66:-62,7.75] inner PLYIX[2]
+
+SORTM() inner loop break 2; 66 < 98     Q beats R       (current beats next)
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI ptr_next (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL outer (2)d4e6[66:-62,7.75] inner PLYIX[2]
+
+SORTM() outer loop bottom       inner->link_ptr = outer        head->queen
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (2,3,1)Nd4e6[66:-62,7.75] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL ptr_next (1)d4b5[98:-30,3.75] inner PLYIX[2]
+
+SORTM() outer loop: outer->link_ptr = ptr_next      queen->rook
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (2,3,1)Nd4e6[66:-62,7.75] ptr_next (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+
+EVAL() OUT (unchanged) 27   B
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+
+SORTM() inner loop start   B     after this: ptr_next = inner->link_ptr
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] ptr_next (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75] inner PLYIX[2]
+
+SORTM() inner loop start        after this: ptr_next = inner->link_ptr
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI ptr_next inner (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75]
+
+SORTM() inner loop start        after this: ptr_next = inner->link_ptr
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] ptr_next inner (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75]
+
+SORTM() inner loop break 2; 114 < 136   B beats P       (current beats next)
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] inner (1,2,1)Nd4b5[98:-30,3.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75]
+
+SORTM() outer loop bottom       inner->link_ptr = outer  R->B
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] inner (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST outer (3,4,1)Nd4f3[114:-14,1.75]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: outer->link_ptr = ptr_next    B->P
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST outer (3,4,1)Nd4f3[114:-14,1.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL
+
+SORTM() outer loop: return
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL outer NULL
+
+SORTM() OUT 28
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL
+
+
+==== Full trace
+
 
 Test position 1 is
 White to move
@@ -115,7 +356,7 @@ PLYIX[]
 0: 
 1:  MLPTRJ (0,1,1)Nd4c2[0] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
 2: <-MLPTRI
-others: MLNXT (4)----[0] BESTM NULL
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL outer PLYIX[2]
 
 EVAL() IN 12
 VALM: 222:94,-11.75
@@ -158,28 +399,36 @@ VALM: 136:8,-1.00
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
 2: <-MLPTRI
-others: MLNXT (4)----[0] BESTM NULL
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL inner PLYIX[2]
 
 SORTM() inner loop break 1
+VALM: 136:8,-1.00
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL inner PLYIX[2]
+
 SORTM() outer loop bottom
 VALM: 136:8,-1.00
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
-2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
-others: MLNXT (4)----[0] BESTM NULL
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+2: <-MLPTRI MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00] (1,2,1)Nd4b5[0] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL ptr_next NULL inner PLYIX[2]
 
 SORTM() outer loop: outer->link_ptr = ptr_next
 VALM: 136:8,-1.00
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI MLPTRJ (0,1,1)Nd4c2[136:8,-1.00]
-others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+1:  MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL ptr_next NULL
 
 EVAL() IN 16
 VALM: 136:8,-1.00
@@ -224,25 +473,33 @@ PLYIX[]
 0: 
 1:  (0,1,1)Nd4c2[136:8,-1.00]
 2: <-MLPTRI (0,1,1)Nd4c2[136:8,-1.00]
-others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL ptr_next NULL outer (1)d4b5[98:-30,3.75] inner PLYIX[2]
 
 SORTM() inner loop break 2; 98 < 136
+VALM: 98:-30,3.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (1)d4b5[98:-30,3.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL outer (1)d4b5[98:-30,3.75] inner PLYIX[2]
+
 SORTM() outer loop bottom
 VALM: 98:-30,3.75
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
-others: MLNXT (4)----[0] BESTM NULL
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (1,2,1)Nd4b5[98:-30,3.75] (2,3,1)Nd4e6[0] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL inner PLYIX[2]
 
 SORTM() outer loop: outer->link_ptr = ptr_next
 VALM: 98:-30,3.75
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI MLPTRJ (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (1,2,1)Nd4b5[98:-30,3.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
 others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
 
 EVAL() IN 20
@@ -286,19 +543,27 @@ VALM: 66:-62,7.75
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
-others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (1,2,1)Nd4b5[98:-30,3.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL outer (2)d4e6[66:-62,7.75] inner PLYIX[2]
 
 SORTM() inner loop break 2; 66 < 98
+VALM: 66:-62,7.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI ptr_next (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (2)d4e6[66:-62,7.75] MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL outer (2)d4e6[66:-62,7.75] inner PLYIX[2]
+
 SORTM() outer loop bottom
 VALM: 66:-62,7.75
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
 1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] MLLST (3,4,1)Nd4f3[0]
-others: MLNXT (4)----[0] BESTM NULL
+2: <-MLPTRI MLPTRJ outer (2,3,1)Nd4e6[66:-62,7.75] MLLST (3,4,1)Nd4f3[0]
+others: MLNXT (4)----[0] BESTM NULL ptr_next (1)d4b5[98:-30,3.75] inner PLYIX[2]
 
 SORTM() outer loop: outer->link_ptr = ptr_next
 VALM: 66:-62,7.75
@@ -306,7 +571,7 @@ SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
 1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI MLPTRJ (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI MLPTRJ outer (2,3,1)Nd4e6[66:-62,7.75] ptr_next (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
 others: MLNXT (4)----[0] MLLST (3)d4f3[0] BESTM NULL
 
 EVAL() IN 24
@@ -351,8 +616,8 @@ SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
 1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
-others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] ptr_next (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75] inner PLYIX[2]
 
 SORTM() inner loop start
 VALM: 114:-14,1.75
@@ -360,8 +625,8 @@ SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
 1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
-others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+2: <-MLPTRI ptr_next inner (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75]
 
 SORTM() inner loop start
 VALM: 114:-14,1.75
@@ -369,17 +634,25 @@ SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
 1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
-others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] ptr_next inner (1,2,1)Nd4b5[98:-30,3.75] (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75]
 
 SORTM() inner loop break 2; 114 < 136
+VALM: 114:-14,1.75
+SCORE[]: SCRIX-> 0
+PLYIX[]
+0: 
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] inner (1,2,1)Nd4b5[98:-30,3.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLPTRJ (3)d4f3[114:-14,1.75] MLNXT (4)----[0] MLLST (3)d4f3[114:-14,1.75] BESTM NULL outer (3)d4f3[114:-14,1.75]
+
 SORTM() outer loop bottom
 VALM: 114:-14,1.75
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75]
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] inner (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST outer (3,4,1)Nd4f3[114:-14,1.75]
 others: MLNXT (4)----[0] BESTM NULL
 
 SORTM() outer loop: outer->link_ptr = ptr_next
@@ -387,8 +660,8 @@ VALM: 114:-14,1.75
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST outer (3,4,1)Nd4f3[114:-14,1.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
 others: MLNXT (4)----[0] BESTM NULL
 
 SORTM() outer loop: return
@@ -396,9 +669,9 @@ VALM: 114:-14,1.75
 SCORE[]: SCRIX-> 0
 PLYIX[]
 0: 
-1:  (0,1,1)Nd4c2[136:8,-1.00]
-2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] (0,1,1)Nd4c2[136:8,-1.00]
-others: MLNXT (4)----[0] BESTM NULL
+1:  ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+2: <-MLPTRI (2,3,1)Nd4e6[66:-62,7.75] (1,2,1)Nd4b5[98:-30,3.75] MLPTRJ MLLST (3,4,1)Nd4f3[114:-14,1.75] ptr_next (0,1,1)Nd4c2[136:8,-1.00]
+others: MLNXT (4)----[0] BESTM NULL outer NULL
 
 SORTM() OUT 28
 VALM: 114:-14,1.75
@@ -829,4 +1102,4 @@ others: MLPTRJ (2)d4e6[66:-62,7.75] BESTM (2)d4e6[66:-62,7.75]
 
  PASS
 
-All tests passed. Elapsed time = 0.185 seconds
+All tests passed. Elapsed time = 0.198 seconds

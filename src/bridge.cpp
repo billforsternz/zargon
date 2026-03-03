@@ -319,8 +319,13 @@ std::string show_score( uint8_t val )
     return s;
 }
 
-std::string show_ply_chains()
+std::string show_ply_chains( ML *parm1, const char *parm1_name,
+                             ML *parm2, const char *parm2_name,
+                             ML *parm3, const char *parm3_name  )
 {
+    std::string space1_name = parm1_name ? " "+std::string(parm1_name) : "?$?";
+    std::string space2_name = parm2_name ? " "+std::string(parm2_name) : "?$?";
+    std::string space3_name = parm3_name ? " "+std::string(parm3_name) : "?$?";
     std::string s;
     uint8_t *p = m.SCORE;
     int run=0;
@@ -369,6 +374,13 @@ std::string show_ply_chains()
     if( m.MLPTRI - m.PLYIX >final_ply )
         final_ply = (int)(m.MLPTRI - m.PLYIX);
     bool flag_mlptri=false, flag_mlptrj=false, flag_mlnxt=false, flag_mllst=false, flag_bestm=false;
+    bool flag_parm1=false,  flag_parm2=false,  flag_parm3=false;
+    if( !parm1_name )
+        flag_parm1 = true;
+    if( !parm2_name )
+        flag_parm2 = true;
+    if( !parm3_name )
+        flag_parm3 = true;
     for( int i=first_ply; i<=final_ply; i++ )
     {
         s += util::sprintf( "%d: ", i );
@@ -411,6 +423,21 @@ std::string show_ply_chains()
                 s += " BESTM";
                 flag_bestm = true;
             }
+            if( parm1 == ml )
+            {
+                s += space1_name;
+                flag_parm1 = true;
+            }
+            if( parm2 == ml )
+            {
+                s += space2_name;
+                flag_parm2 = true;
+            }
+            if( parm3 == ml )
+            {
+                s += space3_name;
+                flag_parm3 = true;
+            }
             if( ml >= m.MLIST )
             #ifdef BRIDGE_CALLBACK_TRACE
                 s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
@@ -434,13 +461,16 @@ std::string show_ply_chains()
         }
         s += "\n";
     }
-    if( !flag_mlptri || !flag_mlptrj || !flag_mlnxt || !flag_mllst || !flag_bestm )
+
+    // If any unaccounted for, show them
+    if( !flag_mlptri || !flag_mlptrj || !flag_mlnxt || !flag_mllst || !flag_bestm ||
+        !flag_parm1  || !flag_parm2  || !flag_parm3 )
     {
         s += "others:";
         const char *desc="?";
         ML *ml = 0;
         bool flag = false;
-        for( int i=0; i<5; i++ )
+        for( int i=0; i<8; i++ )
         {
             switch(i)
             {
@@ -449,15 +479,18 @@ std::string show_ply_chains()
                 case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;       break;
                 case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;       break;
                 case 4: desc=" BESTM";       flag = flag_bestm;      ml = m.BESTM;       break;
+                case 5: desc=space1_name.c_str(); flag = flag_parm1; ml = parm1;         break;
+                case 6: desc=space2_name.c_str(); flag = flag_parm2; ml = parm2;         break;
+                case 7: desc=space3_name.c_str(); flag = flag_parm3; ml = parm3;         break;
             }
             if( !flag )
             {
                 s += desc;
                 if( !ml )
                     s += " NULL";
-                else if( ml < m.MLIST )
-                    s += " ???";
-                else
+                else if( &m.PLYIX[0]<=ml && ml<=&m.PLYIX[40] )
+                    s += util::sprintf( " PLYIX[%d]", (int)(ml - &m.PLYIX[0]) );
+                else if( ml >= m.MLIST )
                 {
                     s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
                     std::string t = sargon_export_move( ml );
@@ -466,6 +499,8 @@ std::string show_ply_chains()
                     s += t;
                     s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
                 }
+                else
+                    s += " ???";
             }
         }
         s += "\n";

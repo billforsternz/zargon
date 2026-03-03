@@ -40,7 +40,10 @@ enum CB
 };
 
 std::string show_score( uint8_t val );
-std::string show_ply_chains();
+struct ML;
+std::string show_ply_chains( ML *parm1=0, const char *parm1_name=0,
+                             ML *parm2=0, const char *parm2_name=0,
+                             ML *parm3=0, const char *parm3_name=0  );
 
 class function_in_out
 {
