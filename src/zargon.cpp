@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <vector>
+#include <algorithm>
 
 #include "main.h"
 #include "bridge.h"
@@ -1727,10 +1729,42 @@ void UNMOVE()
 //
 // ARGUMENTS:  --  None
 //***********************************************************
+bool compare_points(const ML& p1, const ML& p2) { return p1.val < p2.val; }
 
 void SORTM()
 {
     callback_zargon_bridge(CB_SORTM);
+    #if 0
+    ML *ml_first = m.MLPTRJ;
+    ML *ml = ml_first;
+    m.MLPTRI->link_ptr = ml;
+    while( ml <= m.MLLST )
+    {   
+        m.MLPTRJ = ml;
+        EVAL();
+        if( IS_DOUBLE_MOVE(ml->flags) )
+        {
+            uint8_t val = ml->val;
+            ml++;
+            ml->val = val;
+        }
+        ml++;
+    }
+    ML *ml_last = ml;
+    std::stable_sort( ml_first, ml_last, compare_points );
+    for( ml=ml_first; ml && ml<=ml_last; ml= ml->link_ptr )
+    {
+        if( IS_DOUBLE_MOVE(ml->flags) )
+        {
+            (ml+1)->val = 0;
+        }
+        ML *ml_next =  IS_DOUBLE_MOVE(ml->flags) ? ml+2 : ml+1;
+        if( ml == ml_last )
+            ml->link_ptr = NULL;
+        else
+            ml->link_ptr = ml_next;
+    }
+    #else
     ML *ptr_next = 0;   // next best move, initially unknown
 
     // Loop over ply list starting at MLPTRI
@@ -1741,15 +1775,19 @@ void SORTM()
 
         // Make linked list
         outer->link_ptr = ptr_next;
+        #ifdef SORT_DEBUG
         printf( "SORTM() outer loop: outer->link_ptr = ptr_next\n" );
         printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer").c_str() );
+        #endif
 
         // Return if end of list
         outer = temp;
         if( outer == 0 )
         {
+            #ifdef SORT_DEBUG
             printf( "SORTM() outer loop: return\n" );
             printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer").c_str() );
+            #endif
             return;
         }
 
@@ -1764,8 +1802,10 @@ void SORTM()
         ML *inner = m.MLPTRI;          // beginning of move list
         for(;;)
         {
+            #ifdef SORT_DEBUG
             printf( "SORTM() inner loop start\n" );
             printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
+            #endif
 
             // Get next move
             ptr_next = inner->link_ptr;
@@ -1773,16 +1813,20 @@ void SORTM()
             // End of list ?
             if( ptr_next == 0 )
             {
+                #ifdef SORT_DEBUG
                 printf( "SORTM() inner loop break 1\n" );
                 printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
+                #endif
                 break;
             }
 
             // Compare value to list value
             if( m.VALM < ptr_next->val )
             {
+                #ifdef SORT_DEBUG
                 printf( "SORTM() inner loop break 2; %u < %u\n", m.VALM, ptr_next->val );
                 printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
+                #endif
                 break;
             }
 
@@ -1792,9 +1836,12 @@ void SORTM()
 
         // Link new move into list
         inner->link_ptr = outer;
+        #ifdef SORT_DEBUG
         printf( "SORTM() outer loop bottom\n" );
         printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
+        #endif
     }
+    #endif
 }
 
 //***********************************************************

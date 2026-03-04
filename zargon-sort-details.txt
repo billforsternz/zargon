@@ -1,5 +1,21 @@
 Highlights first, full trace second
 
+It goes something like this;
+
+J   outer       ply inner    ptr_next
+=====================================
+P   ply        null null     null
+P   P->R->Q->B  P   ply      null
+P   P->         P   ply      null
+R   R           R   ply      P              R beats P
+R   R           R   ply      P
+Q   Q           Q   ply      R->P           Q beats R
+B   B           Q   ply      R->P
+B   B           Q-> Q->R->P  Q->R->P		B loses to Q
+B   B           Q-> R->P     R->P           B loses to R
+B   B           Q-> R->P     P 			    B beats P
+B   B           Q-> R->B->P  P 
+
 ==== Highlights
 
 SORTM() IN (unchanged) 11
