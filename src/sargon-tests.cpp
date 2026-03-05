@@ -823,10 +823,14 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 // One off test
 bool sargon_undocumented_dev_test()
 {
+    thc::ChessPosition cp;
+    cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R W K - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
+    PV pv;
+    sargon_run_engine( cp, 5, pv, false );
+    return true;
     bool ok = sargon_guided_test( &ply2_restricted_move_test, ply2_restricted_move_test_moves, 1, 1, false );
     return ok;
 
-    thc::ChessPosition cp;
     #define WIKIPEDIA_ALPHA_BETA_EXAMPLE
     #ifdef  WIKIPEDIA_ALPHA_BETA_EXAMPLE
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves

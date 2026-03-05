@@ -1734,7 +1734,7 @@ bool compare_points(const ML& p1, const ML& p2) { return p1.val < p2.val; }
 void SORTM()
 {
     callback_zargon_bridge(CB_SORTM);
-    #if 0
+    #if 1
     ML *ml_first = m.MLPTRJ;
     ML *ml = ml_first;
     m.MLPTRI->link_ptr = ml;
@@ -1752,14 +1752,14 @@ void SORTM()
     }
     ML *ml_last = ml;
     std::stable_sort( ml_first, ml_last, compare_points );
-    for( ml=ml_first; ml && ml<=ml_last; ml= ml->link_ptr )
+    for( ml=ml_first; ml && ml<ml_last; ml= ml->link_ptr )
     {
         if( IS_DOUBLE_MOVE(ml->flags) )
         {
             (ml+1)->val = 0;
         }
         ML *ml_next =  IS_DOUBLE_MOVE(ml->flags) ? ml+2 : ml+1;
-        if( ml == ml_last )
+        if( ml_next >= ml_last )
             ml->link_ptr = NULL;
         else
             ml->link_ptr = ml_next;
@@ -1774,6 +1774,7 @@ void SORTM()
         ML *temp = outer->link_ptr;
 
         // Make linked list
+        printf( "### TOP outer %s links to next -> %s\n", outer->terse, ptr_next? ptr_next->terse : "NULL" );
         outer->link_ptr = ptr_next;
         #ifdef SORT_DEBUG
         printf( "SORTM() outer loop: outer->link_ptr = ptr_next\n" );
@@ -1809,6 +1810,7 @@ void SORTM()
 
             // Get next move
             ptr_next = inner->link_ptr;
+            printf( "### INNER TOP next = inner->link_ptr %s\n", inner->link_ptr ? inner->link_ptr->terse : "NULL"  );
 
             // End of list ?
             if( ptr_next == 0 )
@@ -1821,8 +1823,10 @@ void SORTM()
             }
 
             // Compare value to list value
+            printf( "### (%d %d) %s < %d %s?\n", m.VALM, m.MLPTRJ->val, m.MLPTRJ->terse, ptr_next->val, ptr_next->terse  );
             if( m.VALM < ptr_next->val )
             {
+                printf( "### YES: Break\n" );
                 #ifdef SORT_DEBUG
                 printf( "SORTM() inner loop break 2; %u < %u\n", m.VALM, ptr_next->val );
                 printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
@@ -1831,10 +1835,12 @@ void SORTM()
             }
 
             // Swap pointers if value not less than list value
+            printf( "### NO: inner from %s to %s\n", inner ? inner->terse : "NULL", ptr_next ? ptr_next->terse : "NULL" );
             inner = ptr_next;
         }
 
         // Link new move into list
+        printf( "### BOTTOM inner %s links to outer -> %s\n", inner->terse, outer ? outer->terse : "NULL" );
         inner->link_ptr = outer;
         #ifdef SORT_DEBUG
         printf( "SORTM() outer loop bottom\n" );
