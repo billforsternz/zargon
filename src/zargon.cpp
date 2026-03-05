@@ -1734,10 +1734,19 @@ bool compare_points(const ML& p1, const ML& p2) { return p1.val < p2.val; }
 void SORTM()
 {
     callback_zargon_bridge(CB_SORTM);
-    #if 1
-    ML *ml_first = m.MLPTRJ;
-    ML *ml = ml_first;
-    m.MLPTRI->link_ptr = ml;
+
+    // Alternative implementation of SORTM() using the standard C++
+    //  library to do the sorting
+    #if 0
+
+    // Input to SORTM() is a list of adjacent MLs (moves) starting at
+    //  the current move MLPTRJ and ending with the last move MLLST. The
+    //  moves are unscored, so start by looping through them and scoring
+    //  them with EVAL() whilst also establishing conventional begin and
+    //  end ptrs (by convention end points one beyond the last element)
+    ML *ml_begin = m.MLPTRJ;
+    ML *ml = ml_begin;
+    m.MLPTRI->link_ptr = ml_begin;    // The ply pointer points to the list of moves
     while( ml <= m.MLLST )
     {   
         m.MLPTRJ = ml;
@@ -1746,106 +1755,125 @@ void SORTM()
         {
             uint8_t val = ml->val;
             ml++;
-            ml->val = val;
+            ml->val = val;  // put the move val into the second half of the move
+                            // so it has the same value as the first half, and
+                            // use std::stable_sort() not std::sort() so the
+                            // tied first and second half will retain their
+                            // order relative to each other and other possibly
+                            // tied moves
         }
         ml++;
     }
-    ML *ml_last = ml;
-    std::stable_sort( ml_first, ml_last, compare_points );
-    for( ml=ml_first; ml && ml<ml_last; ml= ml->link_ptr )
+    ML *ml_end = ml;
+
+    // Now sort them in place
+    std::stable_sort( ml_begin, ml_end, compare_points );
+
+    // Now link the sorted moves into a linked list
+    for( ml=ml_begin; ml && ml<ml_end; ml = ml->link_ptr )
     {
+        ML *ml_next = ml+1;
         if( IS_DOUBLE_MOVE(ml->flags) )
         {
-            (ml+1)->val = 0;
+            ml_next->val = 0;
+            ml_next++;
         }
-        ML *ml_next =  IS_DOUBLE_MOVE(ml->flags) ? ml+2 : ml+1;
-        if( ml_next >= ml_last )
+        if( ml_next >= ml_end )
             ml->link_ptr = NULL;
         else
             ml->link_ptr = ml_next;
     }
-    #else
-    ML *ptr_next = 0;   // next best move, initially unknown
 
-    // Loop over ply list starting at MLPTRI
-    ML *outer = m.MLPTRI;
+    // The original Sargon implementation is by necessity more complicated,
+    //  given the lack of a standard Z80 sort facility!
+    //  The sort technique is merge sort. The list of moves stays in the
+    //  original order (unlike the C++ sort above), and the sort property
+    //  is obtained by threading a linked list through the stationary moves.
+    //  The list is divided conceptually into two sections, a sorted section
+    //  followed by an unsorted section. Initially the sorted section is
+    //  zero sized. We loop through the list of moves scoring them one by
+    //  one with EVAL() and immediately merging the newly scored move into
+    //  the sorted section increasing its length by one and simultaneously
+    //  decreasing the length of the unsorted section by one.
+    //  The first merge is trivial ('merging' an element into an empty list
+    //  is just an append operation). Subsequent merges involve stepping
+    //  through the sorted portion of the list to find the right place to
+    //  link the move in to extend the sorted chain by one.
+    #else
+
+    // Loop over the unsorted list starting at the ply pointer MLPTRI. The
+    // link_ptr can be used by both the unsorted and sorted lists because
+    // a move is on one list or the other, never both. Originally all moves
+    // are in the unsorted list
+    //
+    // If the list is originally say;
+    //  KDJHKAFHKF
+    //
+    // We divide it into two with a sorted/unsorted partition; Initially
+    //  |KDJHKAFHKF   nbr sorted = 0
+    //
+    // After 'sorting' one element
+    //  K|DJHKAFHKF   nbr sorted = 1
+    //
+    // After sorting two elements
+    //  DK|JHKAFHKF   nbr sorted = 2
+    //
+    // After sorting three elements
+    //  DJK|HKAFHKF   nbr sorted = 3
+    //
+    // After sorting all elements
+    //  ADFFHHJKKK|   nbr sorted = 10
+    //
+    ML *sorted_element = 0;   // next best move, initially unknown
+    ML *unsorted = m.MLPTRI;
     for(;;)
     {
-        ML *temp = outer->link_ptr;
+        // Next unsorted element
+        ML *unsorted_element = unsorted->link_ptr;
 
-        // Make linked list
-        printf( "### TOP outer %s links to next -> %s\n", outer->terse, ptr_next? ptr_next->terse : "NULL" );
-        outer->link_ptr = ptr_next;
-        #ifdef SORT_DEBUG
-        printf( "SORTM() outer loop: outer->link_ptr = ptr_next\n" );
-        printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer").c_str() );
-        #endif
+        // Extend sorted list with most recent demoted sorted element
+        unsorted->link_ptr = sorted_element;
 
         // Return if end of list
-        outer = temp;
-        if( outer == 0 )
+        if( unsorted_element == 0 )
         {
-            #ifdef SORT_DEBUG
-            printf( "SORTM() outer loop: return\n" );
-            printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer").c_str() );
-            #endif
             return;
         }
 
-        // Save list pointer
-        m.MLPTRJ = outer;
-
-        // Evaluate move
+        // Evaluate this unsorted move
+        m.MLPTRJ = unsorted_element;
         EVAL();
-        outer = m.MLPTRJ;    // restore list pointer
 
-        // Inner loop, find next move
-        ML *inner = m.MLPTRI;          // beginning of move list
+        // Search loop, find the right point in the sorted list
+        ML *sorted = m.MLPTRI;  // beginning of move list is sorted
         for(;;)
         {
-            #ifdef SORT_DEBUG
-            printf( "SORTM() inner loop start\n" );
-            printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
-            #endif
 
             // Get next move
-            ptr_next = inner->link_ptr;
-            printf( "### INNER TOP next = inner->link_ptr %s\n", inner->link_ptr ? inner->link_ptr->terse : "NULL"  );
+            sorted_element = sorted->link_ptr;
 
             // End of list ?
-            if( ptr_next == 0 )
+            if( sorted_element == 0 )
             {
-                #ifdef SORT_DEBUG
-                printf( "SORTM() inner loop break 1\n" );
-                printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
-                #endif
                 break;
             }
 
-            // Compare value to list value
-            printf( "### (%d %d) %s < %d %s?\n", m.VALM, m.MLPTRJ->val, m.MLPTRJ->terse, ptr_next->val, ptr_next->terse  );
-            if( m.VALM < ptr_next->val )
+            // Compare value to list value (note m.VALM = m.MLPTRJ->val)
+            if( m.VALM < sorted_element->val )   // is unsorted better than sorted
             {
-                printf( "### YES: Break\n" );
-                #ifdef SORT_DEBUG
-                printf( "SORTM() inner loop break 2; %u < %u\n", m.VALM, ptr_next->val );
-                printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
-                #endif
-                break;
+                break;  // Yes sorted->link_ptr will point to the new unsorted element
+                        //  instead of the inferior old sorted element
             }
 
-            // Swap pointers if value not less than list value
-            printf( "### NO: inner from %s to %s\n", inner ? inner->terse : "NULL", ptr_next ? ptr_next->terse : "NULL" );
-            inner = ptr_next;
+            // Keep searching
+            sorted = sorted_element;
         }
 
         // Link new move into list
-        printf( "### BOTTOM inner %s links to outer -> %s\n", inner->terse, outer ? outer->terse : "NULL" );
-        inner->link_ptr = outer;
-        #ifdef SORT_DEBUG
-        printf( "SORTM() outer loop bottom\n" );
-        printf( "%s\n", show_ply_chains(ptr_next,"ptr_next",outer,"outer",inner,"inner").c_str() );
-        #endif
+        sorted->link_ptr = unsorted_element;
+
+        // Prepare to process next unsorted move
+        unsorted = unsorted_element;
     }
     #endif
 }
