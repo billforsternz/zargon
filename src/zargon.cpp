@@ -1736,7 +1736,8 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Alternative implementation of SORTM() using the standard C++
-    //  library to do the sorting
+    //  library to do the sorting. Note currently this doesn't work
+    //  for unknown reasons!
     #if 0
 
     // Input to SORTM() is a list of adjacent MLs (moves) starting at
@@ -1803,8 +1804,10 @@ void SORTM()
 
     // Loop over the unsorted list starting at the ply pointer MLPTRI. The
     // link_ptr can be used by both the unsorted and sorted lists because
-    // a move is on one list or the other, never both. Originally all moves
-    // are in the unsorted list
+    // a move is on one list or the other, never both.
+    // This means that as soon as the unsorted rover advances it can lose
+    // its connection to the ply pointer MLPTRI, and sorted moves are in
+    // fact linked into a new sorted list reusing MLPTRI as the head pointer
     //
     // If the list is originally say;
     //  KDJHKAFHKF
@@ -1824,56 +1827,100 @@ void SORTM()
     // After sorting all elements
     //  ADFFHHJKKK|   nbr sorted = 10
     //
-    ML *sorted_element = 0;   // next best move, initially unknown
-    ML *unsorted = m.MLPTRI;
+
+    // Example used in line line by line comments below
+    // After sorting three elements
+    //  DJK|HKAFHKF   nbr sorted = 3
+    // (|KDJHKAFHKF   original list)
+    //
+    //  u = unsorted list (pointers are straight line left to right)
+    //  s = MLPTRI sorted list (pointers hop about)  
+    //  +---+
+    //  | s |   u
+    //  | | |   |
+    //  V V |   V
+    //  K D J | H-> K-> A-> F-> H-> K-> F   nbr sorted = 3
+    //    | ^
+    //    | |
+    //    +-+
+    //
+    ML *sorted_tail = 0;   // sorted tail needs to be relinked into
+                           // sorted list after each sort step
+    ML *unsorted_rover = m.MLPTRI;
+
+    // Loop over the unsorted list, EVAL() and sort one move at a time
+    // Example from above, we are just finishing up sorting J and then
+    //  we are going to do H
     for(;;)
     {
         // Next unsorted element
-        ML *unsorted_element = unsorted->link_ptr;
+        // Example: (unsorted_rover = J)->H->K->A->F->H->K->F
+        // Example: unsorted_move = H
+        ML *unsorted_move = unsorted_rover->link_ptr; 
 
-        // Extend sorted list with most recent demoted sorted element
-        unsorted->link_ptr = sorted_element;
-
+        // Extend sorted list with the sorted tail
+        // Example: the previous time round J was promoted at the
+        //  expense of K
+        //  So MLPTRI->D->K changed to MLPTRI->D->J and K was unlinked
+        //  So link K after J, so now MLPTRI->D->J->K is the sorted list
+        //  See also the *asterisked example comment at the bottom of
+        //  the loop
+        unsorted_rover->link_ptr = sorted_tail;
+                                        
         // Return if end of list
-        if( unsorted_element == 0 )
+        if( unsorted_move == 0 )
         {
             return;
         }
 
         // Evaluate this unsorted move
-        m.MLPTRJ = unsorted_element;
+        // Example: unsorted_move = H
+        m.MLPTRJ = unsorted_move;               
         EVAL();
 
         // Search loop, find the right point in the sorted list
-        ML *sorted = m.MLPTRI;  // beginning of move list is sorted
+        ML *sorted_rover = m.MLPTRI;  // sorted moves replace unsorted moves in ply list MLPTRI
+
+        // Example: MLPTRI -> D -> J -> K   
         for(;;)
         {
 
-            // Get next move
-            sorted_element = sorted->link_ptr;
+            // Get next move from sorted list
+            // Example iteration 1: D
+            // Example iteration 2: J
+            sorted_tail = sorted_rover->link_ptr;
 
             // End of list ?
-            if( sorted_element == 0 )
+            // Example iteration 1: D == null? (NO)
+            // Example iteration 2: J == null? (NO)
+            if( sorted_tail == 0 )
             {
                 break;
             }
 
             // Compare value to list value (note m.VALM = m.MLPTRJ->val)
-            if( m.VALM < sorted_element->val )   // is unsorted better than sorted
+            // Example iteration 1: H < D? (NO)
+            // Example iteration 2: H < J? (YES)
+            if( m.VALM < sorted_tail->val )   // is unsorted better than sorted?
             {
-                break;  // Yes sorted->link_ptr will point to the new unsorted element
-                        //  instead of the inferior old sorted element
+                break;  // Yes sorted_rover->link_ptr will point to the new unsorted
+                        // element instead of the inferior old sorted element
             }
 
-            // Keep searching
-            sorted = sorted_element;
+            // Continue search through sorted loop
+            sorted_rover = sorted_tail;
         }
 
         // Link new move into list
-        sorted->link_ptr = unsorted_element;
+        // Example before: MLPTRI -> D->J->K 
+        // Example now   : MLPTRI -> D->H   (J->K the sorted_tail is unlinked)
+        // J->K has been unlinked, it will be linked to H at the *top of the loop
+        //  but only after the next unsorted move is retrieved from H's current
+        //  link ptr
+        sorted_rover->link_ptr = unsorted_move;
 
-        // Prepare to process next unsorted move
-        unsorted = unsorted_element;
+        // Continue unsorted loop
+        unsorted_rover = unsorted_move;
     }
     #endif
 }
