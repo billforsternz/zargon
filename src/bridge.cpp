@@ -57,6 +57,8 @@ function_in_out::function_in_out( CB cb )
     if( cb == CB_PATH ) return;
     else if( cb == CB_SORTM )  insist=true;
     else if( cb == CB_EVAL )   insist=true;
+    else if( cb == CB_MOVE )   insist=true;
+    else if( cb == CB_UNMOVE ) insist=true;
     else if( cb == CB_GENMOV ) { callback_genmov(); insist=true; }
     else if( cb == CB_POINTS ) { early_exit = callback_points(); insist=true; }
     else if( cb == CB_ADMOVE ) early_exit = callback_admove();
@@ -68,6 +70,8 @@ function_in_out::~function_in_out()
     if( saved_cb == CB_PATH ) return;
     else if( saved_cb == CB_SORTM )  insist=true;
     else if( saved_cb == CB_EVAL  )  insist=true;
+    else if( saved_cb == CB_MOVE )   insist=true;
+    else if( saved_cb == CB_UNMOVE ) insist=true;
     else if( saved_cb==CB_ADMOVE && !early_exit ) callback_admove_exit();
     log( saved_cb, false, insist );
 }
@@ -84,6 +88,13 @@ void function_in_out::log( CB cb, bool in, bool insist )
         printf( "%s\n", msg.c_str() );
         //extern void minimax_log( std::string msg );
         //minimax_log( msg );
+    }
+    if( !in && (cb==CB_MOVE || cb==CB_UNMOVE) )
+    {
+        thc::ChessPosition cp;
+        sargon_export_position(cp);
+        std::string s = cp.ToDebugStr(cb==CB_MOVE?"Position after MOVE()":"Position after UNMOVE()");
+        printf( "%s\n", s.c_str() );
     }
 }
 

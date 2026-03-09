@@ -590,6 +590,7 @@ void GENMOV()
     ply++; 
     m.MLPTRI = ply;                     // save new ply pointer
     m.MLLST  = ply;                     // last pointer for chain
+    // printf( "@@@ %d GENMOV()\n", (int)(m.MLPTRI-m.PLYIX) );
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -1736,18 +1737,17 @@ void SORTM()
     callback_zargon_bridge(CB_SORTM);
 
     // Alternative implementation of SORTM() using the standard C++
-    //  library to do the sorting. Note currently this doesn't work
-    //  for unknown reasons!
-    #if 0
+    //  library to do the sorting. It works, but it's actually a little
+    //  slower than the standard Sargon merge sort below.
+    #if 1
 
-    // Input to SORTM() is a list of adjacent MLs (moves) starting at
-    //  the current move MLPTRJ and ending with the last move MLLST. The
+    // Input to SORTM() is a list of adjacent MLs (moves) pointed to by
+    //  the ply pointer MLPTRI and ending with the last move MLLST. The
     //  moves are unscored, so start by looping through them and scoring
     //  them with EVAL() whilst also establishing conventional begin and
     //  end ptrs (by convention end points one beyond the last element)
-    ML *ml_begin = m.MLPTRJ;
+    ML *ml_begin = m.MLPTRI->link_ptr;
     ML *ml = ml_begin;
-    m.MLPTRI->link_ptr = ml_begin;    // The ply pointer points to the list of moves
     while( ml <= m.MLLST )
     {   
         m.MLPTRJ = ml;
@@ -1784,6 +1784,11 @@ void SORTM()
         else
             ml->link_ptr = ml_next;
     }
+
+    // Leave MLPTRJ pointing at the best move and MLLST pointing at the
+    //  worst move, just to match the Sargon SORTM() behaviour
+    m.MLPTRJ           = ml_begin;
+    m.MLLST            = ml_end-1;
 
     // The original Sargon implementation is by necessity more complicated,
     //  given the lack of a standard Z80 sort facility!
@@ -2008,6 +2013,7 @@ void FNDMOV()
     //  Initialize ply list pointers
     m.MLNXT  = m.MLIST;
     m.MLPTRI = m.PLYIX;
+    // printf( "@@@ %d FNDMOV()\n", (int)(m.MLPTRI-m.PLYIX) );
     
     // The original Sargon code actually sets it this way which is
     //  a tricky way of saving one element in the PLYIX array
@@ -2256,6 +2262,7 @@ void ASCEND()
 
     // Save new ply list pointer
     m.MLPTRI = ply;
+    // printf( "@@@ %d ASCEND()\n", (int)(m.MLPTRI-m.PLYIX) );
 
     // Restore board to previous ply
     UNMOVE();
@@ -2494,6 +2501,7 @@ bool VALMOV()
     ML *p = m.PLYIX;
     p--;
     m.MLPTRI = p;
+    // printf( "@@@ %d VALMOV()\n", (int)(m.MLPTRI-m.PLYIX) );
 
     // Next available list pointer
     ML *ml = m.MLIST;

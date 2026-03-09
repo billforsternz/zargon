@@ -34,6 +34,8 @@ bool sargon_undocumented_dev_test();
 bool sargon_timed_game_test( bool quiet, int comprehensive, bool dummy=false );
 extern void sargon_minimax_main();
 extern bool sargon_minimax_regression_test( bool quiet);
+struct TEST;
+static bool sargon_position_test( TEST *pt, int i=0, int nbr_tests_to_run=1, bool quiet=false );
 
 // Timing calibration game
 static std::string timing_calibration_game("e4 e5 Nf3 Nc6 Bb5 Qf6 Nc3 a6 Nd5 Qd6 Bc4 Nf6 O-O b5 Bb3 Nxe4 Re1 Nf6 d4 Nxd5 dxe5 Qg6 Nh4 Qe6 Bxd5 Qe7 Nf5 Qb4 c3 Qc5 Be3 g6 Bxc5 gxf5 e6 Bxc5 exf7+ Kf8 Qh5 Kg7 Qg5+ Kf8 Qh6#");
@@ -762,6 +764,39 @@ static const char *ply5_restricted_move_test_moves[] =
     NULL
 };
 
+static TEST ply4_restricted_move_test =
+{
+    "rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8",
+    4, "e5f7",
+    300, "Nxf7 Bg4 Nxd8 Bxd1"
+};
+
+static const char *ply4_restricted_move_test_moves[] =
+{
+    "e5f7 e1g1 h1f1",        // ply 1 moves allowed
+    "e8f7 f8g7 d8c7",
+    "d3g6 f7d8 f7h8 a2a3",
+    "f7g6 e8f7 f8g7 d8c7 b8c6",
+    NULL
+};
+
+
+
+static TEST knight_fork_restricted_move_test =
+{
+    "7k/8/5r2/2r5/8/6PP/3N2PK/8 w - - 0 1",
+    3, "d2e4",
+    -200, "Ne4 Rcc6 Nxf6"
+};
+
+static const char *knight_fork_restricted_move_test_moves[] =
+{
+    "d2b3 d2b1 d2e4",        // ply 1 moves allowed
+    "c5c8 f6f8 h8g8 c5c6",
+    "e4c5 e4f6 b3c5 b1c3",
+    NULL
+};
+
 
 
 bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int nbr_tests_to_run, bool quiet )
@@ -823,12 +858,22 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 // One off test
 bool sargon_undocumented_dev_test()
 {
+    bool ok;
     thc::ChessPosition cp;
-    cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R W K - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
     PV pv;
+    std::string terse;
+    ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
+    return ok;
+    cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");
+    sargon_run_engine( cp, 4, pv, false );
+    terse = sargon_export_best_move_temp();
+    printf( "Best move = %s\n", terse.c_str() );
+    ok = (terse == "e5f7");
+    return true;
+    cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R W K - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
     sargon_run_engine( cp, 5, pv, false );
     return true;
-    bool ok = sargon_guided_test( &ply2_restricted_move_test, ply2_restricted_move_test_moves, 1, 1, false );
+    ok = sargon_guided_test( &ply2_restricted_move_test, ply2_restricted_move_test_moves, 1, 1, false );
     return ok;
 
     #define WIKIPEDIA_ALPHA_BETA_EXAMPLE
@@ -840,7 +885,7 @@ bool sargon_undocumented_dev_test()
     sargon_pv_clear( cp );
     m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
-    std::string terse = sargon_export_best_move_temp();
+    terse = sargon_export_best_move_temp();
     printf( "Best move = %s\n", terse.c_str() );
     ok = (terse == "b1c3");
     return ok;
@@ -859,6 +904,56 @@ bool sargon_undocumented_dev_test()
     bool ok = (terse == "g8f8");
     return ok;
     #endif
+}
+
+static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool quiet )
+{
+    bool ok = true;
+    thc::ChessRules cr;
+    cr.Forsyth(pt->fen);
+    if( !quiet )
+    {
+        std::string intro = util::sprintf("\nTest position %d is", i+1 );
+        std::string s = cr.ToDebugStr( intro.c_str() );
+        printf( "%s\n", s.c_str() );
+        printf( "Expected PV=%s\n", pt->pv );
+    }
+    printf( "Test %d of %d: PLYMAX=%d:", i+1, nbr_tests_to_run, pt->plymax_required );
+    if( 0 == strcmp(pt->fen,"2rq1r1k/3npp1p/3p1n1Q/pp1P2N1/8/2P4P/1P4P1/R4R1K w - - 0 1") )
+        printf( " (sorry this particular test is very slow) :" );
+    PV pv;
+    sargon_run_engine( cr, pt->plymax_required, pv, false );
+    std::vector<thc::Move> &v = pv.variation;
+    std::string s_pv;
+    std::string spacer;
+    for( thc::Move mv: v )
+    {
+        s_pv += spacer;
+        spacer = " ";
+        s_pv += mv.NaturalOut(&cr);
+        cr.PlayMove(mv);
+    }
+    std::string sargon_move = sargon_export_best_move_temp();
+    bool pass = (s_pv==std::string(pt->pv));
+    if( !pass )
+        printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
+    else
+    {
+        pass = (sargon_move==std::string(pt->solution));
+        if( !pass )
+            printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
+        else if( *pt->pv  )
+        {
+            pass = (pv.value==pt->centipawns);
+            if( !pass )
+                printf( "FAIL\n Fail reason: Expected centipawns=%d, Calculated centipawns=%d\n", pt->centipawns, pv.value );
+        }
+    }
+    if( pass )
+        printf( " PASS\n" );
+    else
+        ok = false;
+    return ok;
 }
 
 bool sargon_position_tests( bool quiet, int comprehensive )
