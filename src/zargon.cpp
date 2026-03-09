@@ -1739,7 +1739,7 @@ void SORTM()
     // Alternative implementation of SORTM() using the standard C++
     //  library to do the sorting. It works, but it's actually a little
     //  slower than the standard Sargon merge sort below.
-    #if 1
+    #if 0
 
     // Input to SORTM() is a list of adjacent MLs (moves) pointed to by
     //  the ply pointer MLPTRI and ending with the last move MLLST. The

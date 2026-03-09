@@ -4,10 +4,19 @@
 
 #include <string>
 #include <vector>
+#include <stdarg.h>  // For va_start, etc.
 #include "util.h"
 #include "bridge.h"
 #include "sargon-interface.h"
 #include "zargon.h"
+
+#define LOG_TRACE 1         
+#define LOG_DETAILED 2      
+#ifdef _DEBUG
+static int log_level = LOG_TRACE;
+#else
+static int log_level;
+#endif
 
 // Callback function names
 const char *lookup[] =
@@ -56,11 +65,10 @@ function_in_out::function_in_out( CB cb )
     bool insist = false;
     if( cb == CB_PATH ) return;
     else if( cb == CB_SORTM )  insist=true;
-    else if( cb == CB_EVAL )   insist=true;
     else if( cb == CB_MOVE )   insist=true;
     else if( cb == CB_UNMOVE ) insist=true;
     else if( cb == CB_GENMOV ) { callback_genmov(); insist=true; }
-    else if( cb == CB_POINTS ) { early_exit = callback_points(); insist=true; }
+    else if( cb == CB_POINTS ) { early_exit = callback_points(); }
     else if( cb == CB_ADMOVE ) early_exit = callback_admove();
     log( cb, true, insist );
 }
@@ -69,7 +77,6 @@ function_in_out::~function_in_out()
     bool insist = false;
     if( saved_cb == CB_PATH ) return;
     else if( saved_cb == CB_SORTM )  insist=true;
-    else if( saved_cb == CB_EVAL  )  insist=true;
     else if( saved_cb == CB_MOVE )   insist=true;
     else if( saved_cb == CB_UNMOVE ) insist=true;
     else if( saved_cb==CB_ADMOVE && !early_exit ) callback_admove_exit();
@@ -85,7 +92,10 @@ void function_in_out::log( CB cb, bool in, bool insist )
     {
         current_status = diag;
         std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[cb], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
-        printf( "%s\n", msg.c_str() );
+        if( insist )
+            tracef( "%s\n", msg.c_str() );
+        else
+            logf( "%s\n", msg.c_str() );
         //extern void minimax_log( std::string msg );
         //minimax_log( msg );
     }
@@ -94,7 +104,7 @@ void function_in_out::log( CB cb, bool in, bool insist )
         thc::ChessPosition cp;
         sargon_export_position(cp);
         std::string s = cp.ToDebugStr(cb==CB_MOVE?"Position after MOVE()":"Position after UNMOVE()");
-        printf( "%s\n", s.c_str() );
+        tracef( "%s\n", s.c_str() );
     }
 }
 
@@ -517,4 +527,58 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
         s += "\n";
     }
     return s;
+}
+
+// tracef() - show progress of chess algorithm
+void tracef( const char *fmt, ... )
+{
+    if( log_level < LOG_TRACE )
+        return;
+    int size = (int)strlen(fmt) * 3;   // guess at size
+    std::string str;
+    va_list ap;
+    for(;;)
+    {
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.data(), size, fmt, ap);
+        va_end(ap);
+        if( n>-1 && n<size )    // are we done yet?
+        {
+            str.resize(n);
+            break;
+        }
+        if( n > size )  // Needed size returned
+            size = n + 1;   // For null char
+        else
+            size *= 4;      // Guess at a larger size
+    }
+    printf( "%s", str.c_str() );
+}
+
+// logf()   - show all the details
+void logf( const char *fmt, ... )
+{
+    if( log_level < LOG_DETAILED )
+        return;
+    int size = (int)strlen(fmt) * 3;   // guess at size
+    std::string str;
+    va_list ap;
+    for(;;)
+    {
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.data(), size, fmt, ap);
+        va_end(ap);
+        if( n>-1 && n<size )    // are we done yet?
+        {
+            str.resize(n);
+            break;
+        }
+        if( n > size )  // Needed size returned
+            size = n + 1;   // For null char
+        else
+            size *= 4;      // Guess at a larger size
+    }
+    printf( "%s", str.c_str() );
 }

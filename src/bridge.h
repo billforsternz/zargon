@@ -39,6 +39,12 @@ enum CB
     CB_ASCEND                   // Last of the Zargon function callbacks
 };
 
+// tracef() - show progress of chess algorithm
+void tracef( const char *fmt, ... );
+
+// logf()   - show all the details
+void logf( const char *fmt, ... );
+
 std::string show_score( uint8_t val );
 struct ML;
 std::string show_ply_chains( ML *parm1=0, const char *parm1_name=0,
