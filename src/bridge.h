@@ -82,4 +82,9 @@ public:
 void callback_restricted_moves_register( std::string guide );
 void callback_restricted_moves_clear();
 
+// Misc diagnostics
+void bridge_score_updated( uint8_t *p, uint8_t score );
+void bridge_score_descend();
+std::string score_descriptors[];
+
 #endif  // BRIDGE_H_INCLUDED

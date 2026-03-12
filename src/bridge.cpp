@@ -17,6 +17,7 @@ static int log_level = LOG_TRACE;
 #else
 static int log_level;
 #endif
+static thc::ChessPosition start_position;
 
 // Callback function names
 const char *lookup[] =
@@ -63,6 +64,8 @@ function_in_out::function_in_out( CB cb )
     early_exit = false;
     saved_cb = cb;
     bool insist = false;
+    if( cb == CB_FNDMOV )
+        sargon_export_position(start_position);
     if( cb == CB_PATH ) return;
     else if( cb == CB_SORTM )  insist=true;
     else if( cb == CB_MOVE )   insist=true;
@@ -340,6 +343,8 @@ std::string show_score( uint8_t val )
     return s;
 }
 
+std::string score_descriptors[40];
+
 std::string show_ply_chains( ML *parm1, const char *parm1_name,
                              ML *parm2, const char *parm2_name,
                              ML *parm3, const char *parm3_name  )
@@ -352,6 +357,25 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
     int run=0;
     s += util::sprintf( "VALM: %s\n", show_score(m.VALM).c_str() );
     s += "SCORE[]:";
+    #ifdef BRIDGE_CALLBACK_TRACE
+    s += "\n";
+    int last_score = 0;
+    for( int i=sizeof(score_descriptors)/sizeof(score_descriptors[0])-1; i>=0; i-- )
+    {
+        if( last_score==0 && score_descriptors[i] != "" && score_descriptors[i] != "0" )
+            last_score = i;
+        if( score_descriptors[i] == "" )
+            score_descriptors[i] = "0";
+    }
+    if( m.SCRIX-m.SCORE > last_score )
+        last_score = m.SCRIX-m.SCORE;
+    for( int i=0; i<=last_score; i++ )
+    {
+        if( i == m.SCRIX-m.SCORE )
+            s += "SCRIX->";
+        s += util::sprintf( "%d: (%u) %s\n", i, m.SCORE[i], score_descriptors[i].c_str() );
+    }
+    #else
     for( int i=0; i<sizeof(m.SCORE); i++ )
     {
         if( p == m.SCRIX )
@@ -380,6 +404,7 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
         }
         p++;
     }
+    #endif
     s += "\nPLYIX[]\n";
     int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
     int final_ply = 0;
@@ -406,79 +431,88 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
     {
         s += util::sprintf( "%d: ", i );
         ML *ml = &m.PLYIX[i];
-        if( m.MLPTRI == ml )
+        if( i%2 != 0 )
         {
-            s += "<-MLPTRI";
-            flag_mlptri = true;
+            ml = ml->link_ptr;
+            if( ml >= m.MLIST )
+                s += util::sprintf( " m.LIST[%d]", (int)(ml - m.MLIST) );
         }
-        if( m.MLPTRJ == ml )
+        else
         {
-            s += "<-MLPTRJ";
-            flag_mlptrj = true;
-        }
-        if( m.MLLST == ml )
-        {
-            s += "<-MLLST";
-            flag_mllst = true;
-        }
-        ml = ml->link_ptr;
-        for( int j=0; j<1000 && ml; j++ )
-        {
+            if( m.MLPTRI == ml )
+            {
+                s += "<-MLPTRI";
+                flag_mlptri = true;
+            }
             if( m.MLPTRJ == ml )
             {
-                s += " MLPTRJ";
+                s += "<-MLPTRJ";
                 flag_mlptrj = true;
-            }
-            if( m.MLNXT == ml )
-            {
-                s += " MLNXT";
-                flag_mlnxt = true;
             }
             if( m.MLLST == ml )
             {
-                s += " MLLST";
+                s += "<-MLLST";
                 flag_mllst = true;
             }
-            if( m.BESTM == ml )
-            {
-                s += " BESTM";
-                flag_bestm = true;
-            }
-            if( parm1 == ml )
-            {
-                s += space1_name;
-                flag_parm1 = true;
-            }
-            if( parm2 == ml )
-            {
-                s += space2_name;
-                flag_parm2 = true;
-            }
-            if( parm3 == ml )
-            {
-                s += space3_name;
-                flag_parm3 = true;
-            }
-            if( ml >= m.MLIST )
-            #ifdef BRIDGE_CALLBACK_TRACE
-                s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
-            #else
-                s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
-            #endif
-            else
-                s += " ???";
-            std::string t;
-            #ifdef BRIDGE_CALLBACK_TRACE
-            t += ml->creation_piece;
-            t += ml->terse;
-            #else
-            t = sargon_export_move( ml );
-            if( t == "" )
-                t = "----";
-            #endif
-            s += t;
-            s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
             ml = ml->link_ptr;
+            for( int j=0; j<1000 && ml; j++ )
+            {
+                if( m.MLPTRJ == ml )
+                {
+                    s += " MLPTRJ";
+                    flag_mlptrj = true;
+                }
+                if( m.MLNXT == ml )
+                {
+                    s += " MLNXT";
+                    flag_mlnxt = true;
+                }
+                if( m.MLLST == ml )
+                {
+                    s += " MLLST";
+                    flag_mllst = true;
+                }
+                if( m.BESTM == ml )
+                {
+                    s += " BESTM";
+                    flag_bestm = true;
+                }
+                if( parm1 == ml )
+                {
+                    s += space1_name;
+                    flag_parm1 = true;
+                }
+                if( parm2 == ml )
+                {
+                    s += space2_name;
+                    flag_parm2 = true;
+                }
+                if( parm3 == ml )
+                {
+                    s += space3_name;
+                    flag_parm3 = true;
+                }
+                if( ml >= m.MLIST )
+                #ifdef BRIDGE_CALLBACK_TRACE
+                    s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
+                #else
+                    s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+                #endif
+                else
+                    s += " ???";
+                std::string t;
+                #ifdef BRIDGE_CALLBACK_TRACE
+                t += ml->creation_piece;
+                t += ml->terse;
+                #else
+                t = sargon_export_move( ml );
+                if( t == "" )
+                    t = "----";
+                #endif
+                s += t;
+                s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
+                ml = ml->link_ptr;
+            }
         }
         s += "\n";
     }
@@ -582,3 +616,42 @@ void logf( const char *fmt, ... )
     }
     printf( "%s", str.c_str() );
 }
+
+#ifdef BRIDGE_CALLBACK_TRACE
+void bridge_score_updated( uint8_t *p, uint8_t score )
+{
+    thc::ChessRules cr(start_position);
+    thc::Move mv;
+    int idx=1;
+    std::string s;
+    ML *ml = m.PLYIX[2*idx].link_ptr;
+    while( idx <= m.NPLY )
+    {
+        while( idx==m.NPLY && ml && ml!= m.MLPTRJ )
+            ml = ml->link_ptr;
+        if( idx==m.NPLY && ml!= m.MLPTRJ )
+        {
+            printf( "### Internal error - couldn't find current move\n" );
+            ml = m.PLYIX[2*idx].link_ptr;
+        }
+        std::string terse = sargon_export_move(ml);
+        mv.TerseIn( &cr, terse.c_str() );
+        s += util::sprintf( " %s", mv.NaturalOut(&cr).c_str() );
+        cr.PlayMove(mv);
+        idx++;
+        ml = m.PLYIX[2*idx].link_ptr;
+    }
+    s += " ";
+    s += show_score(score);
+    idx = (int)(p-m.SCORE);
+    score_descriptors[idx] = s;
+    tracef( "### SCORE created %s\n", s.c_str() );
+}
+
+void bridge_score_descend()
+{
+    int idx = (int)(m.SCRIX-m.SCORE);
+    score_descriptors[idx+2] = score_descriptors[idx];
+    tracef( "### SCORE descends %s\n", score_descriptors[idx].c_str() );
+}
+#endif

@@ -1489,8 +1489,8 @@ bool callback_suppress_king_moves( uint8_t piece )
 void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 {
 #ifdef BRIDGE_CALLBACK_TRACE
-    tracef( "Alpha-beta cutoff if score<=two ply above: %s (score=%s, two ply above=%s)\n",
-        score<=*p?"YES":"NO", show_score(score).c_str(), show_score(*p).c_str() );
+    tracef( "### Alpha-beta cutoff if score<=two ply above: %s (score=%s, two ply above=%s)\n",
+        score<=*p?"YES":"NO", show_score(score).c_str(), score_descriptors[(int)(p-m.SCORE)].c_str() );
 #endif
     if( !callback_minimax_mods_active )
         return;
@@ -1544,8 +1544,8 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 void callback_no_best_move( uint8_t score, const uint8_t *p )
 {
 #ifdef BRIDGE_CALLBACK_TRACE
-    tracef( "This is the best move if score>ply score: %s (score=%s, ply score=%s)\n",
-        (score > *p)?"YES":"NO", show_score(score).c_str(), show_score(*p).c_str() );
+    tracef( "### This is the best move if score>ply score: %s (score=%s, ply score=%s)\n",
+        (score > *p)?"YES":"NO", show_score(score).c_str(), score_descriptors[(int)(p-m.SCORE)].c_str() );
 #endif
     if( !callback_minimax_mods_active )
         return;

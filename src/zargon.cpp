@@ -2112,6 +2112,9 @@ void FNDMOV()
                     m.MOVENO++;
 
                 // Update score pointer and score
+                #ifdef BRIDGE_CALLBACK_TRACE
+                bridge_score_descend();
+                #endif
                 uint8_t *p = m.SCRIX;
                 *(p+2) = *p;
                 m.SCRIX++;
@@ -2171,7 +2174,7 @@ void FNDMOV()
             m.MATEF |= 1;               // set mate flag
         }
 
-        // Alpa Beta cutoff ?
+        // Alpha Beta cutoff ?
         callback_alpha_beta_cutoff( score, p );
         if( score <= *p )  // compare to score 2 ply above
         {
@@ -2191,6 +2194,9 @@ void FNDMOV()
         if( !score_greater )
             continue;   // continue unless score is greater
         *p = score;     // save as new score 1 ply above
+        #ifdef BRIDGE_CALLBACK_TRACE
+        bridge_score_updated( p, score );
+        #endif
         callback_yes_best_move();
 
         // At top of tree ?
