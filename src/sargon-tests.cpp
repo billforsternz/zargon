@@ -829,6 +829,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     }
     thc::ChessRules cr;
     cr.Forsyth(pt->fen);
+    callback_start_position_register(cr);
     if( !quiet )
     {
         std::string intro = util::sprintf("\nTest position %d is", test_nbr );
@@ -880,15 +881,18 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
+    // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
+    ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
     return ok;
-    cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");
-    sargon_run_engine( cp, 4, pv, false );
+    //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
+    //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
+    sargon_run_engine( cp, 6, pv, false );
     terse = sargon_export_best_move_temp();
     printf( "Best move = %s\n", terse.c_str() );
     ok = (terse == "e5f7");
+    ok = (terse == "h6f7");
     return true;
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R W K - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
     sargon_run_engine( cp, 5, pv, false );
@@ -899,6 +903,7 @@ bool sargon_undocumented_dev_test()
     #define WIKIPEDIA_ALPHA_BETA_EXAMPLE
     #ifdef  WIKIPEDIA_ALPHA_BETA_EXAMPLE
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
+    callback_start_position_register( cp );
     //cp.Forsyth("2k1K3/8/8/8/8/1r1qN1Q1/b2Bn2R/2N2n2 w - - 0 1");            // A knight munching fest on plies one and two
     m.PLYMAX = 4;
     sargon_import_position( cp, true );
@@ -914,6 +919,7 @@ bool sargon_undocumented_dev_test()
     #ifdef DIFFICULT
     //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
     cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
+    callback_start_position_register( cp );
     m.PLYMAX = 5;
     sargon_import_position( cp, true );
     sargon_pv_clear( cp );
@@ -931,6 +937,7 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
     bool ok = true;
     thc::ChessRules cr;
     cr.Forsyth(pt->fen);
+    callback_start_position_register( cr );
     if( !quiet )
     {
         std::string intro = util::sprintf("\nTest position %d is", i+1 );
@@ -954,14 +961,14 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
         cr.PlayMove(mv);
     }
     std::string sargon_move = sargon_export_best_move_temp();
-    bool pass = (s_pv==std::string(pt->pv));
+    bool pass = (sargon_move==std::string(pt->solution));
     if( !pass )
-        printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
+        printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
     else
     {
-        pass = (sargon_move==std::string(pt->solution));
+        pass = (s_pv==std::string(pt->pv));
         if( !pass )
-            printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
+            printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
         else if( *pt->pv  )
         {
             pass = (pv.value==pt->centipawns);
@@ -970,7 +977,7 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
         }
     }
     if( pass )
-        printf( " PASS\n" );
+        printf( "PASS\nCalculated PV=%s, calculated move=%s, calculated centipawns=%d\n", s_pv.c_str(), sargon_move.c_str(), pv.value );
     else
         ok = false;
     return ok;

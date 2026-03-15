@@ -18,7 +18,7 @@ struct ML
     uint8_t     to;
     uint8_t     flags;
     uint8_t     val;
-    #ifdef BRIDGE_CALLBACK_TRACE
+    #ifdef DEBUG_MOVE_EXTENSIONS
     uint8_t     creation_ply;
     uint32_t    creation_count;
     char        creation_piece;

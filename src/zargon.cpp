@@ -2112,7 +2112,7 @@ void FNDMOV()
                     m.MOVENO++;
 
                 // Update score pointer and score
-                #ifdef BRIDGE_CALLBACK_TRACE
+                #ifdef DEBUG_TRACK_SCORE
                 bridge_score_descend();
                 #endif
                 uint8_t *p = m.SCRIX;
@@ -2149,7 +2149,9 @@ void FNDMOV()
             // Restore board position
             UNMOVE();
             score = m.VALM;             // get value of move
-            printf( "### TEMP leaf node score = %s\n", show_score(score).c_str() );
+            #ifdef DEBUG_SHOW_TREE
+            extraf( "Leaf node %s, score=%s\n", show_node().c_str(), show_score(score).c_str() );
+            #endif
             m.MATEF |= 1;               // set mate flag
         }
 
@@ -2195,7 +2197,7 @@ void FNDMOV()
         if( !score_greater )
             continue;   // continue unless score is greater
         *p = score;     // save as new score 1 ply above
-        #ifdef BRIDGE_CALLBACK_TRACE
+        #ifdef DEBUG_TRACK_SCORE
         bridge_score_updated( p, score );
         #endif
         callback_yes_best_move();
@@ -2240,6 +2242,7 @@ void FNDMOV()
 void ASCEND()
 {
     callback_zargon_bridge(CB_ASCEND);
+    extraf( "ASCEND()\n" );
 
     //  Toggle color
     TOGGLE(m.COLOR);

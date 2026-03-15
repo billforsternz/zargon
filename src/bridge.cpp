@@ -10,13 +10,7 @@
 #include "sargon-interface.h"
 #include "zargon.h"
 
-#define LOG_TRACE 1         
-#define LOG_DETAILED 2      
-#ifdef _DEBUG
-static int log_level = LOG_TRACE;
-#else
-static int log_level;
-#endif
+static int log_level = LOG_LEVEL;
 static thc::ChessPosition start_position;
 
 // Sargon data structure
@@ -68,8 +62,6 @@ function_in_out::function_in_out( CB cb )
     early_exit = false;
     saved_cb = cb;
     bool insist = false;
-    if( cb == CB_FNDMOV )
-        sargon_export_position(start_position);
     if( cb == CB_PATH ) return;
     else if( cb == CB_SORTM )  insist=true;
     else if( cb == CB_MOVE )   insist=true;
@@ -77,7 +69,9 @@ function_in_out::function_in_out( CB cb )
     else if( cb == CB_GENMOV ) { callback_genmov(); insist=true; }
     else if( cb == CB_POINTS ) { early_exit = callback_points(); }
     else if( cb == CB_ADMOVE ) early_exit = callback_admove();
+    #ifndef DEBUG_FUNC_TRACE_STUB
     log( cb, true, insist );
+    #endif
 }
 function_in_out::~function_in_out()
 {
@@ -88,25 +82,33 @@ function_in_out::~function_in_out()
     else if( saved_cb == CB_MOVE )   insist=true;
     else if( saved_cb == CB_UNMOVE ) insist=true;
     else if( saved_cb==CB_ADMOVE && !early_exit ) callback_admove_exit();
+    #ifndef DEBUG_FUNC_TRACE_STUB
     log( saved_cb, false, insist );
+    #endif
 }
 
 void function_in_out::log( CB cb, bool in, bool insist )
 {
     static uint64_t log_nbr;
+    #ifdef DEBUG_FUNC_TRACE_FULL
     std::string diag = show_ply_chains();
     bool diff = (diag != current_status);
     if( diff || insist )
     {
         current_status = diag;
+    #else
+    if( insist )
+    {
+        bool diff=true;
+        std::string diag = show_ply_chains();
+    #endif
         std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[cb], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
         if( insist )
             tracef( "%s\n", msg.c_str() );
         else
             logf( "%s\n", msg.c_str() );
-        //extern void minimax_log( std::string msg );
-        //minimax_log( msg );
     }
+    #ifdef DEBUG_SHOW_POSITIONS
     if( !in && (cb==CB_MOVE || cb==CB_UNMOVE) )
     {
         thc::ChessPosition cp;
@@ -114,6 +116,7 @@ void function_in_out::log( CB cb, bool in, bool insist )
         std::string s = cp.ToDebugStr(cb==CB_MOVE?"Position after MOVE()":"Position after UNMOVE()");
         tracef( "%s\n", s.c_str() );
     }
+    #endif
 }
 
 //
@@ -173,6 +176,12 @@ static int admove_count = 0;
 static int admove_limit = 2;
 
 static std::vector<std::string> restricted_moves;
+
+void callback_start_position_register( const thc::ChessPosition &cp )
+{
+    start_position = cp;
+}
+
 void callback_restricted_moves_register( std::string guide )
 {
     restricted_moves.push_back(guide);
@@ -269,59 +278,57 @@ bool callback_admove()
 {
     bool early_exit=true;
 
-    // Wikipedia guide
-    if( restricted_moves.size() == 0 )
+    // Wikipedia example (or other) guide
+    #ifdef DEBUG_GUIDED_MOVES
+    if( admove_count < admove_limit )
     {
-        if( admove_count < admove_limit )
-        {
-            admove_count++;
-            early_exit = false;
-        }
+        admove_count++;
+        early_exit = false;
     }
+    #endif
 
     // Restricted move guide, early exit UNLESS we find pending move in
     //  restricted move list
-    else
+    #ifdef DEBUG_RESTRICTED_MOVES
+    thc::Square from, to;
+    sargon_export_square(m.M1,from);
+    sargon_export_square(m.M2,to);
+    int ply = 1;
+    for( const std::string s: restricted_moves )
     {
-        thc::Square from, to;
-        sargon_export_square(m.M1,from);
-        sargon_export_square(m.M2,to);
-        int ply = 1;
-        for( const std::string s: restricted_moves )
+        if( ply == m.NPLY )
         {
-            if( ply == m.NPLY )
+            size_t len = s.length();
+            for( size_t offset=0; offset+4 <= len; offset+=5 )
             {
-                size_t len = s.length();
-                for( size_t offset=0; offset+4 <= len; offset+=5 )
+                std::string terse = s.substr(offset,4);
+                if( terse == "****" )
                 {
-                    std::string terse = s.substr(offset,4);
-                    if( terse == "****" )
-                    {
-                        early_exit = false;
-                        return early_exit;
-                    }
-                    thc::Square src = thc::make_square( terse[0], terse[1] );
-                    thc::Square dst = thc::make_square( terse[2], terse[3] );
-                    if( from==src && to==dst )
-                    {
-                        early_exit = false;
-                        return early_exit;
-                    }
+                    early_exit = false;
+                    return early_exit;
+                }
+                thc::Square src = thc::make_square( terse[0], terse[1] );
+                thc::Square dst = thc::make_square( terse[2], terse[3] );
+                if( from==src && to==dst )
+                {
+                    early_exit = false;
+                    return early_exit;
                 }
             }
-            ply++;
         }
+        ply++;
     }
+    #endif
     return early_exit;
 }
 
 void callback_admove_exit()
 {
+    #ifdef DEBUG_MOVE_EXTENSIONS
     static uint32_t creation_count;
     if( m.MLNXT )
     {
         ML *ml = m.MLNXT-1;
-        #ifdef BRIDGE_CALLBACK_TRACE
         ml->creation_count = ++creation_count;
         ml->creation_ply   = m.NPLY;
         uint8_t piece = m.BOARDA[ml->from];
@@ -331,8 +338,8 @@ void callback_admove_exit()
         std::string terse = sargon_export_move(ml);
         memcpy( ml->terse, terse.c_str(), 4 );
         ml->terse[4] = '\0';
-        #endif
     }
+    #endif
 }
 
 std::string show_score( uint8_t val )
@@ -364,7 +371,6 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
     int run=0;
     s += util::sprintf( "VALM: %s\n", show_score(m.VALM).c_str() );
     s += "SCORE[]:";
-    #ifdef BRIDGE_CALLBACK_TRACE
     s += "\n";
     int last_score = 0;
     for( int i=sizeof(score_descriptors)/sizeof(score_descriptors[0])-1; i>=0; i-- )
@@ -382,36 +388,6 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
             s += "SCRIX->";
         s += util::sprintf( "%d: (%u) %s\n", i, m.SCORE[i], score_descriptors[i].c_str() );
     }
-    #else
-    for( int i=0; i<sizeof(m.SCORE); i++ )
-    {
-        if( p == m.SCRIX )
-        {
-            while( run > 0 )
-            {
-                run--;
-                s += " 0";
-            }
-            s += " SCRIX->";
-            s += util::sprintf( " %s", show_score(*p).c_str() );
-        }
-        else
-        {
-            if( *p == 0 )
-                run++;
-            else
-            {
-                while( run > 0 )
-                {
-                    run--;
-                    s += " 0";
-                }
-                s += util::sprintf( " %s", show_score(*p).c_str() );
-            }
-        }
-        p++;
-    }
-    #endif
     s += "\nPLYIX[]\n";
     int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
     int final_ply = 0;
@@ -500,7 +476,7 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
                     flag_parm3 = true;
                 }
                 if( ml >= m.MLIST )
-                #ifdef BRIDGE_CALLBACK_TRACE
+                #ifdef DEBUG_MOVE_EXTENSIONS
                     s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
                 #else
                     s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
@@ -508,7 +484,7 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
                 else
                     s += " ???";
                 std::string t;
-                #ifdef BRIDGE_CALLBACK_TRACE
+                #ifdef DEBUG_MOVE_EXTENSIONS
                 t += ml->creation_piece;
                 t += ml->terse;
                 #else
@@ -597,6 +573,43 @@ void tracef( const char *fmt, ... )
     printf( "%s", str.c_str() );
 }
 
+// extraf() - show progress of chess algorithm
+void extraf( const char *fmt, ... )
+{
+    if( log_level < LOG_EXTRA )
+        return;
+    int size = (int)strlen(fmt) * 3;   // guess at size
+    std::string str;
+    va_list ap;
+    for(;;)
+    {
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.data(), size, fmt, ap);
+        va_end(ap);
+        if( n>-1 && n<size )    // are we done yet?
+        {
+            str.resize(n);
+            break;
+        }
+        if( n > size )  // Needed size returned
+            size = n + 1;   // For null char
+        else
+            size *= 4;      // Guess at a larger size
+    }
+    size_t len = str.length();
+    static unsigned long extra_count;
+    if( len>0 && str[len-1] == '\n' )
+    {
+        str = str.substr(0,len-1);
+        printf( "%s (%d:%lu)\n", str.c_str(), m.NPLY, ++extra_count );
+    }
+    else
+    {
+        printf( "%s (%d:%lu)", str.c_str(), m.NPLY, ++extra_count );
+    }
+}
+
 // logf()   - show all the details
 void logf( const char *fmt, ... )
 {
@@ -624,13 +637,31 @@ void logf( const char *fmt, ... )
     printf( "%s", str.c_str() );
 }
 
-#ifdef BRIDGE_CALLBACK_TRACE
+#ifdef DEBUG_TRACK_SCORE
 void bridge_score_updated( uint8_t *p, uint8_t score )
 {
+    std::string s = show_node();
+    s += " ";
+    s += show_score(score);
+    int idx = (int)(p-m.SCORE);
+    score_descriptors[idx] = s;
+    extraf( "SCORE created %s\n", s.c_str() );
+}
+
+void bridge_score_descend()
+{
+    int idx = (int)(m.SCRIX-m.SCORE);
+    score_descriptors[idx+2] = score_descriptors[idx];
+    extraf( "SCORE descends %d->%d %s\n", idx, idx+2, score_descriptors[idx].c_str() );
+}
+#endif
+
+std::string show_node()
+{
+    std::string s;
     thc::ChessRules cr(start_position);
     thc::Move mv;
     int idx=1;
-    std::string s;
     ML *ml = m.PLYIX[2*idx].link_ptr;
     while( idx <= m.NPLY )
     {
@@ -643,22 +674,13 @@ void bridge_score_updated( uint8_t *p, uint8_t score )
         }
         std::string terse = sargon_export_move(ml);
         mv.TerseIn( &cr, terse.c_str() );
-        s += util::sprintf( " %s", mv.NaturalOut(&cr).c_str() );
+        if( idx > 1 )
+            s += ' ';
+        s += util::sprintf( "%s", mv.NaturalOut(&cr).c_str() );
         cr.PlayMove(mv);
         idx++;
         ml = m.PLYIX[2*idx].link_ptr;
     }
-    s += " ";
-    s += show_score(score);
-    idx = (int)(p-m.SCORE);
-    score_descriptors[idx] = s;
-    tracef( "### SCORE created %s\n", s.c_str() );
+    return s;
 }
 
-void bridge_score_descend()
-{
-    int idx = (int)(m.SCRIX-m.SCORE);
-    score_descriptors[idx+2] = score_descriptors[idx];
-    tracef( "### SCORE descends %s\n", score_descriptors[idx].c_str() );
-}
-#endif

@@ -4,7 +4,19 @@
 #ifndef BRIDGE_H_INCLUDED
 #define BRIDGE_H_INCLUDED
 #include <string>
+#include "thc.h"
 
+// Allow different types of tracing in DEBUG and RELEASE
+// #define DEBUG_FUNC_TRACE
+// #define DEBUG_FUNC_TRACE_STUB
+// #define DEBUG_FUNC_TRACE_FULL
+// #define DEBUG_RESTRICTED_MOVES
+// #define DEBUG_GUIDED_MOVES
+// #define DEBUG_MOVE_EXTENSIONS
+// #define DEBUG_SHOW_POSITIONS
+#define DEBUG_TRACK_SCORE
+#define DEBUG_SHOW_TREE
+                                            
 // Callback enumeration
 enum CB
 {
@@ -39,12 +51,18 @@ enum CB
     CB_ASCEND                   // Last of the Zargon function callbacks
 };
 
-// tracef() - show progress of chess algorithm
+// tracef(), extraf() - show progress of chess algorithm
+#define LOG_EXTRA 1         
+#define LOG_TRACE 2         
+#define LOG_DETAILED 3      
+#define LOG_LEVEL LOG_EXTRA
 void tracef( const char *fmt, ... );
+void extraf( const char *fmt, ... );
 
 // logf()   - show all the details
 void logf( const char *fmt, ... );
 
+std::string show_node();
 std::string show_score( uint8_t val );
 struct ML;
 std::string show_ply_chains( ML *parm1=0, const char *parm1_name=0,
@@ -67,10 +85,7 @@ public:
 //   2. Building tree building models to understand Sargon's
 //      tree construction - the heart of the program
 
-#ifdef _DEBUG
-#define BRIDGE_CALLBACK_TRACE
-#endif
-#ifdef  BRIDGE_CALLBACK_TRACE
+#ifdef DEBUG_FUNC_TRACE
 #define callback_zargon_bridge(cb)      function_in_out temp_fio(cb)
 #define callback_zargon_bridge_void(cb) function_in_out temp_fio(cb);  if(temp_fio.early_exit) return
 #else
@@ -83,6 +98,7 @@ void callback_restricted_moves_register( std::string guide );
 void callback_restricted_moves_clear();
 
 // Misc diagnostics
+void callback_start_position_register( const thc::ChessPosition &cp );
 void bridge_score_updated( uint8_t *p, uint8_t score );
 void bridge_score_descend();
 std::string score_descriptors[];
