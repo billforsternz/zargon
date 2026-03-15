@@ -2149,6 +2149,7 @@ void FNDMOV()
             // Restore board position
             UNMOVE();
             score = m.VALM;             // get value of move
+            printf( "### TEMP leaf node score = %s\n", show_score(score).c_str() );
             m.MATEF |= 1;               // set mate flag
         }
 

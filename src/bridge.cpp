@@ -19,6 +19,10 @@ static int log_level;
 #endif
 static thc::ChessPosition start_position;
 
+// Sargon data structure
+static emulated_memory &m = gbl_emulated_memory;
+
+
 // Callback function names
 const char *lookup[] =
 {
@@ -79,6 +83,7 @@ function_in_out::~function_in_out()
 {
     bool insist = false;
     if( saved_cb == CB_PATH ) return;
+    else if( saved_cb == CB_EVAL && m.NPLY>=m.PLYMAX )  insist=true;
     else if( saved_cb == CB_SORTM )  insist=true;
     else if( saved_cb == CB_MOVE )   insist=true;
     else if( saved_cb == CB_UNMOVE ) insist=true;
@@ -110,9 +115,6 @@ void function_in_out::log( CB cb, bool in, bool insist )
         tracef( "%s\n", s.c_str() );
     }
 }
-
-// Sargon data structure
-static emulated_memory &m = gbl_emulated_memory;
 
 //
 // Alpha-Beta pruning example
@@ -293,6 +295,11 @@ bool callback_admove()
                 for( size_t offset=0; offset+4 <= len; offset+=5 )
                 {
                     std::string terse = s.substr(offset,4);
+                    if( terse == "****" )
+                    {
+                        early_exit = false;
+                        return early_exit;
+                    }
                     thc::Square src = thc::make_square( terse[0], terse[1] );
                     thc::Square dst = thc::make_square( terse[2], terse[3] );
                     if( from==src && to==dst )
@@ -368,7 +375,7 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
             score_descriptors[i] = "0";
     }
     if( m.SCRIX-m.SCORE > last_score )
-        last_score = m.SCRIX-m.SCORE;
+        last_score = (int)(m.SCRIX-m.SCORE);
     for( int i=0; i<=last_score; i++ )
     {
         if( i == m.SCRIX-m.SCORE )

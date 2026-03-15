@@ -764,18 +764,19 @@ static const char *ply5_restricted_move_test_moves[] =
     NULL
 };
 
+// Note, don't define castling rights in restricted move tests, it causes havoc
 static TEST ply4_restricted_move_test =
 {
-    "rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8",
+    "rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w - - 0 8",
     4, "e5f7",
     300, "Nxf7 Bg4 Nxd8 Bxd1"
 };
 
 static const char *ply4_restricted_move_test_moves[] =
 {
-    "e5f7 e1g1 h1f1",        // ply 1 moves allowed
+    "e5f7 c1f4 d1e2",        // ply 1 moves allowed
     "e8f7 f8g7 d8c7",
-    "d3g6 f7d8 f7h8 a2a3",
+    "d3g6 f7d8 f7h8 d1e2 a2a3",
     "f7g6 e8f7 f8g7 d8c7 b8c6",
     NULL
 };
@@ -797,7 +798,24 @@ static const char *knight_fork_restricted_move_test_moves[] =
     NULL
 };
 
+static TEST philidor_restricted_move_test =
+{
+    // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE)
+    "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
+        50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#"
+};
 
+static const char *philidor_restricted_move_test_moves[] =
+{
+    "f7h6 f7d6", 
+    "g8h8 g8f8 g8f7",
+    "b3a2 a2b3 b3g8 b3f7 d6e8",
+    "****",
+    "b3a2 a2b3 f7b3 b3g8 b3f7 h6f7 h6g4 d6e4",
+    "****",
+    "b3a2 a2b3 f7b3 b3g8 b3f7 a2g8 a2f7 ",
+    NULL
+};
 
 bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int nbr_tests_to_run, bool quiet )
 {
@@ -862,7 +880,9 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
+    ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
+    // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
+    // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
     return ok;
     cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");
     sargon_run_engine( cp, 4, pv, false );
