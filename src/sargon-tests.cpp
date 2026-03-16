@@ -729,6 +729,15 @@ static TEST tests[]=
 //  New Zargon tests
 //
 
+static TEST mate_in_2_3_or_4 =
+{
+    "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
+    5,
+    "b3g8",
+    400,
+    "Qg8+ Rxg8 Nf7#"
+};
+
 // Knight can capture P,R,Q or B (original order)
 //                    Q,R,B,P    (after SORTM())
 static TEST ply2_restricted_move_test =
@@ -884,7 +893,8 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
-    ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
+    // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
+    ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
@@ -940,14 +950,12 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
     callback_start_position_register( cr );
     if( !quiet )
     {
-        std::string intro = util::sprintf("\nTest position %d is", i+1 );
+        std::string intro = util::sprintf("\nTest position %d is", i );
         std::string s = cr.ToDebugStr( intro.c_str() );
         printf( "%s\n", s.c_str() );
         printf( "Expected PV=%s\n", pt->pv );
     }
-    printf( "Test %d of %d: PLYMAX=%d:", i+1, nbr_tests_to_run, pt->plymax_required );
-    if( 0 == strcmp(pt->fen,"2rq1r1k/3npp1p/3p1n1Q/pp1P2N1/8/2P4P/1P4P1/R4R1K w - - 0 1") )
-        printf( " (sorry this particular test is very slow) :" );
+    printf( "Test %d of %d: PLYMAX=%d:", i, nbr_tests_to_run, pt->plymax_required );
     PV pv;
     sargon_run_engine( cr, pt->plymax_required, pv, false );
     std::vector<thc::Move> &v = pv.variation;
