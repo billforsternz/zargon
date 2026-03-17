@@ -91,7 +91,8 @@ void function_in_out::log( CB cb, bool in, bool insist )
 {
     static uint64_t log_nbr;
     #ifdef DEBUG_FUNC_TRACE_FULL
-    std::string diag = show_ply_chains();
+    std::string diag = show_scores();
+    diag += show_ply_chains();
     bool diff = (diag != current_status);
     if( diff || insist )
     {
@@ -100,7 +101,8 @@ void function_in_out::log( CB cb, bool in, bool insist )
     if( insist )
     {
         bool diff=true;
-        std::string diag = show_ply_chains();
+        std::string diag = show_scores();
+        diag += show_ply_chains();
     #endif
         std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[cb], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
         if( insist )
@@ -359,13 +361,8 @@ std::string show_score( uint8_t val )
 
 std::string score_descriptors[40];
 
-std::string show_ply_chains( ML *parm1, const char *parm1_name,
-                             ML *parm2, const char *parm2_name,
-                             ML *parm3, const char *parm3_name  )
+std::string show_scores()
 {
-    std::string space1_name = parm1_name ? " "+std::string(parm1_name) : "?$?";
-    std::string space2_name = parm2_name ? " "+std::string(parm2_name) : "?$?";
-    std::string space3_name = parm3_name ? " "+std::string(parm3_name) : "?$?";
     std::string s;
     uint8_t *p = m.SCORE;
     int run=0;
@@ -388,7 +385,18 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
             s += "SCRIX->";
         s += util::sprintf( "%d: (%u) %s\n", i, m.SCORE[i], score_descriptors[i].c_str() );
     }
-    s += "\nPLYIX[]\n";
+    return s;
+}
+
+std::string show_ply_chains( ML *parm1, const char *parm1_name,
+                             ML *parm2, const char *parm2_name,
+                             ML *parm3, const char *parm3_name  )
+{
+    std::string space1_name = parm1_name ? " "+std::string(parm1_name) : "?$?";
+    std::string space2_name = parm2_name ? " "+std::string(parm2_name) : "?$?";
+    std::string space3_name = parm3_name ? " "+std::string(parm3_name) : "?$?";
+    std::string s;
+    s += "PLYIX[]\n";
     int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
     int final_ply = 0;
     for( int i = sizeof(m.PLYIX)/sizeof(m.PLYIX[0]) - 1; i>=0; i-- )
@@ -573,11 +581,47 @@ void tracef( const char *fmt, ... )
     printf( "%s", str.c_str() );
 }
 
+static bool restart_test;
+static unsigned long extra_count;
+bool callback_restart_test()
+{
+    bool yes_restart = restart_test;
+    restart_test = false;
+    if( yes_restart )
+    {
+        extra_count = 0;
+    }
+    return yes_restart;
+}
+
 // extraf() - show progress of chess algorithm
 void extraf( const char *fmt, ... )
 {
     if( log_level < LOG_EXTRA )
         return;
+    static bool suppress_output;
+    static unsigned long debug_count;
+    static bool free_run;
+    if( suppress_output )
+    {
+        if( extra_count==debug_count )
+        {
+            free_run = false;
+            suppress_output = false;
+            printf("\n");
+        }
+        else
+        {
+            extra_count++;
+            return;
+        }
+    }
+    std::string s = show_node();
+    int col = printf("%s",s.c_str() );
+    while( col < 28 )
+        col += printf(" ");
+    for( int i=0; i<m.NPLY; i++ )
+        printf( " " );
     int size = (int)strlen(fmt) * 3;   // guess at size
     std::string str;
     va_list ap;
@@ -598,7 +642,6 @@ void extraf( const char *fmt, ... )
             size *= 4;      // Guess at a larger size
     }
     size_t len = str.length();
-    static unsigned long extra_count;
     if( len>0 && str[len-1] == '\n' )
     {
         str = str.substr(0,len-1);
@@ -608,6 +651,92 @@ void extraf( const char *fmt, ... )
     {
         printf( "%s (%d:%lu)", str.c_str(), m.NPLY, ++extra_count );
     }
+    static uint8_t target_ply;
+    #ifndef DEBUG_SINGLE_STEP
+    #ifdef _DEBUG
+    if( extra_count == debug_count )
+       __debugbreak();
+    #endif
+    #else
+    if( free_run )
+    {
+        if( extra_count==debug_count )
+            free_run = false;
+        else if( m.NPLY==target_ply && target_ply!=0 )
+        {
+            target_ply = 0;
+            free_run = false;
+        }
+    }
+    if( !free_run )
+    {
+        printf( "q,d,r,[+/-]n,pn,v,s (quit,debug,run,goto n,goto ply,view,scores)>" );
+        char buf[80];
+        fgets( buf, sizeof(buf)-2, stdin );
+        while( buf[0]=='v' || buf[0]=='V' )
+        {
+            std::string s = show_ply_chains();
+            printf( "%s", s.c_str() );
+            fgets( buf, sizeof(buf)-2, stdin );
+        }
+        while( buf[0]=='s' || buf[0]=='S' )
+        {
+            std::string s = show_scores();
+            printf( "%s", s.c_str() );
+            fgets( buf, sizeof(buf)-2, stdin );
+        }
+        if( buf[0]=='q' || buf[0]=='Q' )
+        {
+            exit(0);
+            return;
+        }
+        if( buf[0]=='r' || buf[0]=='R' )
+        {
+            free_run = true;
+            return;
+        }
+        if( buf[0]=='d' || buf[0]=='D' )
+        {
+           #ifdef _DEBUG
+           __debugbreak();
+           #else
+           printf("Sorry, step to debugger in debug builds only\n");
+           #endif
+           return;
+        }
+        const char *txt = buf;
+        if( buf[0]=='+' || buf[0]=='-' || (buf[0]=='p'||buf[0]=='P') )
+            txt++;
+        std::string nbr(txt);
+        size_t len = nbr.length();
+        if( len>0 && nbr[len-1]=='\n' )
+            nbr = nbr.substr(0,len-1);
+        unsigned long n = (unsigned long)atoll(nbr.c_str());
+        if( n > 0 )
+        {
+            free_run = true;
+            if( buf[0]=='p' || buf[0]=='P' )
+                target_ply = (uint8_t)n;
+            else
+            {
+                if( n > 0 )
+                    n--; //best by test
+                if( buf[0] == '+' )
+                    debug_count = extra_count+n;
+                else if( buf[0] == '-' )
+                    debug_count = extra_count-n;
+                else
+                    debug_count = n;
+                if( debug_count < extra_count )
+                {
+                    restart_test = true;
+                    suppress_output = true;
+                    printf( "Test continues and restarts before logging recommences...\n" );
+                }
+            }
+        }
+    }
+    #endif
 }
 
 // logf()   - show all the details

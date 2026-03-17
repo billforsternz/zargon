@@ -16,7 +16,7 @@
 // #define DEBUG_SHOW_POSITIONS
 #define DEBUG_TRACK_SCORE
 #define DEBUG_SHOW_TREE
-                                            
+#define DEBUG_SINGLE_STEP                                            
 // Callback enumeration
 enum CB
 {
@@ -63,6 +63,7 @@ void extraf( const char *fmt, ... );
 void logf( const char *fmt, ... );
 
 std::string show_node();
+std::string show_scores();
 std::string show_score( uint8_t val );
 struct ML;
 std::string show_ply_chains( ML *parm1=0, const char *parm1_name=0,
@@ -101,6 +102,8 @@ void callback_restricted_moves_clear();
 void callback_start_position_register( const thc::ChessPosition &cp );
 void bridge_score_updated( uint8_t *p, uint8_t score );
 void bridge_score_descend();
+bool callback_restart_test();
+
 std::string score_descriptors[];
 
 #endif  // BRIDGE_H_INCLUDED

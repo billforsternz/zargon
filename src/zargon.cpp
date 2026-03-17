@@ -2039,7 +2039,7 @@ void FNDMOV()
     m.MV0 = m.MTRL;
 
     // Generate move list for ply 1, from start position
-    m.MATEF = 0;                // Initialize mate flag
+    m.MATEF = false;            // Initialize mate flag
     GENMOV();                   // Generate list of moves
     callback_after_genmov();
     if( m.PLYMAX > m.NPLY )
@@ -2121,7 +2121,7 @@ void FNDMOV()
 
                 // Generate moves at next ply
                 m.NPLY++;                       // increment ply count
-                m.MATEF = 0;                    // initialize mate flag
+                m.MATEF = false;                // initialize mate flag
                 GENMOV();                       // generate list of moves
                 callback_after_genmov();
                 if( m.PLYMAX > m.NPLY )
@@ -2152,11 +2152,11 @@ void FNDMOV()
             #ifdef DEBUG_SHOW_TREE
             extraf( "Leaf node %s, score=%s\n", show_node().c_str(), show_score(score).c_str() );
             #endif
-            m.MATEF |= 1;               // set mate flag
+            m.MATEF = true;             // set mate flag
         }
 
         // Else if not mate or stalemate after going one ply deeper
-        else if( m.MATEF != 0 )
+        else if( m.MATEF )
         {
             if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
@@ -2174,7 +2174,7 @@ void FNDMOV()
                 score = 0xff;   // if in check, then checkmate score
                 m.PMATE= m.MOVENO;
             }
-            m.MATEF |= 1;               // set mate flag
+            m.MATEF = true;     // set mate flag
         }
 
         // Alpha Beta cutoff ?

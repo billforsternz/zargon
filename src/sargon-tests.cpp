@@ -176,9 +176,14 @@ int main_tests( int argc, const char *argv[] )
                         }
                         else if( c == 'u' )
                         {
-                            passed = sargon_undocumented_dev_test();
-                            if( !passed )
-                                ok = false;
+                            for(;;)
+                            {
+                                passed = sargon_undocumented_dev_test();
+                                if( !passed )
+                                    ok = false;
+                                if( !callback_restart_test() )
+                                    break;
+                            }
                         }
                     }
                     break;
@@ -729,6 +734,18 @@ static TEST tests[]=
 //  New Zargon tests
 //
 
+// With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
+static TEST mate_in_1_or_2 =
+{
+    "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
+    2,
+    "h6f7",
+    400,
+    "Nf7#"
+};
+
+
+// With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
 static TEST mate_in_2_3_or_4 =
 {
     "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
@@ -894,7 +911,8 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
-    ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
+    // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
+    ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
