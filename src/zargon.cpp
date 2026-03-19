@@ -1448,8 +1448,9 @@ void POINTS()
     // Subtract material at ply 0
     ptsw -= m.MV0;
 
-    // Limit to +/- 30
-    int8_t points = LIMIT(30,ptsw);
+    // Limit to +/- 30 (Sargon refinement => 28 see asterisked comments
+    // below about higher weighting for mates in fewer moves
+    int8_t points = LIMIT(28,ptsw);
 
     // Board control points minus board control at ply zero
     int8_t bcp = m.BRDC - m.BC0;
@@ -2172,6 +2173,24 @@ void FNDMOV()
             if( m.CKFLG != 0 )  // test check flag
             {
                 score = 0xff;   // if in check, then checkmate score
+
+                // Sargon refinement* - weight mates higher if they take
+                //  less moves. Mate in 1 is 0xff remains the highest
+                //  score. Reduce this value by up to 8. The 8 score
+                //  slots opened up are obtained by changing the basic
+                //  score formula
+                //  from
+                //    4*LIMIT(30,material) + LIMIT(6,board control)
+                //    (maxes out at 126)
+                //  to
+                //    4*LIMIT(28,material) + LIMIT(6,board control)
+                //    (maxes out at 118)
+                int8_t reduce = (int8_t)(m.NPLY-2);
+                if( reduce < 0 )
+                    reduce = 0;
+                if( reduce > 8 )
+                    reduce = 8;
+                score -= reduce;
                 m.PMATE= m.MOVENO;
             }
             m.MATEF = true;     // set mate flag
