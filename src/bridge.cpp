@@ -595,13 +595,18 @@ bool callback_restart_test()
 }
 
 // extraf() - show progress of chess algorithm
+#ifdef DEBUG_KEEP_EXTRAF
 void extraf( const char *fmt, ... )
 {
     if( log_level < LOG_EXTRA )
         return;
     static bool suppress_output;
     static unsigned long debug_count;
-    static bool free_run;
+    #ifdef DEBUG_SINGLE_STEP
+    static bool free_run=false;
+    #else
+    static bool free_run=true;
+    #endif
     if( suppress_output )
     {
         if( extra_count==debug_count )
@@ -738,6 +743,7 @@ void extraf( const char *fmt, ... )
     }
     #endif
 }
+#endif
 
 // logf()   - show all the details
 void logf( const char *fmt, ... )

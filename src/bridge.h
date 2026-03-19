@@ -14,9 +14,11 @@
 // #define DEBUG_GUIDED_MOVES
 // #define DEBUG_MOVE_EXTENSIONS
 // #define DEBUG_SHOW_POSITIONS
-#define DEBUG_TRACK_SCORE
-#define DEBUG_SHOW_TREE
-#define DEBUG_SINGLE_STEP                                            
+// #define DEBUG_SINGLE_STEP
+// #define DEBUG_TRACK_SCORE
+// #define DEBUG_SHOW_TREE
+// #define DEBUG_KEEP_EXTRAF
+
 // Callback enumeration
 enum CB
 {
@@ -56,8 +58,12 @@ enum CB
 #define LOG_TRACE 2         
 #define LOG_DETAILED 3      
 #define LOG_LEVEL LOG_EXTRA
-void tracef( const char *fmt, ... );
+#ifdef DEBUG_KEEP_EXTRAF
 void extraf( const char *fmt, ... );
+#else
+#define extraf(format, ...) (void)0
+#endif
+void tracef( const char *fmt, ... );
 
 // logf()   - show all the details
 void logf( const char *fmt, ... );

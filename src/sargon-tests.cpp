@@ -530,9 +530,9 @@ static TEST tests[]=
 //    { "r2qkb1r/ppp2ppp/4bn2/3p4/3Q4/2N2N2/PPP1PPPP/2KR1B1R w kq - 3 8", 3, "e2e3",
 //        75, "e3 Bd6 Be2" },
 
-    // // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE)
-    // { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
-    //     50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },
+    // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE)
+    { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 7, "f7h6",
+        50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },
     //                
     // Position after 1.Nf3, Black to play book move
     { "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1", 5, "d7d5",
@@ -735,10 +735,11 @@ static TEST tests[]=
 //
 
 // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
+//  (not any more after weighting mates in fewer moves higher)
 static TEST mate_in_1_or_2 =
 {
     "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
-    2,
+    3,
     "h6f7",
     400,
     "Nf7#"
@@ -973,7 +974,7 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
         printf( "%s\n", s.c_str() );
         printf( "Expected PV=%s\n", pt->pv );
     }
-    printf( "Test %d of %d: PLYMAX=%d:", i, nbr_tests_to_run, pt->plymax_required );
+    printf( "Test %d of %d: PLYMAX=%d\n", i, nbr_tests_to_run, pt->plymax_required );
     PV pv;
     sargon_run_engine( cr, pt->plymax_required, pv, false );
     std::vector<thc::Move> &v = pv.variation;
