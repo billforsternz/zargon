@@ -745,6 +745,49 @@ void extraf( const char *fmt, ... )
 }
 #endif
 
+#ifdef DEBUG_KEEP_EXTRAF
+void superf( const char *fmt, ... )
+{
+    if( log_level < LOG_SUPER )
+        return;
+    std::string s = show_node();
+    int col = printf("%s",s.c_str() );
+    while( col < 28 )
+        col += printf(" ");
+    for( int i=0; i<m.NPLY; i++ )
+        printf( " " );
+    int size = (int)strlen(fmt) * 3;   // guess at size
+    std::string str;
+    va_list ap;
+    for(;;)
+    {
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.data(), size, fmt, ap);
+        va_end(ap);
+        if( n>-1 && n<size )    // are we done yet?
+        {
+            str.resize(n);
+            break;
+        }
+        if( n > size )  // Needed size returned
+            size = n + 1;   // For null char
+        else
+            size *= 4;      // Guess at a larger size
+    }
+    size_t len = str.length();
+    if( len>0 && str[len-1] == '\n' )
+    {
+        str = str.substr(0,len-1);
+        printf( "%s (%d:%lu)\n", str.c_str(), m.NPLY, ++extra_count );
+    }
+    else
+    {
+        printf( "%s (%d:%lu)", str.c_str(), m.NPLY, ++extra_count );
+    }
+}
+#endif
+
 // logf()   - show all the details
 void logf( const char *fmt, ... )
 {

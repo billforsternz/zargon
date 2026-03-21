@@ -277,6 +277,8 @@ static void calculate_pv( PV &pv )
             }
         }
     }
+    thc::TERMINAL score_terminal;
+    cr.Evaluate( score_terminal );
 
     // Note that nodes_pv might have been resized by in_check test above, so
     //  recalculate nbr (fixing BUG_EXTRA_PLY_RESIZE)
@@ -291,12 +293,38 @@ static void calculate_pv( PV &pv )
     else if( limit_brdc < -6 )
         limit_brdc = -6;
     int limit_material = nptr->adjusted_material;
-    if( limit_material > 30 )
-        limit_material = 30;
-    else if( limit_material < -30 )
-        limit_material = -30;
+    if( limit_material > 29 )
+        limit_material = 29;
+    else if( limit_material < -29 )
+        limit_material = -29;
     double centipawns = (4*limit_material + limit_brdc) * 100.0/8.0;
     pv.value = static_cast<int>(centipawns);
+    if( score_terminal != thc::NOT_TERMINAL )
+    {
+        switch( score_terminal )
+        {
+            case thc::TERMINAL_WCHECKMATE:
+            case thc::TERMINAL_BCHECKMATE:
+            {
+                int nbr = (int)pv.variation.size();
+                int value = 6000;                           // mate in 1 is worth 60 pawns (say)
+                int nbr_full_moves_to_mate = (nbr+1)/2;     // nbr=1,2 =>1 3,4=>2
+                if( nbr_full_moves_to_mate == 0 )           // eg initial position is checkmate
+                    nbr_full_moves_to_mate = 1;
+                value -= (nbr_full_moves_to_mate-1)*100;    // subtract 1 pawn for mate in 2, 2 pawns for mate in 3, etc
+                bool mate_giver = (nbr%2 != 0);
+                pv.value = (mate_giver ? value : 0-value);
+                printf( "nbr=%d, value=%d\n", nbr, value );
+                break;
+            }
+            case thc::TERMINAL_WSTALEMATE:
+            case thc::TERMINAL_BSTALEMATE:
+            {
+                pv.value=0;
+                break;
+            }
+        }
+    }
 }
 
 std::string sargon_pv_report_stats()

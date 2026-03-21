@@ -526,14 +526,11 @@ struct TEST
     */
 static TEST tests[]=
 {
-    // Point of failure sometimes in the whole game tests, easiest to investigate this way
-//    { "r2qkb1r/ppp2ppp/4bn2/3p4/3Q4/2N2N2/PPP1PPPP/2KR1B1R w kq - 3 8", 3, "e2e3",
-//        75, "e3 Bd6 Be2" },
 
     // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE)
     { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 7, "f7h6",
         50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },
-    //                
+
     // Position after 1.Nf3, Black to play book move
     { "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1", 5, "d7d5",
         0, "" },
@@ -729,10 +726,130 @@ static TEST tests[]=
 
 };
 
-
 //
 //  New Zargon tests
 //
+
+static TEST mate_tests[]=
+{
+    // Black to play, unavoidable mate next move (plymax 1)
+    {
+        "R6k/7p/5n1N/8/8/8/8/6RK b - - 2 1",
+        1,
+        "f6e8",
+        1200,
+        "Ne8"
+    },
+
+    // Black to play, unavoidable mate next move (plymax 2)
+    {
+        "R6k/7p/5n1N/8/8/8/8/6RK b - - 2 1",
+        2,
+        "f6e8",
+        -6000,
+        "Ne8 Rg8#"
+    },
+
+    // Black to play, unavoidable mate next move (plymax 3)
+    {
+        "R6k/7p/5n1N/8/8/8/8/6RK b - - 2 1",
+        3,
+        "f6e8",
+        -6000,
+        "Ne8 Rxe8#"
+    },
+
+    // Black to play, unavoidable mate next move (Philidor)
+    {
+        "r5Qk/6pp/7N/8/3q4/4B3/6PK/8 b - - 2 1",
+        5,
+        "a8g8",
+        -6000,
+        "Rxg8 Nf7#"
+    },
+
+    // Black to play, fancy mate in 3, White has played first move
+    {
+        "8/8/8/8/3N4/8/4RK1p/6nk b - - 1 1",
+        6,
+        "g1e2",
+        -5900,
+        "Nxe2 Nf5 Nc1 Ng3#"
+    },
+
+    // Black to play, fancy mate in 4, White has played first move
+    {
+        "8/8/6p1/5kNR/5p2/5P2/6NK/B7 b - - 1 1",
+        7,
+        "g6h5",
+        -5800,
+        "gxh5 Nh4+ Kxg5 Bg7 Kxh4 Bf6#"
+    },
+
+    // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
+    //  (not any more after weighting mates in fewer moves higher)
+    {
+        "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
+        1,
+        "h6f7",
+        6000,
+        "Nf7#"
+    },
+
+    // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
+    //  (not any more after weighting mates in fewer moves higher)
+    {
+        "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
+        2,
+        "h6f7",
+        6000,
+        "Nf7#"
+    },
+
+    // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
+    //  (not any more after weighting mates in fewer moves higher)
+    {
+        "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
+        3,
+        "h6f7",
+        6000,
+        "Nf7#"
+    },
+
+    // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
+    {
+        "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
+        4,
+        "b3g8",
+        5900,
+        "Qg8+ Rxg8 Nf7#"
+    },
+
+    // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
+    {
+        "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
+        5,
+        "b3g8",
+        5900,
+        "Qg8+ Rxg8 Nf7#"
+    },
+
+    // G Heathcode, American Chess Bulletin, mate in 2
+    { "8/qQ5p/3pN2K/3pp1R1/4k3/7N/1b1PP3/8 w - - 0 1", 6, "e6d4",
+        5900, "Nd4 Qxb7 Rg4#" },
+
+    // Philidor's mate in 3
+    { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
+        5800, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },
+
+    // Mate in 3
+    { "8/8/8/8/3N4/8/5K1p/4R1nk w - - 0 1", 7, "e1e2",
+        5800, "Re2 Nxe2 Nf5 Nc1 Ng3#" },
+
+    // Mate in 4
+    { "8/8/6pR/5kN1/5p2/5P2/6NK/B7 w - - 0 1", 7, "h6h5",
+        5700, "Rh5 gxh5 Nh4+ Kxg5 Bg7 Kxh4 Bf6#" }
+};
 
 // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
 //  (not any more after weighting mates in fewer moves higher)
@@ -904,7 +1021,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 // One off test
 bool sargon_undocumented_dev_test()
 {
-    bool ok;
+    bool ok=true;
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
@@ -913,7 +1030,16 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
     // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
-    ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
+    // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
+    int nbr_passed_tests = 0;
+    int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
+    for( int i=0; i<nbr_tests; i++ )
+    {
+        ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
+        if( ok )
+            nbr_passed_tests++;
+    }
+    ok = (nbr_tests==nbr_passed_tests);
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
