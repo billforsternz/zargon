@@ -1448,9 +1448,9 @@ void POINTS()
     // Subtract material at ply 0
     ptsw -= m.MV0;
 
-    // Limit to +/- 30 (Sargon refinement => 28 see asterisked comments
-    // below about higher weighting for mates in fewer moves
-    int8_t points = LIMIT(28,ptsw);
+    // Limit to +/- 30 (Sargon refinement => 29 see asterisked comments
+    // below about higher weighting for mates in fewer moves)
+    int8_t points = LIMIT(29,ptsw);
 
     // Board control points minus board control at ply zero
     int8_t bcp = m.BRDC - m.BC0;
@@ -2095,10 +2095,12 @@ void FNDMOV()
                 // So
                 //  leaf node if move does not check or if we have already gone one move
                 //  deeper
+                //bool in_check = !INCHK(m.COLOR^0x80);
                 if( m.NPLY > m.PLYMAX || !INCHK(m.COLOR^0x80) )
                 {
                     is_leaf_node = true;
                 }
+                // else if( in_check ) superf( "Check, so extending depth by one ply\n" );
             }
 
             // If not leaf node generate a move list for this node
@@ -2176,21 +2178,28 @@ void FNDMOV()
 
                 // Sargon refinement* - weight mates higher if they take
                 //  less moves. Mate in 1 is 0xff remains the highest
-                //  score. Reduce this value by up to 8. The 8 score
+                //  score. Reduce this value by up to 4. The 4 score
                 //  slots opened up are obtained by changing the basic
                 //  score formula
                 //  from
                 //    4*LIMIT(30,material) + LIMIT(6,board control)
                 //    (maxes out at 126)
                 //  to
-                //    4*LIMIT(28,material) + LIMIT(6,board control)
-                //    (maxes out at 118)
-                int8_t reduce = (int8_t)(m.NPLY-2);
-                if( reduce < 0 )
-                    reduce = 0;
-                if( reduce > 8 )
-                    reduce = 8;
+                //    4*LIMIT(29,material) + LIMIT(6,board control)
+                //    (maxes out at 122)
+                uint8_t reduce = (m.NPLY-2)/2;
+                if( reduce > 4 )
+                    reduce = 4;
                 score -= reduce;
+                // Further notes;
+                // Sargon mates on the move is detected at NPLY=2, reduce=0
+                // Sargon mates in 2 is detected at NPLY=4, reduce=1
+                // Sargon mates in 3 is detected at NPLY=6, reduce=2
+                // Sargon mates in 4 is detected at NPLY=8, reduce=3
+                // Sargon mates in 5 (or more) is detected at NPLY=10 (or more), reduce=4
+                // Sargon mated next move is detected at NPLY=3, reduce=0
+                // Sargon mated in 2 is detected at NPLY=5, reduce=1 etc
+                superf( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
                 m.PMATE= m.MOVENO;
             }
             m.MATEF = true;     // set mate flag
