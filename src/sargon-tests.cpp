@@ -365,7 +365,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
         {
             "d4 d5 Nc3 Nc6 Be3 e5 Nf3 Nxd4 Bxd4 exd4 Qxd4 Nf6 O-O-O Be6 e3 Qd7 Bb5 c6 Ne5 Qc7 Be2 c5 Qa4+ Kd8 Nf3 Be7 Kd2 g6 h4 Kc8 Ng5 Kb8 Nxe6 fxe6 h5 e5 hxg6 a6 Bd3 e4 Nxd5 Nxd5 Qxe4 Rd8 gxh7 Ka7 h8=Q Rxh8 Qxd5 Qb6 Rxh8 Rxh8 Kc1 Rh2 Bc4 Kb8 Qe5+ Ka7 Qxh2 Ka8 Qh8+ Ka7 Qe5 Bd8 Rd6 Qa5 Qd5 Bc7 Rf6 Kb8 c3 Ka7 g3 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7 Rf6 Kb8 Rf8+ Ka7",
             "e4 d5 Qf3 Nf6 Nc3 e6 e5 Ng8 Nh3 Nc6 Bb5 f5 exf6 Nxf6 O-O e5 Re1 Be6 Bxc6+ bxc6 Rxe5 Qd7 Ng5 c5 Nxe6 c6 Nxc5+ Qe7 Rxe7+ Bxe7 Qe3 Kf7 Qe6+ Ke8 Qxc6+ Kf7 Qe6+ Ke8 Nxd5 Nxd5 Qxd5 Rb8 Qe6 Ra8 d4 Rb8 Bg5 Rxb2 Qxe7#",
-            "d4 d5 Nc3 Nc6 Bf4 Nf6 Nb5 e5 dxe5 Ne4 e6 Bxe6 Nxc7+ Kd7 Nxa8 Qxa8 Nh3 f5 Qd3 Be7 O-O-O Rg8 f3 Nc5 Qe3 d4 c3 Bxa2 cxd4 Ne6 d5 Nxf4 dxc6+ Kxc6 Qxe7 Qb8 Qd7+ Kb6 Qd4+ Ka5 b4+ Kb5 Nxf4 Qa8 Kb2 Bc4 Qc5+ Ka4 Qxc4 Qb8 Ra1#",
+            "d4 d5 Nc3 Nc6 Bf4 Nf6 Nb5 e5 dxe5 Ne4 e6 Bxe6 Nxc7+ Kd7 Nxa8 Qxa8 Nh3 f5 Qd3 Be7 O-O-O Rg8 f3 Nc5 Qe3 d4 c3 Bxa2 cxd4 Ne6 d5 Nxf4 dxc6+ Kxc6 Qxe7 Qb8 Qd7+ Kb6 Qd4+ Ka5 b4+ Kb5 Nxf4 Qa8 Kb2 Bc4 Qc5+ Ka4 Qa5#",
             "e4 d5 Qf3 Nf6 e5 Ne4 d3 Nc5 Nc3 e6 d4 Nca6 Be3 Nc6 O-O-O f5 Nh3 Bb4 Bxa6 bxa6 Bg5 Qd7 a3 Bxc3 Qxc3 O-O Kd2 Bb7 Ke2 a5 b4 a4 b5 Ne7 Qb4 c5 dxc5 Rab8 Qxa4 Ra8 Bf4 Rfe8 c3 Red8 Rhg1 Rdc8 Be3 Rcb8 f4 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8 Rg1 Rc8 Rgf1 Rcb8",
             "d4 d5 Nc3 Nc6 e4 Nf6 e5 Ne4 Be3 g6 Bb5 Nxc3 bxc3 f5 Nf3 Bd7 Bxc6 bxc6 Ng5 Bg7 e6 Bc8 Nf7 Bxd4 Qxd4 Bxe6 Nxd8 Rxd8 Qxh8+ Kd7 Qxh7 c5 Bxc5 Rc8 Qxe7+ Kc6 Qxe6+ Kb7 Rb1+ Ka8 Qxc8#",
             "e4 d5 Nc3 Nf6 e5 Ne4 Qf3 Nxc3 bxc3 Nc6 Bb5 e6 Ne2 f5 O-O Be7 c4 O-O Bb2 Rb8 cxd5 Qxd5 Qxd5 exd5 Bd4 Bd7 Bxa7 Ra8 Bd4 Rab8 Rfb1 Ra8 c3 Rab8 Nf4 Nxd4 Bxd7 Nc6 Nxd5 Bd8 Bxc6 b6 e6 Rc8 e7 Bxe7 Nxe7+ Kh8 Nxc8 Rxc8 Re1 Rb8 Re7 Rc8 Bb7 Rb8 Rxc7 Rd8 d4 Rb8 Rb1 Rd8 Rxb6 Rb8 Bc6 Rxb6 Rc8#"
@@ -527,9 +527,9 @@ struct TEST
 static TEST tests[]=
 {
 
-    // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE)
-    { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 7, "f7h6",
-        50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },
+    // Philidor's mate now found correctly even at higher depth woo hoo
+    { "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
+        5800, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#" },  // 5800 = mate in 3
 
     // Position after 1.Nf3, Black to play book move
     { "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1", 5, "d7d5",
@@ -642,7 +642,7 @@ static TEST tests[]=
 
     // Test position #1 above
     { "r2n2k1/5ppp/b5q1/1P3N2/8/8/3Q1PPP/3R2K1 w - - 0 1", 3, "d2d8",
-        -1300, "Qxd8+ Rxd8 Rxd8#" },
+        5900, "Qxd8+ Rxd8 Rxd8#" },
     { "r2n2k1/5ppp/b5q1/1P3N2/8/8/3Q1PPP/3R2K1 w - - 0 1", 2, "f5e7",
         425, "Ne7+ Kf8" },
 
@@ -694,10 +694,12 @@ static TEST tests[]=
     //  I think this is a bug, or at least an imperfection in Sargon. I suspect
     //  something to do with decrementing PLYMAX by 2 if mate found. Our "auto"
     //  mode engine wrapper will mask this, by starting at lower PLYMAX
-    { "6B1/2N5/7p/pR4p1/1b2P3/2N1kP2/PPPR2PP/2K5 w - - 0 34", 5, "b5b6",
-        1575, "Rb6 Bxc3 Nd5#" },
+    // Now fixed in Zargon, after weighting mates according to number of moves
+    // required
+    { "6B1/2N5/7p/pR4p1/1b2P3/2N1kP2/PPPR2PP/2K5 w - - 0 34", 5, "c7d5",
+        6000, "N7d5#" },
     { "6B1/2N5/7p/pR4p1/1b2P3/2N1kP2/PPPR2PP/2K5 w - - 0 34", 3, "c7d5",
-        1325, "N7d5#" },
+        6000, "N7d5#" },
 
     // CTWBFK Pos 11, page 68 - solution Rf1xf6. Involves quiet moves. Sargon
     //  solves this, but needs PLYMAX 7, takes about 5 mins 45 secs

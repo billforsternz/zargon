@@ -314,7 +314,6 @@ static void calculate_pv( PV &pv )
                 value -= (nbr_full_moves_to_mate-1)*100;    // subtract 1 pawn for mate in 2, 2 pawns for mate in 3, etc
                 bool mate_giver = (nbr%2 != 0);
                 pv.value = (mate_giver ? value : 0-value);
-                printf( "nbr=%d, value=%d\n", nbr, value );
                 break;
             }
             case thc::TERMINAL_WSTALEMATE:
