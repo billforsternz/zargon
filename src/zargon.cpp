@@ -2199,7 +2199,7 @@ void FNDMOV()
                 // Sargon mates in 5 (or more) is detected at NPLY=10 (or more), reduce=4
                 // Sargon mated next move is detected at NPLY=3, reduce=0
                 // Sargon mated in 2 is detected at NPLY=5, reduce=1 etc
-                superf( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
+                //superf( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
                 m.PMATE= m.MOVENO;
             }
             m.MATEF = true;     // set mate flag

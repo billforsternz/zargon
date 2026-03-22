@@ -18,17 +18,34 @@
 // #define DEBUG_TRACK_SCORE
 // #define DEBUG_SHOW_TREE
 // #define DEBUG_KEEP_EXTRAF
+#define LOG_NONE 0         
+#define LOG_SUPER 1         
+#define LOG_EXTRA 2
+#define LOG_TRACE 3         
+#define LOG_DETAILED 4      
 
 // Some different use/testing scenarios
-#define SCENARIO_PRODUCTION
+// #define SCENARIO_PRODUCTION
 // #define SCENARIO_BASIC_DEBUGGING
+#define SCENARIO_SINGLE_STEPPING
 
 // Production, eliminate all overheads
 #ifdef SCENARIO_PRODUCTION
+#define LOG_LEVEL LOG_NONE
 #endif
 
 // Debugging, show the essentials
 #ifdef SCENARIO_BASIC_DEBUGGING
+#define LOG_LEVEL LOG_SUPER
+#define DEBUG_TRACK_SCORE
+#define DEBUG_SHOW_TREE
+#define DEBUG_KEEP_EXTRAF
+#endif
+
+// Debugging with single stepping
+#ifdef SCENARIO_SINGLE_STEPPING
+#define LOG_LEVEL LOG_EXTRA
+#define DEBUG_SINGLE_STEP
 #define DEBUG_TRACK_SCORE
 #define DEBUG_SHOW_TREE
 #define DEBUG_KEEP_EXTRAF
@@ -69,11 +86,6 @@ enum CB
 };
 
 // tracef(), extraf() - show progress of chess algorithm
-#define LOG_SUPER 1         
-#define LOG_EXTRA 2
-#define LOG_TRACE 3         
-#define LOG_DETAILED 4      
-#define LOG_LEVEL LOG_SUPER
 #ifdef DEBUG_KEEP_EXTRAF
 void extraf( const char *fmt, ... );
 void superf( const char *fmt, ... );

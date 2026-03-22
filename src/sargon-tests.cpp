@@ -865,6 +865,17 @@ static TEST mate_in_1_or_2 =
 };
 
 
+// Just a random puzzle
+static TEST mid_level_puzzle =
+{
+    "7k/2p1q2p/3p2pP/8/4bQ2/1BP5/1P4P1/6K1 w - - 0 1",
+    5,
+    "b3e6",
+    375,
+    "Be6 c5 Qxe4 Qf8 Qe3"
+};
+
+
 // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
 static TEST mate_in_2_3_or_4 =
 {
@@ -1033,15 +1044,16 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
     // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
     // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
-    int nbr_passed_tests = 0;
-    int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
-    for( int i=0; i<nbr_tests; i++ )
-    {
-        ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
-        if( ok )
-            nbr_passed_tests++;
-    }
-    ok = (nbr_tests==nbr_passed_tests);
+    ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
+    //int nbr_passed_tests = 0;
+    //int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
+    //for( int i=0; i<nbr_tests; i++ )
+    //{
+    //    ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
+    //    if( ok )
+    //        nbr_passed_tests++;
+    //}
+    //ok = (nbr_tests==nbr_passed_tests);
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
