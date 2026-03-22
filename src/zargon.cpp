@@ -438,7 +438,7 @@ void CASTLE()
         return;
 
     // If king is in check return
-    if( m.CKFLG != 0 )
+    if( m.CKFLG )
         return;
 
     // Check both sides, kingside first
@@ -2040,7 +2040,7 @@ void FNDMOV()
     m.MV0 = m.MTRL;
 
     // Generate move list for ply 1, from start position
-    m.MATEF = false;            // Initialize mate flag
+    m.MATEF = true;             // Assume mate unless legal move found
     GENMOV();                   // Generate list of moves
     callback_after_genmov();
     if( m.PLYMAX > m.NPLY )
@@ -2095,12 +2095,10 @@ void FNDMOV()
                 // So
                 //  leaf node if move does not check or if we have already gone one move
                 //  deeper
-                //bool in_check = !INCHK(m.COLOR^0x80);
                 if( m.NPLY > m.PLYMAX || !INCHK(m.COLOR^0x80) )
                 {
                     is_leaf_node = true;
                 }
-                // else if( in_check ) superf( "Check, so extending depth by one ply\n" );
             }
 
             // If not leaf node generate a move list for this node
@@ -2119,14 +2117,21 @@ void FNDMOV()
                 bridge_score_descend();
                 #endif
                 uint8_t *p = m.SCRIX;
-                *(p+2) = *p;
+                *(p+2) = *p;                    // prepare for Alpha-Beta comparison    
                 m.SCRIX++;
 
                 // Generate moves at next ply
                 m.NPLY++;                       // increment ply count
-                m.MATEF = false;                // initialize mate flag
+                m.MATEF = true;                 // assume mate unless legal move found
                 GENMOV();                       // generate list of moves
                 callback_after_genmov();
+
+                // While we are descending we sort moves into best to worst order
+                // using the scoring function (SORTM() calls the scoring function
+                // POINTS()) and immediately continue descending. The sort is only
+                // performed to speed up the algorithm by making alpha-beta cutoffs
+                // more likely. No need to sort at max depth (there's not going to
+                // be alpha-beta cutoffs at the leaves)
                 if( m.PLYMAX > m.NPLY )
                     SORTM();                    // not at max ply, so call sort
                 m.MLPTRJ = m.MLPTRI;            // set current move to first move in
@@ -2137,10 +2142,17 @@ void FNDMOV()
             }
         }
 
-        // Resolve a node, is it a leaf node?
+        // Get to this point if
+        //  if( m.MLPTRJ->link_ptr == 0 )   // No more moves in move list
+        //  OR if a leaf node
+        // Apply minimax and alpha beta and then ASCEND() up tree
+
+        // Score the node
         uint8_t *p = m.SCRIX;                // load score table pointer
         uint8_t score = 0;
         int8_t iscore = 0;
+
+        // Is it a leaf node
         if( is_leaf_node )
         {
             // Compile pin list
@@ -2155,11 +2167,11 @@ void FNDMOV()
             #ifdef DEBUG_SHOW_TREE
             extraf( "Leaf node %s, score=%s\n", show_node().c_str(), show_score(score).c_str() );
             #endif
-            m.MATEF = true;             // set mate flag
+            m.MATEF = false;            // it's not mate
         }
 
-        // Else if not mate or stalemate after going one ply deeper
-        else if( m.MATEF )
+        // Else if legal move found, so not mate or stalemate, ASCEND
+        else if( !m.MATEF )
         {
             if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
@@ -2168,11 +2180,11 @@ void FNDMOV()
             score = *(p+2);         // get score
         }
 
-        // Else if mate or stalemate after going one ply deeper
+        // Else if mate or stalemate
         else
         {
-            score = 0x80;       // stalemate score
-            if( m.CKFLG != 0 )  // test check flag
+            score = 0x80;   // stalemate score
+            if( m.CKFLG )   // test check flag
             {
                 score = 0xff;   // if in check, then checkmate score
 
@@ -2202,10 +2214,17 @@ void FNDMOV()
                 //superf( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
                 m.PMATE= m.MOVENO;
             }
-            m.MATEF = true;     // set mate flag
+            m.MATEF = false;     // mate flag has served its purpose
         }
 
         // Alpha Beta cutoff ?
+        // How to think about Alpha Beta:
+        // Minimax is working on the details, for example if you have a list of
+        // moves A,B... it might be trying each reply to B to see which is best
+        // Alpha Beta looks at the same replies and says (potentially);
+        //  "Wait a minute, this reply already means that move B is no good,
+        //   because it proves the opponent can do better against B than
+        //   against A. So stop wasting time on B"
         callback_alpha_beta_cutoff( score, p );
         if( score <= *p )  // compare to score 2 ply above
         {
@@ -2237,7 +2256,7 @@ void FNDMOV()
         // Set best move pointer = current move pointer
         m.BESTM = m.MLPTRJ;
 
-        //  Was it a checkmate ?
+        //  Was it mate on the move ?
         if( m.SCORE[1] != 0xff )
             continue;   // no - loop
 

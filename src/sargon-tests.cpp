@@ -876,6 +876,17 @@ static TEST mid_level_puzzle =
 };
 
 
+// Trivial puzzle
+static TEST trivial_puzzle =
+{
+    "4k3/r7/8/3p4/2pr4/6PP/6PK/2B5 w - - 0 1",
+    2,
+    "c1e3",
+    -175,
+    "Be3 c3"
+};
+
+
 // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
 static TEST mate_in_2_3_or_4 =
 {
@@ -1044,7 +1055,8 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
     // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
     // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
-    ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
+    // ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
+    ok = sargon_position_test( &trivial_puzzle, 1, 1, false );
     //int nbr_passed_tests = 0;
     //int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
     //for( int i=0; i<nbr_tests; i++ )

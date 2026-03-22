@@ -324,7 +324,14 @@ ML      *MLNXT   =      MLIST;
 //
 // CKFLG   --  A non-zero value indicates the king is in check.
 //
-// MATEF   --  A zero value indicates no legal moves.
+// MATEF   --  True if no legal moves. Sargon assumes mate
+//             (sets flag to true) and only clears it when
+//             a legal move is made. Original Sargon code
+//             treated this as not_MATEF which was very
+//             confusing - I've reversed every set/clear
+//             and test operation to preserve original name
+//             whilst keeping the same flow and making it
+//             non confusing.
 //
 // VALM    --  The score of the current move being examined.
 //
@@ -370,8 +377,8 @@ uint8_t PMATE   =      0;
 uint8_t MOVENO  =      0;
 uint8_t PLYMAX  =      2;
 uint8_t NPLY    =      0;
-uint8_t CKFLG   =      0;
-bool    MATEF   =      false;
+bool    CKFLG   =      false;
+bool    MATEF   =      true;    // Mate unless proven otherwise
 uint8_t VALM    =      0;
 uint8_t BRDC    =      0;
 uint8_t PTSL    =      0;
