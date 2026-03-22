@@ -25,9 +25,9 @@
 #define LOG_DETAILED 4      
 
 // Some different use/testing scenarios
-// #define SCENARIO_PRODUCTION
-// #define SCENARIO_BASIC_DEBUGGING
-#define SCENARIO_SINGLE_STEPPING
+//#define SCENARIO_PRODUCTION
+#define SCENARIO_BASIC_DEBUGGING
+//#define SCENARIO_SINGLE_STEPPING
 
 // Production, eliminate all overheads
 #ifdef SCENARIO_PRODUCTION
@@ -36,7 +36,7 @@
 
 // Debugging, show the essentials
 #ifdef SCENARIO_BASIC_DEBUGGING
-#define LOG_LEVEL LOG_SUPER
+#define LOG_LEVEL LOG_EXTRA
 #define DEBUG_TRACK_SCORE
 #define DEBUG_SHOW_TREE
 #define DEBUG_KEEP_EXTRAF

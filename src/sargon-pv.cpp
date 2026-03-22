@@ -303,8 +303,8 @@ static void calculate_pv( PV &pv )
     {
         switch( score_terminal )
         {
-            case thc::TERMINAL_WCHECKMATE:
-            case thc::TERMINAL_BCHECKMATE:
+            case thc::TERMINAL_WCHECKMATE:  // White is checkmated
+            case thc::TERMINAL_BCHECKMATE:  // Black is checkmated
             {
                 int nbr = (int)pv.variation.size();
                 int value = 6000;                           // mate in 1 is worth 60 pawns (say)
@@ -312,8 +312,7 @@ static void calculate_pv( PV &pv )
                 if( nbr_full_moves_to_mate == 0 )           // eg initial position is checkmate
                     nbr_full_moves_to_mate = 1;
                 value -= (nbr_full_moves_to_mate-1)*100;    // subtract 1 pawn for mate in 2, 2 pawns for mate in 3, etc
-                bool mate_giver = (nbr%2 != 0);
-                pv.value = (mate_giver ? value : 0-value);
+                pv.value = (score_terminal==thc::TERMINAL_BCHECKMATE ? value : 0-value);
                 break;
             }
             case thc::TERMINAL_WSTALEMATE:

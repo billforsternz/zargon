@@ -748,7 +748,7 @@ static TEST mate_tests[]=
         "R6k/7p/5n1N/8/8/8/8/6RK b - - 2 1",
         2,
         "f6e8",
-        -6000,
+        6000,
         "Ne8 Rg8#"
     },
 
@@ -757,7 +757,7 @@ static TEST mate_tests[]=
         "R6k/7p/5n1N/8/8/8/8/6RK b - - 2 1",
         3,
         "f6e8",
-        -6000,
+        6000,
         "Ne8 Rxe8#"
     },
 
@@ -766,7 +766,7 @@ static TEST mate_tests[]=
         "r5Qk/6pp/7N/8/3q4/4B3/6PK/8 b - - 2 1",
         5,
         "a8g8",
-        -6000,
+        6000,
         "Rxg8 Nf7#"
     },
 
@@ -775,7 +775,7 @@ static TEST mate_tests[]=
         "8/8/8/8/3N4/8/4RK1p/6nk b - - 1 1",
         6,
         "g1e2",
-        -5900,
+        5900,
         "Nxe2 Nf5 Nc1 Ng3#"
     },
 
@@ -784,7 +784,7 @@ static TEST mate_tests[]=
         "8/8/6p1/5kNR/5p2/5P2/6NK/B7 b - - 1 1",
         7,
         "g6h5",
-        -5800,
+        5800,
         "gxh5 Nh4+ Kxg5 Bg7 Kxh4 Bf6#"
     },
 
@@ -850,7 +850,11 @@ static TEST mate_tests[]=
 
     // Mate in 4
     { "8/8/6pR/5kN1/5p2/5P2/6NK/B7 w - - 0 1", 7, "h6h5",
-        5700, "Rh5 gxh5 Nh4+ Kxg5 Bg7 Kxh4 Bf6#" }
+        5700, "Rh5 gxh5 Nh4+ Kxg5 Bg7 Kxh4 Bf6#" },
+
+    // Mate in 4 Black to play
+    { "6k1/4bpp1/4p2p/1Q1pP3/P2P1K2/5N1P/r4qP1/6R1 b - - 0 1", 7, "e7g5",
+        -5700, "Bg5+ Kg4 Qxg2+ Rxg2 Rxg2+ Kh5 g6#" }
 };
 
 // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
@@ -1056,16 +1060,16 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
     // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
     // ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
-    ok = sargon_position_test( &trivial_puzzle, 1, 1, false );
-    //int nbr_passed_tests = 0;
-    //int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
-    //for( int i=0; i<nbr_tests; i++ )
-    //{
-    //    ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
-    //    if( ok )
-    //        nbr_passed_tests++;
-    //}
-    //ok = (nbr_tests==nbr_passed_tests);
+    // ok = sargon_position_test( &trivial_puzzle, 1, 1, false );
+    int nbr_passed_tests = 0;
+    int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
+    for( int i=0; i<nbr_tests; i++ )
+    {
+        ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
+        if( ok )
+            nbr_passed_tests++;
+    }
+    ok = (nbr_tests==nbr_passed_tests);
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");

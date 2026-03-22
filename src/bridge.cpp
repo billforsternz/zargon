@@ -354,8 +354,23 @@ std::string show_score( uint8_t val )
     //  127 positive scores uint8_t 0x7f-0x01 (8 points is one pawn, so 127/8 = 15.75 pawns is max score)
     //    1 zero score 0x80
     //  127 negative scores uint8_t 0x81-0xff
-    //    1 special flag/sentinel value 0, means eg illegal move
+    //    1 special flag/sentinel value 0, means illegal move
+
+    // Confusingly, more negative scores are better: so 0xff = -127 is the best
+    // move. In fact 0xff is reserved for mate.
+    // In original Sargon, the negative or positive score tops out at 126 leaving
+    // room for mate [basic formula is 4*LIMIT(30,material) + LIMIT(6,board_control)]
+    // So top score is actually 126/8 = 15.5 pawns.
+    // We have tweaked this, changing the LIMIT from 30 to 29 creating room for
+    // 4 more "mate" scores, 0xfe (mate in 2), 0xfd (mate in 3), 0xfc (mate in 4)
+    // and 0xfb (mate in 5 or more). 0xff now means mate in 1.
+    // The extra mate codes mean Zargon now no longer considers all mates to be
+    // equivalent
     std::string s = (val==0 ? "0" : util::sprintf( "%u:%d,%.2f", val, n, f ));
+    if( 0xfc<=val && val<=0xff )
+        s += util::sprintf(" mate in %d", (0xff-val)+1);
+    else if( 0xfb == val )
+        s += " mate in 5 or more";
     return s;
 }
 
