@@ -91,6 +91,7 @@ inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 //  at some point we will probably rename this to simply
 //  zargon_data or similar
 struct emulated_memory {
+    uint64_t hash;
 
 //***********************************************************
 // TABLES SECTION

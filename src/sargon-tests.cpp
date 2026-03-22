@@ -1059,17 +1059,17 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
     // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
     // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
-    // ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
+    ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
     // ok = sargon_position_test( &trivial_puzzle, 1, 1, false );
-    int nbr_passed_tests = 0;
-    int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
-    for( int i=0; i<nbr_tests; i++ )
-    {
-        ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
-        if( ok )
-            nbr_passed_tests++;
-    }
-    ok = (nbr_tests==nbr_passed_tests);
+    //int nbr_passed_tests = 0;
+    //int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
+    //for( int i=0; i<nbr_tests; i++ )
+    //{
+    //    ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
+    //    if( ok )
+    //        nbr_passed_tests++;
+    //}
+    //ok = (nbr_tests==nbr_passed_tests);
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");

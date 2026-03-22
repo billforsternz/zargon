@@ -13,12 +13,18 @@
 #include <stddef.h>
 #include <string.h>
 #include <vector>
+#include <map>
 #include <algorithm>
 
 #include "main.h"
 #include "bridge.h"
+#include "hash_lookup.h"
 #include "zargon_functions.h"
 #include "zargon.h"
+
+// Introduce transposition hash
+static std::map<uint64_t,int8_t> transpo;
+uint32_t transpo_count=0;
 
 // Up to 64K of emulated memory
 emulated_memory gbl_emulated_memory;        // Now made available as simple global
@@ -1237,7 +1243,32 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 
 void POINTS()
 {
+    static uint32_t transpo_hits;
+    static uint32_t transpo_misses;
     callback_zargon_bridge_void(CB_POINTS);
+
+    uint64_t hash = m.COLOR ? m.hash|1 : m.hash&0xfffffffffffffffe;
+    auto iter = transpo.find(hash);
+    if( iter != transpo.end() )
+    {
+        int8_t points = iter->second;
+        callback_end_of_points(points);
+        m.VALM = points;
+        m.MLPTRJ->val = m.VALM;
+        transpo_hits++;
+        if( transpo_hits%1000 == 0 )
+        {
+            printf( "%u transpo hits\n", transpo_hits );
+            printf( "%u transpo misses\n", transpo_misses );
+        }
+        return;
+    }
+    transpo_misses++;
+    if( transpo_misses%1000 == 0 )
+    {
+        printf( "%u transpo hits\n", transpo_hits );
+        printf( "%u transpo misses\n", transpo_misses );
+    }
     int8_t *wact = (int8_t *)m.wact;
     int8_t *bact = (int8_t *)m.bact;
 
@@ -1472,6 +1503,11 @@ void POINTS()
     // Rescale score (neutral = 0x80)
     // Experiment: points here is a balanced signed value, so 0 = even +126=very good, -126=very bad
     points += 0x80;
+    if( transpo_count < 1000000 )
+    {
+        transpo[hash] = points;
+        transpo_count++;
+    }
     callback_end_of_points(points);
 
     // Save score value
@@ -1588,10 +1624,14 @@ void MOVE()
         SET_MOVED(piece);
 
         // Insert piece at new position
+        m.hash ^= hash_lookup[m.M2-SQ_a1][m.BOARDA[m.M2]];
         m.BOARDA[m.M2] = piece;
+        m.hash ^= hash_lookup[m.M2-SQ_a1][piece];
 
         // Empty previous position
+        m.hash ^= hash_lookup[m.M1-SQ_a1][m.BOARDA[m.M1]];
         m.BOARDA[m.M1] = 0;
+        m.hash ^= hash_lookup[m.M1-SQ_a1][0];
 
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
@@ -1690,10 +1730,15 @@ void UNMOVE()
         }
 
         // Return piece to previous board position
+        m.hash ^= hash_lookup[m.M1-SQ_a1][m.BOARDA[m.M1]];
         m.BOARDA[m.M1] = piece;
+        m.hash ^= hash_lookup[m.M1-SQ_a1][piece];
 
         // Restore captured piece with cleared flags
-        m.BOARDA[m.M2] = captured_piece_plus_flags & 0x8f;
+        uint8_t temp = captured_piece_plus_flags & 0x8f;
+        m.hash ^= hash_lookup[m.M2-SQ_a1][m.BOARDA[m.M2]];
+        m.BOARDA[m.M2] = temp;
+        m.hash ^= hash_lookup[m.M2-SQ_a1][temp];
 
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
@@ -1999,6 +2044,21 @@ void EVAL()
 void FNDMOV()
 {
     callback_zargon_bridge(CB_FNDMOV);
+    transpo.clear();
+    transpo_count = 0;
+    m.hash = 0;
+
+    // Loop through the board
+    for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
+    {
+        uint8_t piece = m.BOARDA[pos];
+
+        // If piece not on border
+        if( piece!=0xff )
+        {
+            m.hash ^= hash_lookup[pos][piece];
+        }
+    }
 
     // Book move ?
     if( m.MOVENO == 1 )
