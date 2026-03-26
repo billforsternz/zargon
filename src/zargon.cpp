@@ -24,7 +24,9 @@
 
 // Introduce transposition hash
 static std::map<uint64_t,int8_t> transpo;
-uint32_t transpo_count=0;
+static uint32_t transpo_count=0;
+static uint32_t transpo_hits;
+static uint32_t transpo_misses;
 
 // Up to 64K of emulated memory
 emulated_memory gbl_emulated_memory;        // Now made available as simple global
@@ -47,6 +49,24 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 #define WHITE   0
 #define BLACK   0x80
 #define BPAWN   (BLACK+PAWN)
+
+static uint64_t hash_calculate()
+{
+    uint64_t hash = 0;
+
+    // Loop through the board
+    for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
+    {
+        uint8_t piece = m.BOARDA[pos];
+
+        // If piece not on border
+        if( piece!=0xff )
+        {
+            hash ^= hash_lookup[pos-SQ_a1][piece];
+        }
+    }
+    return hash;
+}
 
 //**********************************************************
 // PROGRAM CODE SECTION
@@ -1243,15 +1263,32 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 
 void POINTS()
 {
-    static uint32_t transpo_hits;
-    static uint32_t transpo_misses;
     callback_zargon_bridge_void(CB_POINTS);
 
+    // Test code that kills performance!
+    #if 1
+    static uint32_t successes;
+    static uint32_t points_called;
+    points_called++;
+    if( m.hash == hash_calculate() )
+        successes++;
+    else
+    {
+        printf( "%u: That's funny, but since this last happened we had %lu successes\n", points_called, successes );
+        successes = 0;
+    }
+    #endif
+    bool transpo_hit_but_recalc=false;
+    int8_t hash_points=0;
+
     uint64_t hash = m.COLOR ? m.hash|1 : m.hash&0xfffffffffffffffe;
+    bool target = (hash==15799641838211472568);
     auto iter = transpo.find(hash);
     if( iter != transpo.end() )
     {
-        int8_t points = iter->second;
+        transpo_hit_but_recalc = true;
+        hash_points = iter->second;
+    /*  int8_t points = iter->second;
         callback_end_of_points(points);
         m.VALM = points;
         m.MLPTRJ->val = m.VALM;
@@ -1261,13 +1298,13 @@ void POINTS()
             printf( "%u transpo hits\n", transpo_hits );
             printf( "%u transpo misses\n", transpo_misses );
         }
-        return;
+        return; */
     }
     transpo_misses++;
     if( transpo_misses%1000 == 0 )
     {
-        printf( "%u transpo hits\n", transpo_hits );
-        printf( "%u transpo misses\n", transpo_misses );
+        // printf( "%u transpo hits\n", transpo_hits );
+        // printf( "%u transpo misses\n", transpo_misses );
     }
     int8_t *wact = (int8_t *)m.wact;
     int8_t *bact = (int8_t *)m.bact;
@@ -1294,6 +1331,7 @@ void POINTS()
             continue;
 
         // Piece with flags
+        if( target ) printf( "piece=%02x\n", piece );
         m.P1 = piece;
 
         // Piece without flags
@@ -1315,6 +1353,7 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
+                if( target ) printf( "A) m.BRDC=%02x\n", m.BRDC );
             }
         }
 
@@ -1329,6 +1368,7 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = -6;     // 6 point bonus for Black
                 m.BRDC += bonus;
+                if( target ) printf( "B) m.BRDC=%02x\n", m.BRDC );
             }
 
             // Else if king has not castled but has moved, 2 point penalty
@@ -1338,6 +1378,7 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
+                if( target ) printf( "C) m.BRDC=%02x\n", m.BRDC );
             }
         }
 
@@ -1352,6 +1393,7 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
+                if( target ) printf( "D) m.BRDC=%02x\n", m.BRDC );
             }
         }
 
@@ -1365,6 +1407,7 @@ void POINTS()
         // Get (White attacker count - Black attacker count) and accumulate
         //  into board control score
         m.BRDC += (*wact-*bact);
+        if( target ) printf( "E) m.BRDC=%02x\n", m.BRDC );
 
         // If square is empty continue loop
         if( m.P1 == 0 )            //  Get piece on current square
@@ -1374,6 +1417,7 @@ void POINTS()
         int8_t points;
         int8_t attacked_piece_val;
         XCHNG( points, attacked_piece_val );
+        if( target ) printf( "E) points=%02x\n", points );
 
         // If piece is nominally lost
         if( points != 0 )
@@ -1392,10 +1436,14 @@ void POINTS()
 
                     // Store new value as max lost
                     m.PTSL = points;
+                    if( target ) printf( "F) m.PTSL=%02x\n", m.PTSL );
 
                     // Is the lost piece the one moving ?
                     if( m.M3 == m.MLPTRJ->to )
+                    {
                         m.PTSCK = m.M3; // yes, save position as a flag
+                        if( target ) printf( "G) m.PTSCK=%02x\n", m.PTSCK );
+                    }
                 }
             }
 
@@ -1413,11 +1461,15 @@ void POINTS()
                     // Update max points won (but save previous value)
                     temp = m.PTSW1;
                     m.PTSW1 = points;
+                    if( target ) printf( "H) m.PTSW1=%02x\n", m.PTSW1 );
                 }
 
                 // Update 2nd max points won with old value of max points won
                 if( temp >= m.PTSW2 )
+                {
                     m.PTSW2 = temp;
+                    if( target ) printf( "I) m.PTSW2=%02x\n", m.PTSW2 );
+                }
             }
         }
 
@@ -1425,6 +1477,7 @@ void POINTS()
         if( IS_BLACK(m.P1) )
             attacked_piece_val = 0-attacked_piece_val;    // negate piece value if Black
         m.MTRL += attacked_piece_val;
+        if( target ) printf( "J) m.MTRL=%02x\n", m.MTRL );
     }
 
     // If moving piece lost
@@ -1434,12 +1487,14 @@ void POINTS()
         // Shift two element max points stack
         m.PTSW1 = m.PTSW2;
         m.PTSW2 = 0;
+        if( target ) printf( "K) m.PTSW1=%02x\n", m.PTSW1 );
     }
 
     // Adjust max points lost (decrement if non-zero)
     int8_t ptsl = m.PTSL;
     if( ptsl != 0 )
         ptsl--;
+    if( target ) printf( "L) ptsl=%02x\n", ptsl );
 
     // Get max points won
     int8_t ptsw = m.PTSW1;
@@ -1468,6 +1523,7 @@ void POINTS()
 
     // Points won net = points won - points lost
     ptsw -= ptsl;
+    if( target ) printf( "M) ptsw=%02x\n", ptsw );
 
     // Color of side just moved
     if( IS_BLACK(m.COLOR) )
@@ -1478,6 +1534,7 @@ void POINTS()
 
     // Subtract material at ply 0
     ptsw -= m.MV0;
+    if( target ) printf( "N) ptsw=%02x\n", ptsw );
 
     // Limit to +/- 30 (Sargon refinement => 29 see asterisked comments
     // below about higher weighting for mates in fewer moves)
@@ -1495,6 +1552,7 @@ void POINTS()
 
     // Add material*4
     points = points*4 + bcp;
+    if( target ) printf( "P) points=%02x\n", points );
 
     // Color of side just moved
     if( IS_WHITE(m.COLOR) )
@@ -1503,6 +1561,7 @@ void POINTS()
     // Rescale score (neutral = 0x80)
     // Experiment: points here is a balanced signed value, so 0 = even +126=very good, -126=very bad
     points += 0x80;
+    if( target ) printf( "Q) points=%02x\n", points );
     if( transpo_count < 1000000 )
     {
         transpo[hash] = points;
@@ -1516,6 +1575,16 @@ void POINTS()
 
     // Save score value to move pointed to by current move ptr
     m.MLPTRJ->val = m.VALM;
+
+    // Check hash - testing only
+    if( transpo_hit_but_recalc )
+    {
+        if( points != hash_points )
+        {
+            printf( "Hash internal error %d %d hash=%llu\n", points, hash_points, hash );
+            exit(0);
+        }
+    }
 }
 
 //***********************************************************
@@ -2046,19 +2115,14 @@ void FNDMOV()
     callback_zargon_bridge(CB_FNDMOV);
     transpo.clear();
     transpo_count = 0;
-    m.hash = 0;
-
-    // Loop through the board
-    for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
+    if( transpo_hits!=0 || transpo_misses!=0 )
     {
-        uint8_t piece = m.BOARDA[pos];
-
-        // If piece not on border
-        if( piece!=0xff )
-        {
-            m.hash ^= hash_lookup[pos][piece];
-        }
+        printf( "%u transpo hits\n", transpo_hits );
+        printf( "%u transpo misses\n", transpo_misses );
+        transpo_hits=0;
+        transpo_misses=0;
     }
+    m.hash = hash_calculate();
 
     // Book move ?
     if( m.MOVENO == 1 )
