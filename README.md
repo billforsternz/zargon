@@ -13,6 +13,12 @@ said that....
 Preliminary Information about Zargon
 ====================================
 
+(This is a bit out of date - Zargon is now Sargon translated to more or less
+idiomatic C (with a little bit of C++) and is performing really well. Sadly
+I can't quite finish it off and tie a bow around it at the moment and I have
+other things to do in April. It's in a very usable state though, check the
+commit history)
+
 For my first Sargon 1978 project I translated the original Sargon Z80 assembly to x86 assembly.
 This was pretty successful, and ultimately produced a fun, fully working Sargon 1978 UCI engine
 for Windows.
