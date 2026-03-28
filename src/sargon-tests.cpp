@@ -524,7 +524,8 @@ struct TEST
     depth, so royal fork for PLYMAX 1-4, mate if PLYMAX 5
 
     */
-static TEST tests[]=
+
+static TEST tests_main[]=
 {
 
     // Philidor's mate now found correctly even at higher depth woo hoo
@@ -1059,7 +1060,7 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
     // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
     // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
-    ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
+    // ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
     // ok = sargon_position_test( &trivial_puzzle, 1, 1, false );
     //int nbr_passed_tests = 0;
     //int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
@@ -1070,6 +1071,17 @@ bool sargon_undocumented_dev_test()
     //        nbr_passed_tests++;
     //}
     //ok = (nbr_tests==nbr_passed_tests);
+    int nbr_passed_tests = 0;
+    int nbr_tests_to_run_at_end = 1;
+    int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);
+    int test_nbr=0;
+    for( int i=nbr_tests - nbr_tests_to_run_at_end; i<nbr_tests; i++ )
+    {
+        ok = sargon_position_test(&tests_main[i],++test_nbr,nbr_tests_to_run_at_end);
+        if( ok )
+            nbr_passed_tests++;
+    }
+    ok = (nbr_tests_to_run_at_end==nbr_passed_tests);
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
@@ -1183,13 +1195,13 @@ bool sargon_position_tests( bool quiet, int comprehensive )
         printf( "Unexpected internal event, expected en_passant_fen2=%s  to equal en_passant_fen1=%s\n", en_passant_fen2.c_str(), en_passant_fen1.c_str() );
 
     printf( "* Known position tests\n" );
-    int nbr_tests = sizeof(tests)/sizeof(tests[0]);
+    int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);
     int nbr_tests_to_run = nbr_tests;
     if( comprehensive < 3 )
         nbr_tests_to_run = comprehensive==2 ? nbr_tests-1 : 10;
     for( int i=0; i<nbr_tests_to_run; i++ )
     {
-        TEST *pt = &tests[i];
+        TEST *pt = &tests_main[i];
         thc::ChessRules cr;
         cr.Forsyth(pt->fen);
         if( !quiet )
@@ -1299,7 +1311,7 @@ Level 6: ..................................   34 tests
     "The following measurements on a variety of positions (the positions used for\n"
     "position tests are reused) serve to provide a comparison to these move times.\n";
     printf( "%s\n", quiet ?intro_quiet:intro_verbose );
-    int nbr_tests = sizeof(tests)/sizeof(tests[0]);
+    int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);
     double trs_80 = 1;
     double previous = 1;
     for( int level=1; level<=6; level++ )
@@ -1332,7 +1344,7 @@ Level 6: ..................................   34 tests
                 level6_12_tests_base = std::chrono::steady_clock::now();
             for( int j=0; j<multiplier; j++ )
             {
-                TEST *pt = &tests[i+offset];
+                TEST *pt = &tests_main[i+offset];
                 thc::ChessRules cr;
                 cr.Forsyth(pt->fen);
                 PV pv;
