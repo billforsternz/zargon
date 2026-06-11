@@ -892,6 +892,16 @@ static TEST trivial_puzzle =
 };
 
 
+// Code explanation example
+static TEST code_explanation_example =
+{
+    "6k1/6pp/2r1q3/4B3/3pn3/1Q6/6PP/5RK1 w - - 1 1",
+    3,
+    "e5d6",
+    50,
+    "Bd6 Rxd6 Qb8+ Rd8"
+};
+
 // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
 static TEST mate_in_2_3_or_4 =
 {
@@ -1046,7 +1056,6 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     return ok;
 }
 
-
 // One off test
 bool sargon_undocumented_dev_test()
 {
@@ -1054,6 +1063,8 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
+    ok = sargon_position_test( &code_explanation_example, 1, 1, false );
+    return ok;
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
@@ -1070,7 +1081,7 @@ bool sargon_undocumented_dev_test()
     //    if( ok )
     //        nbr_passed_tests++;
     //}
-    //ok = (nbr_tests==nbr_passed_tests);
+    // ok = (nbr_tests==nbr_passed_tests);
     int nbr_passed_tests = 0;
     int nbr_tests_to_run_at_end = 1;
     int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);

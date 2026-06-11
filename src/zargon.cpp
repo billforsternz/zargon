@@ -1409,7 +1409,7 @@ void POINTS()
     // Loop around board
     for( m.M3=SQ_a1; m.M3<=SQ_h8; m.M3++ )
     {
-        uint8_t piece = m.BOARDA[m.M3];            //  Save as board index
+        uint8_t piece = m.BOARDA[m.M3];
 
         //  Off board edge ?
         if( piece == 0xff )
