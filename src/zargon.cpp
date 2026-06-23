@@ -1678,7 +1678,7 @@ void POINTS()
 
     // Save score value
     // Experiment: after rescale -126->2 ... -1->127, 0->128, 1->129 ... 126->254
-    m.VALM = points;
+    m.VALM = (uint8_t)points;
 
     // Save score value to move pointed to by current move ptr
     m.MLPTRJ->val = m.VALM;
