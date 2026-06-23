@@ -891,9 +891,18 @@ static TEST trivial_puzzle =
     "Be3 c3"
 };
 
-
 // Code explanation example
 static TEST code_explanation_example =
+{
+    "8/8/8/k7/8/K5N1/8/7q w - - 0 1",
+    1,
+    "g3h1",
+    325,
+    "Nxh1"
+};
+
+// Code explanation example
+static TEST code_explanation_example2 =
 {
     "6k1/6pp/2r1q3/4B3/3pn3/1Q6/6PP/5RK1 w - - 1 1",
     3,
