@@ -869,7 +869,22 @@ std::string show_node()
         mv.TerseIn( &cr, terse.c_str() );
         if( idx > 1 )
             s += ' ';
-        s += util::sprintf( "%s", mv.NaturalOut(&cr).c_str() );
+        std::string txt    = mv.NaturalOut(&cr);
+        const char *mv_txt = txt.c_str();
+        bool illegal_move = (mv_txt[0]=='-' && mv_txt[1]=='-' && mv_txt[2]=='\0');
+        if( !illegal_move )
+            s += util::sprintf( "%s", mv_txt );
+        else
+        {
+            bool sargon_has_detected_illegal_move = (ml && ml->val==0);
+            if( sargon_has_detected_illegal_move && idx+1>m.NPLY )
+                s += util::sprintf( "%s(%s)", mv_txt, terse.c_str() );
+                //s += util::sprintf( "%s(%c%c-%c%c)", mv_txt, 'a'-1 + ml->from%10, '1'-1 + ml->from/10 -1, // eg 21->a1, 98->h8
+                //                                              'a'-1 + ml->to%10,   '1'-1 + ml->to/10 -1 );
+            else
+                s += util::sprintf( "%s(???)", mv_txt );
+            break;
+        }
         cr.PlayMove(mv);
         idx++;
         ml = m.PLYIX[2*idx].link_ptr;
