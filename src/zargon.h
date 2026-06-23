@@ -241,7 +241,7 @@ uint8_t SCORE[40];      // Z80 max 6 ply
 //             list is the one currently being considered.
 //***********************************************************
 uint64_t padding2[2];
-ML PLYIX[40];
+ML PLYIX[40];   // only the link pointers of each ML are used
 
 //***********************************************************
 // 2) TABLE INDICES SECTION
