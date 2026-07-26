@@ -796,16 +796,14 @@ bool ATTACK()
                 ATKSAV(scan_count,dir);
             }
 
-            // Else if piece is opposite color attacker found
+            // Else if piece is opposite color, attacker found
             else if( (scan_count&0x20) != 0 )
             {
                 return true;
             }
 
             // Keep stepping unless single step piece
-            if( m.T2 == KING )
-                break;
-            if( m.T2 == KNIGHT )
+            if( m.T2==KING || m.T2==KNIGHT )
                 break;
         }
     }
@@ -2918,4 +2916,333 @@ void ROYALT()
 //  Omit some more Z80 user interface stuff, functions
 //  DSPBRD, BSETUP, INSPCE, CONVRT, DIVIDE, MLTPLY, BLNKER, EXECMV
 //
+
+// Misc notes on how things work, to be tidied up later
+#if 0
+/*
+Initial position favourable for Black, points initially = -70 (0xba)
+Negate for White -70 -> 70
+add 128 to make 128 neutral position 70+128 = 198 (unsigned)
+
+Scale after change accepting different mate levels;
+
+                             0 illegal
+                           1-5 unused
+       -29*4 + -6 + 128  =   6 min
+         0*4 +  0 + 128  = 128 neutral
+        29*4 +  6 + 128  = 250 max
+                           251 mate in 5 or more
+                           255 mate in 1
+
+Scale originally;
+
+                             0 illegal
+                             1 unused
+       -30*4 + -6 + 128  =   2 min
+         0*4 +  0 + 128  = 128 neutral
+        30*4 +  6 + 128  = 255 max
+                           255 mate
+
+
+New names ?
+
+COLOR      is_black;            // Side to move 
+KOLOR      is_sargon_black;     // Computer versus human or vice versa
+
+Ply 1
+    Qxe6+
+    Rf3
+    Rb1  
+    Qb8+ 
+    Qb5  
+    Qb7  
+    Qb1  
+    Qd3  
+    Qf3  
+    Qa4  
+    Qd1  
+    Qb4  
+    Qb2  
+    Qh3  
+    Qa3  
+    Qg3  
+    Bxd4 
+    Qd5  
+    Qc4  
+    Bxg7 
+    Bd6  
+    Rf8+ 
+    Re1  
+    Rc1  <-- current
+    Ra1  
+    g4   
+    h3   
+    h4   
+    Qa2  
+    Qc2  
+    Qe3  
+    Rf4  
+    Kh1  
+    Rf6  
+    g3   
+    Rf5  
+    Rf2  
+    Rd1  
+    Qb6  
+    Qc3  
+    Bg3  
+    Bb8  
+    Bf6  
+    Bf4  
+    Bc7  
+    Rf7  
+
+Ply 2
+        Qxb3   <-- current
+        more moves...
+    
+Ply 3
+            Rc2 
+            Rc3 
+            Rc4 
+            Rc5 
+            Rxc6  <-- current
+            Rd1 
+            Re1 
+            Rf1 
+            Rb1 
+            Ra1 
+            Kh1 
+            Kf1 
+            g3  
+            g4  
+            h3  
+            h4  
+            Bd6 
+            Bc7 
+            Bb8 
+            Bf6 
+            Bxg7
+            Bxd4
+            Bf4 
+            Bg3 
+
+How the algorithm works
+
+Create Ply 1 (Descend)
+1ABCDEFG2
+
+Create Ply 2 for Ply 1 A (Descend)
+1ABCDEFG2
+1abcde2
+
+Create Ply 3 for Ply 1,2 A,a (Descend)
+1ABCDEFG2
+1abcde2
+1ABC2
+
+After Ply 3 A
+1ABCDEFG2
+1abcde2
+A1BC2
+
+After Ply 3 B
+1ABCDEFG2
+1abcde2
+AB1C2
+
+After Ply 3 C
+1ABCDEFG2
+1abcde2
+ABC12
+
+Ascend to Ply 2 b
+1ABCDEFG2
+a1bcde2
+
+Create Ply 3 for Ply 1,2 A,b (Descend)
+1ABCDEFG2
+a1bcde2
+1ABCD2
+
+After Ply 3 A
+1ABCDEFG2
+a1bcde2
+A1BCD2
+
+After Ply 3 B
+1ABCDEFG2
+a1bcde2
+AB1CD2
+
+After Ply 3 C
+1ABCDEFG2
+a1bcde2
+ABC1D2
+
+After Ply 3 D
+1ABCDEFG2
+a1bcde2
+ABCD12
+
+
+
+Minimax
+
+Ply 1
+ABCDEFG  play the move with best (max) score
+    but if possible extend to ply 2 first
+
+Ply 2
+Aabc     at ply 2 play the move with best (min) score, that becomes A's backed up score at ply 1
+Babcd    at ply 2 play the move with best (min) score, that becomes B's backed up score at ply 1
+Cab      at ply 2 play the move with best (min) score, that becomes C's backed up score at ply 1
+Dabc     at ply 2 play the move with best (min) score, that becomes D's backed up score at ply 1
+Eabcd    at ply 2 play the move with best (min) score, that becomes E's backed up score at ply 1
+Fabcd    at ply 2 play the move with best (min) score, that becomes F's backed up score at ply 1
+Ga       at ply 2 play the move with best (min) score, that becomes G's backed up score at ply 1
+    but if possible extend to ply 3 first
+
+Ply 3
+AaABC       at ply 3 play the move with best (max) score, that becomes Aa's backed up score at ply 2
+AbABCD      at ply 3 play the move with best (max) score, that becomes Ab's backed up score at ply 2
+AcAB        at ply 3 play the move with best (max) score, that becomes Ac's backed up score at ply 2
+BaAB        at ply 3 play the move with best (max) score, that becomes Ba's backed up score at ply 2
+BbABCD      at ply 3 play the move with best (max) score, that becomes Bb's backed up score at ply 2 *
+BcABC       at ply 3 play the move with best (max) score, that becomes Bc's backed up score at ply 2 *
+BdABCD      at ply 3 play the move with best (max) score, that becomes Bd's backed up score at ply 2 *
+CaABC       at ply 3 play the move with best (max) score, that becomes Ca's backed up score at ply 2
+etc.
+    but if possible extend to ply 4 first
+
+* Alpha-Beta
+How to think about Alpha Beta:
+
+Minimax is working on the details, for example if you have a list of
+moves A,B... it might be trying each reply to B a,b,c and d to see
+which is best.
+
+Alpha Beta looks at the replies and says (potentially);
+ "Wait a minute, we've already establised A's score so this
+  reply to B means B is no good, because it proves the
+  opponent can do better against B than against A. So stop
+  wasting time on B"
+
+Example (3 ply)
+
+AaABC       AaA=2,AaB=3,AaC=4 so Aa=4 (max)
+AbABCD      AbA=12,AbB=3,AbC=4,AbD=10 so Ab=12 (max)
+AcAB        AcA=8,AcB=9 so Ac=9 (max)
+
+A           Aa=4,Ab=12,Ac=9 so A=4 (min)
+
+BaAB        BaA=2,BaB=3 so Ba=3 (max)
+
+Since Ba=3, B the minimum of Ba,Bb,Bc and Bd will be 3 or less
+So B cannot have as good a score as A's already established 4 
+So we can stop analysing B already after doing Ba, "cutting off"
+the asterisked lines.
+
+Important: The same algorithm applies when we are backing up minimax
+scores at any depth, So don't just apply Alpha-Beta from ply 3 -> 1,
+apply it from ply N -> N-2. For example with 4 ply
+
+Example (4 ply, only two moves at each ply)
+
+AaAa   3
+AaAb   2
+ AaA = min(AaAa=3,AaAb=2) = 2
+AaBa   7
+AaBb   3
+ AaB = min(AaBa=7,AaBb=3) = 3
+  Aa  = max(AaA=2,AaB=3) = 3
+AbAa   8
+AbAb   9
+ AbA = min(AbAa=8,AbAb=9) = 8
+  Ab is maximising, so it will be 8 or more
+  A is minimising, so it will be Aa=3 or less, not Ab
+  So alpha-beta says we can skip the rest of Ab after AbA because AbA=8 >= Aa=3
+AbBa   1
+AbBb   5
+ AbB = min(AbBa=1,AbBb=5) = 1
+  Ab  = max(AbA=8,AbB=1) = 8
+   A   = min(Aa=3,Ab=8) = 3
+BaAa   5
+BaAb   8
+ BaA = min(BaAa=5,BaAb=8) = 5
+BaBa   7
+BaBb   3
+ BaB = min(BaBa=7,BaBb=3) = 3
+  Ba  = max(BaA=5,BaB=3) = 5
+BbAa   2
+BbAb   9
+ BbA = min(BbAa=2,BbAb=9) = 2
+  Bb is maximising, so it will be 2 or more
+  B is minimising, it will be Ba=5 or less
+  But Bb is still in play based on Bba
+  So no alpha-beta because BbA=2 < Ba=5
+BbBa   4
+BbBb   5
+ BbB = min(BbBa=4,BbBb=5) = 4
+  Bb  = max(BbA=2,BbB=4) = 4
+   B   = min(Ba=5,Bb=4) = 4
+    move = max(A=3,B=4) = B
+
+
+                       -------------- root -------------
+                     /                                   \
+              ---- A ----                             ---- B ----
+            /             \                         /             \
+         Aa                  Ab                  Ba                  Bb
+       /    \              /    \              /    \              /    \
+   AaA       AaB       AbA       AbB       BaA       BaB       BbA       BbB
+  /   \     /   \     /   \     /   \     /   \     /   \     /   \     /   \
+AaAa AaAb AaBa AaBb AbAa AbAb AbBa AbBb BaAa BaAb BaBa BaBb BbAa BbAb BbBa BbBb
+
+
+Backing up order
+                       ------------ root 15 ------------                            move to play
+                     /                                   \                           ^
+              --- A 7 ---                             -- B 14 ---                   max
+            /             \                         /             \                  ^
+         Aa 3                Ab 6                Ba 10               Bb 13          min
+       /    \              /    \              /    \              /    \            ^
+   AaA 1     AaB 2     AbA 4     AbB 5     BaA 8     BaB 9     BbA 11    BbB 12     max
+  /   \     /   \     /   \     /   \     /   \     /   \     /   \     /   \        ^
+AaAa AaAb AaBa AaBb AbAa AbAb AbBa AbBb BaAa BaAb BaBa BaBb BbAa BbAb BbBa BbBb     min
+
+As we minimise or maximise (minimax) alpha beta anticipates the incomplete
+maximise or minimise operation (respectively) one level higher to determine
+whether this minimax can be abandoned early 
+
+         A
+     /       \
+    Aa       Ab
+  /   \    /  |  \
+AaA AaB  AbA AbB AbC
+
+
+A
+Aa
+AaA    3
+AaB    4 Aa = max(3,4) = 4
+A = min(Aa,Ab,Ac) = 4 or less
+Ab
+AbA    5 Ab = max(5,...) = 5 or more 
+AbB    cutoff
+AbC    cutoff
+
+
+
+wact[7] and bact[7]
+wact[0] = total number of attackers in following 6 bytes
+wact[1] = 0x00 (zero pawns attack, or 0x01 one pawn attacks, or 0x11 two pawns attack)
+wact[2] = 0x00 (zero knights attack, or 0x03 one knight attacks, or 0x33 two knights attack)
+wact[3] = 0x00 (zero bishops attack, or 0x03 one bishop attacks, or 0x33 two bishops attack)
+wact[4] = 0x00 (zero rooks attack, or 0x05 one rook attacks, or 0x55 two rooks attack)
+wact[5] = 0x00 (zero queens attack, or 0x09 one queen attacks, or 0x99 two queens attack)
+wact[6] = 0x00 (zero kings attack, or 0x0a one king attacks)
+*/
+#endif
+
 
