@@ -858,6 +858,12 @@ static TEST mate_tests[]=
         -5700, "Bg5+ Kg4 Qxg2+ Rxg2 Rxg2+ Kh5 g6#" }
 };
 
+static TEST atksav_bug_tests[]
+{
+    { "3r3k/6n1/8/8/6B1/3q4/7K/B2nR3 w - - 0 1", 1, "e1d1", -625, "Rxd1" },
+    { "3Rn2B/K7/4q3/1B6/8/8/1n6/k3r3 w - - 0 1", 1, "d8e8", -625, "Rxe8" }
+};
+
 // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
 //  (not any more after weighting mates in fewer moves higher)
 static TEST mate_in_1_or_2 =
@@ -904,6 +910,16 @@ static TEST code_explanation_example =
 // Code explanation example
 static TEST code_explanation_example2 =
 {
+    "8/8/8/k7/8/K5N1/8/5r1q w - - 0 1",
+    1,
+    "g3h1",
+    -500,
+    "Nxh1"
+};
+
+// Code explanation example
+static TEST code_explanation_example3 =
+{
     "6k1/6pp/2r1q3/4B3/3pn3/1Q6/6PP/5RK1 w - - 1 1",
     3,
     "e5d6",
@@ -911,7 +927,39 @@ static TEST code_explanation_example2 =
     "Bd6 Rxd6 Qb8+ Rd8"
 };
 
+// Code explanation example
+static TEST code_explanation_example4 =
+{
+    "Q7/p4rkp/8/2p1q1N1/P1P5/8/8/7K w - - 0 1",
+    4,
+    "a8h8",
+    75,
+    "Qh8+ Kxh8 Nxf7+ Kg7"
+};
+
+// Code explanation example
+static TEST code_explanation_example5 =
+{
+    "7k/8/8/Q2r4/3r4/8/8/B6K w - - 0 1",
+    1,
+    "a5d5",
+    825,
+    "Qxd5"
+};
+
+// Code explanation example
+static TEST code_explanation_example6 =
+{
+    "3r3k/6p1/8/8/8/3q4/7K/B2nRR2 w - - 0 1",
+    1,
+    "f1f7",
+    -525,
+    "Rf7"
+};
+
+
 // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
+//  (But fixed now right?)
 static TEST mate_in_2_3_or_4 =
 {
     "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
@@ -972,8 +1020,6 @@ static const char *ply4_restricted_move_test_moves[] =
     "f7g6 e8f7 f8g7 d8c7 b8c6",
     NULL
 };
-
-
 
 static TEST knight_fork_restricted_move_test =
 {
@@ -1072,8 +1118,8 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    ok = sargon_position_test( &code_explanation_example, 1, 1, false );
-    return ok;
+    //ok = sargon_position_test( &code_explanation_example6, 1, 1, false );
+    //return ok;
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
@@ -1082,26 +1128,26 @@ bool sargon_undocumented_dev_test()
     // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
     // ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
     // ok = sargon_position_test( &trivial_puzzle, 1, 1, false );
-    //int nbr_passed_tests = 0;
-    //int nbr_tests = sizeof(mate_tests)/sizeof(mate_tests[0]);
-    //for( int i=0; i<nbr_tests; i++ )
-    //{
-    //    ok = sargon_position_test(&mate_tests[i],i+1,nbr_tests);
-    //    if( ok )
-    //        nbr_passed_tests++;
-    //}
-    // ok = (nbr_tests==nbr_passed_tests);
     int nbr_passed_tests = 0;
-    int nbr_tests_to_run_at_end = 1;
-    int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);
-    int test_nbr=0;
-    for( int i=nbr_tests - nbr_tests_to_run_at_end; i<nbr_tests; i++ )
+    int nbr_tests = sizeof(atksav_bug_tests)/sizeof(atksav_bug_tests[0]);
+    for( int i=0; i<nbr_tests; i++ )
     {
-        ok = sargon_position_test(&tests_main[i],++test_nbr,nbr_tests_to_run_at_end);
+        ok = sargon_position_test(&atksav_bug_tests[i],i+1,nbr_tests);
         if( ok )
             nbr_passed_tests++;
     }
-    ok = (nbr_tests_to_run_at_end==nbr_passed_tests);
+    ok = (nbr_tests==nbr_passed_tests);
+    //int nbr_passed_tests = 0;
+    //int nbr_tests_to_run_at_end = 1;
+    //int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);
+    //int test_nbr=0;
+    //for( int i=nbr_tests - nbr_tests_to_run_at_end; i<nbr_tests; i++ )
+    //{
+    //    ok = sargon_position_test(&tests_main[i],++test_nbr,nbr_tests_to_run_at_end);
+    //    if( ok )
+    //        nbr_passed_tests++;
+    //}
+    //ok = (nbr_tests_to_run_at_end==nbr_passed_tests);
     return ok;
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
