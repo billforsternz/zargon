@@ -512,6 +512,12 @@ struct TEST
     */
 static TEST tests[]=
 {
+    // ATKSAV_BUG tests, if bug present these two mirror image positions
+    //  generate different solutions, one of which (a material losing
+    //  capture) doesn't make sense
+    { "3r3k/6n1/8/8/6B1/3q4/7K/B2nR3 w - - 0 1", 1, "e1d1", -625, "Rxd1" },
+    { "3Rn2B/K7/4q3/1B6/8/8/1n6/k3r3 w - - 0 1", 1, "d8e8", -625, "Rxe8" },
+
     // Position after 1.Nf3, Black to play book move
     { "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1", 5, "d7d5",
         0, "" },
