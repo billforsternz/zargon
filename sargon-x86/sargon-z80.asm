@@ -1043,23 +1043,24 @@ AT32:   LD      a,(T2)          ; Attacking piece type
 ATKSAV: PUSH    bc              ; Save Regs BC
         PUSH    de              ; Save Regs DE
         LD      a,(NPINS)       ; Number of pinned pieces
-        BIT     7,d             ; Queen found this scan ?
-        JR      NZ,AS01         ; Yes - add to list before before queen
-        AND     a               ; No - save normally. Any pins ?
+        AND     a               ; Any ?
         CALL    NZ,PNCK         ; yes - check pin list
+        LD      ix,(T2)         ; Init index to value table
+        LD      hl,ATKLST       ; Init address of attack list
+        LD      bc,0            ; Init increment for white
         LD      a,(P2)          ; Attacking piece
-AS02:   LD      bc,0            ; Init increment for white
         BIT     7,a             ; Is it white ?
         JR      Z,rel006        ; Yes - jump
         LD      c,7             ; Init increment for black
-rel006: AND     7               ; Attacking piece type (or QUEEN)
-        LD      e,a             ; Init increment for type
-        LD      ix,(T2)         ; Init index to value table
-        LD      hl,ATKLST       ; Init address of attack list
-        ADD     hl,bc           ; Attack list address
-        INC     (hl)            ; Increment list count
-        LD      d,0
-        ADD     hl,de           ; Attack list slot address
+rel006: ADD     hl,bc           ; Attack list address
+        AND     7               ; Slot = attacking piece type
+        LD      c,a             ; BC = offset
+        POP     de              ; Restore DE regs
+        BIT     7,d             ; Queen found this scan ?
+        JR      Z,rel007        ; No - jump
+        LD      c,QUEEN         ; Use Queen slot, pushes piece behind queen
+rel007: INC     (hl)            ; Increment list count
+        ADD     hl,bc           ; Attack list slot address
         LD      a,(hl)          ; Get data already there
         AND     0FH             ; Is first slot empty ?
         JR      Z,AS20          ; Yes - jump
@@ -1074,20 +1075,8 @@ AS19:   RLD                     ; Temp save lower in upper
         JR      AS25            ; Jump
 AS20:   LD      a,(ix+PVALUE)   ; Get new value for attack list
         RLD                     ; Put in 1st attack list slot
-AS25:   POP     de              ; Restore DE regs
-        POP     bc              ; Restore BC regs
+AS25:   POP     bc              ; Restore BC regs
         RET                     ; Return
-
-; Doing it this way fixes a bug in published Sargon. Function
-; PNCK() damages register D, so we must check Queen found this
-; scan before calling PNCK() not afterwards as in published
-; Sargon
-AS01:   AND     a               ; Any pins ?
-        CALL    NZ,PNCK         ; yes - check pin list
-        LD      a,(P2)          ; Attacking piece
-        AND     080h            ; Keep White/Black flag
-        OR      QUEEN           ; Change piece type (slot) to queen
-        JR      AS02
 
 ;***********************************************************
 ; PIN CHECK ROUTINE

@@ -1373,25 +1373,26 @@ AT32:   MOV     al,byte ptr [ebp+T2]            ; Attacking piece type
 ATKSAV: PUSH    ecx                             ; Save Regs BC
         PUSH    edx                             ; Save Regs DE
         MOV     al,byte ptr [ebp+NPINS]         ; Number of pinned pieces
-        TEST    dh,80h                          ; Queen found this scan ?
-        JNZ     AS01                            ; Yes - add to list before before queen
         AND     al,al                           ; No - save normally. Any pins ?
         JZ      skip12                          ; yes - check pin list
         CALL    PNCK
 skip12:
+        MOV     si,word ptr [ebp+T2]            ; Init index to value table
+        MOV     bx,ATKLST                       ; Init address of attack list
+        MOV     cx,0                            ; Init increment for white
         MOV     al,byte ptr [ebp+P2]            ; Attacking piece
-AS02:   MOV     cx,0                            ; Init increment for white
         TEST    al,80h                          ; Is it white ?
         JZ      rel006                          ; Yes - jump
         MOV     cl,7                            ; Init increment for black
-rel006: AND     al,7                            ; Attacking piece type (or QUEEN)
-        MOV     dl,al                           ; Init increment for type
-        MOV     si,word ptr [ebp+T2]            ; Init index to value table
-        MOV     bx,ATKLST                       ; Init address of attack list
-        ADD     bx,cx                           ; Attack list address
-        INC     byte ptr [ebp+ebx]              ; Increment list count
-        MOV     dh,0
-        ADD     bx,dx                           ; Attack list slot address
+rel006: ADD     bx,cx                           ; Attack list address
+        AND     al,7                            ; Attacking piece type (or QUEEN)
+        MOV     cl,al                           ; Init increment for type
+        POP     edx                             ; Restore DE regs
+        TEST    dh,80h                          ; Queen found this scan ?
+        JZ      rel007                          ; No - jump
+        MOV     cl,QUEEN                        ; Use Queen slot, pushes piece behind queen
+rel007: INC     byte ptr [ebp+ebx]              ; Increment list count
+        ADD     bx,cx                           ; Attack list slot address
         MOV     al,byte ptr [ebp+ebx]           ; Get data already there
         AND     al,0FH                          ; Is first slot empty ?
         JZ      AS20                            ; Yes - jump
@@ -1406,22 +1407,9 @@ AS19:   Z80_RLD                                 ; Temp save lower in upper
         JMP     AS25                            ; Jump
 AS20:   MOV     al,byte ptr [ebp+esi+PVALUE]    ; Get new value for attack list
         Z80_RLD                                 ; Put in 1st attack list slot
-AS25:   POP     edx                             ; Restore DE regs
-        POP     ecx                             ; Restore BC regs
+AS25:   POP     ecx                             ; Restore BC regs
         RET                                     ; Return
 
-; Doing it this way fixes a bug in published Sargon. Function
-; PNCK() damages register D, so we must check Queen found this
-; scan before calling PNCK() not afterwards as in published
-; Sargon
-AS01:   AND     al,al                           ; Any pins ?
-        JZ      skip13                          ; yes - check pin list
-        CALL    PNCK
-skip13:
-        MOV     al,byte ptr [ebp+P2]            ; Attacking piece
-        AND     al,080h                         ; Keep White/Black flag
-        OR      al,QUEEN                        ; Change piece type (slot) to queen
-        JMP     AS02
 
 ;***********************************************************
 ; PIN CHECK ROUTINE
@@ -1449,9 +1437,9 @@ PNCK:   MOV     dh,cl                           ; Save attack direction
         MOV     al,byte ptr [ebp+M2]            ; Position of piece
         MOV     bx,PLISTA                       ; Pin list address
 PC1:    Z80_CPIR                                ; Search list for position
-        JZ      skip14                          ; Return if not found
+        JZ      skip13                          ; Return if not found
         RET
-skip14:
+skip13:
         Z80_EXAF                                ; Save search parameters
         TEST    dl,1                            ; Is this the first find ?
         JNZ     PC5                             ; No - jump
@@ -1495,9 +1483,9 @@ PF1:    MOV     al,byte ptr [ebp+edx]           ; Get position of royal piece
         AND     al,al                           ; Is it on board ?
         JZ      PF26                            ; No- jump
         CMP     al,-1                           ; At end of list ?
-        JNZ     skip15                          ; Yes return
+        JNZ     skip14                          ; Yes return
         RET
-skip15:
+skip14:
         MOV     byte ptr [ebp+M3],al            ; Save position as board index
         MOV     si,word ptr [ebp+M3]            ; Load index to board
         MOV     al,byte ptr [ebp+esi+BOARD]     ; Get contents of board
@@ -1617,9 +1605,9 @@ rel009: MOV     ch,byte ptr [ebp+ebx]           ; Init list counts
         SHL     dh,1                            ; Double it
         MOV     ch,dh                           ; Save
         CALL    NEXTAD                          ; Retrieve first attacker
-        JNZ     skip16                          ; Return if none
+        JNZ     skip15                          ; Return if none
         RET
-skip16:
+skip15:
 XC10:   MOV     bl,al                           ; Save attacker value
         CALL    NEXTAD                          ; Get next defender
         JZ      XC18                            ; Jump if none
@@ -1629,13 +1617,13 @@ XC10:   MOV     bl,al                           ; Save attacker value
         JNC     XC19                            ; No - jump
         Z80_EXAF                                ; -Restore defender
 XC15:   CMP     al,bl                           ; Defender less than attacker ?
-        JNC     skip17                          ; Yes - return
+        JNC     skip16                          ; Yes - return
+        RET
+skip16:
+        CALL    NEXTAD                          ; Retrieve next attacker value
+        JNZ     skip17                          ; Return if none
         RET
 skip17:
-        CALL    NEXTAD                          ; Retrieve next attacker value
-        JNZ     skip18                          ; Return if none
-        RET
-skip18:
         MOV     bl,al                           ; Save attacker value
         CALL    NEXTAD                          ; Retrieve next defender value
         JNZ     XC15                            ; Jump if none
@@ -1647,9 +1635,9 @@ XC19:   TEST    cl,1                            ; Attacker or defender ?
 rel010: ADD     al,dl                           ; Total points lost
         MOV     dl,al                           ; Save total
         Z80_EXAF                                ; Restore previous defender
-        JNZ     skip19                          ; Return if none
+        JNZ     skip18                          ; Return if none
         RET
-skip19:
+skip18:
         MOV     ch,bl                           ; Prev attckr becomes defender
         JMP     XC10                            ; Jump
 
@@ -1919,15 +1907,15 @@ LIMIT:  TEST    ch,80h                          ; Is value negative ?
         JZ      LIM10                           ; No - jump
         NEG     al                              ; Make positive
         CMP     al,ch                           ; Compare to limit
-        JC      skip20                          ; Return if outside limit
+        JC      skip19                          ; Return if outside limit
         RET
-skip20:
+skip19:
         MOV     al,ch                           ; Output value as is
         RET                                     ; Return
 LIM10:  CMP     al,ch                           ; Compare to limit
-        JNC     skip21                          ; Return if outside limit
+        JNC     skip20                          ; Return if outside limit
         RET
-skip21:
+skip20:
         MOV     al,ch                           ; Output value as is
         RET                                     ; Return
 
@@ -1976,9 +1964,9 @@ MV5:    MOV     di,word ptr [ebp+M2]            ; Load "to" pos board index
         MOV     al,dh                           ; Get captured piece, if any
         AND     al,7
         CMP     al,QUEEN                        ; Was it a queen ?
-        JZ      skip22                          ; No - return
+        JZ      skip21                          ; No - return
         RET
-skip22:
+skip21:
         MOV     bx,POSQ                         ; Addr of saved Queen position
         TEST    dh,80h                          ; Is Queen white ?
         JZ      MV10                            ; Yes - jump
@@ -2053,9 +2041,9 @@ UM6:    MOV     di,word ptr [ebp+M1]            ; Load "from" pos board index
         MOV     al,dh                           ; Get captured piece, if any
         AND     al,7                            ; Clear flag bits
         CMP     al,QUEEN                        ; Was it a Queen ?
-        JZ      skip23                          ; No - return
+        JZ      skip22                          ; No - return
         RET
-skip23:
+skip22:
         MOV     bx,POSQ                         ; Address of saved Queen pos
         TEST    dh,80h                          ; Is Queen white ?
         JZ      UM10                            ; Yes - jump
@@ -2108,9 +2096,9 @@ SR5:    MOV     bh,ch
         MOV     byte ptr [ebp+ebx],dl
         XOR     al,al                           ; End of list ?
         CMP     al,ch
-        JNZ     skip24                          ; Yes - return
+        JNZ     skip23                          ; Yes - return
         RET
-skip24:
+skip23:
 SR10:   MOV     word ptr [ebp+MLPTRJ],cx        ; Save list pointer
         CALL    EVAL                            ; Evaluate move
         MOV     bx,word ptr [ebp+MLPTRI]        ; Begining of move list
@@ -2183,9 +2171,9 @@ EV10:   CALL    UNMOVE                          ; Restore board array
 ;***********************************************************
 FNDMOV: MOV     al,byte ptr [ebp+MOVENO]        ; Current move number
         CMP     al,1                            ; First move ?
-        JNZ     skip25                          ; Yes - execute book opening
+        JNZ     skip24                          ; Yes - execute book opening
         CALL    BOOK
-skip25:
+skip24:
         XOR     al,al                           ; Initialize ply number to zero
         MOV     byte ptr [ebp+NPLY],al
         MOV     bx,0                            ; Initialize best move to zero
@@ -2223,9 +2211,9 @@ FM5:    MOV     bx,NPLY                         ; Address of ply counter
         MOV     al,byte ptr [ebp+NPLY]          ; Current ply counter
         MOV     bx,PLYMAX                       ; Address of maximum ply number
         CMP     al,byte ptr [ebp+ebx]           ; At max ply ?
-        JNC     skip26                          ; No - call sort
+        JNC     skip25                          ; No - call sort
         CALL    SORTM
-skip26:
+skip25:
         MOV     bx,word ptr [ebp+MLPTRI]        ; Load ply index pointer
         MOV     word ptr [ebp+MLPTRJ],bx        ; Save as last move pointer
 FM15:   MOV     bx,word ptr [ebp+MLPTRJ]        ; Load last move pointer
@@ -2294,9 +2282,9 @@ FM25:   MOV     al,byte ptr [ebp+MATEF]         ; Get mate flag
         JMP     FM36                            ; Jump
 FM30:   MOV     al,byte ptr [ebp+NPLY]          ; Get ply counter
         CMP     al,1                            ; At top of tree ?
-        JNZ     skip27                          ; Yes - return
+        JNZ     skip26                          ; Yes - return
         RET
-skip27:
+skip26:
         CALL    ASCEND                          ; Ascend one ply in tree
         MOV     bx,word ptr [ebp+SCRIX]         ; Load score table pointer
         INC     bx                              ; Increment to current ply
@@ -2337,9 +2325,9 @@ FM37:   CALLBACK "Alpha beta cutoff?"
         DEC     byte ptr [ebp+ebx]
         MOV     al,byte ptr [ebp+KOLOR]         ; Get computer's color
         TEST    al,80h                          ; Is it white ?
-        JNZ     skip28                          ; Yes - return
+        JNZ     skip27                          ; Yes - return
         RET
-skip28:
+skip27:
         MOV     bx,PMATE                        ; Checkmate move number
         DEC     byte ptr [ebp+ebx]              ; Decrement
         RET                                     ; Return
@@ -2411,9 +2399,9 @@ BOOK:   POP     eax                             ; Abort return to FNDMOV
         Z80_LDAR                                ; Load refresh reg (random no)
         CALLBACK "LDAR"
         TEST    al,1                            ; Test random bit
-        JNZ     skip29                          ; Return if zero (P-K4)
+        JNZ     skip28                          ; Return if zero (P-K4)
         RET
-skip29:
+skip28:
         INC     byte ptr [ebp+ebx]              ; P-Q4
         INC     byte ptr [ebp+ebx]
         INC     byte ptr [ebp+ebx]
@@ -2432,14 +2420,14 @@ BM5:    INC     byte ptr [ebp+ebx]              ; Increment to black moves
         JZ      BM9                             ; Yes - jump
         CMP     al,34                           ; Is it a Queen Pawn ?
         JZ      BM9                             ; Yes - jump
-        JNC     skip30                          ; If Queen side Pawn opening -
+        JNC     skip29                          ; If Queen side Pawn opening -
         RET
-skip30:
+skip29:
                                                 ; return (P-K4)
         CMP     al,35                           ; Is it a King Pawn ?
-        JNZ     skip31                          ; Yes - return (P-K4)
+        JNZ     skip30                          ; Yes - return (P-K4)
         RET
-skip31:
+skip30:
 BM9:    INC     byte ptr [ebp+ebx]              ; (P-Q4)
         INC     byte ptr [ebp+ebx]
         INC     byte ptr [ebp+ebx]
@@ -2511,17 +2499,17 @@ CP1C:   MOV     al,byte ptr [ebp+COLOR]         ; Should computer call check ?
         CARRET                                  ; New line
         MOV     al,byte ptr [ebp+SCORE+1]       ; Check for player mated
         CMP     al,0FFH                         ; Forced mate ?
-        JZ      skip32                          ; No - Tab to computer column
+        JZ      skip31                          ; No - Tab to computer column
         CALL    TBCPMV
-skip32:
+skip31:
         PRTBLK  CKMSG,5                         ; Output "check"
         MOV     bx,LINECT                       ; Address of screen line count
         INC     byte ptr [ebp+ebx]              ; Increment for message
 CP24:   MOV     al,byte ptr [ebp+SCORE+1]       ; Check again for mates
         CMP     al,0FFH                         ; Player mated ?
-        JZ      skip33                          ; No - return
+        JZ      skip32                          ; No - return
         RET
-skip33:
+skip32:
         MOV     cl,0                            ; Set player mate flag
         CALL    FCDMAT                          ; Full checkmate ?
         RET                                     ; Return

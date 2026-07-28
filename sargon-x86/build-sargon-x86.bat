@@ -8,7 +8,7 @@ del temp.h
 del temp.txt
 REM
 REM Next manually merge the significant difference in sargon-x86.asm
-REM into src/sargon-x86.asm which has REM had many manual changes (eg
+REM into src/sargon-x86.asm which has had many manual changes (eg
 REM CALLBACK statements) since it was automatically generated.
 REM
 
