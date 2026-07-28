@@ -1335,7 +1335,7 @@ AT32:   LDA     T2              ; Attacking piece type
 ATKSAV: PUSH    B               ; Save Regs BC
         PUSH    D               ; Save Regs DE
         LDA     NPINS           ; Number of pinned pieces
-        ANA     A               ; No - save normally. Any pins ?
+        ANA     A               ; Any pins ?
         CNZ     PNCK            ; yes - check pin list
         LIXD    T2              ; Init index to value table
         LXI     H,ATKLST        ; Init address of attack list
