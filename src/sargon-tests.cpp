@@ -362,7 +362,6 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
         //  they are reproducible by the LDAR callback(). Some games end in repetition with Sargon winning easily, in
         //  particular Sargon does seem to have difficulty mating the opponent if there are too many mates available at higher
         //  plymax
-#if 1
         const char *expected_games[] =
         {
             #if 1  // This version works if ATKSAV_BUG fixed
@@ -376,8 +375,6 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             "d4 d5 Nc3 Nc6 e4 Nf6 e5 Ne4 Be3 g6 Bb5 Nxc3 bxc3 f5 Nf3 Bd7 Bxc6 bxc6 Ng5 Bg7 e6 Bc8 Nf7 Bxd4 Qxd4 Bxe6 Nxd8 Rxd8 Qxh8+ Kd7 Qxh7 c5 Bxc5 Rc8 Qxe7+ Kc6 Qxe6+ Kb7 Rb1+ Ka8 Qxc8#",
             "e4 d5 Nc3 Nf6 e5 Ne4 Qf3 Nxc3 bxc3 Nc6 Bb5 e6 Ne2 f5 O-O Be7 c4 O-O Bb2 Rb8 cxd5 Qxd5 Qxd5 exd5 Bd4 Bd7 Bxa7 Ra8 Bd4 Rab8 Rfb1 Ra8 c3 Rab8 Nf4 Nxd4 Bxd7 Nc6 Nxd5 Bd8 Bxc6 b6 e6 Rc8 e7 Bxe7 Nxe7+ Kh8 Nxc8 Rxc8 Re1 Rb8 Re7 Rc8 Bb7 Rb8 Rxc7 Rd8 d4 Rb8 Rb1 Rd8 Rxb6 Rb8 Bc6 Rxb6 Rc8#"
         };
-#endif
-        
         
         std::string expected = expected_games[i];
         bool pass = (game_text == expected);
