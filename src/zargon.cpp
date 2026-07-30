@@ -841,7 +841,8 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
         bool invalid_attacker = PNCK(m.NPINS,dir);
         if( invalid_attacker )
             return;
-        scan_count = dir;   // reproduce bug in original Sargon
+        // scan_count = dir;   // reproduce bug in original Sargon
+        // ATKSAV_BUG is "fixed" (more accurately, absent) by simply omitting or commenting out "scan_count = dir" here
     }
 
     // Point at White or Black attack list
