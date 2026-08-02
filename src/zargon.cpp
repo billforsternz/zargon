@@ -583,24 +583,10 @@ void GENMOV()
     bool inchk = INCHK(m.COLOR);
     m.CKFLG = inchk;
 
-#if 0
-    m.NPLY++;
-    // Setup move list pointers
-    ML_HEAD *ply      = m.MLPTRI;       // ply list pointer
-    ply++;                              // increment to next ply
-    ply->link_ptr = m.MLNXT;            // point at next move to be generated
-
-    // Save move list pointer
-    ply++; 
-    m.MLPTRI = ply;                     // save new ply pointer
-    m.MLLST  = (ML *)ply;               // last pointer for chain
-#else
-    m.PLYIX_alloc[m.NPLY++] = m.MLNXT;            // point at next move to be generated
-
-    // Save move list pointer
-    m.MLPTRI = (ML_HEAD *)&m.PLYIX[m.NPLY];  // save new ply pointer
-    m.MLLST  = (ML *)m.MLPTRI;               // last pointer for chain
-#endif
+    // Next ply
+    m.PLYIX_lst[m.NPLY++] = m.MLNXT;    // save end of move list ptr
+    m.MLPTRI = &m.PLYIX[m.NPLY];        // start of move linked list
+    m.MLLST  = (ML *)m.MLPTRI;          // current end of list
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -2313,30 +2299,12 @@ void ASCEND()
     // Decrement score table index
     m.SCRIX--;
 
-    // Decrement ply counter
+    // Decrement ply counter and update pointers
     m.NPLY--;
+    m.MLNXT  = m.PLYIX_lst[m.NPLY];     // end of moves at this ply
+    m.MLPTRI = &(m.PLYIX[m.NPLY]);      // linked list head
+    m.MLPTRJ = m.MLPTRI->link_ptr;      // current move
 
-#if 0
-    // Get ply list pointer
-    ML_HEAD *ply = m.MLPTRI;
-
-    // Decrement by ptr size
-    ply--;
-
-    // Update move list avail ptr
-    m.MLNXT = ply->link_ptr;
-
-    // Get ptr to next move to undo
-    ply--;
-    m.MLPTRJ = ply->link_ptr;
-
-    // Save new ply list pointer
-    m.MLPTRI = ply;
-#else
-    m.MLNXT  = m.PLYIX_alloc[m.NPLY];
-    m.MLPTRI = &(m.PLYIX[m.NPLY]);
-    m.MLPTRJ = m.MLPTRI->link_ptr;
-#endif
     // Restore board to previous ply
     UNMOVE();
 }
