@@ -1263,7 +1263,6 @@ void POINTS()
             continue;
 
         // Piece with flags
-        // if( target ) printf( "piece=%02x\n", piece );
         m.P1 = piece;
 
         // Piece without flags
@@ -1285,7 +1284,6 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
-                // if( target ) printf( "A) m.BRDC=%02x\n", m.BRDC );
             }
         }
 
@@ -1300,7 +1298,6 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = -6;     // 6 point bonus for Black
                 m.BRDC += bonus;
-                // if( target ) printf( "B) m.BRDC=%02x\n", m.BRDC );
             }
 
             // Else if king has not castled but has moved, 2 point penalty
@@ -1310,7 +1307,6 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
-                // if( target ) printf( "C) m.BRDC=%02x\n", m.BRDC );
             }
         }
 
@@ -1325,7 +1321,6 @@ void POINTS()
                 if( IS_BLACK(m.P1) )
                     bonus = 2;  // 2 point penalty for Black
                 m.BRDC += bonus;
-                // if( target ) printf( "D) m.BRDC=%02x\n", m.BRDC );
             }
         }
 
@@ -1339,7 +1334,6 @@ void POINTS()
         // Get (White attacker count - Black attacker count) and accumulate
         //  into board control score
         m.BRDC += (*wact-*bact);
-        // if( target ) printf( "E) m.BRDC=%02x\n", m.BRDC );
 
         // If square is empty continue loop
         if( m.P1 == 0 )            //  Get piece on current square
@@ -1349,7 +1343,6 @@ void POINTS()
         int8_t points;
         int8_t attacked_piece_val;
         XCHNG( points, attacked_piece_val );
-        // if( target ) printf( "E) points=%02x\n", points );
 
         // If piece is nominally lost
         if( points != 0 )
@@ -1368,13 +1361,11 @@ void POINTS()
 
                     // Store new value as max lost
                     m.PTSL = points;
-                    // if( target ) printf( "F) m.PTSL=%02x\n", m.PTSL );
 
                     // Is the lost piece the one moving ?
                     if( m.M3 == m.MLPTRJ->to )
                     {
                         m.PTSCK = m.M3; // yes, save position as a flag
-                        // if( target ) printf( "G) m.PTSCK=%02x\n", m.PTSCK );
                     }
                 }
             }
@@ -1393,14 +1384,12 @@ void POINTS()
                     // Update max points won (but save previous value)
                     temp = m.PTSW1;
                     m.PTSW1 = points;
-                    // if( target ) printf( "H) m.PTSW1=%02x\n", m.PTSW1 );
                 }
 
                 // Update 2nd max points won with old value of max points won
                 if( temp >= m.PTSW2 )
                 {
                     m.PTSW2 = temp;
-                    // if( target ) printf( "I) m.PTSW2=%02x\n", m.PTSW2 );
                 }
             }
         }
@@ -1409,7 +1398,6 @@ void POINTS()
         if( IS_BLACK(m.P1) )
             attacked_piece_val = 0-attacked_piece_val;    // negate piece value if Black
         m.MTRL += attacked_piece_val;
-        // if( target ) printf( "J) m.MTRL=%02x\n", m.MTRL );
     }
 
     // If moving piece lost
@@ -1419,14 +1407,12 @@ void POINTS()
         // Shift two element max points stack
         m.PTSW1 = m.PTSW2;
         m.PTSW2 = 0;
-        // if( target ) printf( "K) m.PTSW1=%02x\n", m.PTSW1 );
     }
 
     // Adjust max points lost (decrement if non-zero)
     int8_t ptsl = m.PTSL;
     if( ptsl != 0 )
         ptsl--;
-    // if( target ) printf( "L) ptsl=%02x\n", ptsl );
 
     // Get max points won
     int8_t ptsw = m.PTSW1;
@@ -1455,7 +1441,6 @@ void POINTS()
 
     // Points won net = points won - points lost
     ptsw -= ptsl;
-    // if( target ) printf( "M) ptsw=%02x\n", ptsw );
 
     // Color of side just moved
     if( IS_BLACK(m.COLOR) )
@@ -1466,7 +1451,6 @@ void POINTS()
 
     // Subtract material at ply 0
     ptsw -= m.MV0;
-    // if( target ) printf( "N) ptsw=%02x\n", ptsw );
 
     // Limit to +/- 30 (Sargon refinement => 29 see asterisked comments
     // below about higher weighting for mates in fewer moves)
@@ -1474,19 +1458,16 @@ void POINTS()
 
     // Board control points minus board control at ply zero
     int8_t bcp = m.BRDC - m.BC0;
-    // if( target ) printf( "N2) points=%d, m.BRDC=%02x, m.BC0=%02x\n", points, m.BRDC, m.BC0 );
 
     // If moving piece lost, set board control points to zero
     if( m.PTSCK != 0 )
         bcp = 0;
-    // if( target ) printf( "N3) bcp=%02x\n", bcp );
 
     // Limit to +/- 6
     bcp = LIMIT(6,bcp);
 
     // Add material*4
     points = points*4 + bcp;
-    // if( target ) printf( "P) points=%02x\n", points );
 
     // Color of side just moved
     if( IS_WHITE(m.COLOR) )
