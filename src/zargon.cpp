@@ -583,6 +583,8 @@ void GENMOV()
     bool inchk = INCHK(m.COLOR);
     m.CKFLG = inchk;
 
+#if 0
+    m.NPLY++;
     // Setup move list pointers
     ML_HEAD *ply      = m.MLPTRI;       // ply list pointer
     ply++;                              // increment to next ply
@@ -592,6 +594,13 @@ void GENMOV()
     ply++; 
     m.MLPTRI = ply;                     // save new ply pointer
     m.MLLST  = (ML *)ply;               // last pointer for chain
+#else
+    m.PLYIX_alloc[m.NPLY++] = m.MLNXT;            // point at next move to be generated
+
+    // Save move list pointer
+    m.MLPTRI = (ML_HEAD *)&m.PLYIX[m.NPLY];  // save new ply pointer
+    m.MLLST  = (ML *)m.MLPTRI;               // last pointer for chain
+#endif
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -2012,8 +2021,8 @@ void FNDMOV()
         return;
     }
 
-    //  Initialize ply number, best move
-    m.NPLY  = 1;
+    //  Initialize best move
+    m.NPLY  = 0;
     m.BESTM = 0;
 
     //  Initialize ply list pointers
@@ -2125,7 +2134,6 @@ void FNDMOV()
                 m.SCRIX++;
 
                 // Generate moves at next ply
-                m.NPLY++;                       // increment ply count
                 m.MATEF = true;                 // assume mate unless legal move found
                 GENMOV();                       // generate list of moves
                 callback_after_genmov();
@@ -2295,7 +2303,7 @@ void ASCEND()
     callback_zargon_bridge(CB_ASCEND);
     extraf( "ASCEND()\n" );
 
-    //  Toggle color
+    // Toggle color
     TOGGLE(m.COLOR);
 
     // If new colour is Black, decrement move number
@@ -2308,6 +2316,7 @@ void ASCEND()
     // Decrement ply counter
     m.NPLY--;
 
+#if 0
     // Get ply list pointer
     ML_HEAD *ply = m.MLPTRI;
 
@@ -2323,7 +2332,11 @@ void ASCEND()
 
     // Save new ply list pointer
     m.MLPTRI = ply;
-
+#else
+    m.MLNXT  = m.PLYIX_alloc[m.NPLY];
+    m.MLPTRI = &(m.PLYIX[m.NPLY]);
+    m.MLPTRJ = m.MLPTRI->link_ptr;
+#endif
     // Restore board to previous ply
     UNMOVE();
 }
@@ -2545,7 +2558,6 @@ uint8_t ASNTBI( uint8_t file, uint8_t rank )
 // ARGUMENTS:  --  Returns flag in register A, 0 for valid
 //                 and 1 for invalid move.
 //***********************************************************
-
 bool VALMOV()
 {
     // Return bool ok
