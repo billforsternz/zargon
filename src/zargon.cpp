@@ -1235,160 +1235,9 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 // ARGUMENTS:  --  None
 //***********************************************************
 
-// Introduce optional transposition hash table
-// #define TRANSPO_ENABLED
-// #define TRANSPO_TESTING // doesn't actually use the hash hits 
-#ifdef TRANSPO_ENABLED
-
-// We have to save more than just int8_t points in the hash table
-//  else the score calculation in sargon_pv_callback_yes_best_move()
-//  is thrown off when the best move results came out of the hash table
-struct PointsResults
-{
-    int8_t  points;
-    uint8_t PTSL;
-    uint8_t PTSW1;
-    uint8_t PTSW2;
-    uint8_t MTRL;
-    uint8_t BRDC;
-    uint8_t PTSCK;
-};
-
-static std::map<uint64_t,PointsResults> transpo;
-static uint32_t transpo_count=0;
-static uint32_t transpo_hits;
-static uint32_t transpo_misses;
-static uint32_t count_total;
-static uint32_t count_possible_exclusions;
-static uint64_t hash_calculate()
-{
-    uint64_t hash = 0;
-
-    // Loop through the board
-    for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
-    {
-        uint8_t piece = m.BOARDA[pos];
-
-        // If piece not on border
-        if( piece!=0xff )
-        {
-            hash ^= hash_lookup[pos-SQ_a1][piece];
-        }
-    }
-    return hash;
-}
-#endif
-
 void POINTS()
 {
     callback_zargon_bridge_void(CB_POINTS);
-
-    // Test the fast hash calculate in MOVE(), UNMOVE()
-    //  This code obviously kills performance!, never enable
-    //  it under normal circumstances
-    #if 0
-    if( m.hash != hash_calculate() )
-    {
-        printf( "Hash update is not working\n" );
-        exit(0);
-    }
-    #endif
-    #ifdef TRANSPO_ENABLED
-    #ifdef TRANSPO_TESTING
-    int8_t hash_points=0;
-    #endif
-    bool transpo_hit_but_recalc=false;
-    bool dont_save_in_transpo_hash = false;
-    
-    uint64_t hash = m.COLOR ? m.hash|1 : m.hash&0xfffffffffffffffe;
-    // bool target = false; // (hash==9785867713616636504);
-    auto iter = transpo.find(hash);
-    if( iter != transpo.end() )
-    {
-
-        // Nominally a hit, but make sure that the POINTS() calculation is not
-        //  influenced by the current move - a subset of POINTS() calculations
-        //  don't use transpo hits in such circumstances.
-        bool hit = true;
-        m.M3 = m.MLPTRJ->to;
-        uint8_t piece = m.BOARDA[m.M3];            //  Save as board index
-
-        // Piece with flags
-        m.P1 = piece;
-
-        // Piece without flags
-        piece &= 7;
-        m.T3 = piece;
-
-        // Zero out attack lists
-        memset( m.wact, 0, sizeof(m.wact) );
-        memset( m.bact, 0, sizeof(m.bact) );
-
-        // Build attack list for square
-        m.T1 = 7;
-        ATTACK();
-
-        // Evaluate exchange, if any (at least we are only doing this for one
-        // square - unlike in the main POINTS() loop)
-        int8_t points;
-        int8_t attacked_piece_val;
-        XCHNG( points, attacked_piece_val );
-        // if( target ) printf( "E2) points=%02x\n", points );
-        // if( target ) printf( "E2b) m.COLOR=%02x, m.P1=%02x\n", m.COLOR,m.P1 );
-
-        // If piece is nominally lost
-        if( points != 0 )
-        {
-
-            // If color of piece under attack matches color of side just moved
-            if( IS_SAME_COLOR(m.COLOR,m.P1) )
-            {
-                hit = false;
-            }
-        }
-        // if( target ) printf( "E2c) hit=%s\n", hit?"true":"false" );
-        if( hit )
-        {
-            transpo_hits++;
-            if( transpo_hits%1000 == 0 )
-            {
-                // printf( "%u transpo hits\n", transpo_hits );
-                // printf( "%u transpo misses\n", transpo_misses );
-                // printf( "Worth fixing transpo issue if %lu is a small proportion of %lu\n",
-                //             count_possible_exclusions,
-                //             count_total) ;
-            }
-            int8_t points = iter->second.points;
-            #ifdef TRANSPO_TESTING
-            hash_points = points;
-            transpo_hit_but_recalc = true;
-            #else
-            m.PTSL  = iter->second.PTSL;
-            m.PTSW1 = iter->second.PTSW1;
-            m.PTSW2 = iter->second.PTSW2;
-            m.MTRL  = iter->second.MTRL;
-            m.BRDC  = iter->second.BRDC;
-            m.PTSCK = iter->second.PTSCK;
-            callback_end_of_points(points);
-            m.VALM = points;
-            m.MLPTRJ->val = m.VALM;
-            return;
-            #endif
-        }
-    }
-    if( !transpo_hit_but_recalc )
-    {
-        transpo_misses++;
-        if( transpo_misses%1000 == 0 )
-        {
-            // printf( "%u transpo hits\n", transpo_hits );
-            // printf( "%u transpo misses\n", transpo_misses );
-            // printf( "Worth fixing transpo issue if %lu is a small proportion of %lu\n",
-            //             count_possible_exclusions,
-            //             count_total) ;
-        }
-    }
-    #endif
     int8_t *wact = (int8_t *)m.wact;
     int8_t *bact = (int8_t *)m.bact;
 
@@ -1501,9 +1350,6 @@ void POINTS()
         int8_t attacked_piece_val;
         XCHNG( points, attacked_piece_val );
         // if( target ) printf( "E) points=%02x\n", points );
-        #ifdef TRANSPO_ENABLED
-        count_total++;
-        #endif
 
         // If piece is nominally lost
         if( points != 0 )
@@ -1515,9 +1361,6 @@ void POINTS()
             // If color of piece under attack matches color of side just moved
             if( IS_SAME_COLOR(m.COLOR,m.P1) )
             {
-                #ifdef TRANSPO_ENABLED
-                count_possible_exclusions++;
-                #endif
 
                 // If points lost >= previous max points lost
                 if( points >= m.PTSL )
@@ -1530,9 +1373,6 @@ void POINTS()
                     // Is the lost piece the one moving ?
                     if( m.M3 == m.MLPTRJ->to )
                     {
-                        #ifdef TRANSPO_ENABLED
-                        dont_save_in_transpo_hash = true;
-                        #endif
                         m.PTSCK = m.M3; // yes, save position as a flag
                         // if( target ) printf( "G) m.PTSCK=%02x\n", m.PTSCK );
                     }
@@ -1655,23 +1495,6 @@ void POINTS()
     // Rescale score (neutral = 0x80)
     // Experiment: points here is a balanced signed value, so 0 = even +126=very good, -126=very bad
     points += 0x80;
-
-    #ifdef TRANSPO_ENABLED
-    // if( target ) printf( "Q) points=%02x\n", points );
-    if( !transpo_hit_but_recalc && !dont_save_in_transpo_hash && transpo_count < 1000000 )
-    {
-        PointsResults pr;
-        pr.points= points;
-        pr.PTSL  = m.PTSL;
-        pr.PTSW1 = m.PTSW1;
-        pr.PTSW2 = m.PTSW2;
-        pr.MTRL  = m.MTRL;
-        pr.BRDC  = m.BRDC;
-        pr.PTSCK = m.PTSCK;
-        transpo[hash] = pr;
-        transpo_count++;
-    }
-    #endif
     callback_end_of_points(points);
 
     // Save score value
@@ -1680,21 +1503,6 @@ void POINTS()
 
     // Save score value to move pointed to by current move ptr
     m.MLPTRJ->val = m.VALM;
-
-    // Check hash - testing only
-    #ifdef TRANSPO_TESTING
-    if( transpo_hit_but_recalc )
-    {
-        if( points != hash_points )
-        {
-            printf( "Hash internal error %d %d hash=%llu\n", points, hash_points, hash );
-            printf( "Worth fixing if %lu is a small proportion of %lu\n",
-                        count_possible_exclusions,
-                        count_total) ;
-            exit(0);
-        }
-    }
-    #endif
 }
 
 //***********************************************************
@@ -1803,22 +1611,10 @@ void MOVE()
         SET_MOVED(piece);
 
         // Insert piece at new position
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M2-SQ_a1][m.BOARDA[m.M2]];
-        #endif
         m.BOARDA[m.M2] = piece;
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M2-SQ_a1][piece];
-        #endif
 
         // Empty previous position
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M1-SQ_a1][m.BOARDA[m.M1]];
-        #endif
         m.BOARDA[m.M1] = 0;
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M1-SQ_a1][0];
-        #endif
 
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
@@ -1917,23 +1713,11 @@ void UNMOVE()
         }
 
         // Return piece to previous board position
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M1-SQ_a1][m.BOARDA[m.M1]];
-        #endif
         m.BOARDA[m.M1] = piece;
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M1-SQ_a1][piece];
-        #endif
 
         // Restore captured piece with cleared flags
         uint8_t temp = captured_piece_plus_flags & 0x8f;
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M2-SQ_a1][m.BOARDA[m.M2]];
-        #endif
         m.BOARDA[m.M2] = temp;
-        #ifdef TRANSPO_ENABLED
-        m.hash ^= hash_lookup[m.M2-SQ_a1][temp];
-        #endif
 
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
@@ -2239,18 +2023,6 @@ void EVAL()
 void FNDMOV()
 {
     callback_zargon_bridge(CB_FNDMOV);
-    #ifdef TRANSPO_ENABLED
-    transpo.clear();
-    transpo_count = 0;
-    if( transpo_hits!=0 || transpo_misses!=0 )
-    {
-        // printf( "%u transpo hits\n", transpo_hits );
-        // printf( "%u transpo misses\n", transpo_misses );
-        transpo_hits=0;
-        transpo_misses=0;
-    }
-    m.hash = hash_calculate();
-    #endif
 
     // Book move ?
     if( m.MOVENO == 1 )
@@ -2287,9 +2059,6 @@ void FNDMOV()
 
     //  Evaluate board at ply 0
     POINTS();
-    #ifdef TRANSPO_ENABLED
-    transpo.clear();     // don't use ply 0 position, BC0 not set yet
-    #endif
     m.BC0 = m.BRDC;
     m.MV0 = m.MTRL;
 
