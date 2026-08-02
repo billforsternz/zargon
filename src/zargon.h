@@ -26,6 +26,12 @@ struct ML
     #endif
 };
 
+// Linked move
+struct ML_HEAD
+{
+    struct ML  *link_ptr;
+};
+
 #define MLPTR 0
 #define MLFRP offsetof(ML,from)
 #define MLTOP offsetof(ML,to)
@@ -241,7 +247,7 @@ uint8_t SCORE[40];      // Z80 max 6 ply
 //             list is the one currently being considered.
 //***********************************************************
 uint64_t padding2[2];
-ML PLYIX[40];   // only the link pointers of each ML are used
+ML_HEAD PLYIX[40];   // only the link pointers of each ML are used
 
 //***********************************************************
 // 2) TABLE INDICES SECTION
@@ -290,7 +296,7 @@ uint8_t  T3      =      0;
 uint8_t  INDX1   =      0;
 uint8_t  INDX2   =      0;
 uint8_t  NPINS   =      0;
-ML      *MLPTRI  =      PLYIX;
+ML_HEAD *MLPTRI  =      PLYIX;
 ML      *MLPTRJ  =      MLIST;
 uint8_t *SCRIX   =      0;
 ML      *BESTM   =      0;

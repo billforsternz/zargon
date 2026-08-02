@@ -584,14 +584,14 @@ void GENMOV()
     m.CKFLG = inchk;
 
     // Setup move list pointers
-    ML *ply      = m.MLPTRI;            // ply list pointer
+    ML_HEAD *ply      = m.MLPTRI;       // ply list pointer
     ply++;                              // increment to next ply
     ply->link_ptr = m.MLNXT;            // point at next move to be generated
 
     // Save move list pointer
     ply++; 
     m.MLPTRI = ply;                     // save new ply pointer
-    m.MLLST  = ply;                     // last pointer for chain
+    m.MLLST  = (ML *)ply;               // last pointer for chain
     // printf( "@@@ %d GENMOV()\n", (int)(m.MLPTRI-m.PLYIX) );
 
     // Loop through the board
@@ -2093,7 +2093,7 @@ void SORTM()
     //
     ML *sorted_tail = 0;   // sorted tail needs to be relinked into
                            // sorted list after each sort step
-    ML *unsorted_rover = m.MLPTRI;
+    ML_HEAD *unsorted_rover = m.MLPTRI;
 
     // Loop over the unsorted list, EVAL() and sort one move at a time
     // Example from above, we are just finishing up sorting J and then
@@ -2126,7 +2126,7 @@ void SORTM()
         EVAL();
 
         // Search loop, find the right point in the sorted list
-        ML *sorted_rover = m.MLPTRI;  // sorted moves replace unsorted moves in ply list MLPTRI
+        ML_HEAD *sorted_rover = m.MLPTRI;  // sorted moves replace unsorted moves in ply list MLPTRI
 
         // Example: MLPTRI -> D -> J -> K   
         for(;;)
@@ -2155,7 +2155,7 @@ void SORTM()
             }
 
             // Continue search through sorted loop
-            sorted_rover = sorted_tail;
+            sorted_rover = (ML_HEAD *)sorted_tail;
         }
 
         // Link new move into list
@@ -2167,7 +2167,7 @@ void SORTM()
         sorted_rover->link_ptr = unsorted_move;
 
         // Continue unsorted loop
-        unsorted_rover = unsorted_move;
+        unsorted_rover = (ML_HEAD *)unsorted_move;
     }
     #endif
 }
@@ -2301,7 +2301,7 @@ void FNDMOV()
     callback_after_genmov();
     if( m.PLYMAX > m.NPLY )
         SORTM();                // If not at max ply, score and sort (for alpha-beta) the moves
-    m.MLPTRJ = m.MLPTRI;        // Current move is first move in the move list for this ply
+    m.MLPTRJ = (ML *)m.MLPTRI;  // Current move is first move in the move list for this ply
 
     // Loop through the moves
     for(;;)
@@ -2390,8 +2390,8 @@ void FNDMOV()
                 // be alpha-beta cutoffs at the leaves)
                 if( m.PLYMAX > m.NPLY )
                     SORTM();                    // not at max ply, so call sort
-                m.MLPTRJ = m.MLPTRI;            // set current move to first move in
-                                                // the move list for this ply
+                m.MLPTRJ = (ML *)m.MLPTRI;      // set current move to first move in
+                                                //  the move list for this ply
 
                 // Continue loop to iterate through the new move list
                 continue;   
@@ -2561,7 +2561,7 @@ void ASCEND()
     m.NPLY--;
 
     // Get ply list pointer
-    ML *ply = m.MLPTRI;
+    ML_HEAD *ply = m.MLPTRI;
 
     // Decrement by ptr size
     ply--;
@@ -2811,7 +2811,7 @@ bool VALMOV()
     m.COLOR = IS_WHITE(m.KOLOR) ? BLACK : WHITE;
 
     // Load move list index
-    ML *p = m.PLYIX;
+    ML_HEAD *p = m.PLYIX;
     p--;
     m.MLPTRI = p;
     // printf( "@@@ %d VALMOV()\n", (int)(m.MLPTRI-m.PLYIX) );

@@ -436,7 +436,7 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
     for( int i=first_ply; i<=final_ply; i++ )
     {
         s += util::sprintf( "%d: ", i );
-        ML *ml = &m.PLYIX[i];
+        ML *ml = (ML *)&m.PLYIX[i];
         if( i%2 != 0 )
         {
             ml = ml->link_ptr;
@@ -445,7 +445,7 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
         }
         else
         {
-            if( m.MLPTRI == ml )
+            if( (ML *)m.MLPTRI == ml )
             {
                 s += "<-MLPTRI";
                 flag_mlptri = true;
@@ -535,22 +535,22 @@ std::string show_ply_chains( ML *parm1, const char *parm1_name,
         {
             switch(i)
             {
-                case 0: desc=" MLPTRI";      flag = flag_mlptri;     ml = m.MLPTRI;      break;
-                case 1: desc=" MLPTRJ";      flag = flag_mlptrj;     ml = m.MLPTRJ;      break;
-                case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;       break;
-                case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;       break;
-                case 4: desc=" BESTM";       flag = flag_bestm;      ml = m.BESTM;       break;
-                case 5: desc=space1_name.c_str(); flag = flag_parm1; ml = parm1;         break;
-                case 6: desc=space2_name.c_str(); flag = flag_parm2; ml = parm2;         break;
-                case 7: desc=space3_name.c_str(); flag = flag_parm3; ml = parm3;         break;
+                case 0: desc=" MLPTRI";      flag = flag_mlptri;     ml = (ML *)m.MLPTRI;   break;
+                case 1: desc=" MLPTRJ";      flag = flag_mlptrj;     ml = m.MLPTRJ;         break;
+                case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;          break;
+                case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;          break;
+                case 4: desc=" BESTM";       flag = flag_bestm;      ml = m.BESTM;          break;
+                case 5: desc=space1_name.c_str(); flag = flag_parm1; ml = parm1;            break;
+                case 6: desc=space2_name.c_str(); flag = flag_parm2; ml = parm2;            break;
+                case 7: desc=space3_name.c_str(); flag = flag_parm3; ml = parm3;            break;
             }
             if( !flag )
             {
                 s += desc;
                 if( !ml )
                     s += " NULL";
-                else if( &m.PLYIX[0]<=ml && ml<=&m.PLYIX[40] )
-                    s += util::sprintf( " PLYIX[%d]", (int)(ml - &m.PLYIX[0]) );
+                else if( &m.PLYIX[0]<=(ML_HEAD *)ml && (ML_HEAD *)ml<=&m.PLYIX[40] )
+                    s += util::sprintf( " PLYIX[%d]", (int)((ML_HEAD *)ml - &m.PLYIX[0]) );
                 else if( ml >= m.MLIST )
                 {
                     s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
