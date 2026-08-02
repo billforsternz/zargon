@@ -281,7 +281,10 @@ bool sargon_play_move( thc::Move &mv )
         }
     }
     if( ok )
+    {
+        m.NPLY = 0;
         ok = VALMOV();
+    }
 
     // Restore COLOR and KOLOR
     m.KOLOR = kolor;
