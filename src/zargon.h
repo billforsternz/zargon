@@ -26,7 +26,7 @@ struct ML
     #endif
 };
 
-// Linked move
+// Linked move, link ptr only
 struct ML_HEAD
 {
     struct ML  *link_ptr;

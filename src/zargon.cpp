@@ -592,7 +592,6 @@ void GENMOV()
     ply++; 
     m.MLPTRI = ply;                     // save new ply pointer
     m.MLLST  = (ML *)ply;               // last pointer for chain
-    // printf( "@@@ %d GENMOV()\n", (int)(m.MLPTRI-m.PLYIX) );
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
@@ -2267,7 +2266,6 @@ void FNDMOV()
     //  Initialize ply list pointers
     m.MLNXT  = m.MLIST;
     m.MLPTRI = m.PLYIX;
-    // printf( "@@@ %d FNDMOV()\n", (int)(m.MLPTRI-m.PLYIX) );
     
     // The original Sargon code actually sets it this way which is
     //  a tricky way of saving one element in the PLYIX array
@@ -2575,7 +2573,6 @@ void ASCEND()
 
     // Save new ply list pointer
     m.MLPTRI = ply;
-    // printf( "@@@ %d ASCEND()\n", (int)(m.MLPTRI-m.PLYIX) );
 
     // Restore board to previous ply
     UNMOVE();
@@ -2814,7 +2811,6 @@ bool VALMOV()
     ML_HEAD *p = m.PLYIX;
     p--;
     m.MLPTRI = p;
-    // printf( "@@@ %d VALMOV()\n", (int)(m.MLPTRI-m.PLYIX) );
 
     // Next available list pointer
     ML *ml = m.MLIST;
