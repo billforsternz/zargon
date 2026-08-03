@@ -1,0 +1,30 @@
+# Ignore file types
+*.log
+*.obj
+*.exe
+*.user
+*.filters
+
+# Ignore directories
+x64/
+Release/
+Debug/
+misc_junk/
+.vs/
+
+# Sargon-x86 bridge project misc stuff
+sargon-x86/.vs/                                         
+sargon-x86/Debug/                                       
+sargon-x86/README.md                                    
+sargon-x86/Release/                                     
+sargon-x86/convert-8080-to-z80-or-x86.exe               
+sargon-x86/sargon-engine/.vs/                           
+sargon-x86/sargon-engine/Debug/                         
+sargon-x86/sargon-engine/Release/                       
+sargon-x86/sargon-engine/sargon-engine.vcxproj.user     
+sargon-x86/sargon-tests-doc-output.txt                  
+sargon-x86/sargon-tests/Debug/                          
+sargon-x86/sargon-tests/Release/                        
+sargon-x86/sargon-tests/sargon-tests.vcxproj.user       
+sargon-x86/thc-documentation.txt                        
+sargon-x86/zmac.exe                                     
