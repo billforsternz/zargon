@@ -272,6 +272,8 @@ ML *    PLYIX_lst[22];      // last move in linked list
 //
 // SCRIX   --  Score Index. Pointer to the score table for
 //             the ply being examined.
+//             (Not needed in Zargon because in C it is easy
+//              to index into score table with NPLY instead)
 //
 // BESTM   --  Pointer into the move list for the move that
 //             is currently considered the best by the
@@ -298,7 +300,7 @@ uint8_t  INDX2   =      0;
 uint8_t  NPINS   =      0;
 ML_HEAD *MLPTRI  =      PLYIX;
 ML      *MLPTRJ  =      MLIST;
-uint8_t *SCRIX   =      0;
+//uint8_t *SCRIX   =      0;
 ML      *BESTM   =      0;
 ML      *MLLST   =      0;
 ML      *MLNXT   =      MLIST;

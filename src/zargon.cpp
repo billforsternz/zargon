@@ -2022,8 +2022,7 @@ void FNDMOV()
     // Initialise color
     m.COLOR = m.KOLOR;
 
-    // Initialize score index and clear table
-    m.SCRIX = m.SCORE;
+    // Initialize score table
     memset( m.SCORE, 0, sizeof(m.SCORE) );
 
     // Init board control and material
@@ -2111,14 +2110,10 @@ void FNDMOV()
                 if( IS_WHITE(m.COLOR) )
                     m.MOVENO++;
 
-                // Update score pointer and score
+                // Update score
                 #ifdef DEBUG_TRACK_SCORE
                 bridge_score_descend();
                 #endif
-                // uint8_t *p = m.SCRIX;
-                // *(p+2) = *p;                    // prepare for Alpha-Beta comparison    
-                m.SCRIX++;
-                // printf( "%lld\n", &m.SCORE[m.NPLY-1] - p);
                 m.SCORE[m.NPLY+1] = m.SCORE[m.NPLY-1];
 
                 // Generate moves at next ply
@@ -2148,8 +2143,6 @@ void FNDMOV()
         // Apply minimax and alpha beta and then ASCEND() up tree
 
         // Score the node
-        // uint8_t *p = m.SCRIX;                // load score table pointer
-        // printf( "%lld\n", &m.SCORE[m.NPLY-1] - p);
         uint8_t score = 0;
         int8_t iscore = 0;
 
@@ -2174,13 +2167,10 @@ void FNDMOV()
         // Else if legal move found, so not mate or stalemate, ASCEND
         else if( !m.MATEF )
         {
-            if( m.NPLY == 1 )       // at top of tree ?
-                return;             // yes
-            ASCEND();               // ascend one ply in tree
-            // p = m.SCRIX;            // load updated score table pointer
-            // printf( "A) %lld\n", &m.SCORE[m.NPLY-1] - p);
-            // score = *(p+2);                 // get score
-            score = m.SCORE[m.NPLY+1];         // get score
+            if( m.NPLY == 1 )           // at top of tree ?
+                return;                 // yes
+            ASCEND();                   // ascend one ply in tree
+            score = m.SCORE[m.NPLY+1];  // get score
         }
 
         // Else if mate or stalemate
@@ -2300,9 +2290,6 @@ void ASCEND()
     // If new colour is Black, decrement move number
     if( IS_BLACK(m.COLOR) )
         m.MOVENO--;
-
-    // Decrement score table index
-    m.SCRIX--;
 
     // Decrement ply counter and update pointers
     m.NPLY--;
