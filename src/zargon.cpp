@@ -2115,9 +2115,11 @@ void FNDMOV()
                 #ifdef DEBUG_TRACK_SCORE
                 bridge_score_descend();
                 #endif
-                uint8_t *p = m.SCRIX;
-                *(p+2) = *p;                    // prepare for Alpha-Beta comparison    
+                // uint8_t *p = m.SCRIX;
+                // *(p+2) = *p;                    // prepare for Alpha-Beta comparison    
                 m.SCRIX++;
+                // printf( "%lld\n", &m.SCORE[m.NPLY-1] - p);
+                m.SCORE[m.NPLY+1] = m.SCORE[m.NPLY-1];
 
                 // Generate moves at next ply
                 m.MATEF = true;                 // assume mate unless legal move found
@@ -2147,6 +2149,7 @@ void FNDMOV()
 
         // Score the node
         uint8_t *p = m.SCRIX;                // load score table pointer
+        // printf( "%lld\n", &m.SCORE[m.NPLY-1] - p);
         uint8_t score = 0;
         int8_t iscore = 0;
 
@@ -2175,6 +2178,7 @@ void FNDMOV()
                 return;             // yes
             ASCEND();               // ascend one ply in tree
             p = m.SCRIX;            // load updated score table pointer
+            printf( "A) %lld\n", &m.SCORE[m.NPLY-1] - p);
             score = *(p+2);         // get score
         }
 
@@ -2223,6 +2227,7 @@ void FNDMOV()
         //  "Wait a minute, this reply already means that move B is no good,
         //   because it proves the opponent can do better against B than
         //   against A. So stop wasting time on B"
+        printf( "B) %lld\n", &m.SCORE[m.NPLY-1] - p);
         callback_alpha_beta_cutoff( score, p );
         if( score <= *p )  // compare to score 2 ply above
         {

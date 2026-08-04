@@ -392,12 +392,12 @@ std::string show_scores()
         if( score_descriptors[i] == "" )
             score_descriptors[i] = "0";
     }
-    if( m.SCRIX-m.SCORE > last_score )
-        last_score = (int)(m.SCRIX-m.SCORE);
+    if( m.NPLY > last_score )
+        last_score = m.NPLY;
     for( int i=0; i<=last_score; i++ )
     {
-        if( i == m.SCRIX-m.SCORE )
-            s += "SCRIX->";
+        if( i == m.NPLY )
+            s += "NPLY->";
         s += util::sprintf( "%d: (%u) %s\n", i, m.SCORE[i], score_descriptors[i].c_str() );
     }
     return s;
