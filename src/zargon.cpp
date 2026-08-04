@@ -2148,7 +2148,7 @@ void FNDMOV()
         // Apply minimax and alpha beta and then ASCEND() up tree
 
         // Score the node
-        uint8_t *p = m.SCRIX;                // load score table pointer
+        // uint8_t *p = m.SCRIX;                // load score table pointer
         // printf( "%lld\n", &m.SCORE[m.NPLY-1] - p);
         uint8_t score = 0;
         int8_t iscore = 0;
@@ -2177,9 +2177,10 @@ void FNDMOV()
             if( m.NPLY == 1 )       // at top of tree ?
                 return;             // yes
             ASCEND();               // ascend one ply in tree
-            p = m.SCRIX;            // load updated score table pointer
-            printf( "A) %lld\n", &m.SCORE[m.NPLY-1] - p);
-            score = *(p+2);         // get score
+            // p = m.SCRIX;            // load updated score table pointer
+            // printf( "A) %lld\n", &m.SCORE[m.NPLY-1] - p);
+            // score = *(p+2);                 // get score
+            score = m.SCORE[m.NPLY+1];         // get score
         }
 
         // Else if mate or stalemate
@@ -2227,9 +2228,8 @@ void FNDMOV()
         //  "Wait a minute, this reply already means that move B is no good,
         //   because it proves the opponent can do better against B than
         //   against A. So stop wasting time on B"
-        printf( "B) %lld\n", &m.SCORE[m.NPLY-1] - p);
-        callback_alpha_beta_cutoff( score, p );
-        if( score <= *p )  // compare to score 2 ply above
+        callback_alpha_beta_cutoff( score, &m.SCORE[m.NPLY-1] );
+        if( score <= m.SCORE[m.NPLY-1] )  // compare to score 2 ply above
         {
             ASCEND();  // ascend one ply in tree
             continue;
@@ -2241,14 +2241,14 @@ void FNDMOV()
         score = (uint8_t) iscore;
 
         // Compare to score 1 ply above
-        p++;
-        bool score_greater = (*p < score);
-        callback_no_best_move( score, p );
+        // p++;
+        bool score_greater = (m.SCORE[m.NPLY] < score);
+        callback_no_best_move( score, &m.SCORE[m.NPLY] );
         if( !score_greater )
             continue;   // continue unless score is greater
-        *p = score;     // save as new score 1 ply above
+        m.SCORE[m.NPLY] = score;     // save as new score 1 ply above
         #ifdef DEBUG_TRACK_SCORE
-        bridge_score_updated( p, score );
+        bridge_score_updated( &m.SCORE[m.NPLY], score );
         #endif
         callback_yes_best_move();
 

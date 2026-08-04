@@ -843,7 +843,7 @@ void bridge_score_updated( uint8_t *p, uint8_t score )
 
 void bridge_score_descend()
 {
-    int idx = (int)(m.SCRIX-m.SCORE);
+    int idx = m.NPLY-1;
     score_descriptors[idx+2] = score_descriptors[idx];
     extraf( "SCORE descends %d->%d %s\n", idx, idx+2, score_descriptors[idx].c_str() );
 }
