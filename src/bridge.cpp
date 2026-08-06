@@ -851,40 +851,13 @@ void bridge_score_descend()
 
 std::string show_node()
 {
-/*  printf( "NPLY=%d", m.NPLY );
-    for( int i=0; i<10; i++ )
-    {
-        if( m.MLPTRI == &m.PLYIX[i] )
-            printf( "@->" );
-        printf( "[%d", i );
-        ML *ml = m.PLYIX[i].link_ptr;
-        while( ml )
-        {
-            printf( " " );
-            if( m.MLPTRI == (ML_HEAD *)ml )
-                printf( "@->" );
-            if( m.MLPTRJ == ml )
-                printf( "->" );
-            printf( "%p", ml );
-            ml = ml->link_ptr;
-        }
-        printf( "]\n" );
-    }
-*/
     std::string s;
     thc::ChessRules cr(start_position);
     thc::Move mv;
     int idx=1;
-    ML *ml = (ML *)&m.PLYIX[idx];
     while( idx <= m.NPLY )
     {
-        while( idx==m.NPLY && ml && ml!= m.MLPTRJ )
-            ml = ml->link_ptr;
-        if( idx==m.NPLY && ml!= m.MLPTRJ )
-        {
-            printf( "### Internal error - couldn't find current move\n" );
-            exit(-1);
-        }
+        ML *ml = m.PLYIX[idx].link_ptr;
         std::string terse = sargon_export_move(ml);
         mv.TerseIn( &cr, terse.c_str() );
         if( idx > 1 )
@@ -909,6 +882,11 @@ std::string show_node()
         idx++;
         ml = m.PLYIX[idx].link_ptr;
     }
+    // if( once )
+    // {
+    //     printf( "Debugging early exit> %s\n", s.c_str() );
+    //     exit(-1);
+    // }
     return s;
 }
 
