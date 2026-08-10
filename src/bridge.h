@@ -26,8 +26,8 @@
 
 // Some different use/testing scenarios
 //#define SCENARIO_PRODUCTION
-#define SCENARIO_BASIC_DEBUGGING
-//#define SCENARIO_SINGLE_STEPPING
+//#define SCENARIO_BASIC_DEBUGGING
+#define SCENARIO_SINGLE_STEPPING
 
 // Production, eliminate all overheads
 #ifdef SCENARIO_PRODUCTION
@@ -102,9 +102,7 @@ std::string show_node();
 std::string show_scores();
 std::string show_score( uint8_t val );
 struct ML;
-std::string show_ply_chains( ML *parm1=0, const char *parm1_name=0,
-                             ML *parm2=0, const char *parm2_name=0,
-                             ML *parm3=0, const char *parm3_name=0  );
+std::string show_ply_chains();
 
 class function_in_out
 {

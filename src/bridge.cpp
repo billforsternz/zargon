@@ -403,172 +403,6 @@ std::string show_scores()
     return s;
 }
 
-std::string show_ply_chains( ML *parm1, const char *parm1_name,
-                             ML *parm2, const char *parm2_name,
-                             ML *parm3, const char *parm3_name  )
-{
-    std::string space1_name = parm1_name ? " "+std::string(parm1_name) : "?$?";
-    std::string space2_name = parm2_name ? " "+std::string(parm2_name) : "?$?";
-    std::string space3_name = parm3_name ? " "+std::string(parm3_name) : "?$?";
-    std::string s;
-    s += "PLYIX[]\n";
-    int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
-    int final_ply = 0;
-    for( int i = sizeof(m.PLYIX)/sizeof(m.PLYIX[0]) - 1; i>=0; i-- )
-    {
-        ML *ml = m.PLYIX[i].link_ptr;
-        if( ml )
-        {
-            final_ply = i;
-            break;
-        }
-    }
-    if( m.MLPTRI - m.PLYIX >final_ply )
-        final_ply = (int)(m.MLPTRI - m.PLYIX);
-    bool flag_mlptri=false, flag_mlptrj=false, flag_mlnxt=false, flag_mllst=false, flag_bestm=false;
-    bool flag_parm1=false,  flag_parm2=false,  flag_parm3=false;
-    if( !parm1_name )
-        flag_parm1 = true;
-    if( !parm2_name )
-        flag_parm2 = true;
-    if( !parm3_name )
-        flag_parm3 = true;
-    for( int i=first_ply; i<=final_ply; i++ )
-    {
-        s += util::sprintf( "%d: ", i );
-        ML *ml = (ML *)&m.PLYIX[i];
-        if( i%2 != 0 )
-        {
-            ml = ml->link_ptr;
-            if( ml >= m.MLIST )
-                s += util::sprintf( " m.LIST[%d]", (int)(ml - m.MLIST) );
-        }
-        else
-        {
-            if( (ML *)m.MLPTRI == ml )
-            {
-                s += "<-MLPTRI";
-                flag_mlptri = true;
-            }
-            if( m.MLPTRJ == ml )
-            {
-                s += "<-MLPTRJ";
-                flag_mlptrj = true;
-            }
-            if( m.MLLST == ml )
-            {
-                s += "<-MLLST";
-                flag_mllst = true;
-            }
-            ml = ml->link_ptr;
-            for( int j=0; j<1000 && ml; j++ )
-            {
-                if( m.MLPTRJ == ml )
-                {
-                    s += " MLPTRJ";
-                    flag_mlptrj = true;
-                }
-                if( m.MLNXT == ml )
-                {
-                    s += " MLNXT";
-                    flag_mlnxt = true;
-                }
-                if( m.MLLST == ml )
-                {
-                    s += " MLLST";
-                    flag_mllst = true;
-                }
-                if( m.BESTM == ml )
-                {
-                    s += " BESTM";
-                    flag_bestm = true;
-                }
-                if( parm1 == ml )
-                {
-                    s += space1_name;
-                    flag_parm1 = true;
-                }
-                if( parm2 == ml )
-                {
-                    s += space2_name;
-                    flag_parm2 = true;
-                }
-                if( parm3 == ml )
-                {
-                    s += space3_name;
-                    flag_parm3 = true;
-                }
-                if( ml >= m.MLIST )
-                #ifdef DEBUG_MOVE_EXTENSIONS
-                    s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
-                #else
-                    s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
-                #endif
-                else
-                    s += " ???";
-                std::string t;
-                #ifdef DEBUG_MOVE_EXTENSIONS
-                t += ml->creation_piece;
-                t += ml->terse;
-                #else
-                t = sargon_export_move( ml );
-                if( t == "" )
-                    t = "----";
-                #endif
-                s += t;
-                s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
-                ml = ml->link_ptr;
-            }
-        }
-        s += "\n";
-    }
-
-    // If any unaccounted for, show them
-    if( !flag_mlptri || !flag_mlptrj || !flag_mlnxt || !flag_mllst || !flag_bestm ||
-        !flag_parm1  || !flag_parm2  || !flag_parm3 )
-    {
-        s += "others:";
-        const char *desc="?";
-        ML *ml = 0;
-        bool flag = false;
-        for( int i=0; i<8; i++ )
-        {
-            switch(i)
-            {
-                case 0: desc=" MLPTRI";      flag = flag_mlptri;     ml = (ML *)m.MLPTRI;   break;
-                case 1: desc=" MLPTRJ";      flag = flag_mlptrj;     ml = m.MLPTRJ;         break;
-                case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;          break;
-                case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;          break;
-                case 4: desc=" BESTM";       flag = flag_bestm;      ml = m.BESTM;          break;
-                case 5: desc=space1_name.c_str(); flag = flag_parm1; ml = parm1;            break;
-                case 6: desc=space2_name.c_str(); flag = flag_parm2; ml = parm2;            break;
-                case 7: desc=space3_name.c_str(); flag = flag_parm3; ml = parm3;            break;
-            }
-            if( !flag )
-            {
-                s += desc;
-                if( !ml )
-                    s += " NULL";
-                else if( &m.PLYIX[0]<=(ML_HEAD *)ml && (ML_HEAD *)ml<=&m.PLYIX[40] )
-                    s += util::sprintf( " PLYIX[%d]", (int)((ML_HEAD *)ml - &m.PLYIX[0]) );
-                else if( ml >= m.MLIST )
-                {
-                    s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
-                    std::string t = sargon_export_move( ml );
-                    if( t == "" )
-                        t = "----";
-                    s += t;
-                    s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
-                }
-                else
-                    s += " ???";
-            }
-        }
-        s += "\n";
-    }
-    return s;
-}
-
 // tracef() - show progress of chess algorithm
 void tracef( const char *fmt, ... )
 {
@@ -882,11 +716,288 @@ std::string show_node()
         idx++;
         ml = m.PLYIX[idx].link_ptr;
     }
-    // if( once )
-    // {
-    //     printf( "Debugging early exit> %s\n", s.c_str() );
-    //     exit(-1);
-    // }
     return s;
 }
+
+std::string to_algebraic( int sq )
+{
+    char file = 'a' + sq%10-1;
+    char rank = '1' + sq/10-2;
+    std::string ret;
+    ret += file;
+    ret += rank;
+    return ret;
+}
+
+std::string show_ply_chains()
+{
+    
+    std::string s;
+    thc::ChessRules cr(start_position);
+    thc::Move mv;
+    ML *base = &m.MLIST[0];
+
+    s += "Dimensions\n";
+    s += util::sprintf( "MLNXT: %d\n", m.MLNXT - base );
+    s += util::sprintf( "MLLST: %d\n", m.MLLST - base );
+
+    s += "Raw moves\n";
+    int idx=1;
+    int nxt_threshold = 0;
+    ML *ml = base;
+    while( ml < m.MLNXT )
+    {
+        int imove = (int)(ml - base);
+        if( imove == nxt_threshold )
+        {
+            if( imove != 0 )
+                s += "\n";
+            s += util::sprintf( "%d: ", idx );
+            ML *ml_nxt = m.PLYIX_nxt[idx++];
+            nxt_threshold = (int)(ml_nxt ? ml_nxt-base : m.MLNXT-base);
+        }
+        else if( imove != 0 )
+            s += " ";
+        s += util::sprintf( "%s%s", to_algebraic(ml->from).c_str(), to_algebraic(ml->to).c_str() );
+        ml++;
+    }
+    s += "\n";
+
+    s += "PLY ptrs\n";
+    s += "PLYIX[";
+    for( int idx=0; idx <= m.NPLY; idx++ )
+    {
+        ML *ml = (ML *)m.PLYIX[idx].link_ptr;
+        if( !ml )
+            s += "NULL";
+        else
+            s += util::sprintf( "%d(%s->%s)", ml - base, to_algebraic(ml->from).c_str(), to_algebraic(ml->to).c_str() );
+        if( idx+1 <= m.NPLY )
+            s += ",";
+    }
+    s += "]\n";
+
+
+    s += "Allocation pointers\n";
+    s += "PLYIX_nxt[";
+    for( int idx=0; idx <= m.NPLY; idx++ )
+    {
+        ML *ml = m.PLYIX_nxt[idx];
+        if( !ml )
+            s += "NULL";
+        else
+            s += util::sprintf( "%d", ml - base );
+        if( idx+1 <= m.NPLY )
+            s += ",";
+    }
+    s += "]\n";
+
+    s += "Decoded move list tails (s=sorted, u=unsorted)\n";
+    for( int idx=1; idx<=m.NPLY; idx++ )
+    {
+        s += util::sprintf( "%d%c:", idx, idx<m.PLYMAX?'s':'u' );
+        ml = m.PLYIX[idx].link_ptr;
+        while( ml )
+        {
+            s += ' ';
+            std::string terse = sargon_export_move(ml);
+            bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
+            std::string txt = mv.NaturalOut(&cr);
+            const char *mv_txt = txt.c_str();
+            if( !illegal_move )
+            {
+                std::string txt = mv.NaturalOut(&cr);
+                const char *mv_txt = txt.c_str();
+                s += util::sprintf( "%s", mv_txt );
+            }
+            else
+            {
+                bool sargon_has_detected_illegal_move = (ml && ml->val==0);
+                if( sargon_has_detected_illegal_move && idx+1>m.NPLY )
+                    s += util::sprintf( "(%s)", terse.c_str() );
+                else
+                {
+                    s += util::sprintf( "%s(??? Sargon didn't realise this was illegal)", mv_txt );
+                    break;
+                }
+            }
+            ml = ml->link_ptr;
+        }
+        s += "\n";
+        ml = m.PLYIX[idx].link_ptr;
+        std::string terse = sargon_export_move(ml);
+        mv.TerseIn( &cr, terse.c_str() );
+        cr.PlayMove(mv);
+    }
+    return s;
+}
+
+/*
+std::string show_ply_chains( ML *parm1, const char *parm1_name,
+                             ML *parm2, const char *parm2_name,
+                             ML *parm3, const char *parm3_name  )
+{
+    std::string space1_name = parm1_name ? " "+std::string(parm1_name) : "?$?";
+    std::string space2_name = parm2_name ? " "+std::string(parm2_name) : "?$?";
+    std::string space3_name = parm3_name ? " "+std::string(parm3_name) : "?$?";
+    std::string s;
+    s += "PLYIX[]\n";
+    int first_ply = (m.MLPTRI == &m.PLYIX[-1] ? -1 : 0);
+    int final_ply = 0;
+    for( int i = sizeof(m.PLYIX)/sizeof(m.PLYIX[0]) - 1; i>=0; i-- )
+    {
+        ML *ml = m.PLYIX[i].link_ptr;
+        if( ml )
+        {
+            final_ply = i;
+            break;
+        }
+    }
+    if( m.MLPTRI - m.PLYIX >final_ply )
+        final_ply = (int)(m.MLPTRI - m.PLYIX);
+    bool flag_mlptri=false, flag_mlptrj=false, flag_mlnxt=false, flag_mllst=false, flag_bestm=false;
+    bool flag_parm1=false,  flag_parm2=false,  flag_parm3=false;
+    if( !parm1_name )
+        flag_parm1 = true;
+    if( !parm2_name )
+        flag_parm2 = true;
+    if( !parm3_name )
+        flag_parm3 = true;
+    for( int i=first_ply; i<=final_ply; i++ )
+    {
+        s += util::sprintf( "%d: ", i );
+        ML *ml = (ML *)&m.PLYIX[i];
+        if( i%2 != 0 )
+        {
+            ml = ml->link_ptr;
+            if( ml >= m.MLIST )
+                s += util::sprintf( " m.LIST[%d]", (int)(ml - m.MLIST) );
+        }
+        else
+        {
+            if( (ML *)m.MLPTRI == ml )
+            {
+                s += "<-MLPTRI";
+                flag_mlptri = true;
+            }
+            if( m.MLPTRJ == ml )
+            {
+                s += "<-MLPTRJ";
+                flag_mlptrj = true;
+            }
+            if( m.MLLST == ml )
+            {
+                s += "<-MLLST";
+                flag_mllst = true;
+            }
+            ml = ml->link_ptr;
+            for( int j=0; j<1000 && ml; j++ )
+            {
+                if( m.MLPTRJ == ml )
+                {
+                    s += " MLPTRJ";
+                    flag_mlptrj = true;
+                }
+                if( m.MLNXT == ml )
+                {
+                    s += " MLNXT";
+                    flag_mlnxt = true;
+                }
+                if( m.MLLST == ml )
+                {
+                    s += " MLLST";
+                    flag_mllst = true;
+                }
+                if( m.BESTM == ml )
+                {
+                    s += " BESTM";
+                    flag_bestm = true;
+                }
+                if( parm1 == ml )
+                {
+                    s += space1_name;
+                    flag_parm1 = true;
+                }
+                if( parm2 == ml )
+                {
+                    s += space2_name;
+                    flag_parm2 = true;
+                }
+                if( parm3 == ml )
+                {
+                    s += space3_name;
+                    flag_parm3 = true;
+                }
+                if( ml >= m.MLIST )
+                #ifdef DEBUG_MOVE_EXTENSIONS
+                    s += util::sprintf( " (%d,%lu,%d)", (int)(ml - m.MLIST), ml->creation_count, ml->creation_ply );
+                #else
+                    s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+                #endif
+                else
+                    s += " ???";
+                std::string t;
+                #ifdef DEBUG_MOVE_EXTENSIONS
+                t += ml->creation_piece;
+                t += ml->terse;
+                #else
+                t = sargon_export_move( ml );
+                if( t == "" )
+                    t = "----";
+                #endif
+                s += t;
+                s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
+                ml = ml->link_ptr;
+            }
+        }
+        s += "\n";
+    }
+
+    // If any unaccounted for, show them
+    if( !flag_mlptri || !flag_mlptrj || !flag_mlnxt || !flag_mllst || !flag_bestm ||
+        !flag_parm1  || !flag_parm2  || !flag_parm3 )
+    {
+        s += "others:";
+        const char *desc="?";
+        ML *ml = 0;
+        bool flag = false;
+        for( int i=0; i<8; i++ )
+        {
+            switch(i)
+            {
+                case 0: desc=" MLPTRI";      flag = flag_mlptri;     ml = (ML *)m.MLPTRI;   break;
+                case 1: desc=" MLPTRJ";      flag = flag_mlptrj;     ml = m.MLPTRJ;         break;
+                case 2: desc=" MLNXT";       flag = flag_mlnxt;      ml = m.MLNXT;          break;
+                case 3: desc=" MLLST";       flag = flag_mllst;      ml = m.MLLST;          break;
+                case 4: desc=" BESTM";       flag = flag_bestm;      ml = m.BESTM;          break;
+                case 5: desc=space1_name.c_str(); flag = flag_parm1; ml = parm1;            break;
+                case 6: desc=space2_name.c_str(); flag = flag_parm2; ml = parm2;            break;
+                case 7: desc=space3_name.c_str(); flag = flag_parm3; ml = parm3;            break;
+            }
+            if( !flag )
+            {
+                s += desc;
+                if( !ml )
+                    s += " NULL";
+                else if( &m.PLYIX[0]<=(ML_HEAD *)ml && (ML_HEAD *)ml<=&m.PLYIX[40] )
+                    s += util::sprintf( " PLYIX[%d]", (int)((ML_HEAD *)ml - &m.PLYIX[0]) );
+                else if( ml >= m.MLIST )
+                {
+                    s += util::sprintf( " (%d)", (int)(ml - m.MLIST) );
+                    std::string t = sargon_export_move( ml );
+                    if( t == "" )
+                        t = "----";
+                    s += t;
+                    s += util::sprintf( "[%s]",  show_score(ml->val).c_str() );
+                }
+                else
+                    s += " ???";
+            }
+        }
+        s += "\n";
+    }
+    return s;
+}
+
+*/
 
