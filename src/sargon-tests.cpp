@@ -937,7 +937,7 @@ static TEST code_explanation_example3 =
 static TEST code_explanation_example4 =
 {
     "Q7/p4rkp/8/2p1q1N1/P1P5/8/8/7K w - - 0 1",
-    4,
+    3,
     "a8h8",
     75,
     "Qh8+ Kxh8 Nxf7+ Kg7"
@@ -1124,8 +1124,8 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    //ok = sargon_position_test( &code_explanation_example6, 1, 1, false );
-    //return ok;
+    ok = sargon_position_test( &code_explanation_example4, 1, 1, false );
+    return ok;
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
