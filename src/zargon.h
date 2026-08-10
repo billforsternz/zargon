@@ -247,7 +247,8 @@ uint8_t SCORE[40];      // Z80 max 6 ply
 //             list is the one currently being considered.
 //***********************************************************
 ML_HEAD PLYIX[22];          // linked list head
-ML *    PLYIX_lst[22];      // last move in linked list
+ML *    PLYIX_nxt[22];      // allocate next move here after
+                            //  returning to indexed ply
 
 //***********************************************************
 // 2) TABLE INDICES SECTION

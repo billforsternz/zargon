@@ -584,7 +584,7 @@ void GENMOV()
     m.CKFLG = inchk;
 
     // Next ply
-    m.PLYIX_lst[m.NPLY++] = m.MLNXT;    // save end of move list ptr
+    m.PLYIX_nxt[m.NPLY++] = m.MLNXT;    // save end of move list ptr
     m.MLPTRI = &m.PLYIX[m.NPLY];        // start of move linked list
     m.MLLST  = (ML *)m.MLPTRI;          // current end of list
 
@@ -2293,7 +2293,7 @@ void ASCEND()
 
     // Decrement ply counter and update pointers
     m.NPLY--;
-    m.MLNXT  = m.PLYIX_lst[m.NPLY];     // end of moves at this ply
+    m.MLNXT  = m.PLYIX_nxt[m.NPLY];     // end of moves at this ply
     m.MLPTRI = &(m.PLYIX[m.NPLY]);      // linked list head
     m.MLPTRJ = m.MLPTRI->link_ptr;      // current move
 
