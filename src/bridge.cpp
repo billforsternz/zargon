@@ -693,28 +693,21 @@ std::string show_node()
     {
         ML *ml = m.PLYIX[idx].link_ptr;
         std::string terse = sargon_export_move(ml);
-        mv.TerseIn( &cr, terse.c_str() );
+        bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
         if( idx > 1 )
             s += ' ';
-        std::string txt    = mv.NaturalOut(&cr);
-        const char *mv_txt = txt.c_str();
-        bool illegal_move = (mv_txt[0]=='-' && mv_txt[1]=='-' && mv_txt[2]=='\0');
-        if( !illegal_move )
-            s += util::sprintf( "%s", mv_txt );
-        else
+        if( illegal_move )
         {
-            bool sargon_has_detected_illegal_move = (ml && ml->val==0);
-            if( sargon_has_detected_illegal_move && idx+1>m.NPLY )
-                s += util::sprintf( "%s(%s)", mv_txt, terse.c_str() );
-                //s += util::sprintf( "%s(%c%c-%c%c)", mv_txt, 'a'-1 + ml->from%10, '1'-1 + ml->from/10 -1, // eg 21->a1, 98->h8
-                //                                              'a'-1 + ml->to%10,   '1'-1 + ml->to/10 -1 );
-            else
-                s += util::sprintf( "%s(???)", mv_txt );
+            s += util::sprintf( "(%s)", terse.c_str() );
             break;
         }
-        cr.PlayMove(mv);
-        idx++;
-        ml = m.PLYIX[idx].link_ptr;
+        else
+        {
+            std::string txt = mv.NaturalOut(&cr);
+            s += util::sprintf( "%s", txt.c_str() );
+            cr.PlayMove(mv);
+            idx++;
+        }
     }
     return s;
 }
@@ -733,37 +726,27 @@ std::string show_ply_chains()
 {
     
     std::string s;
-    thc::ChessRules cr(start_position);
-    thc::Move mv;
     ML *base = &m.MLIST[0];
 
     s += "Dimensions\n";
     s += util::sprintf( "MLNXT: %d\n", m.MLNXT - base );
     s += util::sprintf( "MLLST: %d\n", m.MLLST - base );
 
-    s += "Raw moves\n";
-    int idx=1;
-    int nxt_threshold = 0;
-    ML *ml = base;
-    while( ml < m.MLNXT )
+    s += "Ply allocation pointers\n";
+    s += "PLYIX_nxt[";
+    for( int idx=0; idx <= m.NPLY; idx++ )
     {
-        int imove = (int)(ml - base);
-        if( imove == nxt_threshold )
-        {
-            if( imove != 0 )
-                s += "\n";
-            s += util::sprintf( "%d: ", idx );
-            ML *ml_nxt = m.PLYIX_nxt[idx++];
-            nxt_threshold = (int)(ml_nxt ? ml_nxt-base : m.MLNXT-base);
-        }
-        else if( imove != 0 )
-            s += " ";
-        s += util::sprintf( "%s%s", to_algebraic(ml->from).c_str(), to_algebraic(ml->to).c_str() );
-        ml++;
+        ML *ml = m.PLYIX_nxt[idx];
+        if( !ml )
+            s += "NULL";
+        else
+            s += util::sprintf( "%d(%s->%s)", ml - base, to_algebraic(ml->from).c_str(), to_algebraic(ml->to).c_str() );
+        if( idx+1 <= m.NPLY )
+            s += ",";
     }
-    s += "\n";
+    s += "]\n";
 
-    s += "PLY ptrs\n";
+    s += "PLY linked list ptrs\n";
     s += "PLYIX[";
     for( int idx=0; idx <= m.NPLY; idx++ )
     {
@@ -777,57 +760,41 @@ std::string show_ply_chains()
     }
     s += "]\n";
 
-
-    s += "Allocation pointers\n";
-    s += "PLYIX_nxt[";
-    for( int idx=0; idx <= m.NPLY; idx++ )
+    for( int j=0; j<2; j++ )
     {
-        ML *ml = m.PLYIX_nxt[idx];
-        if( !ml )
-            s += "NULL";
-        else
-            s += util::sprintf( "%d", ml - base );
-        if( idx+1 <= m.NPLY )
-            s += ",";
-    }
-    s += "]\n";
-
-    s += "Decoded move list tails (s=sorted, u=unsorted)\n";
-    for( int idx=1; idx<=m.NPLY; idx++ )
-    {
-        s += util::sprintf( "%d%c:", idx, idx<m.PLYMAX?'s':'u' );
-        ml = m.PLYIX[idx].link_ptr;
-        while( ml )
+        bool raw = (j==0);
+        s += raw ? "Unsorted moves\n"
+                 : "Sorted linked lists (remaining moves, u=unsorted)\n";
+        thc::ChessRules cr(start_position);
+        thc::Move mv;
+        for( int idx=1; idx<=m.NPLY; idx++ )
         {
-            s += ' ';
-            std::string terse = sargon_export_move(ml);
-            bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
-            std::string txt = mv.NaturalOut(&cr);
-            const char *mv_txt = txt.c_str();
-            if( !illegal_move )
+            s += util::sprintf( raw || idx<m.PLYMAX ? "%d:" : "%du:", idx );
+            ML *ml_nxt = idx<m.NPLY ? m.PLYIX_nxt[idx] : m.MLNXT;
+            ML *ml = raw ? m.PLYIX_nxt[idx-1] : m.PLYIX[idx].link_ptr;
+            while( raw ? (ml<ml_nxt) : ml!=NULL )
             {
+                s += ' ';
+                std::string terse = sargon_export_move(ml);
+                bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
                 std::string txt = mv.NaturalOut(&cr);
                 const char *mv_txt = txt.c_str();
-                s += util::sprintf( "%s", mv_txt );
-            }
-            else
-            {
-                bool sargon_has_detected_illegal_move = (ml && ml->val==0);
-                if( sargon_has_detected_illegal_move && idx+1>m.NPLY )
+                if( illegal_move )
                     s += util::sprintf( "(%s)", terse.c_str() );
                 else
                 {
-                    s += util::sprintf( "%s(??? Sargon didn't realise this was illegal)", mv_txt );
-                    break;
+                    std::string txt = mv.NaturalOut(&cr);
+                    const char *mv_txt = txt.c_str();
+                    s += util::sprintf( "%s", mv_txt );
                 }
+                ml = raw ? ml+(IS_DOUBLE_MOVE(ml->flags)?2:1) : ml->link_ptr;
             }
-            ml = ml->link_ptr;
+            s += "\n";
+            ml = m.PLYIX[idx].link_ptr;
+            std::string terse = sargon_export_move(ml);
+            mv.TerseIn( &cr, terse.c_str() );
+            cr.PlayMove(mv);
         }
-        s += "\n";
-        ml = m.PLYIX[idx].link_ptr;
-        std::string terse = sargon_export_move(ml);
-        mv.TerseIn( &cr, terse.c_str() );
-        cr.PlayMove(mv);
     }
     return s;
 }
