@@ -533,7 +533,10 @@ void ADMOVE()
 
         // TODO - Maybe this is probably what was intended in the original code,
         //  certainly writing 0 to the *difference* of two pointers makes no sense
-        m.MLNXT = 0;
+        //  This is hopeless though, probably should panic and quit
+        printf( "PANIC - Sargon out of memory\n" );
+        fprintf( stderr, "PANIC - Sargon out of memory\n" );
+        m.MLNXT = &m.MLIST[0];
         return;
     }
 
