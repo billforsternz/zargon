@@ -714,7 +714,7 @@ std::string show_node()
 
 std::string to_algebraic( int sq )
 {
-    char file = 'a' + sq%10-1;
+    char file = 'a' + sq%10-1;  // 21->a1, 28->h1, 91->a8, 98->h8
     char rank = '1' + sq/10-2;
     std::string ret;
     ret += file;
@@ -787,13 +787,224 @@ std::string show_ply_chains()
                     const char *mv_txt = txt.c_str();
                     s += util::sprintf( "%s", mv_txt );
                 }
+                bool show = !illegal_move;
+                if( raw )
+                {
+                    ML *ml_rover = m.PLYIX[idx].link_ptr;
+                    while( ml_rover )
+                    {
+                        if( ml_rover == ml )
+                            show = false; // score will be shown from linked list
+                        ml_rover = ml_rover->link_ptr;
+                    }
+                }
+                if( show )
+                    s += util::sprintf( "(%d)", ml->val );
                 ml = raw ? ml+(IS_DOUBLE_MOVE(ml->flags)?2:1) : ml->link_ptr;
             }
             s += "\n";
             ml = m.PLYIX[idx].link_ptr;
             std::string terse = sargon_export_move(ml);
-            mv.TerseIn( &cr, terse.c_str() );
+            bool ok = mv.TerseIn( &cr, terse.c_str() );
+            if( ok )
+                cr.PlayMove(mv);
+            else
+            {
+                printf( "%s illegal, broken tree?\n", terse.c_str() );
+                break;
+            }
+        }
+    }
+    s += "Ply chains\n";
+/*
+
+    The diagnostics emitted by this function get to the heart of how
+    Sargon works. All the generated moves are stored in one big list
+    in memory. The list starts with all the moves at ply 1. One and
+    only one of those moves is the current move, the list continues
+    with all available ply 2 moves after the ply 1 current move is
+    played. Then one of these ply 2 moves is the current move at that
+    ply giving us a current position after 2 moves and the list
+    continues with all available ply moves in that position.
+    
+    As an example, imagine Sargon is trying to find a move from the
+    opening position, at depth 4 ply (with no opening book).
+
+    First it generates all the moves in the opening position and
+    statically sorts them in place using a linked list. This is
+    provisional, rough sorting that we later refine with search, but
+    let's imagine it's pretty smart and gives us an order like
+    e4,d4,c4,Nf3 ... f3 (Is 1.f3 the worst opening move? not sure).
+    
+    Then it internally "plays" the first move (so 1.e4) and
+    generates and sorts all the ply two moves after that. Hopefully
+    something like e5,c5,c6,e6,g6,Nf6. Remember all these moves
+    are stored in one big list, it's actually a very efficient way
+    to build a move tree.
+    
+    The process continues, again we "play" first move in this ply 2
+    list so we now have e4 e5 on the board, and we generate and sort
+    all legal moves at ply 3 storing them immediately after the ply
+    2 moves. Of course we keep a stack of pointers to keep track of
+    where each ply's move list ends and the next ply's start. Now
+    we have something at ply 3 like Nf3,Nc3,Bc4,f4... etc for the
+    position after e4 e5. Next we play Nf3 and generate the ply 4
+    moves after e4 e5 Nf3 adding them to the end of the one big
+    list (of course). At this point we deviate from the process so
+    far. We are now at ply 4, the specified search depth and we
+    don't sort the moves. Sorting at the earlier plies speeds up
+    Alpha-Beta pruning (we'll get to that later) but isn't useful
+    at the final ply so it's omitted to make things as fast as
+    possible.
+
+    This is a picture of how our big list looks now;
+
+    1: ->e4,d4,c4,Nf3,g3,b3,f4 ... f3
+    2: ->e5,c5,c6,e6,g6,Nf3,d6 ... b5
+    3: ->Nf3,Nc3,Bc4,f4,d4,c3,Be2 ... b4
+    4u: ->a5,a6,b5,b6 ... Ba3,Ne7,Nf6,Nh6
+
+    The u in 4u indicates unsorted, chess players will immediately
+    recognise the weird order, compared to the earlier plies.
+
+    Sargon keeps two stacks of ply pointers, one for the current
+    location in each ply (shown with ->) and one for the end of
+    storage of each ply.
+    
+    At the moment the current location corresponds to the start
+    of each ply list, but that situation is only temporary. Note
+    that Sargon's end of ply storage pointers don't correspond
+    to the start and end of the sorted lines, because the sort is
+    performed in place with a linked list (the moves themselves
+    don't move, only the link pointers).
+
+    Sargon doesn't actually keep pointers to the start of the ply
+    lists, it doesn't need them. To trace and debug Sargon's
+    workings it is useful to have these pointers though, so there
+    is now debug only code to calculate these positions. Sargon
+    does keep track of the end of the ply lists of course, using
+    a conventional NULL link pointer to indicate end of list.
+
+    Returning to Sargon's depth 4 search for the best White
+    opening move, Sargon now statically evaluates each 'leaf'
+    position after each ply 4 move in turn, to find the best
+    such Black move. The score of the best move is in turn the
+    backed up (refined) score of White move Nf3 in the sequence
+    e4 e5 Nf3.
+
+    Up until now we've always been going in one direction, we've
+    been 'descending' down the tree. To make further progress
+    it's now time to do our first 'ascending' up the tree.
+
+    Sargon undoes Nf3 at ply 3 and plays Nc3, the second move of
+    the ply 3 list instead. Then the old Nf3 ply 4 moves are
+    efficiently flushed by popping the last end of ply storage
+    pointer off the stack and using that location to generate
+    and store a new list of Nc3 ply 4 moves.
+
+    Sargon evaluates all these ply 4 moves to get a backed up
+    score for Nc3 in the sequence e4 e5 Nc3.
+
+    I'm sure you see where this is going. Sargon rinses and
+    repeats until it has backed up scores for all of Nf3, Nc3,
+    Bc4 etc. The best score for that White move establishes the
+    backed up score for Black move e5 in the sequence e4 e5.
+
+    Then Sargon will undo e5 and try c5 instead. That will
+    require a new ply 3 list for the first time, and a whole
+    series of ply 4 lists. But eventually we get the score for
+    c5 then all the other ply 2 moves yielding the best Black
+    reply to e4 which establishes the score for e4.
+
+    Once that's done Sargon will undo e4 and try d4 at ply 1, and
+    for the first time we get a new ply 2 list, and of course
+    many ply 3 lists and many many ply 4 lists.
+
+    A bit later still, the moves in memory will look like this;
+    
+    1: e4,d4,->c4,Nf3,g3,b3,f4 ... f3
+    2: Nf6,->e5,c5,e6,c6,d6,g6 ... f6
+    3: g3,->Nc3,e3 ... f4
+    4u: a5,a6,b5,->b6 ... Ba3,Ne7,Nf6,Nh6
+
+
+
+ */
+    thc::ChessRules cr(start_position);
+    thc::Move mv;
+    for( int idx=1; idx<=m.NPLY; idx++ )
+    {
+        s += util::sprintf( "%d:", idx );
+
+        // All moves for this ply are in adjacent memory, with boundaries
+        //  of this section of memory stored in array PLYIX_nxt[]
+        ML *ml = m.PLYIX_nxt[idx-1];
+        ML *ml_nxt = idx<m.NPLY ? m.PLYIX_nxt[idx] : m.MLNXT;
+
+        // An O(N^2) algorithm to find the move with the longest chain of ptrs
+        //  starting at that move. If the ply has been sorted, then that is 
+        //  the best (static eval) score in this ply, and all moves in the ply
+        //  will be in the chain of pointers starting at that move.
+        // If the ply hasn't been sorted, then the first move will have the
+        //  longest list (and the list will be equivalent to incrementing through
+        //  adjacent moves in memory)
+        int longest_so_far = 0;
+        ML *ml_longest_so_far = ml;
+        while( ml < ml_nxt )
+        {
+            int len = 0;
+            for( ML *ml_rover = ml; ml_rover; ml_rover=ml_rover->link_ptr )
+                len++;
+            if( len >= longest_so_far )
+            {
+                longest_so_far = len;
+                ml_longest_so_far = ml;
+            }
+            bool double_move = IS_DOUBLE_MOVE(ml->flags);
+            ml++;
+            if( double_move )
+                ml++;
+        }
+
+        // Show the moves in linked list order
+        ml = ml_longest_so_far;
+        while( ml )
+        {
+            s += ' ';
+
+            // One move in the chain is the current move we are evaluating
+            //  at in this ply
+            if( ml == m.PLYIX[idx].link_ptr )
+                s += "current->";
+            std::string terse = sargon_export_move(ml);
+            bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
+            std::string txt = mv.NaturalOut(&cr);
+            const char *mv_txt = txt.c_str();
+            if( illegal_move )
+                s += util::sprintf( "(%s)", terse.c_str() );
+            else
+            {
+                std::string txt = mv.NaturalOut(&cr);
+                const char *mv_txt = txt.c_str();
+                s += util::sprintf( "%s", mv_txt );
+            }
+
+            // Show the score as well
+            bool show = !illegal_move;
+            if( show )
+                s += util::sprintf( "(%d)", ml->val );
+            ml = ml->link_ptr;
+        }
+        s += "\n";
+        ml = m.PLYIX[idx].link_ptr;
+        std::string terse = sargon_export_move(ml);
+        bool ok = mv.TerseIn( &cr, terse.c_str() );
+        if( ok )
             cr.PlayMove(mv);
+        else
+        {
+            printf( "%s illegal, broken tree?\n", terse.c_str() );
+            break;
         }
     }
     return s;
