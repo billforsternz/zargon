@@ -379,7 +379,7 @@ std::string score_descriptors[40];
 std::string show_scores()
 {
     std::string s;
-    uint8_t *p = m.SCORE;
+    // uint8_t *p = m.SCORE;
     int run=0;
     s += util::sprintf( "VALM: %s\n", show_score(m.VALM).c_str() );
     s += "SCORE[]:";
@@ -524,12 +524,12 @@ void extraf( const char *fmt, ... )
     }
     if( !free_run )
     {
-        printf( "q,d,r,[+/-]n,pn,v,s (quit,debug,run,goto n,goto ply,view,scores)>" );
+        printf( "q,d,r,[+/-]n,pn,v|V,s (quit,debug,run,goto n,goto ply,view,scores)>" );
         char buf[80];
         fgets( buf, sizeof(buf)-2, stdin );
         while( buf[0]=='v' || buf[0]=='V' )
         {
-            std::string s = show_ply_chains();
+            std::string s = show_ply_chains( buf[0]=='V' );
             printf( "%s", s.c_str() );
             fgets( buf, sizeof(buf)-2, stdin );
         }
@@ -722,10 +722,13 @@ std::string to_algebraic( int sq )
     return ret;
 }
 
-std::string show_ply_chains()
+std::string show_ply_chains( bool show_score )
 {
     
     std::string s;
+
+// Early attempts showed too much (not very interesting) information
+#if 0
     ML *base = &m.MLIST[0];
 
     s += "Dimensions\n";
@@ -815,7 +818,8 @@ std::string show_ply_chains()
             }
         }
     }
-    s += "Ply chains\n";
+#endif
+
 /*
 
     The diagnostics emitted by this function get to the heart of how
@@ -930,6 +934,8 @@ std::string show_ply_chains()
 
 
  */
+
+    s += "Ply linked lists\n";
     thc::ChessRules cr(start_position);
     thc::Move mv;
     for( int idx=1; idx<=m.NPLY; idx++ )
@@ -976,6 +982,8 @@ std::string show_ply_chains()
             //  at in this ply
             if( ml == m.PLYIX[idx].link_ptr )
                 s += "current->";
+            if( ml == m.BESTM )
+                s += "BESTM->";
             std::string terse = sargon_export_move(ml);
             bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
             std::string txt = mv.NaturalOut(&cr);
@@ -990,7 +998,7 @@ std::string show_ply_chains()
             }
 
             // Show the score as well
-            bool show = !illegal_move;
+            bool show = show_score && !illegal_move;
             if( show )
                 s += util::sprintf( "(%d)", ml->val );
             ml = ml->link_ptr;

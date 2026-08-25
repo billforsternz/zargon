@@ -102,7 +102,7 @@ std::string show_node();
 std::string show_scores();
 std::string show_score( uint8_t val );
 struct ML;
-std::string show_ply_chains();
+std::string show_ply_chains( bool show_score=false );
 
 class function_in_out
 {
