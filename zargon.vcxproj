@@ -139,18 +139,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\bridge.h" />
     <ClInclude Include="src\hash_lookup.h" />
     <ClInclude Include="src\main.h" />
     <ClInclude Include="src\sargon-interface.h" />
     <ClInclude Include="src\sargon-pv.h" />
     <ClInclude Include="src\thc.h" />
+    <ClInclude Include="src\trace.h" />
     <ClInclude Include="src\util.h" />
     <ClInclude Include="src\zargon.h" />
     <ClInclude Include="src\zargon_functions.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\bridge.cpp" />
     <ClCompile Include="src\hash_lookup.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\sargon-engine.cpp" />
@@ -159,6 +158,7 @@
     <ClCompile Include="src\sargon-pv.cpp" />
     <ClCompile Include="src\sargon-tests.cpp" />
     <ClCompile Include="src\thc.cpp" />
+    <ClCompile Include="src\trace.cpp" />
     <ClCompile Include="src\util.cpp" />
     <ClCompile Include="src\zargon.cpp" />
   </ItemGroup>

@@ -12,7 +12,7 @@
 #ifndef MAIN_H_INCLUDED
 #define MAIN_H_INCLUDED
 #include <stdint.h>
-#include "bridge.h"
+#include "trace.h"
 
 extern int main( int argc, const char *argv[] );
 extern int main_uci( int argc, const char *argv[] );

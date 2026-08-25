@@ -1,8 +1,9 @@
 //
-//  Testing Bridge between Sargon-x86 and Zargon
+//  Was bridge.h (testing Bridge between Sargon-x86 and Zargon)
+//  Now trace.h (trace and debug facilities for Zargon)
 //
-#ifndef BRIDGE_H_INCLUDED
-#define BRIDGE_H_INCLUDED
+#ifndef TRACE_H_INCLUDED
+#define TRACE_H_INCLUDED
 #include <string>
 #include "thc.h"
 
@@ -121,11 +122,11 @@ public:
 //      tree construction - the heart of the program
 
 #ifdef DEBUG_FUNC_TRACE
-#define callback_zargon_bridge(cb)      function_in_out temp_fio(cb)
-#define callback_zargon_bridge_void(cb) function_in_out temp_fio(cb);  if(temp_fio.early_exit) return
+#define trace_func(cb)      function_in_out temp_fio(cb)
+#define trace_func_void(cb) function_in_out temp_fio(cb);  if(temp_fio.early_exit) return
 #else
-#define callback_zargon_bridge(cb)
-#define callback_zargon_bridge_void(cb)
+#define trace_func(cb)
+#define trace_func_void(cb)
 #endif
 
 // For guided tests
@@ -134,10 +135,10 @@ void callback_restricted_moves_clear();
 
 // Misc diagnostics
 void callback_start_position_register( const thc::ChessPosition &cp );
-void bridge_score_updated( uint8_t *p, uint8_t score );
-void bridge_score_descend();
+void trace_score_updated( uint8_t *p, uint8_t score );
+void trace_score_descend();
 bool callback_restart_test();
 
 std::string score_descriptors[];
 
-#endif  // BRIDGE_H_INCLUDED
+#endif  // TRACE_H_INCLUDED

@@ -4,7 +4,7 @@
 #ifndef ZARGON_H_INCLUDED
 #define ZARGON_H_INCLUDED
 #include <stdio.h>
-#include "bridge.h"
+#include "trace.h"
 
 // Now export emulated memory as a global, transitional I think
 struct emulated_memory;

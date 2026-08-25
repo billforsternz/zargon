@@ -1,12 +1,13 @@
 //
-//  Testing Bridge between Sargon-x86 and Zargon
+//  Was bridge.cpp (testing Bridge between Sargon-x86 and Zargon)
+//  Now trace.cpp (trace and debug facilities for Zargon)
 //
 
 #include <string>
 #include <vector>
 #include <stdarg.h>  // For va_start, etc.
 #include "util.h"
-#include "bridge.h"
+#include "trace.h"
 #include "sargon-interface.h"
 #include "zargon.h"
 
@@ -665,7 +666,7 @@ void logf( const char *fmt, ... )
 }
 
 #ifdef DEBUG_TRACK_SCORE
-void bridge_score_updated( uint8_t *p, uint8_t score )
+void trace_score_updated( uint8_t *p, uint8_t score )
 {
     std::string s = show_node();
     s += " ";
@@ -675,7 +676,7 @@ void bridge_score_updated( uint8_t *p, uint8_t score )
     extraf( "SCORE created %s\n", s.c_str() );
 }
 
-void bridge_score_descend()
+void trace_score_descend()
 {
     int idx = m.NPLY-1;
     score_descriptors[idx+2] = score_descriptors[idx];

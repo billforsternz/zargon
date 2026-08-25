@@ -17,7 +17,7 @@
 #include <algorithm>
 
 #include "main.h"
-#include "bridge.h"
+#include "trace.h"
 #include "hash_lookup.h"
 #include "zargon_functions.h"
 #include "zargon.h"
@@ -121,7 +121,7 @@ void INITBD()
 
 inline path_t PATH( int8_t dir )
 {
-    callback_zargon_bridge(CB_PATH);
+    trace_func(CB_PATH);
 
     // Step along the path
     uint8_t piece = m.BOARDA[m.M2+=dir];
@@ -160,7 +160,7 @@ inline path_t PATH( int8_t dir )
 
 void MPIECE()
 {
-    callback_zargon_bridge(CB_MPIECE);
+    trace_func(CB_MPIECE);
 
     // TODO: Maybe make piece a named parameter
     uint8_t piece = m.P1;
@@ -342,7 +342,7 @@ void MPIECE()
 //***********************************************************
 void ENPSNT()
 {
-    callback_zargon_bridge(CB_ENPSNT);
+    trace_func(CB_ENPSNT);
 
     // Pawn position
     uint8_t idx = m.M1;
@@ -407,7 +407,7 @@ void ENPSNT()
 //***********************************************************
 inline void ADJPTR()
 {
-    callback_zargon_bridge(CB_ADJPTR);
+    trace_func(CB_ADJPTR);
 
     // Adjust list pointer to point at previous move
     m.MLLST--;
@@ -433,7 +433,7 @@ inline void ADJPTR()
 //***********************************************************
 void CASTLE()
 {
-    callback_zargon_bridge(CB_CASTLE);
+    trace_func(CB_CASTLE);
 
     // If king has moved return
     if( HAS_MOVED(m.P1) )
@@ -522,7 +522,7 @@ void CASTLE()
 
 void ADMOVE()
 {
-    callback_zargon_bridge_void(CB_ADMOVE);
+    trace_func_void(CB_ADMOVE);
 
     // Address of next location in move list
     ML *ml = m.MLNXT;
@@ -580,7 +580,7 @@ void ADMOVE()
 
 void GENMOV()
 {
-    callback_zargon_bridge(CB_GENMOV);
+    trace_func(CB_GENMOV);
 
     // Test for King in check
     bool inchk = INCHK(m.COLOR);
@@ -681,7 +681,7 @@ inline bool INCHK( uint8_t color )
 
 bool ATTACK()
 {
-    callback_zargon_bridge(CB_ATTACK);
+    trace_func(CB_ATTACK);
 
     // Loop over the 16 directions in the direct[] table
     m.INDX2 = 0;
@@ -829,7 +829,7 @@ bool ATTACK()
 
 inline void ATKSAV( uint8_t scan_count, int8_t dir )
 {
-    callback_zargon_bridge(CB_ATKSAV);
+    trace_func(CB_ATKSAV);
 
     // If there are pins, check whether this attacking piece is
     //  pinned and therefore not worthy of being saved to the list
@@ -899,7 +899,7 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
 // Returns true if attacker is not a valid attacker
 inline bool PNCK( uint16_t pin_count, int8_t attack_direction )
 {
-    callback_zargon_bridge(CB_PNCK);
+    trace_func(CB_PNCK);
 
     // Loop over the pin list
     bool not_first_find=false;
@@ -961,7 +961,7 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction )
 
 void PINFND()
 {
-    callback_zargon_bridge(CB_PINFND);
+    trace_func(CB_PINFND);
     m.NPINS = 0;
 
     // Loop over 4 royal pieces
@@ -1081,7 +1081,7 @@ void PINFND()
 //***********************************************************
 void XCHNG( int8_t &points, int8_t &attacked_piece_val )
 {
-    callback_zargon_bridge(CB_XCHNG);
+    trace_func(CB_XCHNG);
     bool black = IS_BLACK(m.P1);
     bool side_flag = true;
 
@@ -1189,7 +1189,7 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
 
 inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 {
-    callback_zargon_bridge(CB_NEXTAD);
+    trace_func(CB_NEXTAD);
     uint8_t val = 0;
 
     // Not at end of list ?
@@ -1235,7 +1235,7 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 
 void POINTS()
 {
-    callback_zargon_bridge_void(CB_POINTS);
+    trace_func_void(CB_POINTS);
     int8_t *wact = (int8_t *)m.wact;
     int8_t *bact = (int8_t *)m.bact;
 
@@ -1539,7 +1539,7 @@ int8_t LIMIT( int8_t limit, int8_t val)
 
 void MOVE()
 {
-    callback_zargon_bridge(CB_MOVE);
+    trace_func(CB_MOVE);
 
     //  Load move list pointer
     ML *p = m.MLPTRJ;
@@ -1638,7 +1638,7 @@ void MOVE()
 
 void UNMOVE()
 {
-    callback_zargon_bridge(CB_UNMOVE);
+    trace_func(CB_UNMOVE);
 
     //  Load move list pointer
     ML *p = m.MLPTRJ;
@@ -1738,7 +1738,7 @@ bool compare_points(const ML& p1, const ML& p2) { return p1.val < p2.val; }
 
 void SORTM()
 {
-    callback_zargon_bridge(CB_SORTM);
+    trace_func(CB_SORTM);
 
     // Alternative implementation of SORTM() using the standard C++
     //  library to do the sorting. It works, but it's actually a little
@@ -1955,7 +1955,7 @@ void SORTM()
 
 void EVAL()
 {
-    callback_zargon_bridge(CB_EVAL);
+    trace_func(CB_EVAL);
 
     // Make move on the board array
     MOVE();
@@ -2001,7 +2001,7 @@ void EVAL()
 
 void FNDMOV()
 {
-    callback_zargon_bridge(CB_FNDMOV);
+    trace_func(CB_FNDMOV);
 
     // Book move ?
     if( m.MOVENO == 1 )
@@ -2115,7 +2115,7 @@ void FNDMOV()
 
                 // Update score
                 #ifdef DEBUG_TRACK_SCORE
-                bridge_score_descend();
+                trace_score_descend();
                 #endif
                 m.SCORE[m.NPLY+1] = m.SCORE[m.NPLY-1];
 
@@ -2241,7 +2241,7 @@ void FNDMOV()
             continue;   // continue unless score is greater
         m.SCORE[m.NPLY] = score;     // save as new score 1 ply above
         #ifdef DEBUG_TRACK_SCORE
-        bridge_score_updated( &m.SCORE[m.NPLY], score );
+        trace_score_updated( &m.SCORE[m.NPLY], score );
         #endif
         callback_yes_best_move();
 
@@ -2284,7 +2284,7 @@ void FNDMOV()
 
 void ASCEND()
 {
-    callback_zargon_bridge(CB_ASCEND);
+    trace_func(CB_ASCEND);
     extraf( "ASCEND()\n" );
 
     // Toggle color
@@ -2401,7 +2401,7 @@ void CPTRMV()
 
     //  Select best move
     FNDMOV();
-    callback_zargon_bridge(CB_AFTER_FNDMOV);
+    trace_func(CB_AFTER_FNDMOV);
 
     // Save best move
     m.MLPTRJ = m.BESTM;
