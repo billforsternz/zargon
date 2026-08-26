@@ -52,38 +52,30 @@
 #define DEBUG_KEEP_EXTRAF
 #endif
 
-// Callback enumeration
-enum CB
+// Sargon functions enumeration
+enum FUNC_ENUM
 {
-    CB_null,
-    CB_LDAR,                    // First of the original Sargon x86 callbacks
-    CB_AFTER_GENMOV,
-    CB_END_OF_POINTS,
-    CB_AFTER_FNDMOV,
-    CB_YES_BEST_MOVE,
-    CB_NO_BEST_MOVE,
-    CB_SUPPRESS_KING_MOVES,
-    CB_ALPHA_BETA_CUTOFF,       // Last of the original Sargon x86 callbacks
-    CB_PATH,                    // First of the Zargon function callbacks
-    CB_MPIECE,
-    CB_ENPSNT,
-    CB_ADJPTR,
-    CB_CASTLE,
-    CB_ADMOVE,
-    CB_GENMOV,
-    CB_ATTACK,
-    CB_ATKSAV,
-    CB_PNCK,
-    CB_PINFND,
-    CB_XCHNG,
-    CB_NEXTAD,
-    CB_POINTS,
-    CB_MOVE,
-    CB_UNMOVE,
-    CB_SORTM,
-    CB_EVAL,
-    CB_FNDMOV,
-    CB_ASCEND                   // Last of the Zargon function callbacks
+    FE_null,
+    FE_PATH,
+    FE_MPIECE,
+    FE_ENPSNT,
+    FE_ADJPTR,
+    FE_CASTLE,
+    FE_ADMOVE,
+    FE_GENMOV,
+    FE_ATTACK,
+    FE_ATKSAV,
+    FE_PNCK,
+    FE_PINFND,
+    FE_XCHNG,
+    FE_NEXTAD,
+    FE_POINTS,
+    FE_MOVE,
+    FE_UNMOVE,
+    FE_SORTM,
+    FE_EVAL,
+    FE_FNDMOV,
+    FE_ASCEND
 };
 
 // tracef(), extraf() - show progress of chess algorithm
@@ -107,12 +99,12 @@ std::string show_ply_chains( bool show_score=false );
 
 class function_in_out
 {
-    CB saved_cb;
+    FUNC_ENUM saved_fe;
 public:
     bool early_exit;
-    function_in_out( CB cb );
+    function_in_out( FUNC_ENUM fe );
     ~function_in_out();
-    void log( CB cb, bool in, bool insist );
+    void log( FUNC_ENUM fe, bool in, bool insist );
 };
 
 //
@@ -122,11 +114,11 @@ public:
 //      tree construction - the heart of the program
 
 #ifdef DEBUG_FUNC_TRACE
-#define trace_func(cb)      function_in_out temp_fio(cb)
-#define trace_func_void(cb) function_in_out temp_fio(cb);  if(temp_fio.early_exit) return
+#define trace_func(fe)      function_in_out temp_fio(fe)
+#define trace_func_void(fe) function_in_out temp_fio(fe);  if(temp_fio.early_exit) return
 #else
-#define trace_func(cb)
-#define trace_func_void(cb)
+#define trace_func(fe)
+#define trace_func_void(fe)
 #endif
 
 // For guided tests

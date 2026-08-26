@@ -58,37 +58,37 @@ bool callback_points();
 bool callback_admove();
 void callback_admove_exit();
 
-function_in_out::function_in_out( CB cb )
+function_in_out::function_in_out( FUNC_ENUM fe )
 {
     early_exit = false;
-    saved_cb = cb;
+    saved_fe = fe;
     bool insist = false;
-    if( cb == CB_PATH ) return;
-    else if( cb == CB_SORTM )  insist=true;
-    else if( cb == CB_MOVE )   insist=true;
-    else if( cb == CB_UNMOVE ) insist=true;
-    else if( cb == CB_GENMOV ) { callback_genmov(); insist=true; }
-    else if( cb == CB_POINTS ) { early_exit = callback_points(); }
-    else if( cb == CB_ADMOVE ) early_exit = callback_admove();
+    if(      fe == FE_PATH ) return;
+    else if( fe == FE_SORTM )  insist=true;
+    else if( fe == FE_MOVE )   insist=true;
+    else if( fe == FE_UNMOVE ) insist=true;
+    else if( fe == FE_GENMOV ) { callback_genmov(); insist=true; }
+    else if( fe == FE_POINTS ) { early_exit = callback_points(); }
+    else if( fe == FE_ADMOVE ) early_exit = callback_admove();
     #ifndef DEBUG_FUNC_TRACE_STUB
-    log( cb, true, insist );
+    log( fe, true, insist );
     #endif
 }
 function_in_out::~function_in_out()
 {
     bool insist = false;
-    if( saved_cb == CB_PATH ) return;
-    else if( saved_cb == CB_EVAL && m.NPLY>=m.PLYMAX )  insist=true;
-    else if( saved_cb == CB_SORTM )  insist=true;
-    else if( saved_cb == CB_MOVE )   insist=true;
-    else if( saved_cb == CB_UNMOVE ) insist=true;
-    else if( saved_cb==CB_ADMOVE && !early_exit ) callback_admove_exit();
+    if(      saved_fe == FE_PATH ) return;
+    else if( saved_fe == FE_EVAL && m.NPLY>=m.PLYMAX )  insist=true;
+    else if( saved_fe == FE_SORTM )  insist=true;
+    else if( saved_fe == FE_MOVE )   insist=true;
+    else if( saved_fe == FE_UNMOVE ) insist=true;
+    else if( saved_fe==FE_ADMOVE && !early_exit ) callback_admove_exit();
     #ifndef DEBUG_FUNC_TRACE_STUB
-    log( saved_cb, false, insist );
+    log( saved_fe, false, insist );
     #endif
 }
 
-void function_in_out::log( CB cb, bool in, bool insist )
+void function_in_out::log( FUNC_ENUM fe, bool in, bool insist )
 {
     static uint64_t log_nbr;
     #ifdef DEBUG_FUNC_TRACE_FULL
@@ -105,18 +105,18 @@ void function_in_out::log( CB cb, bool in, bool insist )
         std::string diag = show_scores();
         diag += show_ply_chains();
     #endif
-        std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[cb], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
+        std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[fe], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
         if( insist )
             tracef( "%s\n", msg.c_str() );
         else
             logf( "%s\n", msg.c_str() );
     }
     #ifdef DEBUG_SHOW_POSITIONS
-    if( !in && (cb==CB_MOVE || cb==CB_UNMOVE) )
+    if( !in && (fe==FE_MOVE || fe==FE_UNMOVE) )
     {
         thc::ChessPosition cp;
         sargon_export_position(cp);
-        std::string s = cp.ToDebugStr(cb==CB_MOVE?"Position after MOVE()":"Position after UNMOVE()");
+        std::string s = cp.ToDebugStr(fe==FE_MOVE?"Position after MOVE()":"Position after UNMOVE()");
         tracef( "%s\n", s.c_str() );
     }
     #endif

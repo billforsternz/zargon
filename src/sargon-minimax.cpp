@@ -1298,70 +1298,62 @@ bool sargon_minimax_regression_test( bool quiet)
 // Calculate Func frequency to aid in optimisation efforts
 // Results after sorting: (cmdline "p -2")
 //
-//         36: CB_FNDMOV
-//        611: CB_ADJPTR
-//      14358: CB_SORTM
-//      73911: CB_ASCEND
-//      73949: CB_CASTLE
-//      73949: CB_GENMOV
-//     450992: CB_ENPSNT
-//     523827: CB_EVAL
-//     717136: CB_MPIECE
-//     964728: CB_PINFND
-//     964728: CB_POINTS
-//    1390072: CB_UNMOVE
-//    1390117: CB_MOVE
-//    2687473: CB_ADMOVE
-//   19345956: CB_XCHNG
-//   27442701: CB_NEXTAD
-//   36379168: CB_PNCK
-//   63706739: CB_ATTACK
-//  100303176: CB_ATKSAV
-// 1873664451: CB_PATH
+//         36: FE_FNDMOV
+//        611: FE_ADJPTR
+//      14358: FE_SORTM
+//      73911: FE_ASCEND
+//      73949: FE_CASTLE
+//      73949: FE_GENMOV
+//     450992: FE_ENPSNT
+//     523827: FE_EVAL
+//     717136: FE_MPIECE
+//     964728: FE_PINFND
+//     964728: FE_POINTS
+//    1390072: FE_UNMOVE
+//    1390117: FE_MOVE
+//    2687473: FE_ADMOVE
+//   19345956: FE_XCHNG
+//   27442701: FE_NEXTAD
+//   36379168: FE_PNCK
+//   63706739: FE_ATTACK
+//  100303176: FE_ATKSAV
+// 1873664451: FE_PATH
 //
-static uint64_t cb_counts[ CB_ASCEND+1 ];
+static uint64_t fe_counts[ FE_ASCEND+1 ];
 class for_destructor
 {
     public:
     for_destructor() {}
     ~for_destructor()
     {
-        for( int i=0; i<= CB_ASCEND; i++ )
+        for( int i=0; i<= FE_ASCEND; i++ )
         {
             const char *s = "??";
             switch(i)
             {
-                case CB_null:                     s = "CB_null"; break;
-                case CB_LDAR:                     s = "CB_LDAR"; break;
-                case CB_AFTER_GENMOV:             s = "CB_AFTER_GENMOV"; break;
-                case CB_END_OF_POINTS:            s = "CB_END_OF_POINTS"; break;
-                case CB_AFTER_FNDMOV:             s = "CB_AFTER_FNDMOV"; break;
-                case CB_YES_BEST_MOVE:            s = "CB_YES_BEST_MOVE"; break;
-                case CB_NO_BEST_MOVE:             s = "CB_NO_BEST_MOVE"; break;
-                case CB_SUPPRESS_KING_MOVES:      s = "CB_SUPPRESS_KING_MOVES"; break;
-                case CB_ALPHA_BETA_CUTOFF:        s = "CB_ALPHA_BETA_CUTOFF"; break;
-                case CB_PATH:                     s = "CB_PATH"; break;
-                case CB_MPIECE:                   s = "CB_MPIECE"; break;
-                case CB_ENPSNT:                   s = "CB_ENPSNT"; break;
-                case CB_ADJPTR:                   s = "CB_ADJPTR"; break;
-                case CB_CASTLE:                   s = "CB_CASTLE"; break;
-                case CB_ADMOVE:                   s = "CB_ADMOVE"; break;
-                case CB_GENMOV:                   s = "CB_GENMOV"; break;
-                case CB_ATTACK:                   s = "CB_ATTACK"; break;
-                case CB_ATKSAV:                   s = "CB_ATKSAV"; break;
-                case CB_PNCK:                     s = "CB_PNCK"; break;
-                case CB_PINFND:                   s = "CB_PINFND"; break;
-                case CB_XCHNG:                    s = "CB_XCHNG"; break;
-                case CB_NEXTAD:                   s = "CB_NEXTAD"; break;
-                case CB_POINTS:                   s = "CB_POINTS"; break;
-                case CB_MOVE:                     s = "CB_MOVE"; break;
-                case CB_UNMOVE:                   s = "CB_UNMOVE"; break;
-                case CB_SORTM:                    s = "CB_SORTM"; break;
-                case CB_EVAL:                     s = "CB_EVAL"; break;
-                case CB_FNDMOV:                   s = "CB_FNDMOV"; break;
-                case CB_ASCEND:                   s = "CB_ASCEND"; break;
+                case FE_null:                     s = "FE_null"; break;
+                case FE_PATH:                     s = "FE_PATH"; break;
+                case FE_MPIECE:                   s = "FE_MPIECE"; break;
+                case FE_ENPSNT:                   s = "FE_ENPSNT"; break;
+                case FE_ADJPTR:                   s = "FE_ADJPTR"; break;
+                case FE_CASTLE:                   s = "FE_CASTLE"; break;
+                case FE_ADMOVE:                   s = "FE_ADMOVE"; break;
+                case FE_GENMOV:                   s = "FE_GENMOV"; break;
+                case FE_ATTACK:                   s = "FE_ATTACK"; break;
+                case FE_ATKSAV:                   s = "FE_ATKSAV"; break;
+                case FE_PNCK:                     s = "FE_PNCK"; break;
+                case FE_PINFND:                   s = "FE_PINFND"; break;
+                case FE_XCHNG:                    s = "FE_XCHNG"; break;
+                case FE_NEXTAD:                   s = "FE_NEXTAD"; break;
+                case FE_POINTS:                   s = "FE_POINTS"; break;
+                case FE_MOVE:                     s = "FE_MOVE"; break;
+                case FE_UNMOVE:                   s = "FE_UNMOVE"; break;
+                case FE_SORTM:                    s = "FE_SORTM"; break;
+                case FE_EVAL:                     s = "FE_EVAL"; break;
+                case FE_FNDMOV:                   s = "FE_FNDMOV"; break;
+                case FE_ASCEND:                   s = "FE_ASCEND"; break;
             }
-            printf( "%20llu: %s\n", cb_counts[i], s ); 
+            printf( "%20llu: %s\n", fe_counts[i], s ); 
         }
     }
 };
