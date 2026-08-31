@@ -92,7 +92,7 @@ void function_in_out::log( FUNC_ENUM fe, bool in, bool insist )
 {
     static uint64_t log_nbr;
     #ifdef DEBUG_FUNC_TRACE_FULL
-    std::string diag = show_scores();
+    std::string diag = show_scores_long();
     diag += show_ply_chains();
     bool diff = (diag != current_status);
     if( diff || insist )
@@ -102,7 +102,7 @@ void function_in_out::log( FUNC_ENUM fe, bool in, bool insist )
     if( insist )
     {
         bool diff=true;
-        std::string diag = show_scores();
+        std::string diag = show_scores_long();
         diag += show_ply_chains();
     #endif
         std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[fe], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
@@ -377,12 +377,42 @@ std::string show_score( uint8_t val )
 
 std::string score_descriptors[40];
 
+// Default version
 std::string show_scores()
 {
     std::string s;
-    // uint8_t *p = m.SCORE;
-    int run=0;
-    s += util::sprintf( "VALM: %s\n", show_score(m.VALM).c_str() );
+    s += util::sprintf( "VALM: %u SCORE[", m.VALM );
+    for( int i=0; i<=m.PLYMAX; i++ )
+    {
+        if( i == m.NPLY )
+            s += "NPLY->";
+        s += util::sprintf( "%u", m.SCORE[i] );
+        if( i+1<=m.PLYMAX )
+            s+=", ";
+    }
+    s += "]";
+    return s;
+}
+
+// Short version
+std::string show_scores_short()
+{
+    std::string s = "[";
+    for( int i=0; i<=m.PLYMAX; i++ )
+    {
+        s += util::sprintf( "%u", m.SCORE[i] );
+        if( i+1<=m.PLYMAX )
+            s+=",";
+    }
+    s += "]";
+    return s;
+}
+
+// Long version
+std::string show_scores_long()
+{
+    std::string s;
+    s += util::sprintf( "%s\n", show_scores().c_str() );
     s += "SCORE[]:";
     s += "\n";
     int last_score = 0;
@@ -450,6 +480,7 @@ void extraf( const char *fmt, ... )
 {
     if( log_level < LOG_EXTRA )
         return;
+    static int extra_details;
     static bool suppress_output;
     static unsigned long debug_count;
     #ifdef DEBUG_SINGLE_STEP
@@ -472,6 +503,13 @@ void extraf( const char *fmt, ... )
         }
     }
     std::string s = show_node();
+    if( extra_details > 0 )
+    {
+        std::string scores = show_scores_short();
+        scores += " ";
+        scores += s;
+        s = scores;
+    }
     int col = printf("%s",s.c_str() );
     while( col < 28 )
         col += printf(" ");
@@ -506,6 +544,12 @@ void extraf( const char *fmt, ... )
     {
         printf( "%s (%d:%lu)", str.c_str(), m.NPLY, ++extra_count );
     }
+    if( extra_details > 1 )
+    {
+        bool with_move_scores = (extra_details>2);
+        std::string x2 = show_ply_chains( with_move_scores );
+        printf( "%s", x2.c_str() );
+    }
     static uint8_t target_ply;
     #ifndef DEBUG_SINGLE_STEP
     #ifdef _DEBUG
@@ -525,7 +569,7 @@ void extraf( const char *fmt, ... )
     }
     if( !free_run )
     {
-        printf( "q,d,r,[+/-]n,pn,v|V,s (quit,debug,run,goto n,goto ply,view,scores)>" );
+        printf( "q,d,r,[+/-]n,pn,v|V,s,x (quit,debug,run,goto n,goto ply,view,scores,extra)>" );
         char buf[80];
         fgets( buf, sizeof(buf)-2, stdin );
         while( buf[0]=='v' || buf[0]=='V' )
@@ -536,13 +580,27 @@ void extraf( const char *fmt, ... )
         }
         while( buf[0]=='s' || buf[0]=='S' )
         {
-            std::string s = show_scores();
+            std::string s = show_scores_long();
             printf( "%s", s.c_str() );
             fgets( buf, sizeof(buf)-2, stdin );
         }
         if( buf[0]=='q' || buf[0]=='Q' )
         {
             exit(0);
+            return;
+        }
+        if( buf[0]=='x' || buf[0]=='X' )
+        {
+            if( extra_details < 3)
+            {
+                ++extra_details;
+                printf( "Single step detail level increased to %d\n", extra_details );
+            }
+            else
+            {
+                extra_details = 0;
+                printf( "Single step detail level reset to 0\n" );
+            }
             return;
         }
         if( buf[0]=='r' || buf[0]=='R' )
@@ -932,7 +990,121 @@ std::string show_ply_chains( bool show_score )
     3: g3,->Nc3,e3 ... f4
     4u: a5,a6,b5,->b6 ... Ba3,Ne7,Nf6,Nh6
 
+    Note that Sargon is done with the moves before arrows. So
+    1.e4 and 1.d4 have been completely analysed, that is their
+    final backed up score has been established, and the best
+    one kept (this diagram doesn't show the scores of 1.e4 or
+    1.d4 so we don't know which one is the best move so far).
 
+    At ply 2 c4 Nf6 has been completely analysed and its
+    final backed up score established. This means that we have
+    a partial score for 1.c4, it will be the score of c4 Nf6
+    or worse if Sargon finds a better reply than Nf6. Sargon
+    is currently working on c4 e5 to see if it is better than
+    c4 Nf6. If c4 e5 is better than c4 Nf6 then we know the
+    score for 1.c4 will be score of c4 e5 or worse. This is
+    minimax, the score of 1.c4 gets worse as the score to the
+    responses to 1.c4 get better.
+
+    Note that the final backed up scores of each of
+    c4 e5 g3 and c4 e5 Nc3 a5 and c4 e5 Nc3 a6 and
+    c4 e5 Nc3 b5 have all been established as we work on the
+    partially complete c4 e5 score. Every node in the tree
+    is either completely backed up (we know it's score),
+    partially backed up (we know it's score is equal to or
+    worse than the best score found so far), or it's
+    provisional (only the static score has been calculated).
+
+    To track partial and complete scores we only need to store
+    the best score at each ply, so for this 4 ply search we
+    need an array of four scores.
+
+    If we imagine the 1.d4 score is better than the 1.e4 score
+    then the entry in the array for ply 1 is the score for 1.d4.
+
+    The entry in the array for ply 2 is the c4 Nf6 score. It
+    will be replaced by the score of c4 e5 if c4 e5 scores
+    better than c4 Nf6.
+
+    The entry in the array for ply 3 is the c4 e5 g3 score. It
+    will be replaced by the score of c4 e5 Nc3 if c4 e5 Nc3
+    scores better than c4 e5 g3.
+
+    The entry in the array for ply 4 is whichever one of the
+    c4 e5 Nc3 a5, c4 e5 Nc3 a6, c4 e5 Nc3 b5 scores is best.
+    It might be about to be replaced by the score of
+    c4 e5 Nc3 b6 if that turns out to be the best ply 4
+    score so far.
+
+    So the ply 1 score is the best opening position score (so
+    far), the ply 2 score is the best c4 score (so far) the
+    ply 3 score is the best c4 e5 score so far, the ply 4 score
+    is the best c4 e5 Nc3 score so far.
+    
+    Sorry to belabour these points but a complete and clear
+    understanding of this process is essential to really
+    understanding the Sargon code.
+
+    Now imagine that the score for c4 e5 when we finish the
+    checking all the backed up ply 3 White moves is great
+    for Black (bad for White). Then the score for c4 e5
+    replaces the score for c4 Nf6 at ply 2. But wait there's
+    more. We should also routinely compare this score to the
+    ply 1 score above (currently the score for 1.d4). The
+    score for 1.c4 is going to be this (bad for White)
+    score for 1.c4 e5 or even worse. So 1.c4 is refuted
+    already, it will not supplant 1.d4 we can abort the full
+    analysis of 1.c4 already and move on to 1.Nf3.
+
+    This is Alpha Beta pruning, the implementation is almost
+    trivially easy in Sargon - a real advantage over more
+    conventional recursive implementations of minimax and
+    alpha-beta (which can be very mind bending in my
+    opinion).
+
+    If we think of ply 1 as a maximising White ply, ply 2
+    as a maximising Black ply, ply 3 as a maximising White
+    ply etc. then Alpha Beta comparisons are comparison
+    of adjacent plies for the same colour, plies 1 and 3
+    in the example just given. We perform the comparison
+    with all such adjacent colour plies (ply delta is
+    two), not just ply 1 and 3.
+    
+    A possible example of Alpha Beta at plies 2 and 4;
+    If c4 e5 doesn't turn out to be great for Black as
+    it was in the last example we will of course keep on
+    working on 1.c4 by moving on to c4 c5. Ply 3 might
+    then be quite different, for example we might soon
+    reach the following picture.
+
+    1: e4,d4,->c4,Nf3,g3,b3,f4 ... f3
+    2: Nf6,e5,->c5,e6,c6,d6,g6 ... f6
+    3: Nc3,->Nf3,g3,e3 ... h3
+    4u: a5,->a6,b5,b6 ... Qb6,Qa5,Nf6,Nh6
+
+    Ply 4 is a little different too, the Black queen
+    has been liberated (by c5) rather than the king side
+    minor pieces (by e5).
+
+    It's a bit of a stretch but imagine that completing
+    the list of ply 4 moves establishes that
+    c4 c5 Nf3 is tremendous for White. So c4 c5 will have
+    this score or *worse*. Consequently, assuming c4 Nf6
+    or c4 e5 (whichever was best) isn't as bad as that
+    score, we can prune further analysis of c4 c5 and
+    move on to c4 e6 without bothering about c4 c5 g3,
+    c4 c5 e3 etc.
+
+    Sargon keeps an array of best scores but it doesn't keep an
+    array of best moves - in other words it doesn't remember
+    the variation that it considers best play from the start
+    position. Sargon was originally just a player not an
+    analyst, it just remembered the best move at ply 1 (1.d4
+    in the partially complete calculation we are following).
+
+    However we have extended the basic Sargon code to track
+    the PV (principal variation) but the algorithm is out of
+    scope for this introduction.
 
  */
 
