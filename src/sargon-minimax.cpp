@@ -1482,7 +1482,7 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 {
 #ifdef DEBUG_SHOW_TREE
     extraf( "Alpha-beta cutoff [%s] if score<=two ply above: %s (score=%s, two ply above=%s)\n",
-        show_node().c_str(), score<=*p?"YES":"NO", show_score(score).c_str(), score_descriptors[(int)(p-m.SCORE)].c_str() );
+        show_node().c_str(), score<=*p?"YES":"NO", show_score(score).c_str(), show_score(*p).c_str() );
 #endif
     if( !callback_minimax_mods_active )
         return;
@@ -1537,7 +1537,7 @@ void callback_no_best_move( uint8_t score, const uint8_t *p )
 {
 #ifdef DEBUG_SHOW_TREE
     extraf( "This [%s] is the best move if score>ply score: %s (score=%s, ply score=%s)\n",
-        show_node().c_str(), (score > *p)?"YES":"NO", show_score(score).c_str(), score_descriptors[(int)(p-m.SCORE)].c_str() );
+        show_node().c_str(), (score > *p)?"YES":"NO", show_score(score).c_str(), show_score(*p).c_str() );
 #endif
     if( !callback_minimax_mods_active )
         return;

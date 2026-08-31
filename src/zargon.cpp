@@ -2162,7 +2162,7 @@ void FNDMOV()
             UNMOVE();
             score = m.VALM;             // get value of move
             #ifdef DEBUG_SHOW_TREE
-            extraf( "Leaf node %s, score=%s\n", show_node().c_str(), show_score(score).c_str() );
+            extraf( "Leaf node %s, %s\n", show_node().c_str(), show_scores().c_str() );
             #endif
             m.MATEF = false;            // it's not mate
         }
