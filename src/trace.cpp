@@ -502,154 +502,160 @@ void extraf( const char *fmt, ... )
             return;
         }
     }
-    std::string s = show_node();
-    if( extra_details > 0 )
+    for( bool keep_going=true; keep_going; )
     {
-        std::string scores = show_scores_short();
-        scores += " ";
-        scores += s;
-        s = scores;
-    }
-    int col = printf("%s",s.c_str() );
-    while( col < 28 )
-        col += printf(" ");
-    for( int i=0; i<m.NPLY; i++ )
-        printf( " " );
-    int size = (int)strlen(fmt) * 3;   // guess at size
-    std::string str;
-    va_list ap;
-    for(;;)
-    {
-        str.resize(size);
-        va_start(ap, fmt);
-        int n = vsnprintf((char *)str.data(), size, fmt, ap);
-        va_end(ap);
-        if( n>-1 && n<size )    // are we done yet?
+        keep_going=false;
+        std::string s = show_node();
+        if( extra_details > 0 )
         {
-            str.resize(n);
-            break;
+            std::string scores = show_scores_short();
+            scores += " ";
+            scores += s;
+            s = scores;
         }
-        if( n > size )  // Needed size returned
-            size = n + 1;   // For null char
+        int col = printf("%s",s.c_str() );
+        while( col < 28 )
+            col += printf(" ");
+        for( int i=0; i<m.NPLY; i++ )
+            printf( " " );
+        int size = (int)strlen(fmt) * 3;   // guess at size
+        std::string str;
+        va_list ap;
+        for(;;)
+        {
+            str.resize(size);
+            va_start(ap, fmt);
+            int n = vsnprintf((char *)str.data(), size, fmt, ap);
+            va_end(ap);
+            if( n>-1 && n<size )    // are we done yet?
+            {
+                str.resize(n);
+                break;
+            }
+            if( n > size )  // Needed size returned
+                size = n + 1;   // For null char
+            else
+                size *= 4;      // Guess at a larger size
+        }
+        size_t len = str.length();
+        if( len>0 && str[len-1] == '\n' )
+        {
+            str = str.substr(0,len-1);
+            printf( "%s (%d:%lu)\n", str.c_str(), m.NPLY, ++extra_count );
+        }
         else
-            size *= 4;      // Guess at a larger size
-    }
-    size_t len = str.length();
-    if( len>0 && str[len-1] == '\n' )
-    {
-        str = str.substr(0,len-1);
-        printf( "%s (%d:%lu)\n", str.c_str(), m.NPLY, ++extra_count );
-    }
-    else
-    {
-        printf( "%s (%d:%lu)", str.c_str(), m.NPLY, ++extra_count );
-    }
-    if( extra_details > 1 )
-    {
-        bool with_move_scores = (extra_details>2);
-        std::string x2 = show_ply_chains( with_move_scores );
-        printf( "%s", x2.c_str() );
-    }
-    static uint8_t target_ply;
-    #ifndef DEBUG_SINGLE_STEP
-    #ifdef _DEBUG
-    if( extra_count == debug_count )
-       __debugbreak();
-    #endif
-    #else
-    if( free_run )
-    {
-        if( extra_count==debug_count )
-            free_run = false;
-        else if( m.NPLY==target_ply && target_ply!=0 )
         {
-            target_ply = 0;
-            free_run = false;
+            printf( "%s (%d:%lu)", str.c_str(), m.NPLY, ++extra_count );
         }
-    }
-    if( !free_run )
-    {
-        printf( "q,d,r,[+/-]n,pn,v|V,s,x (quit,debug,run,goto n,goto ply,view,scores,extra)>" );
-        char buf[80];
-        fgets( buf, sizeof(buf)-2, stdin );
-        while( buf[0]=='v' || buf[0]=='V' )
+        if( extra_details > 1 )
         {
-            std::string s = show_ply_chains( buf[0]=='V' );
-            printf( "%s", s.c_str() );
-            fgets( buf, sizeof(buf)-2, stdin );
+            bool with_move_scores = (extra_details>2);
+            std::string x2 = show_ply_chains( with_move_scores );
+            printf( "%s", x2.c_str() );
         }
-        while( buf[0]=='s' || buf[0]=='S' )
-        {
-            std::string s = show_scores_long();
-            printf( "%s", s.c_str() );
-            fgets( buf, sizeof(buf)-2, stdin );
-        }
-        if( buf[0]=='q' || buf[0]=='Q' )
-        {
-            exit(0);
-            return;
-        }
-        if( buf[0]=='x' || buf[0]=='X' )
-        {
-            if( extra_details < 3)
-            {
-                ++extra_details;
-                printf( "Single step detail level increased to %d\n", extra_details );
-            }
-            else
-            {
-                extra_details = 0;
-                printf( "Single step detail level reset to 0\n" );
-            }
-            return;
-        }
-        if( buf[0]=='r' || buf[0]=='R' )
-        {
-            free_run = true;
-            return;
-        }
-        if( buf[0]=='d' || buf[0]=='D' )
-        {
-           #ifdef _DEBUG
+        static uint8_t target_ply;
+        #ifndef DEBUG_SINGLE_STEP
+        #ifdef _DEBUG
+        if( extra_count == debug_count )
            __debugbreak();
-           #else
-           printf("Sorry, step to debugger in debug builds only\n");
-           #endif
-           return;
-        }
-        const char *txt = buf;
-        if( buf[0]=='+' || buf[0]=='-' || (buf[0]=='p'||buf[0]=='P') )
-            txt++;
-        std::string nbr(txt);
-        size_t len = nbr.length();
-        if( len>0 && nbr[len-1]=='\n' )
-            nbr = nbr.substr(0,len-1);
-        unsigned long n = (unsigned long)atoll(nbr.c_str());
-        if( n > 0 )
+        #endif
+        #else
+        if( free_run )
         {
-            free_run = true;
-            if( buf[0]=='p' || buf[0]=='P' )
-                target_ply = (uint8_t)n;
-            else
+            if( extra_count==debug_count )
+                free_run = false;
+            else if( m.NPLY==target_ply && target_ply!=0 )
             {
-                if( n > 0 )
-                    n--; //best by test
-                if( buf[0] == '+' )
-                    debug_count = extra_count+n;
-                else if( buf[0] == '-' )
-                    debug_count = extra_count-n;
-                else
-                    debug_count = n;
-                if( debug_count < extra_count )
+                target_ply = 0;
+                free_run = false;
+            }
+        }
+        if( !free_run )
+        {
+            printf( "q,d,r,[+/-]n,pn,v|V,s,x (quit,debug,run,goto n,goto ply,view,scores,extra)>" );
+            char buf[80];
+            fgets( buf, sizeof(buf)-2, stdin );
+            while( buf[0]=='v' || buf[0]=='V' )
+            {
+                std::string s = show_ply_chains( buf[0]=='V' );
+                printf( "%s", s.c_str() );
+                fgets( buf, sizeof(buf)-2, stdin );
+            }
+            while( buf[0]=='s' || buf[0]=='S' )
+            {
+                std::string s = show_scores_long();
+                printf( "%s", s.c_str() );
+                fgets( buf, sizeof(buf)-2, stdin );
+            }
+            if( buf[0]=='q' || buf[0]=='Q' )
+            {
+                exit(0);
+                return;
+            }
+            if( buf[0]=='x' || buf[0]=='X' )
+            {
+                if( extra_details < 3)
                 {
-                    restart_test = true;
-                    suppress_output = true;
-                    printf( "Test continues and restarts before logging recommences...\n" );
+                    ++extra_details;
+                    printf( "Single step detail level increased to %d\n", extra_details );
+                }
+                else
+                {
+                    extra_details = 0;
+                    printf( "Single step detail level reset to 0\n" );
+                }
+                keep_going = true;
+                extra_count--;
+                continue;
+            }
+            if( buf[0]=='r' || buf[0]=='R' )
+            {
+                free_run = true;
+                return;
+            }
+            if( buf[0]=='d' || buf[0]=='D' )
+            {
+               #ifdef _DEBUG
+               __debugbreak();
+               #else
+               printf("Sorry, step to debugger in debug builds only\n");
+               #endif
+               return;
+            }
+            const char *txt = buf;
+            if( buf[0]=='+' || buf[0]=='-' || (buf[0]=='p'||buf[0]=='P') )
+                txt++;
+            std::string nbr(txt);
+            size_t len = nbr.length();
+            if( len>0 && nbr[len-1]=='\n' )
+                nbr = nbr.substr(0,len-1);
+            unsigned long n = (unsigned long)atoll(nbr.c_str());
+            if( n > 0 )
+            {
+                free_run = true;
+                if( buf[0]=='p' || buf[0]=='P' )
+                    target_ply = (uint8_t)n;
+                else
+                {
+                    if( n > 0 )
+                        n--; //best by test
+                    if( buf[0] == '+' )
+                        debug_count = extra_count+n;
+                    else if( buf[0] == '-' )
+                        debug_count = extra_count-n;
+                    else
+                        debug_count = n;
+                    if( debug_count < extra_count )
+                    {
+                        restart_test = true;
+                        suppress_output = true;
+                        printf( "Test continues and restarts before logging recommences...\n" );
+                    }
                 }
             }
         }
+        #endif
     }
-    #endif
 }
 #endif
 
@@ -785,99 +791,6 @@ std::string show_ply_chains( bool show_score )
 {
     
     std::string s;
-
-// Early attempts showed too much (not very interesting) information
-#if 0
-    ML *base = &m.MLIST[0];
-
-    s += "Dimensions\n";
-    s += util::sprintf( "MLNXT: %d\n", m.MLNXT - base );
-    s += util::sprintf( "MLLST: %d\n", m.MLLST - base );
-
-    s += "Ply allocation pointers\n";
-    s += "PLYIX_nxt[";
-    for( int idx=0; idx <= m.NPLY; idx++ )
-    {
-        ML *ml = m.PLYIX_nxt[idx];
-        if( !ml )
-            s += "NULL";
-        else
-            s += util::sprintf( "%d(%s->%s)", ml - base, to_algebraic(ml->from).c_str(), to_algebraic(ml->to).c_str() );
-        if( idx+1 <= m.NPLY )
-            s += ",";
-    }
-    s += "]\n";
-
-    s += "PLY linked list ptrs\n";
-    s += "PLYIX[";
-    for( int idx=0; idx <= m.NPLY; idx++ )
-    {
-        ML *ml = (ML *)m.PLYIX[idx].link_ptr;
-        if( !ml )
-            s += "NULL";
-        else
-            s += util::sprintf( "%d(%s->%s)", ml - base, to_algebraic(ml->from).c_str(), to_algebraic(ml->to).c_str() );
-        if( idx+1 <= m.NPLY )
-            s += ",";
-    }
-    s += "]\n";
-
-    for( int j=0; j<2; j++ )
-    {
-        bool raw = (j==0);
-        s += raw ? "Unsorted moves\n"
-                 : "Sorted linked lists (remaining moves, u=unsorted)\n";
-        thc::ChessRules cr(start_position);
-        thc::Move mv;
-        for( int idx=1; idx<=m.NPLY; idx++ )
-        {
-            s += util::sprintf( raw || idx<m.PLYMAX ? "%d:" : "%du:", idx );
-            ML *ml_nxt = idx<m.NPLY ? m.PLYIX_nxt[idx] : m.MLNXT;
-            ML *ml = raw ? m.PLYIX_nxt[idx-1] : m.PLYIX[idx].link_ptr;
-            while( raw ? (ml<ml_nxt) : ml!=NULL )
-            {
-                s += ' ';
-                std::string terse = sargon_export_move(ml);
-                bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
-                std::string txt = mv.NaturalOut(&cr);
-                const char *mv_txt = txt.c_str();
-                if( illegal_move )
-                    s += util::sprintf( "(%s)", terse.c_str() );
-                else
-                {
-                    std::string txt = mv.NaturalOut(&cr);
-                    const char *mv_txt = txt.c_str();
-                    s += util::sprintf( "%s", mv_txt );
-                }
-                bool show = !illegal_move;
-                if( raw )
-                {
-                    ML *ml_rover = m.PLYIX[idx].link_ptr;
-                    while( ml_rover )
-                    {
-                        if( ml_rover == ml )
-                            show = false; // score will be shown from linked list
-                        ml_rover = ml_rover->link_ptr;
-                    }
-                }
-                if( show )
-                    s += util::sprintf( "(%d)", ml->val );
-                ml = raw ? ml+(IS_DOUBLE_MOVE(ml->flags)?2:1) : ml->link_ptr;
-            }
-            s += "\n";
-            ml = m.PLYIX[idx].link_ptr;
-            std::string terse = sargon_export_move(ml);
-            bool ok = mv.TerseIn( &cr, terse.c_str() );
-            if( ok )
-                cr.PlayMove(mv);
-            else
-            {
-                printf( "%s illegal, broken tree?\n", terse.c_str() );
-                break;
-            }
-        }
-    }
-#endif
 
 /*
 
@@ -1095,6 +1008,14 @@ std::string show_ply_chains( bool show_score )
     move on to c4 e6 without bothering about c4 c5 g3,
     c4 c5 e3 etc.
 
+    A detail worth noting is that the alpha beta comparison
+    is a better than or equal comparison rather than a
+    better than comparison (eg is c4 c5 Nf3 is better than or
+    equal to c4 Nf6?). This is an optimisation, it's worth
+    pruning c4 c5 analysis now rather than continuing when we
+    know c4 c5 can perhaps match c4 Nf6 but definitely can't
+    beat it.
+
     Sargon keeps an array of best scores but it doesn't keep an
     array of best moves - in other words it doesn't remember
     the variation that it considers best play from the start
@@ -1107,6 +1028,145 @@ std::string show_ply_chains( bool show_score )
     scope for this introduction.
 
  */
+
+ /*
+
+    Putting these ideas together gives us FNDMOV() (calculate
+    best move) pseudo code, the heart of Sargon. This pseudo
+    code ignores some details, including an extra ply beyond
+    PLYMAX whenever a move gives check, to check for checkmate;
+
+    Generate move list for ply 1
+    If not at max ply, score and sort the moves
+    Loop through the current move list
+         If no more moves in move list
+            If NPLY == 1 return
+            Get SCORE (a) from score per ply array and Ascend (NPLY--, undo move)
+         Else if more moves in move list
+            If not yet at max depth
+                Make the move
+                Generate moves at next ply and Descend (NPLY++)
+                If not at max ply, score and sort the moves
+                Continue loop to iterate through the new move list
+            If at max depth
+                Make the move
+                Evaluate SCORE (b) at leaf node using POINTS()
+                Unmake the move
+        SCORE available, from (a) or (b) above
+        If score is <= (better or equal to) score above in score per ply array
+            Alpha Beta cutoff, Ascend (NPLY--, undo move)
+            Abandon this move list, the move that created the position
+             that spawns this move list is worse (or at least no
+             better) than an established, fully analysed alternative
+        If score is < (better than) score in score per ply array
+            Update score per ply array
+            If NPLY == 1 update best move found to date, if it is
+             mate on the move return
+        Continue looping
+
+
+
+     Sargon points system is squeezed into 1 byte of dynamic range, for ease
+     of programming on Z80. Zargon retains this, but some useful simplification
+     could be achieved by changing to int16 or int32 representaton
+     
+     The points calculation is simple and based on material and board control,
+     relative to the starting position (this helps prevent the scores blowing out
+     beyond one byte).
+
+     Initially the score is calculated as a signed 8 bit integer -128 to 127,
+     more positive scores favour White, 8 points is one pawn, so the score
+     saturates (is limited to) +- 16 pawns more or less.
+
+     Subsequently the score is converted to a different unsigned representation
+     by adding 128, so it is now 0 to 255, 128 is balanced, 255 and 0 are
+     extreme/sentinel values (more about that later). The signedness is converted
+     to a different convention, 127 is 1/8 pawn better for the side to move
+     (rather than White), 128 is balanced, 129 is 1/8 pawn worse for the side to
+     move. Smaller values are increasingly better for the side to move, larger
+     values are increasingly worse.
+
+     Scores approaching zero are about 16 pawns better for the side to move,
+     scores approaching 255 are about 16 pawns worse for the side to move.
+     But what about 0 and 255?
+
+     Sargon reserves 0 to mean illegal move and 255 to mean mate for the side
+     to move. That's kind of consistent 0 being even worse than any legal move
+     and mate in 1 being better than any other legal move.
+
+     Material and Board Control are calculated separately. Board control is
+     basically the net number of squares controlled, Material is the net
+     amount of material (using a 1,3,3,5,9 convention) in half pawns. These
+     are both net (White - Black) values, but (perhaps confusingly) before
+     being used the for the final points calculation they are netted again
+     against their values in the start position. So both material and
+     board control become material gained and board control gained. This step
+     is vital to enable Sargon to calculate rationally in extremely unbalanced
+     positions, without it the limited 8 bit values would saturate and further
+     gains or losses would not register.
+
+     Importantly, Sargon uses a rudimentary SOMA (Swopping Off Material
+     Analyzer, see routine XCHNG() and the pin and attack list routines that
+     enable it to do its work) to adjust the material count to reflect
+     material that's en-prise assuming complete but uncomplicated (by extra
+     tactics) exchange sequences.
+
+     Once all these calculations and adjustments are made, the material and
+     board control scores are combined into the signed 8 bit representation
+     using the formula
+
+        points = 4*LIMIT(30,material) + LIMIT(6,board control)
+
+     The LIMIT() function saturates the material and board control values
+     to +- 30 half pawns and +- 6 squares respectively, and the multiplication
+     by 4 weights material more highly. This calculation limits points to
+     the range -126 to +126 (2 to 254 after converting to unsigned representation)
+     neatly avoiding the sentinel values.
+
+     One problem with unmodified Sargon is that it considers all mates to be
+     equal, a mate discovered at ply 3 is not weighted more highly than
+     a mate at ply 6 (say). It plays the mate it finds first, not the quickest
+     mate. This can be quite annoying and I was happy to apply a fairly simple
+     fix in Zargon. We start by modifying the basic points formula slightly
+
+        points = 4*LIMIT(29,material) + LIMIT(6,board control)
+
+     I decided distinguishing between 14.5 and 15 pawns of extra material is
+     rarely important (certainly not in any of my test positions). Note that
+     some of Sargon's material adjustment calculations do introduce half pawn
+     values, so 14.5 is not the same as 14, despite the basic 1,3,3,5,9
+     material convention.
+
+     The benefit of limiting to 29, rather than 30, is that the points values
+     are now in the range -122 to +122 (signed) and 6 to 250 (unsigned).
+     This makes room for for additional mate sentinel values, 251,252,253
+     and 254. Mate in 1 remains 255, mate in 2 is now 254, mate in 3 is
+     253, mate in 4 is 252, mate in 5 is 251.
+
+
+
+
+
+
+
+        0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127 0x00=flag/illegal
+      127 positive scores uint8_t 0x7f-0x01 (8 points is one pawn, so 127/8 = 15.75 pawns is max score)
+        1 zero score 0x80
+      127 negative scores uint8_t 0x81-0xff
+        1 special flag/sentinel value 0, means illegal move
+
+     Confusingly, more negative scores are better: so 0xff = -127 is the best
+     move. In fact 0xff is reserved for mate.
+     In original Sargon, the negative or positive score tops out at 126 leaving
+     room for mate [basic formula is 4*LIMIT(30,material) + LIMIT(6,board_control)]
+     So top score is actually 126/8 = 15.5 pawns.
+     We have tweaked this, changing the LIMIT from 30 to 29 creating room for
+     4 more "mate" scores, 0xfe (mate in 2), 0xfd (mate in 3), 0xfc (mate in 4)
+     and 0xfb (mate in 5 or more). 0xff now means mate in 1.
+     The extra mate codes mean Zargon now no longer considers all mates to be
+     equivalent
+
+    */
 
     s += "Ply linked lists\n";
     thc::ChessRules cr(start_position);

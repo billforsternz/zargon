@@ -64,7 +64,6 @@ static emulated_memory &m = gbl_emulated_memory;    // This is good practice, bu
 
 void INITBD()
 {
-
     // Pre-fill board with -1's
     memset( &m.BOARDA[0], -1, sizeof(m.BOARDA) );
 
@@ -1467,12 +1466,12 @@ void POINTS()
     // Add material*4
     points = points*4 + bcp;
 
-    // Color of side just moved
+    // Color of side to move
     if( IS_WHITE(m.COLOR) )
         points = 0-points;  // negate for white
 
     // Rescale score (neutral = 0x80)
-    // Experiment: points here is a balanced signed value, so 0 = even +126=very good, -126=very bad
+    // Experiment: points here is a balanced signed value, so 0 = even +126=very good for Black, -126=very bad for Black
     points += 0x80;
     callback_end_of_points(points);
 
@@ -2001,6 +2000,24 @@ void EVAL()
 
 void FNDMOV()
 {
+    static bool once;
+    if( !once )
+    {
+        once = true;
+        for( int i=0; i<256; i++ )
+        {
+            int8_t score = (int8_t)i;
+
+            // Negate score
+            int8_t iscore = (int8_t)score;
+            iscore = 0-iscore;
+            score = (uint8_t) iscore;
+
+            printf( "%d -> %d\n", i, score );
+        }
+    }
+
+
     trace_func(FE_FNDMOV);
 
     // Book move ?

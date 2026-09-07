@@ -944,6 +944,61 @@ static TEST code_explanation_example4 =
 };
 
 // Code explanation example
+static TEST code_explanation_example4b =
+{
+    "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
+    2,
+    "e5g4",
+    -775,
+    "Ng4 Rh7"
+};
+
+// Code explanation example (mirror of previous position)
+static TEST code_explanation_example4c =
+{
+    "k7/pp6/3B4/5P1P/4n1P1/K4RPR/8/8 b - - 0 1",
+    2,
+    "e4g5",
+    775,
+    "Ng5 Rh2"
+};
+
+
+
+// Code explanation example (e4 e5 Nf3 Nc6)
+static TEST code_explanation_example4d =
+{
+    "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1",
+    6,
+    "f1b5",
+    50,
+    "Bb5 a6 Ba4 Nf6 O-O Be7"
+};
+
+
+// Code explanation example (Sam Loyd, mate in 3)
+static TEST code_explanation_example4e =
+{
+    "r7/6p1/6pk/4Q1N1/6pK/5N2/8/1b6 w - - 0 1",
+    5,
+    "e5b8",
+    5800,
+    "Qb8 Rxb8 Ne5 Rb5 Nef7#"
+};
+
+
+// Code explanation example (smothered mate in 1)
+static TEST code_explanation_example4f =
+{
+    "6rk/6pp/8/4N3/6r1/3q4/8/7K w - - 0 1",
+    1,
+    "e5f7",
+    6000,
+    "Nf7#"
+};
+
+
+// Code explanation example
 static TEST code_explanation_example5 =
 {
     "7k/8/8/Q2r4/3r4/8/8/B6K w - - 0 1",
@@ -962,7 +1017,6 @@ static TEST code_explanation_example6 =
     -525,
     "Rf7"
 };
-
 
 // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
 //  (But fixed now right?)
@@ -1124,7 +1178,7 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    ok = sargon_position_test( &code_explanation_example4, 1, 1, false );
+    ok = sargon_position_test( &code_explanation_example4f, 1, 1, false );
     return ok;
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
