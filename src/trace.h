@@ -27,8 +27,8 @@
 
 // Some different use/testing scenarios
 //#define SCENARIO_PRODUCTION
-//#define SCENARIO_BASIC_DEBUGGING
-#define SCENARIO_SINGLE_STEPPING
+#define SCENARIO_BASIC_DEBUGGING
+//#define SCENARIO_SINGLE_STEPPING
 
 // Production, eliminate all overheads
 #ifdef SCENARIO_PRODUCTION

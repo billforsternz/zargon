@@ -480,7 +480,7 @@ void extraf( const char *fmt, ... )
 {
     if( log_level < LOG_EXTRA )
         return;
-    static int extra_details;
+    static int extra_details=3;
     static bool suppress_output;
     static unsigned long debug_count;
     #ifdef DEBUG_SINGLE_STEP
@@ -574,6 +574,7 @@ void extraf( const char *fmt, ... )
         {
             printf( "q,d,r,[+/-]n,pn,v|V,s,x (quit,debug,run,goto n,goto ply,view,scores,extra)>" );
             char buf[80];
+            buf[0] = '\0';
             fgets( buf, sizeof(buf)-2, stdin );
             while( buf[0]=='v' || buf[0]=='V' )
             {
@@ -1016,6 +1017,18 @@ std::string show_ply_chains( bool show_score )
     know c4 c5 can perhaps match c4 Nf6 but definitely can't
     beat it.
 
+     
+     
+     Alpha beta often arises in routine exchanges. White to move can exchange
+     minor pieces for no nominal gain, only one Black piece can recapture.
+     When ply 1 is the capture, the ply 2 list will presumably start with the
+     recapture.
+     The recapture will be the completely analysed and will establish the
+     initial ply 1 score in the scoring table. The alternatives to recapture
+     will all be abandoned by Alpha-Beta very quickly because they are so easy
+     to refute (any White move that keeps the free material will )
+
+
     Sargon keeps an array of best scores but it doesn't keep an
     array of best moves - in other words it doesn't remember
     the variation that it considers best play from the start
@@ -1036,50 +1049,108 @@ std::string show_ply_chains( bool show_score )
     code ignores some details, including an extra ply beyond
     PLYMAX whenever a move gives check, to check for checkmate;
 
-    Generate move list for ply 1
+    Set NPLY = 1 and generate move ply 1 list
     If not at max ply, score and sort the moves
     Loop through the current move list
          If no more moves in move list
             If NPLY == 1 return
             Get SCORE (a) from score per ply array and Ascend (NPLY--, undo move)
          Else if more moves in move list
+            Make the move
             If not yet at max depth
-                Make the move
                 Generate moves at next ply and Descend (NPLY++)
                 If not at max ply, score and sort the moves
                 Continue loop to iterate through the new move list
-            If at max depth
-                Make the move
+            Else if max depth
                 Evaluate SCORE (b) at leaf node using POINTS()
                 Unmake the move
         SCORE available, from (a) or (b) above
         If score is <= (better or equal to) score above in score per ply array
-            Alpha Beta cutoff, Ascend (NPLY--, undo move)
-            Abandon this move list, the move that created the position
+            Alpha Beta cutoff, Ascend (NPLY--, undo move), abandon
+             this move list, the move that created the position
              that spawns this move list is worse (or at least no
-             better) than an established, fully analysed alternative
+             better) than an alternative. The alternative might not
+             be be fully analysed but we've establised a lower
+             bound that it will be as good as or better.
         If score is < (better than) score in score per ply array
             Update score per ply array
             If NPLY == 1 update best move found to date, if it is
              mate on the move return
-        Continue looping
-
+    End loop
 
 
      Sargon points system is squeezed into 1 byte of dynamic range, for ease
      of programming on Z80. Zargon retains this, but some useful simplification
-     could be achieved by changing to int16 or int32 representaton
+     could be achieved by changing to int16 or int32 representaton. For now
+     the 1 byte system is retained and the details broken down as follows;
      
-     The points calculation is simple and based on material and board control,
-     relative to the starting position (this helps prevent the scores blowing out
-     beyond one byte).
+     Initially the score is calculated as a signed 8 bit integer. Such values
+     are intrinsically limited to the range -128 to 127, Sargon uses almost
+     all of this range for its points calculation (specifically -126 to 126).
 
-     Initially the score is calculated as a signed 8 bit integer -128 to 127,
-     more positive scores favour White, 8 points is one pawn, so the score
-     saturates (is limited to) +- 16 pawns more or less.
+     The value is calculated as 4*LIMIT(30,material) + LIMIT(6,board_control)
+     The LIMIT(n,x) function is a saturation function that returns either
+     the value of x, or n if x is greater than n, or -n if x is less than
+     -n. Therefore initially at least scores are constrained to the range
+     -126 to 126 (because 4*30+6 = 126). More positive scores favour White.
 
-     Subsequently the score is converted to a different unsigned representation
-     by adding 128, so it is now 0 to 255, 128 is balanced, 255 and 0 are
+     Material and board control are calculated separately. Board control is
+     the number of squares controlled, material is the amount of material
+     (using a 1,3,3,5,9 convention) in half pawns. Both of these are 'net'
+     values to enable a one byte variable to be practical. In fact two
+     netting calculations are made for each variable, first a White - Black
+     subtraction, then a Current position - Initial position calculation.
+     So the material and board control variables are effectively extra
+     material gained by White and extra board control gained by White.
+     Negative numbers indicate gains by Black.
+
+     Importantly, Sargon uses a rudimentary SOMA (Swopping Off Material
+     Analyzer, see routine XCHNG() and the pin and attack list routines that
+     enable it to do its work) to adjust the material count to reflect
+     material that's en-prise. This is an attempt to calculate complete
+     routine material exchanges in the absense of the extra ply that could
+     do that more comprehensively and accurately. It attempts to account
+     for at least some pins but it is of course vulnerable to zwichenzugs
+     and other tactical nuances messing up its evaluations. This is an
+     inevitable downside of simple, fixed depth search.
+
+     The Minimax and Alpha Beta algorithms operate on unsigned 8 bit scores
+     rather than signed 8 bit scores. The main reason for this is that the
+     Z80 can compare unsigned 8 bit numbers more efficiently than signed 8
+     bit numbers. To get the unsigned scores, Sargon adds 128 to the score,
+     shifting it into the unsigned range 2 to 254 (midpoint 128).
+
+     In the original Z80 code Sargon somewhat confusingly uses the Z80
+     negate opcode to operate on these numbers that it is clearly treating
+     as unsigned 8 bit values. This confused me for a very long time! It
+     turns out that negating signed integers is accomplished by the neat
+     'twos complement' trick of inverting every bit and adding 1. This
+     does something useful even if we are treating our bits as an
+     unsigned integer;
+
+     0 -> 0         (0x00 -> 0x00)
+     1 -> 255       (0x01 -> 0xff)
+     2 -> 254       (0x02 -> 0xfe)
+     3 -> 253       (0x03 -> 0xfd)
+     ...
+     127 -> 129     (0x7f -> 0x81)
+     128 -> 128     (0x80 -> 0x80)
+     129 -> 127     (0x81 -> 0x7f)
+     ...
+     253 -> 3       (0xfd -> 0x03)
+     254 -> 2       (0xfe -> 0x02)
+     255 -> 1       (0xff -> 0x01)
+
+     So for our purposes 'negate' does a chesswise negate on the scores,
+     scores that are good for White and bad for Black are flipped around to
+     be good for Black and bad for White. The midpoint of 128 is unaffected
+     and 0 can be neatly reserved as a sentinel. Summarising, we have a
+     balanced system with 127 favourable scores for each side, one balanced
+     score (128) and one available sentinel value (0). A negate operation
+     flips the evaluation symmetrically exactly as we would like it.
+
+
+
      extreme/sentinel values (more about that later). The signedness is converted
      to a different convention, 127 is 1/8 pawn better for the side to move
      (rather than White), 128 is balanced, 129 is 1/8 pawn worse for the side to
@@ -1093,23 +1164,6 @@ std::string show_ply_chains( bool show_score )
      Sargon reserves 0 to mean illegal move and 255 to mean mate for the side
      to move. That's kind of consistent 0 being even worse than any legal move
      and mate in 1 being better than any other legal move.
-
-     Material and Board Control are calculated separately. Board control is
-     basically the net number of squares controlled, Material is the net
-     amount of material (using a 1,3,3,5,9 convention) in half pawns. These
-     are both net (White - Black) values, but (perhaps confusingly) before
-     being used the for the final points calculation they are netted again
-     against their values in the start position. So both material and
-     board control become material gained and board control gained. This step
-     is vital to enable Sargon to calculate rationally in extremely unbalanced
-     positions, without it the limited 8 bit values would saturate and further
-     gains or losses would not register.
-
-     Importantly, Sargon uses a rudimentary SOMA (Swopping Off Material
-     Analyzer, see routine XCHNG() and the pin and attack list routines that
-     enable it to do its work) to adjust the material count to reflect
-     material that's en-prise assuming complete but uncomplicated (by extra
-     tactics) exchange sequences.
 
      Once all these calculations and adjustments are made, the material and
      board control scores are combined into the signed 8 bit representation

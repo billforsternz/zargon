@@ -943,7 +943,7 @@ static TEST code_explanation_example4 =
     "Qh8+ Kxh8 Nxf7+ Kg7"
 };
 
-// Code explanation example
+// Code explanation example (fork winning rook beats simple capture of bishop)
 static TEST code_explanation_example4b =
 {
     "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
@@ -975,7 +975,6 @@ static TEST code_explanation_example4d =
     "Bb5 a6 Ba4 Nf6 O-O Be7"
 };
 
-
 // Code explanation example (Sam Loyd, mate in 3)
 static TEST code_explanation_example4e =
 {
@@ -985,7 +984,6 @@ static TEST code_explanation_example4e =
     5800,
     "Qb8 Rxb8 Ne5 Rb5 Nef7#"
 };
-
 
 // Code explanation example (smothered mate in 1)
 static TEST code_explanation_example4f =
@@ -997,6 +995,15 @@ static TEST code_explanation_example4f =
     "Nf7#"
 };
 
+// Code explanation example (simple capture/exchange)
+static TEST code_explanation_example4g =
+{
+    "4k3/1p6/2r5/4N3/8/8/8/4K3 w - - 0 1",
+    3,
+    "e5c6",
+    -125,
+    "Nxc6 bxc6"
+};
 
 // Code explanation example
 static TEST code_explanation_example5 =
@@ -1178,7 +1185,7 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    ok = sargon_position_test( &code_explanation_example4f, 1, 1, false );
+    ok = sargon_position_test( &code_explanation_example4g, 1, 1, false );
     return ok;
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );

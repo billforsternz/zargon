@@ -2006,14 +2006,14 @@ void FNDMOV()
         once = true;
         for( int i=0; i<256; i++ )
         {
-            int8_t score = (int8_t)i;
+            uint8_t score = (uint8_t)i;
 
             // Negate score
             int8_t iscore = (int8_t)score;
             iscore = 0-iscore;
             score = (uint8_t) iscore;
 
-            printf( "%d -> %d\n", i, score );
+            printf( "%d -> %u\n", i, score );
         }
     }
 
