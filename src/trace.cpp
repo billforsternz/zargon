@@ -1025,9 +1025,9 @@ std::string show_ply_chains( bool show_score )
      recapture.
      The recapture will be the completely analysed and will establish the
      initial ply 1 score in the scoring table. The alternatives to recapture
-     will all be abandoned by Alpha-Beta very quickly because they are so easy
-     to refute (any White move that keeps the free material will )
-
+     will then be considered in turn but will likely all be abandoned by
+     Alpha-Beta very quickly because they are so easy to refute (any White
+     move that keeps the free material)
 
     Sargon keeps an array of best scores but it doesn't keep an
     array of best moves - in other words it doesn't remember
@@ -1040,9 +1040,87 @@ std::string show_ply_chains( bool show_score )
     the PV (principal variation) but the algorithm is out of
     scope for this introduction.
 
- */
+    In the original Sargon code the comments talk of the Minimax
+    comparison being to the score one ply above, and the Alpha-Beta
+    comparison being to the score two plies above. This simply
+    means the Minimax comparison is establishing a score for
+    a move by finding the best reply (one ply difference between
+    a move and its replies). At the same tie the Alpha-Beta
+    comparison is checking one ply higher (so two plies total)
+    for each reply in turn to see whether that reply is sufficient
+    to refute the move early and allow us to abandon it without
+    checking any more replies.
 
- /*
+    We have been considering this scenario;
+
+    1: [+0.3] e4,BESTM=d4,->c4,Nf3,g3,b3,f4 ... f3
+    2: [+0.4] Nf6,e5,->c5,e6,c6,d6,g6 ... f6
+    3: [+0.2] Nc3,->Nf3,g3,e3 ... h3
+    4u: [+1.1] MLPTRI->a5,MLPTRJ->a6,b5,b6, ... Qb6,Qa5,Nf6,Nh6
+
+    The arrow -> indicators establish a node in the total tree
+    of moves arising from the initial position, currently that
+    node is c4 c5 Nf3 a6.
+    
+    I have added a few things compared to the earlier diagram
+    of the same scenario. The scoring table is shown
+    in [brackets]. At ply 1 +0.3 is the best score of the fully
+    analysed first moves to date (so e4 and d4). At ply 2 +0.4
+    is the best score of the fully analysed replies to c4
+    to date (so c4 Nf6 and and c4 e5). At ply 3 +0.2
+    is the best score of the fully analysed replies to c4 c5
+    to date (so c4 c5 Nc3 only). And finally at ply 4 +1.1 is
+    the best score of the fully analysed replies to c4 c5 Nf3
+    to date (so c4 c5 Nf3 a5 only).
+
+    We need to keep track of which particular move is
+    associated with the best score at ply 1 only, so that Sargon
+    knows what move to play. I've indicated that with BESTM=
+    where BESTM is the name of the Sargon variable used for this
+    purpose. So d4 is the best move found to date, with a fully
+    backed up score of +0.3.
+
+    I've also added indicators for the Sargon variables MLPTRI
+    (pointer to the start of current linked list of moves) and
+    MLPTRJ (pointer to the current move within that list).
+
+    We are not always at a leaf node like this of course. A bit
+    later the situation might look like this;
+
+    1: [+0.3] e4,BESTM=d4,c4,->Nf3,g3,b3,f4 ... f3
+    2: [+0.4] MLPTRI->d5,Nf6,c5,e6,c6,MLPTRJ->d6,g6 ... f6
+
+    The node under consideration is now Nf3 d6. The score table
+    and move lists for plies 3 and 4 are not shown because the
+    current values of that data is irrelevant, Sargon has
+    finished processing that information, in the same way that
+    it has finished with the e4, d4 and c4 at ply 1 and
+    d5 Nf6, c5, e6 and c6 at ply 2.
+
+    Compared to the previous picture, Sargon has finished with
+    1.c4 and it evidently did not replace 1.d4 as the best move
+    to date. So far 1.Nf3 is doing a bit better than 1.d4 with
+    [+0.4] after processing the replies d5, Nf6, c5, e6 and c6.
+    If any of these replies had been as good or better for Black
+    than +0.3 (so less than or equal to 0.3) then 1.Nf3 would
+    have been considered refuted by Alpha-Beta pruning and Sargon
+    would have continued to 1.g3 immediately.
+
+    I'm using this example because of the familiarity of opening
+    move sequences, the actual scoring is not representative of
+    Sargon at all.
+
+    The Sargon algorithm will next generate a list of all White
+    moves available in the position after c4 d6 and sort them.
+    It will then step to the position after the first move in
+    that list and generate all the moves in that position etc.
+    etc. In other words it will perform exactly the same
+    procedure in node c4 d6 to calculate the best move it can
+    find after that position as it performed, or strictly
+    speaking is performing, to calculate the best move
+    in the starting position. Although Sargon doesn't implement
+    the minimax search using a function calling itself, it is
+    in essence a recursive algorithm.
 
     Putting these ideas together gives us FNDMOV() (calculate
     best move) pseudo code, the heart of Sargon. This pseudo
@@ -1065,137 +1143,161 @@ std::string show_ply_chains( bool show_score )
                 Evaluate SCORE (b) at leaf node using POINTS()
                 Unmake the move
         SCORE available, from (a) or (b) above
-        If score is <= (better or equal to) score above in score per ply array
+        If score is better or equal to score above in score per ply array
             Alpha Beta cutoff, Ascend (NPLY--, undo move), abandon
              this move list, the move that created the position
              that spawns this move list is worse (or at least no
-             better) than an alternative. The alternative might not
-             be be fully analysed but we've establised a lower
-             bound that it will be as good as or better.
-        If score is < (better than) score in score per ply array
+             better) than a previously analysed alternative.
+        If score is better than score in score per ply array
             Update score per ply array
-            If NPLY == 1 update best move found to date, if it is
-             mate on the move return
+            If NPLY == 1
+                 update best move found to date, if it gives mate return
     End loop
 
+    Sargon does not use floating point to score positions of course (I
+    used it in my example above for illustrative purposes only). In fact
+    the Sargon points system is squeezed into 1 byte of dynamic range, for ease
+    of programming on Z80. Zargon retains this, but some useful simplification
+    could be achieved by changing to int16 or int32 representaton. For now
+    the 1 byte system is retained and the details break down as follows;
+    
+    Initially the score is calculated as a signed 8 bit integer. Such values
+    are intrinsically limited to the range -128 to 127, Sargon uses almost
+    all of this range for its points calculation (specifically -126 to 126).
 
-     Sargon points system is squeezed into 1 byte of dynamic range, for ease
-     of programming on Z80. Zargon retains this, but some useful simplification
-     could be achieved by changing to int16 or int32 representaton. For now
-     the 1 byte system is retained and the details broken down as follows;
-     
-     Initially the score is calculated as a signed 8 bit integer. Such values
-     are intrinsically limited to the range -128 to 127, Sargon uses almost
-     all of this range for its points calculation (specifically -126 to 126).
+    The value is calculated as 4*LIMIT(30,material) + LIMIT(6,board_control)
+    The LIMIT(n,x) function is a saturation function that returns either
+    the value of x, or n if x is greater than n, or -n if x is less than
+    -n. Therefore initially at least scores are constrained to the range
+    -126 to 126 (because 4*30+6 = 126). More positive scores favour White.
 
-     The value is calculated as 4*LIMIT(30,material) + LIMIT(6,board_control)
-     The LIMIT(n,x) function is a saturation function that returns either
-     the value of x, or n if x is greater than n, or -n if x is less than
-     -n. Therefore initially at least scores are constrained to the range
-     -126 to 126 (because 4*30+6 = 126). More positive scores favour White.
+    Material and board control are calculated separately. Board control is
+    the number of squares controlled, material is the amount of material
+    (using a 1,3,3,5,9 convention) in half pawns. Both of these are 'net'
+    values. In fact two netting calculations are made for each variable,
+    first a White minus Black subtraction, then a relative to initial
+    position calculation, i.e. a current position minus initial position
+    subtraction.
 
-     Material and board control are calculated separately. Board control is
-     the number of squares controlled, material is the amount of material
-     (using a 1,3,3,5,9 convention) in half pawns. Both of these are 'net'
-     values to enable a one byte variable to be practical. In fact two
-     netting calculations are made for each variable, first a White - Black
-     subtraction, then a Current position - Initial position calculation.
-     So the material and board control variables are effectively extra
-     material gained by White and extra board control gained by White.
-     Negative numbers indicate gains by Black.
+    So the material and board control variables are effectively extra
+    material gained by White and extra board control gained by White.
+    Negative numbers indicate gains by Black. If we used absolute numbers
+    instead of relative numbers the tiny dynamic range of a one byte
+    number would saturate if one side had a massive advantage in
+    the starting position, and Sargon would calculate more or less random
+    moves instead of trying to make (or resist) further progress.
 
-     Importantly, Sargon uses a rudimentary SOMA (Swopping Off Material
-     Analyzer, see routine XCHNG() and the pin and attack list routines that
-     enable it to do its work) to adjust the material count to reflect
-     material that's en-prise. This is an attempt to calculate complete
-     routine material exchanges in the absense of the extra ply that could
-     do that more comprehensively and accurately. It attempts to account
-     for at least some pins but it is of course vulnerable to zwichenzugs
-     and other tactical nuances messing up its evaluations. This is an
-     inevitable downside of simple, fixed depth search.
+    Importantly, Sargon uses a rudimentary SOMA (Swopping Off Material
+    Analyzer, see routine XCHNG() and the pin and attack list routines that
+    enable it to do its work) to adjust the material count to reflect
+    material that's en-prise. This is an attempt to calculate complete
+    routine material exchanges in the absense of extra plies that could
+    do that more comprehensively and accurately. It attempts to account
+    for at least some pins but it is of course vulnerable to zwichenzugs
+    and other tactical nuances messing up its evaluations. This is an
+    inevitable downside of simple, fixed depth search.
 
-     The Minimax and Alpha Beta algorithms operate on unsigned 8 bit scores
-     rather than signed 8 bit scores. The main reason for this is that the
-     Z80 can compare unsigned 8 bit numbers more efficiently than signed 8
-     bit numbers. To get the unsigned scores, Sargon adds 128 to the score,
-     shifting it into the unsigned range 2 to 254 (midpoint 128).
+    The board control variable is also adjusted somewhat, to encourage
+    castling for example. In general though the Sargon static analyser
+    is pretty simple, basically a material calculation plus a few
+    adjustments.
 
-     In the original Z80 code Sargon somewhat confusingly uses the Z80
-     negate opcode to operate on these numbers that it is clearly treating
-     as unsigned 8 bit values. This confused me for a very long time! It
-     turns out that negating signed integers is accomplished by the neat
-     'twos complement' trick of inverting every bit and adding 1. This
-     does something useful even if we are treating our bits as an
-     unsigned integer;
+    The Minimax and Alpha Beta algorithms operate on unsigned 8 bit scores
+    rather than signed 8 bit scores. The main reason for this is that the
+    Z80 can compare unsigned 8 bit numbers more efficiently than signed 8
+    bit numbers. To get the unsigned scores, Sargon adds 128 to the score,
+    shifting range -126 to 126 into the unsigned range 2 to 254 (midpoint
+    128). A second reason for this is that it is convenient for zero to
+    be a sentinel value rather than a valid score value.
 
-     0 -> 0         (0x00 -> 0x00)
-     1 -> 255       (0x01 -> 0xff)
-     2 -> 254       (0x02 -> 0xfe)
-     3 -> 253       (0x03 -> 0xfd)
-     ...
-     127 -> 129     (0x7f -> 0x81)
-     128 -> 128     (0x80 -> 0x80)
-     129 -> 127     (0x81 -> 0x7f)
-     ...
-     253 -> 3       (0xfd -> 0x03)
-     254 -> 2       (0xfe -> 0x02)
-     255 -> 1       (0xff -> 0x01)
+    In the original Z80 code Sargon somewhat confusingly uses the Z80
+    negate opcode to operate on these numbers that it is clearly treating
+    as unsigned 8 bit values. This confused me for a very long time! It
+    turns out that negating signed integers is accomplished by the neat
+    'twos complement' trick of inverting every bit and adding 1. This
+    does something useful even if we are treating our bits as an
+    unsigned integer;
 
-     So for our purposes 'negate' does a chesswise negate on the scores,
-     scores that are good for White and bad for Black are flipped around to
-     be good for Black and bad for White. The midpoint of 128 is unaffected
-     and 0 can be neatly reserved as a sentinel. Summarising, we have a
-     balanced system with 127 favourable scores for each side, one balanced
-     score (128) and one available sentinel value (0). A negate operation
-     flips the evaluation symmetrically exactly as we would like it.
+    0 -> 0         (0x00 -> 0x00)
+    1 -> 255       (0x01 -> 0xff)
+    2 -> 254       (0x02 -> 0xfe)
+    3 -> 253       (0x03 -> 0xfd)
+    ...
+    127 -> 129     (0x7f -> 0x81)
+    128 -> 128     (0x80 -> 0x80)
+    129 -> 127     (0x81 -> 0x7f)
+    ...
+    253 -> 3       (0xfd -> 0x03)
+    254 -> 2       (0xfe -> 0x02)
+    255 -> 1       (0xff -> 0x01)
+
+    So for our purposes 'negate' does a chesswise negate on the scores,
+    scores that are good for White and bad for Black are flipped around to
+    be good for Black and bad for White. I will subsequently use the word
+    'flip' rather than 'negate', because I don't like to talk about
+    negating unsigned numbers!
+
+    The material and board control algorithm generates scores in the
+    range 2-254 as we have seen. Score values 1 and 255 are used to
+    indicate mate for one side or the other. Both values are required
+    so that flipping the mating score is possible, if White has a
+    mating advantage Black has a corresponding mating disadvantage
+    and vice-versa. 0 is reserved as a sentinel, usually to indicate
+    a score that has not yet been calculated.
+    
+    It can be very confusing accounting for which way around scores are
+    in any given scenario. A score of 128 always corresponds to 0.0.
+    But 127 (or 129) might mean a 1/8 pawn advantage to White, or Black,
+    or the side to move, or the other side (not to move) at different
+    points in the algorithm. The options are bigger/smaller numbers are
+    better/worse for White/Black/Player/Opponent 
+
+    _spb
+        if( score <= m.SCORE[m.NPLY-1] )  // compare to score 2 ply above
+        {
+            ASCEND();  // ascend one ply in tree
+            continue;
+        }
+
+        // Negate score
+        iscore = (int8_t)score;
+        iscore = 0-iscore;
+        score = (uint8_t) iscore;
+
+        // Compare to score 1 ply above
+        // p++;
+        bool score_greater = (m.SCORE[m.NPLY] < score);
+        callback_no_best_move( score, &m.SCORE[m.NPLY] );
+        if( !score_greater )
+            continue;   // continue unless score is greater
+        m.SCORE[m.NPLY] = score;     // save as new score 1 ply above
 
 
 
-     extreme/sentinel values (more about that later). The signedness is converted
-     to a different convention, 127 is 1/8 pawn better for the side to move
-     (rather than White), 128 is balanced, 129 is 1/8 pawn worse for the side to
-     move. Smaller values are increasingly better for the side to move, larger
-     values are increasingly worse.
 
-     Scores approaching zero are about 16 pawns better for the side to move,
-     scores approaching 255 are about 16 pawns worse for the side to move.
-     But what about 0 and 255?
 
-     Sargon reserves 0 to mean illegal move and 255 to mean mate for the side
-     to move. That's kind of consistent 0 being even worse than any legal move
-     and mate in 1 being better than any other legal move.
 
-     Once all these calculations and adjustments are made, the material and
-     board control scores are combined into the signed 8 bit representation
-     using the formula
+    way to 
 
-        points = 4*LIMIT(30,material) + LIMIT(6,board control)
+    One problem with unmodified Sargon is that it considers all mates to be
+    equal, a mate discovered at ply 3 is not weighted more highly than
+    a mate at ply 6 (say). It plays the mate it finds first, not the quickest
+    mate. This can be quite annoying and I was happy to apply a fairly simple
+    fix in Zargon. We start by modifying the basic points formula slightly
 
-     The LIMIT() function saturates the material and board control values
-     to +- 30 half pawns and +- 6 squares respectively, and the multiplication
-     by 4 weights material more highly. This calculation limits points to
-     the range -126 to +126 (2 to 254 after converting to unsigned representation)
-     neatly avoiding the sentinel values.
+       points = 4*LIMIT(29,material) + LIMIT(6,board control)
 
-     One problem with unmodified Sargon is that it considers all mates to be
-     equal, a mate discovered at ply 3 is not weighted more highly than
-     a mate at ply 6 (say). It plays the mate it finds first, not the quickest
-     mate. This can be quite annoying and I was happy to apply a fairly simple
-     fix in Zargon. We start by modifying the basic points formula slightly
+    I decided distinguishing between 14.5 and 15 pawns of extra material is
+    rarely important (certainly not in any of my test positions). Note that
+    some of Sargon's material adjustment calculations do introduce half pawn
+    values, so 14.5 is not the same as 14, despite the basic 1,3,3,5,9
+    material convention.
 
-        points = 4*LIMIT(29,material) + LIMIT(6,board control)
-
-     I decided distinguishing between 14.5 and 15 pawns of extra material is
-     rarely important (certainly not in any of my test positions). Note that
-     some of Sargon's material adjustment calculations do introduce half pawn
-     values, so 14.5 is not the same as 14, despite the basic 1,3,3,5,9
-     material convention.
-
-     The benefit of limiting to 29, rather than 30, is that the points values
-     are now in the range -122 to +122 (signed) and 6 to 250 (unsigned).
-     This makes room for for additional mate sentinel values, 251,252,253
-     and 254. Mate in 1 remains 255, mate in 2 is now 254, mate in 3 is
-     253, mate in 4 is 252, mate in 5 is 251.
+    The benefit of limiting to 29, rather than 30, is that the points values
+    are now in the range -122 to +122 (signed) and 6 to 250 (unsigned).
+    This makes room for for additional mate sentinel values, 251,252,253
+    and 254. Mate in 1 remains 255, mate in 2 is now 254, mate in 3 is
+    253, mate in 4 is 252, mate in 5 is 251.
 
 
 
@@ -1219,6 +1321,64 @@ std::string show_ply_chains( bool show_score )
      and 0xfb (mate in 5 or more). 0xff now means mate in 1.
      The extra mate codes mean Zargon now no longer considers all mates to be
      equivalent
+
+4) Nxd3 f3 This is the best move if flipped score > ply score: YES (score=154, flipped score=102, ply score=0)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [0] current->f3(154) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+41) Nxd3 Rd6 This is the best move if flipped score > ply score: YES (score=150, flipped score=106, ply score=102)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [102] f3(154) h3(154) g4(154) Kb7(154) Kb5(154) Ka7(154) Ka5(154) Kb6(154) Rf7(154) Rf8(154) Rf5(154) Re6(154) current->Rd6(150) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+59) Nxd3 Alpha-beta cutoff [Nxd3] if score<=two ply above: NO (score=106, two ply above=0)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+60) Nxd3 This is the best move if flipped score > ply score: YES (score=106, flipped score=150, ply score=0)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+65) Ng4 Bc4 This is the best move if flipped score > ply score: YES (score=165, flipped score=91, ply score=0)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [0] current->Bc4(165) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+72) Ng4 Be4 This is the best move if flipped score > ply score: YES (score=164, flipped score=92, ply score=91)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [91] Bc4(165) Bb5(167) current->Be4(164) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+97) Ng4 Kb7 This is the best move if flipped score > ply score: YES (score=163, flipped score=93, ply score=92)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [92] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) current->Kb7(163) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+113) Ng4 Rf7 This is the best move if flipped score > ply score: YES (score=161, flipped score=95, ply score=93)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [93] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) current->Rf7(161) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+123) Ng4 Re6 This is the best move if flipped score > ply score: YES (score=159, flipped score=97, ply score=95)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [95] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) current->Re6(159) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+136) Ng4 Rh7 This is the best move if flipped score > ply score: YES (score=158, flipped score=98, ply score=97)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [97] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) Re6(159) Rd6(161) Rc6(159) Rb6(160) current->Rh7(158) Rh8(0) Rh5(0)
+
+145) Ng4 Alpha-beta cutoff if score<=two ply above: NO (score=98, two ply above=0)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+146) Ng4 This is the best move if flipped score > ply score: YES (score=98, flipped score=158, ply score=150)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+150) a3 Bc4 Alpha-beta cutoff if score<=two ply above: YES (score=148, two ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) current->a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [0] current->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+154) a4 Bc4 Alpha-beta cutoff if score<=two ply above: YES (score=148, two ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) current->a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2: [0] current->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) (a6b5) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+... more alpha-beta cutoffs of lame alternatives to Nxd3 and Ng4 ...
+
+285) Nc6 Bc4 Alpha-beta cutoff if score<=two ply above: YES (score=121, two ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) current->Nc6(156)
+2: [0] current->Bc4(121) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) (a6a7) (a6a5) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rxc6(0) Rh7(0) Rh8(0) Rh5(0)
 
     */
 

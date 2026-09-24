@@ -2000,24 +2000,6 @@ void EVAL()
 
 void FNDMOV()
 {
-    static bool once;
-    if( !once )
-    {
-        once = true;
-        for( int i=0; i<256; i++ )
-        {
-            uint8_t score = (uint8_t)i;
-
-            // Negate score
-            int8_t iscore = (int8_t)score;
-            iscore = 0-iscore;
-            score = (uint8_t) iscore;
-
-            printf( "%d -> %u\n", i, score );
-        }
-    }
-
-
     trace_func(FE_FNDMOV);
 
     // Book move ?
@@ -2163,8 +2145,8 @@ void FNDMOV()
         // Apply minimax and alpha beta and then ASCEND() up tree
 
         // Score the node
-        uint8_t score = 0;
-        int8_t iscore = 0;
+        uint8_t score_smaller_is_better = 0;
+        uint8_t score_bigger_is_better  = 0;
 
         // Is it a leaf node
         if( is_leaf_node )
@@ -2177,7 +2159,7 @@ void FNDMOV()
 
             // Restore board position
             UNMOVE();
-            score = m.VALM;             // get value of move
+            score_smaller_is_better = m.VALM;             // get value of move
             #ifdef DEBUG_SHOW_TREE
             extraf( "Leaf node %s, %s\n", show_node().c_str(), show_scores().c_str() );
             #endif
@@ -2190,16 +2172,17 @@ void FNDMOV()
             if( m.NPLY == 1 )           // at top of tree ?
                 return;                 // yes
             ASCEND();                   // ascend one ply in tree
-            score = m.SCORE[m.NPLY+1];  // get score
+            score_smaller_is_better = m.SCORE[m.NPLY+1];  // get score
         }
 
         // Else if mate or stalemate
         else
         {
-            score = 0x80;   // stalemate score
+            score_smaller_is_better = 128;   // stalemate score
             if( m.CKFLG )   // test check flag
             {
-                score = 0xff;   // if in check, then checkmate score
+                score_smaller_is_better = 0xff;   // if in check, then checkmate score
+                                    //  (player to move has worse possible score)
 
                 // Sargon refinement* - weight mates higher if they take
                 //  less moves. Mate in 1 is 0xff remains the highest
@@ -2215,7 +2198,7 @@ void FNDMOV()
                 uint8_t reduce = (m.NPLY-2)/2;
                 if( reduce > 4 )
                     reduce = 4;
-                score -= reduce;
+                score_smaller_is_better -= reduce;
                 // Further notes;
                 // Sargon mates on the move is detected at NPLY=2, reduce=0
                 // Sargon mates in 2 is detected at NPLY=4, reduce=1
@@ -2238,27 +2221,42 @@ void FNDMOV()
         //  "Wait a minute, this reply already means that move B is no good,
         //   because it proves the opponent can do better against B than
         //   against A. So stop wasting time on B"
-        callback_alpha_beta_cutoff( score, &m.SCORE[m.NPLY-1] );
-        if( score <= m.SCORE[m.NPLY-1] )  // compare to score 2 ply above
+
+        // Score table scores are flipped, so bigger is better
+        const uint8_t *table_bigger_is_better = &m.SCORE[m.NPLY-1];
+        callback_alpha_beta_cutoff( score_smaller_is_better, table_bigger_is_better );
+
+        // If this reply to D (for example) is better (or equal) than the best score
+        //  so far for A,B and C then D is refuted. To see the best score so far
+        //  for A,B and C we look into the table one ply higher. But table
+        //  scores have the convention bigger_is_better aren't they incompatible
+        //  with smaller_is_better scores? No because table scores are
+        //  bigger_is_better for alternating colours, so if table[N] has a
+        //  bigger_is_better score for White then table[N-1] has bigger_is_better
+        //  score for Black which is also a smaller_is_better score for White and
+        //  we can use a simple comparison.
+        //  See the worked example to hopefully make this clearer
+        if( score_smaller_is_better <= *table_bigger_is_better )  // compare to score above
         {
-            ASCEND();  // ascend one ply in tree
+
+            // Alpha-beta cutoff
+            ASCEND();  // ascend one ply in tree, abandoning these replies
             continue;
         }
 
-        // Negate score
-        iscore = (int8_t)score;
-        iscore = 0-iscore;
-        score = (uint8_t) iscore;
+        // Flip score (twos complement)
+        score_bigger_is_better = (score_smaller_is_better^0xff)+1;
 
-        // Compare to score 1 ply above
-        // p++;
-        bool score_greater = (m.SCORE[m.NPLY] < score);
-        callback_no_best_move( score, &m.SCORE[m.NPLY] );
+        // Is this the best reply to date?
+        bool score_greater = (m.SCORE[m.NPLY] < score_bigger_is_better);
+        callback_no_best_move( score_bigger_is_better, &m.SCORE[m.NPLY] );
         if( !score_greater )
             continue;   // continue unless score is greater
-        m.SCORE[m.NPLY] = score;     // save as new score 1 ply above
+
+        // Save bigger_is_better score in table
+        m.SCORE[m.NPLY] = score_bigger_is_better;
         #ifdef DEBUG_TRACK_SCORE
-        trace_score_updated( &m.SCORE[m.NPLY], score );
+        trace_score_updated( &m.SCORE[m.NPLY], score_bigger_is_better );
         #endif
         callback_yes_best_move();
 
