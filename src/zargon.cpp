@@ -2172,7 +2172,13 @@ void FNDMOV()
             if( m.NPLY == 1 )           // at top of tree ?
                 return;                 // yes
             ASCEND();                   // ascend one ply in tree
-            score_smaller_is_better = m.SCORE[m.NPLY+1];  // get score
+
+            // Get backed up score (score of the best reply) from
+            //  the ply one down we just ascended from. Note that
+            //  scores in the ply table are bigger_is_better but
+            //  bigger_is_better for replies is smaller_is_better
+            //  for the move the replies are replying to
+            score_smaller_is_better = m.SCORE[m.NPLY+1];
         }
 
         // Else if mate or stalemate

@@ -1185,7 +1185,7 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    ok = sargon_position_test( &code_explanation_example4g, 1, 1, false );
+    ok = sargon_position_test( &code_explanation_example4b, 1, 1, false );
     return ok;
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );

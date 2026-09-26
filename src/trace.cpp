@@ -1132,7 +1132,7 @@ std::string show_ply_chains( bool show_score )
     Loop through the current move list
          If no more moves in move list
             If NPLY == 1 return
-            Get SCORE (a) from score per ply array and Ascend (NPLY--, undo move)
+            Get SCORE (a) from score ply table and Ascend (NPLY--, undo move)
          Else if more moves in move list
             Make the move
             If not yet at max depth
@@ -1142,16 +1142,18 @@ std::string show_ply_chains( bool show_score )
             Else if max depth
                 Evaluate SCORE (b) at leaf node using POINTS()
                 Unmake the move
-        SCORE available, from (a) or (b) above
-        If score is better or equal to score above in score per ply array
-            Alpha Beta cutoff, Ascend (NPLY--, undo move), abandon
-             this move list, the move that created the position
-             that spawns this move list is worse (or at least no
-             better) than a previously analysed alternative.
-        If score is better than score in score per ply array
-            Update score per ply array
+        SCORE available, from (a bubble up) or (b leaf)
+        If score is better or equal to score above in the score ply table
+            Alpha Beta cutoff, Ascend (NPLY--, undo move). This abandons
+             the current move list, this reply has refuted the current
+             move a ply higher. That move will not be the best move at
+             that ply, we prefer a previously analysed alternative and
+             its final score. There is no need to analyse the other
+             replies in the current move list.
+        Else if score is better than score in current score ply table
+            Update score ply table
             If NPLY == 1
-                 update best move found to date, if it gives mate return
+                 Update best move found to date, if it gives mate return
     End loop
 
     Sargon does not use floating point to score positions of course (I
@@ -1249,35 +1251,260 @@ std::string show_ply_chains( bool show_score )
     in any given scenario. A score of 128 always corresponds to 0.0.
     But 127 (or 129) might mean a 1/8 pawn advantage to White, or Black,
     or the side to move, or the other side (not to move) at different
-    points in the algorithm. The options are bigger/smaller numbers are
-    better/worse for White/Black/Player/Opponent 
+    points in the algorithm.
 
-    _spb
-        if( score <= m.SCORE[m.NPLY-1] )  // compare to score 2 ply above
-        {
-            ASCEND();  // ascend one ply in tree
-            continue;
-        }
+    Let's illustrate the conventions used with the ply diagram we have
+    been using, with the original example we started with; the starting
+    position of standard chess after reaching the first leaf position
+    e4,e5,Nf3,a5. Remember the perhaps unexpected move a5 is due to
+    the leaf nodes not being sorted. The annotations this time highlight
+    which way around the unsigned 8 bit scoring is.
 
-        // Negate score
-        iscore = (int8_t)score;
-        iscore = 0-iscore;
-        score = (uint8_t) iscore;
+    0: (B) [0]   
+    1: W [bigger_is_better score] (smaller_is_better: ->e4,d4,c4,Nf3,g3,b3,f4 ... f3)
+    2: B [bigger_is_better score] (smaller_is_better: ->e5,c5,c6,e6,g6,Nf3,d6 ... b5)
+    3: W [bigger_is_better score] (smaller_is_better: ->Nf3,Nc3,Bc4,f4,d4,c3,Be2 ... b4)
+    4u: B [bigger_is_better score] (smaller_is_better: ->a5,a6,b5,b6 ... Nh6)
 
-        // Compare to score 1 ply above
-        // p++;
-        bool score_greater = (m.SCORE[m.NPLY] < score);
-        callback_no_best_move( score, &m.SCORE[m.NPLY] );
-        if( !score_greater )
-            continue;   // continue unless score is greater
-        m.SCORE[m.NPLY] = score;     // save as new score 1 ply above
+    I've added ply 0, the root position. There is no ply 0 move list, but
+    there is a ply 0 score that stays at 0 (sentinel value) through the
+    whole algorithm. Strictly speaking it would be consistent to assign
+    it with a bigger is better score for Black (so smaller is better
+    score for White) for the root position at the very end once Sargon
+    has calculated and scored the move it is going to play at ply 1.
 
+    I am using conventional C arrays to implement these data structures
+    so they are quite properly 0 based, and unfortunately the 0th
+    element of the move lists is wasted. The variable NPLY serves as
+    the index into the score table and the move lists.
 
+    I have labelled the plies explicitly with an alternating colour
+    W(hite), B(lack), W, B etc. Ply 0 the root ply gets the Black
+    label for consistency with the alternating pattern, you can think
+    of it as a virtual Black move creating the start position for Ply 1
+    where it is White to play.
 
+    The move lists are sorted according to the static position evaluation
+    scores, these use the smaller is better convention as shown so the
+    best static scores have the lowest numbers and are listed first.
+    Perhaps I should mention again that the Sargon static evaluator
+    is nowhere near good enough to determine opening move ordering
+    as plausible as the opening moves I list here, it's illustrative
+    only! Don't worry, a realistic actual example is not too far away.
 
+    If Sargon is playing Black the ply labels are reversed and the
+    static move scores flipped so they are still smallest number is
+    better, and the ply table scores still have the bigger is better
+    convention;
 
+    0: (W) [0]   
+    1: B [bigger_is_better score] (smaller_is_better: ...
+    2: W [bigger_is_better score] (smaller_is_better: ...
+    3: B [bigger_is_better score] (smaller_is_better: ...
+    4u: W [bigger_is_better score] (smaller_is_better: ...
 
-    way to 
+    With these ideas now hopefully firmly established we can now
+    nail down the numerical conventions at the heart of the Sargon
+    FNDMOV() algorithm. From the pseudo code previously we have;
+
+    SCORE available, from (a [backing up]) or (b [leaf])
+    If score is better or equal to score above in the score ply table
+        Alpha Beta cutoff, Ascend (NPLY--, undo move). This abandons
+         the current move list, this reply has refuted the current
+         move a ply higher. That move will not be the best move at
+         that ply, we prefer a previously analysed alternative and
+         its final score. There is no need to analyse the other
+         replies in the current move list.
+    Else if score is better than score in current score ply table
+        Update score ply table
+
+    The specific comparison calculations are as follows;
+
+    score_smaller_is_better available, from (a backing up) or (b leaf)
+    If score_smaller_is_better <= bigger_is_better score in table one ply above
+        Alpha Beta cutoff
+    Else
+        Flip score_smaller_is_better => score_bigger_is_better
+        If score_bigger_is_better > bigger_is_better score in ply table
+            bigger_is_better score in ply table = score_bigger_is_better
+    
+    The 'if score_smaller_is_better <= bigger_is_better' comparison makes
+    sense because these are adjacent plies which correspond to different
+    sides to move. So for example if score_smaller_is_better is for a
+    White ply it is also a score_bigger_is_better type score for Black
+    and can be directly compared to a Black ply score_bigger_is_better
+    score.
+
+    The 0 value at ply 0 in the score table serves to allow us to avoid
+    a check for ply 2 or greater when doing an Alpha Beta check, that
+    would be unnecessary code in the hot path. Instead we just have a
+    harmless 'is score_smaller_is_better <= 0' check at ply 1 which
+    never triggers and only executes comparitively rarely (for every N
+    ply 1 operations there are N*N ply 2 operations, N*N*N ply 3
+    operations etc.).
+
+    Just for the really dedicated here is a simple working PLYMAX=2
+    example.
+
+    The test FEN is '8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1'
+    White to move;
+
+        ........
+        ........
+        k....rpr
+        ....N.p.
+        .....p.p
+        ...b....
+        PP......
+        K.......
+
+    White has a knight and two pawns versus Black's two rooks, bishop
+    and four pawns and for the record is totally lost. But White does
+    have two sensible material winning moves, and the example shows
+    Sargon selecting the best, or at least the greediest, of those with
+    a PLYMAX = 2 calculation. The two good moves are Ne5xBd3 grabbing a
+    free piece and Ne5-g4 forking the two rooks and actually winning a
+    whole rook not just an exchange. I've organised the pawns to avoid
+    the Black rooks defending each other or giving checks. In fact the
+    example position is chosen to avoid all complications. There are
+    just the two useful initial White moves, all other moves for both
+    sides are just do nothing moves or simple one move material losing
+    blunders.
+
+    The static evaluator ranks Ne5xBd3 grabbing the piece as best
+    which is no surprise. The complete merits of Ne5-g4 forking the
+    rooks is beyond the static analyser, but it does like a couple
+    of attacks and so it is ranked second followed by all the do
+    nothing moves and blunders.
+
+    The following is edited extracts from the debug log, with
+    a descriptive annotation after each extract.
+
+4) Nxd3 f3 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=154, score_bigger_is_better=102, ply score=0)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->f3(154) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Start considering replies to 1.Nxd3. Only a two ply search so we
+are immediately at the unsorted leaf nodes. The first one is
+1...f3 and it establishes the initial score to beat.
+
+41) Nxd3 Rd6 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=150, score_bigger_is_better=106, ply score=102)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [102] f3(154) h3(154) g4(154) Kb7(154) Kb5(154) Ka7(154) Ka5(154) Kb6(154) Rf7(154) Rf8(154) Rf5(154) Re6(154) MLPTRJ->Rd6(150) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Continue considering replies to 1.Nxd3. The first 12 replies are
+all do nothing moves that score 102, the 13th is 1...Rd6 which
+at least attacks the knight so it scores slightly better with
+106.
+
+59) Nxd3 Alpha-beta cutoff [Nxd3] if score_smaller_is_better<=ply above: NO (score_smaller_is_better=106, ply above=0)
+1: [0] MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+We now have a backed up score for Nxd3, the first move in the move
+list for the root position. The backed up score is the score of the
+best replies, it's score_bigger_is_better=106 when it's a Black reply
+score but score_smaller_is_better=106 for the White move Black is
+replying to. Notice that its score_smaller_is_better of 106 is
+slightly different to its static score of 102. At ply 1 we never do
+an alpha beta cutoff, we aren't considering replies to a move that
+alpha beta can refute.
+
+60) Nxd3 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=106, score_bigger_is_better=150, ply score=0)
+1: [0] MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+Nxd3 does establish the score of the move to beat at ply 1. It is
+106 (smallest_is_better) and 150 (biggest_is_better)
+
+65) Ng4 Bc4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=165, score_bigger_is_better=91, ply score=0)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->Bc4(165) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Start considering replies to 1.Ng4. Only a two ply search so we
+are immediately at the unsorted leaf nodes. The first one is
+1...Bc4 and it establishes 91 as the (unimpressive!) initial
+score_bigger_is_better to beat.
+
+72) Ng4 Be4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=164, score_bigger_is_better=92, ply score=91)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [91] Bc4(165) Bb5(167) MLPTRJ->Be4(164) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+1...Be4 is a marginal one point improvement over 1...Bc4, 91
+becomes 92 but so far the replies to 1...Ng4 are unimpressive,
+
+97) Ng4 Kb7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=163, score_bigger_is_better=93, ply score=92)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [92] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) MLPTRJ->Kb7(163) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+The 11th reply considered is 1...Kb7, marginal improvement 92->93
+
+113) Ng4 Rf7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=161, score_bigger_is_better=95, ply score=93)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [93] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) MLPTRJ->Rf7(161) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+The 16th reply considered is 1...Rf7, marginal improvement 93->95
+
+123) Ng4 Re6 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=159, score_bigger_is_better=97, ply score=95)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [95] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) MLPTRJ->Re6(159) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+The 19th reply considered is 1...Re6, marginal improvement 95->97
+
+136) Ng4 Rh7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=158, score_bigger_is_better=98, ply score=97)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [97] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) Re6(159) Rd6(161) Rc6(159) Rb6(160) MLPTRJ->Rh7(158) Rh8(0) Rh5(0)
+
+The 23rd reply considered is 1...Rh7, marginal improvement 97->98
+All of the replies are pretty much equivalent because they all
+leave a whole rook en-prise.
+
+145) Ng4 Alpha-beta cutoff if score_smaller_is_better<=ply above: NO (score_smaller_is_better=98, ply above=0)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+The replies to Ng4 have all been considered and it has a backed up
+smallest_is_better score of 98 (as for Nxd3 the backed up
+smaller_is_better score is the best bigger_is_better
+score of the replies). As always there is no Alpha-beta cutoff at
+ply 1.
+
+146) Ng4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=98, score_bigger_is_better=158, ply score=150)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+Going one ply deeper has improved Ng4's static score_smaller_is_better
+of 110 to 98, a more significant refinement than the Nxd3's 102 to 106.
+So Ng4 usurps Nxd3 as the best move to date, a triumph indeed for minimax.
+
+150) a3 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) current->a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Alpha Beta comes into its own now as the alternatives to best move 1.Ng4
+are considered in turn. They are all quickly rejected, usually after
+checking just one reply because any Black reply that simply keeps the free
+material White is eschewing with a move other than 1.Ng4 is sufficient
+to refute the White move. Here 1...Bc4 is sufficient to refute 1.a3, even
+though 1...Bc4 actually blunders a bishop, even that's better than losing
+a rook to 1.Ng4
+
+154) a4 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) current->a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) (a6b5) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+1...Bc4 is also sufficient to refute 1.a4, even though like 1.a3 Bc4
+it simply blunders a bishop.
+
+... There are many more alpha-beta cutoffs of lame alternatives to Nxd3 and Ng4 ...
+
+285) Nc6 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=121, ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) MLPTRJ->Nc6(156)
+2u: [0] current->Bc4(121) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) (a6a7) (a6a5) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rxc6(0) Rh7(0) Rh8(0) Rh5(0)
+
+1.Nc6 is the last alternative first move considered, it is a truly terrible
+move blundering the knight instead of taking free material like Nxd3 or
+winning material with a fork like Ng4. 1...Bc4 doesn't blunder the bishop
+this time, although it doesn't take the knight either. It is still more than
+sufficient to refute 1.Nc6 with alpha-beta cutoff. Once all the ply 1 moves
+are considered, FNDMOV() returns with its conclusion that the best move is
+1.Ng4.
 
     One problem with unmodified Sargon is that it considers all mates to be
     equal, a mate discovered at ply 3 is not weighted more highly than
@@ -1300,85 +1527,6 @@ std::string show_ply_chains( bool show_score )
     253, mate in 4 is 252, mate in 5 is 251.
 
 
-
-
-
-
-
-        0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127 0x00=flag/illegal
-      127 positive scores uint8_t 0x7f-0x01 (8 points is one pawn, so 127/8 = 15.75 pawns is max score)
-        1 zero score 0x80
-      127 negative scores uint8_t 0x81-0xff
-        1 special flag/sentinel value 0, means illegal move
-
-     Confusingly, more negative scores are better: so 0xff = -127 is the best
-     move. In fact 0xff is reserved for mate.
-     In original Sargon, the negative or positive score tops out at 126 leaving
-     room for mate [basic formula is 4*LIMIT(30,material) + LIMIT(6,board_control)]
-     So top score is actually 126/8 = 15.5 pawns.
-     We have tweaked this, changing the LIMIT from 30 to 29 creating room for
-     4 more "mate" scores, 0xfe (mate in 2), 0xfd (mate in 3), 0xfc (mate in 4)
-     and 0xfb (mate in 5 or more). 0xff now means mate in 1.
-     The extra mate codes mean Zargon now no longer considers all mates to be
-     equivalent
-
-4) Nxd3 f3 This is the best move if flipped score > ply score: YES (score=154, flipped score=102, ply score=0)
-1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [0] current->f3(154) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-41) Nxd3 Rd6 This is the best move if flipped score > ply score: YES (score=150, flipped score=106, ply score=102)
-1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [102] f3(154) h3(154) g4(154) Kb7(154) Kb5(154) Ka7(154) Ka5(154) Kb6(154) Rf7(154) Rf8(154) Rf5(154) Re6(154) current->Rd6(150) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-59) Nxd3 Alpha-beta cutoff [Nxd3] if score<=two ply above: NO (score=106, two ply above=0)
-1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-
-60) Nxd3 This is the best move if flipped score > ply score: YES (score=106, flipped score=150, ply score=0)
-1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-
-65) Ng4 Bc4 This is the best move if flipped score > ply score: YES (score=165, flipped score=91, ply score=0)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [0] current->Bc4(165) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-72) Ng4 Be4 This is the best move if flipped score > ply score: YES (score=164, flipped score=92, ply score=91)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [91] Bc4(165) Bb5(167) current->Be4(164) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-97) Ng4 Kb7 This is the best move if flipped score > ply score: YES (score=163, flipped score=93, ply score=92)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [92] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) current->Kb7(163) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-113) Ng4 Rf7 This is the best move if flipped score > ply score: YES (score=161, flipped score=95, ply score=93)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [93] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) current->Rf7(161) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-123) Ng4 Re6 This is the best move if flipped score > ply score: YES (score=159, flipped score=97, ply score=95)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [95] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) current->Re6(159) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-136) Ng4 Rh7 This is the best move if flipped score > ply score: YES (score=158, flipped score=98, ply score=97)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [97] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) Re6(159) Rd6(161) Rc6(159) Rb6(160) current->Rh7(158) Rh8(0) Rh5(0)
-
-145) Ng4 Alpha-beta cutoff if score<=two ply above: NO (score=98, two ply above=0)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-
-146) Ng4 This is the best move if flipped score > ply score: YES (score=98, flipped score=158, ply score=150)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-
-150) a3 Bc4 Alpha-beta cutoff if score<=two ply above: YES (score=148, two ply above=158)
-1: [158] Nxd3(102) BESTM->Ng4(110) current->a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [0] current->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-154) a4 Bc4 Alpha-beta cutoff if score<=two ply above: YES (score=148, two ply above=158)
-1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) current->a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2: [0] current->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) (a6b5) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
-
-... more alpha-beta cutoffs of lame alternatives to Nxd3 and Ng4 ...
-
-285) Nc6 Bc4 Alpha-beta cutoff if score<=two ply above: YES (score=121, two ply above=158)
-1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) current->Nc6(156)
-2: [0] current->Bc4(121) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) (a6a7) (a6a5) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rxc6(0) Rh7(0) Rh8(0) Rh5(0)
 
     */
 
