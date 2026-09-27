@@ -1,0 +1,799 @@
+How Sargon Works
+================
+
+Sargon calculates good chess moves using the classic minimax and
+alpha-beta algorithms.
+
+Minimax
+-------
+
+To calculate a move by minimax, first we need a scoring function which
+takes as input any chess position and provides as output a numerical
+estimate of which side stands better and by how much.
+
+With that in hand, to work out a good move in any position, generate
+every move available, then score the positions arising after each move
+and take the best (maximum). Now we not only have a provisional best
+move, we have an improved and refined score for the opening position.
+It will be a more accurate score than the static scoring function alone
+provides.
+
+That is already minimax, for 1 ply (or level). To go one ply deeper we
+simply get refined scores rather than static scores for each of the
+positions we reached at one ply. This process can be continued
+indefinitely, the score of any position can be improved by replacing it
+with the best score of any position that can be reached in one move. We
+can't actually continue indefinitely, at a certain point (or depth) we
+use the static scores from the scoring function instead of going yet
+another ply deeper.
+
+The net result is a tree of analysis, and the positions where we stop
+looking deeper are called leaves. The static scores from those leaves
+are backed up through each level of refinement until we have our final
+score and final move at the root of the tree.
+
+As we look deeper into a position we score White to play and Black to
+play positions alternately at successive plies and so we are
+alternately maximising and minimising the numeric score to find the
+move at each level. The name minimax refers to alternately minimising
+and maximising. It actually completely summarises a two ply search
+where the program seeks to minimise the maximum the opponent can
+achieve.
+
+Alpha-Beta
+----------
+
+The score of every position in the tree of analysis is either a static
+score at a leaf position or a backed up score anywhere else. So it
+might seem we only need to apply the static analyser at the leaf
+positions. It turns out though that ironically enough the fastest and
+most efficient path to the final minimax score involves statically
+scoring all the positions. We use an optimisation technique called
+alpha-beta pruning that works wonders for minimax calculation
+efficiency if the move lists in every position are roughly sorted from
+strongest to weakest move using the static scoring function.
+
+Alpha-beta pruning comes into play when analysing a move after at least
+one alternative move has been fully analysed. Sargon does depth first
+tree searching, so it lends itself to this, the very first move in
+every move list at every level is fully analysed to maximum depth
+before work starts on the second move. Imagine we've completed both the
+first and second move and we are now working on the third move, working
+through the list of replies to the third move searching for the best
+reply. Alpha-beta asks of each reply, "does this reply already refute
+the third move?" If the opponent can do at least as well as they are
+doing against the best of the earlier alternatives (either the first or
+second move) by playing that reply, then the third move is effectively
+refuted and we can save time by skipping further replies and going
+straight on to the fourth move.
+
+The skipped replies can each involve a whole (sub)tree of analysis, so
+this can be tremendously effective, but only if good alternatives tend
+to be analysed first, and in turn good replies to those alternatives
+are also analysed first.
+
+Tracing Sargon's Processing
+---------------------------
+
+I have added a trace facility to Zargon that allows us to trace the
+progress of the move calculation algorithm by showing the state of the
+analysis tree as it develops.
+
+Sargon uses a very simple and efficient system to store the move tree
+effectively as a single long list of moves. The list is divided into
+sections. Ply 1 moves come first, then ply 2, then ply 3 etc. Although
+the sections have different lengths they don't ever need to be shifted
+around or reallocated in any way. The ply 1 moves are laid down first
+and remain unchanged for the entire calculation. The ply 2 moves are
+stacked into place immediately after ply 1. The entire section of old
+ply 2 moves are popped off the stack and replaced with new ply 2 moves
+as each ply 1 move is considered in turn. One set of ply 2 moves hosts
+a series of ply 3 sections in the same way. And so it continues to any
+required depth.
+
+Our trace facility shows the sections of the move tree as lines of
+descriptive text. The following discussion uses similar diagrams, with
+simplifications and elaborations as it suits the explanation.
+
+As mentioned, the generated moves are stored in one big list in memory.
+The list starts with all the moves at ply 1. One and only one of those
+moves is the current move, the list continues with all available ply 2
+moves after the ply 1 current move is played. Then one of these ply 2
+moves is the current move at that ply giving us a current position
+after 2 moves and the list continues with all available ply moves in
+that position.
+
+Illustrative Example, Opening Moves
+-----------------------------------
+
+As an example, imagine Sargon is trying to calculate the best move in
+the opening position, at depth 4 ply (with no opening book).
+
+First it generates all the moves in the opening position and statically
+sorts them in place using a linked list. This is provisional, rough
+sorting that we later refine with search, but let's imagine it's pretty
+smart and gives us an order like e4,d4,c4,Nf3 ... f3 (Is 1.f3 the worst
+opening move? not sure).
+
+Then it internally "plays" the first move (so 1.e4) and generates and
+sorts all the ply two moves after that. Hopefully something like
+e5,c5,c6,e6,g6,Nf6. Remember all these moves are stored in one big
+list, it's actually a very efficient way to build a move tree.
+
+The process continues, again we "play" the first move in this ply 2 list
+so we now have e4 e5 on the board, and we generate and sort all legal
+moves at ply 3 storing them immediately after the ply 2 moves. Of
+course we keep a stack of pointers to keep track of where each ply's
+move list ends and the next ply's start. Now we have something at ply 3
+like Nf3,Nc3,Bc4,f4... etc for the position after e4 e5. Next we play
+Nf3 and generate the ply 4 moves after e4 e5 Nf3 adding them to the end
+of the one big list (of course). At this point we deviate from the
+process so far. We are now at ply 4, the specified search depth and we
+don't sort the moves. Sorting at the earlier plies speeds up Alpha-Beta
+pruning but isn't useful at the final ply so it's omitted to make
+things as fast as possible.
+
+This is a picture of how our big list looks now;
+
+1: ->e4,d4,c4,Nf3,g3,b3,f4 ... f3
+2: ->e5,c5,c6,e6,g6,Nf3,d6 ... b5
+3: ->Nf3,Nc3,Bc4,f4,d4,c3,Be2 ... b4
+4u: ->a5,a6,b5,b6 ... Ba3,Ne7,Nf6,Nh6
+
+The u in 4u indicates unsorted, chess players will immediately recognise
+the weird order, compared to the earlier plies.
+
+Sargon keeps two stacks of ply pointers, one for the current location in
+each ply (shown with ->) and one for the end of storage of each ply.
+
+At the moment the current location corresponds to the start of each ply
+list, but that situation is only temporary. Note that Sargon's end of
+ply storage pointers don't correspond to the start and end of the
+sorted lines, because the sort is performed in place with a linked
+list (the moves themselves don't move, only the link pointers).
+
+Sargon doesn't actually keep pointers to the start of the ply lists, it
+doesn't need them. To trace and debug Sargon's workings it is useful to
+have these pointers though, so there is now debug only code to
+calculate these positions. Sargon does keep track of the end of the ply
+lists of course, using a conventional NULL link pointer to indicate end
+of list.
+
+Returning to Sargon's depth 4 search for the best White opening move,
+Sargon now statically evaluates each 'leaf' position after each ply 4
+move in turn, to find the best such Black move. The score of the best
+move is in turn the backed up (refined) score of White move Nf3 in the
+sequence e4 e5 Nf3.
+
+Ascending and Descending
+------------------------
+
+Up until now we've always been going in one direction, we've
+been 'descending' down the tree. To make further progress it's now time
+to do our first 'ascending' up the tree.
+
+Sargon undoes Nf3 at ply 3 and plays Nc3, the second move of the ply 3
+list instead. Then the old Nf3 ply 4 moves are efficiently flushed by
+popping the last end of ply storage pointer off the stack and using
+that location to generate and store a new list of Nc3 ply 4 moves.
+
+Sargon evaluates all these ply 4 moves to get a backed up score for Nc3
+in the sequence e4 e5 Nc3.
+
+I'm sure you see where this is going. Sargon rinses and repeats until it
+has backed up scores for all of Nf3, Nc3, Bc4 etc. The best score for
+that White move establishes the backed up score for Black move e5 in
+the sequence e4 e5.
+
+Then Sargon will undo e5 and try c5 instead. That will require a new ply
+3 list for the first time, and a whole series of ply 4 lists. But
+eventually we get the score for c5 then all the other ply 2 moves
+yielding the best Black reply to e4 which establishes the score for
+e4.
+
+Once that's done Sargon will undo e4 and try d4 at ply 1, and for the
+first time we get a new ply 2 list, and of course many ply 3 lists and
+many many ply 4 lists.
+
+A bit later still, the moves in memory will look like this;
+
+1: e4,d4,->c4,Nf3,g3,b3,f4 ... f3
+2: Nf6,->e5,c5,e6,c6,d6,g6 ... f6
+3: g3,->Nc3,e3 ... f4
+4u: a5,a6,b5,->b6 ... Ba3,Ne7,Nf6,Nh6
+
+Note that Sargon is done with the moves before arrows. So 1.e4 and 1.d4
+have been completely analysed, that is their final backed up score has
+been established, and the best one kept (this diagram doesn't show the
+scores of 1.e4 or 1.d4 so we don't know which one is the best move so
+far).
+
+At ply 2 c4 Nf6 has been completely analysed and its final backed up
+score established. This means that we have a partial score for 1.c4, it
+will be the score of c4 Nf6 or worse if Sargon finds a better reply
+than Nf6. Sargon is currently working on c4 e5 to see if it is better
+than c4 Nf6. If c4 e5 is better than c4 Nf6 then we know the score for
+1.c4 will be score of c4 e5 or worse. This is minimax, the score of
+1.c4 gets worse as the score to the responses to 1.c4 get better.
+
+Note that the final backed up scores of each of c4 e5 g3 and c4 e5 Nc3
+a5 and c4 e5 Nc3 a6 and c4 e5 Nc3 b5 have all been established as we
+work on the partially complete c4 e5 score. Every node in the tree is
+either completely backed up (we know it's score), partially backed
+up (we know it's score is equal to or worse than the best score found
+so far), or it's provisional (only the static score has been
+calculated).
+
+To track partial and complete scores we only need to store the best
+score at each ply, so for this 4 ply search we need an array of four
+scores.
+
+If we imagine the 1.d4 score is better than the 1.e4 score then the
+entry in the array for ply 1 is the score for 1.d4.
+
+The entry in the array for ply 2 is the c4 Nf6 score. It will be
+replaced by the score of c4 e5 if c4 e5 scores better than c4 Nf6.
+
+The entry in the array for ply 3 is the c4 e5 g3 score. It will be
+replaced by the score of c4 e5 Nc3 if c4 e5 Nc3 scores better than c4
+e5 g3.
+
+The entry in the array for ply 4 is whichever one of the c4 e5 Nc3 a5,
+c4 e5 Nc3 a6, c4 e5 Nc3 b5 scores is best. It might be about to be
+replaced by the score of c4 e5 Nc3 b6 if that turns out to be the best
+ply 4 score so far.
+
+So the ply 1 score is the best opening position score (so far), the ply
+2 score is the best c4 score (so far) the ply 3 score is the best c4 e5
+score so far, the ply 4 score is the best c4 e5 Nc3 score so far.
+
+Sorry to belabour these points but a complete and clear understanding of
+this process is essential to really understanding the Sargon code.
+
+Now imagine that the score for c4 e5 when we finish the checking all the
+backed up ply 3 White moves is great for Black (bad for White). Then
+the score for c4 e5 replaces the score for c4 Nf6 at ply 2. But wait
+there's more. We should also routinely compare this score to the ply 1
+score above (currently the score for 1.d4). The score for 1.c4 is going
+to be this (bad for White) score for 1.c4 e5 or even worse. So 1.c4 is
+refuted already, it will not supplant 1.d4 we can abort the full
+analysis of 1.c4 already and move on to 1.Nf3.
+
+This is Alpha Beta pruning, the implementation is almost trivially easy
+in Sargon - a real advantage over more conventional recursive
+implementations of minimax and alpha-beta (which can be very mind
+bending in my opinion).
+
+A detail worth noting is that the alpha beta comparison is a better than
+or equal comparison rather than a better than comparison (eg is c4 e5
+is better than or equal to d4?). This is an optimisation, it's worth
+pruning c4 analysis now rather than continuing when we know c4 can
+perhaps match d4 but definitely can't beat it.
+
+It's important to understand that minimax and alpha-beta are inherently
+recursive, even though Sargon doesn't use recursive function calls to
+implement it. As previously mentioned one ply 2 section of moves hosts
+multiple ply 3 sections of moves, just as the ply 1 section hosts
+multiple ply 2 sections. If we were doing really deep search we might
+have a ply 8 section hosting multiple ply 9 sections (each of which, in
+its time will host .... ). This means, for example that Alpha-beta will
+happily be applied to ply 9 replies to ply 8 moves that already have
+fully backed up ply 8 alternatives.
+
+Alpha beta often arises in routine exchanges. White to move can exchange
+minor pieces for no nominal gain, only one Black piece can recapture.
+When ply 1 is the capture, the ply 2 list will presumably start with
+the recapture. The recapture will be completely analysed and will
+establish the initial ply 1 score in the scoring table. The
+alternatives to recapture will then be considered in turn but will
+likely all be abandoned by Alpha-Beta very quickly because they are so
+easy to refute (any White reply that keeps the free material).
+
+Sargon keeps an array of best scores but it doesn't keep an array of
+best moves - in other words it doesn't remember the variation that it
+considers best play from the start position. Sargon was originally just
+a player not an analyst, it just remembered the best move at ply
+1 (1.d4 in the partially complete calculation we are following).
+
+However we have extended the basic Sargon code to track the
+PV (principal variation) but the algorithm is out of scope for this
+introduction.
+
+In the original Sargon code the comments talk of the Minimax comparison
+being to the score one ply above, and the Alpha-Beta comparison being
+to the score two plies above. This simply means the Minimax comparison
+is establishing a score for a move by finding the best reply (one ply
+difference between a move and its replies). At the same time the
+Alpha-Beta comparison is checking the reply against the comparison
+between the move and it's alternatives (one ply higher, so two plies
+total) for each reply in turn to see whether that reply is sufficient
+to refute the move early and allow us to abandon it without checking
+any more replies.
+
+The Score Table
+---------------
+
+We have been considering this scenario;
+
+1: [+0.3] e4,BESTM=d4,->c4,Nf3,g3,b3,f4 ... f3
+2: [+0.4] Nf6,e5,->c5,e6,c6,d6,g6 ... f6
+3: [+0.2] Nc3,->Nf3,g3,e3 ... h3
+4u: [+1.1] MLPTRI->a5,a6,b5,MLPTRJ->b6, ... Qb6,Qa5,Nf6,Nh6
+
+The arrow -> indicators establish a node in the total tree of moves
+arising from the initial position, currently that node is c4 c5 Nf3
+ab.
+
+I have added a few things compared to the earlier diagram of the same
+scenario. The scoring table is shown in [brackets]. At ply 1 +0.3 is
+the best score of the fully analysed first moves to date (so e4 and
+d4). At ply 2 +0.4 is the best score of the fully analysed replies to
+c4 to date (so c4 Nf6 and and c4 e5). At ply 3 +0.2 is the best score
+of the fully analysed replies to c4 c5 to date (so c4 c5 Nc3 only). And
+finally at ply 4 +1.1 is the best score of the fully analysed replies
+to c4 c5 Nf3 to date (so c4 c5 Nf3 a5, c4 c5 Nf3 a6 and c4 c5 Nf3 b5).
+
+We need to keep track of which particular move is associated with the
+best score at ply 1 only, so that Sargon knows what move to play. I've
+indicated that with BESTM= where BESTM is the name of the Sargon
+variable used for this purpose. So d4 is the best move found to date,
+with a fully backed up score of +0.3.
+
+I've also added indicators for the Sargon variables MLPTRI (pointer to
+the start of current linked list of moves) and MLPTRJ (pointer to the
+current move within that list).
+
+We are not always at a leaf node like this of course. A bit later the
+situation might look like this;
+
+1: [+0.3] e4,BESTM=d4,c4,->Nf3,g3,b3,f4 ... f3 2: [+0.4]
+MLPTRI->d5,Nf6,c5,e6,c6,MLPTRJ->d6,g6 ... f6
+
+The node under consideration is now Nf3 d6. The score table and move
+lists for plies 3 and 4 are not shown because the current values of
+that data is irrelevant, Sargon has finished processing that
+information, in the same way that it has finished with the e4, d4 and
+c4 at ply 1 and d5 Nf6, c5, e6 and c6 at ply 2.
+
+Compared to the previous picture, Sargon has finished with 1.c4 and it
+evidently did not replace 1.d4 as the best move to date. So far 1.Nf3
+is doing a bit better than 1.d4 with [+0.4] after processing the
+replies d5, Nf6, c5, e6 and c6. If any of these replies had been as
+good or better for Black than +0.3 (so less than or equal to 0.3) then
+1.Nf3 would have been considered refuted by Alpha-Beta pruning and
+Sargon would have continued to 1.g3 immediately.
+
+I'm using this example because of the familiarity of opening move
+sequences, the actual scoring is not representative of Sargon at all.
+
+The Sargon algorithm will next generate a list of all White moves
+available in the position after c4 d6 and sort them. It will then step
+to the position after the first move in that list and generate all the
+moves in that position etc. etc. In other words it will perform exactly
+the same procedure in node c4 d6 to calculate the best move it can find
+after that position as it performed, or strictly speaking is
+performing, to calculate the best move in the starting position.
+Although Sargon doesn't implement the minimax search using a function
+calling itself, it is in essence a recursive algorithm.
+
+Pseudo Code
+-----------
+
+Putting these ideas together gives us FNDMOV() (calculate best move)
+pseudo code, the heart of Sargon. This pseudo code ignores some
+details, including an extra ply beyond PLYMAX whenever a move gives
+check, to check for checkmate;
+
+Set NPLY = 1 and generate move ply 1 list
+If not at max ply, score and sort the moves
+Loop through the current move list
+     If no more moves in move list
+        If NPLY == 1 return
+        Get SCORE (a) from score ply table and Ascend (NPLY--, undo move)
+     Else if more moves in move list
+        Make the move
+        If not yet at max depth
+            Generate moves at next ply and Descend (NPLY++)
+            If not at max ply, score and sort the moves
+            Continue loop to iterate through the new move list
+        Else if max depth
+            Evaluate SCORE (b) at leaf node using POINTS()
+            Unmake the move
+    SCORE available, from (a bubble up) or (b leaf)
+    If score is better or equal to score above in the score ply table
+        Alpha Beta cutoff, Ascend (NPLY--, undo move). This abandons
+         the current move list, this reply has refuted the current
+         move a ply higher. That move will not be the best move at
+         that ply, we prefer a previously analysed alternative and
+         its final score. There is no need to analyse the other
+         replies in the current move list.
+    Else if score is better than score in current score ply table
+        Update score ply table
+        If NPLY == 1
+             Update best move found to date, if it gives mate return
+End loop
+
+Score Representation
+--------------------
+
+Sargon does not use floating point to score positions of course (I used
+it in my example above for illustrative purposes only). In fact the
+Sargon points system is squeezed into 1 byte of dynamic range, for ease
+of programming on Z80. Zargon retains this, but some useful
+simplification could be achieved by changing to int16 or int32
+representaton. For now the 1 byte system is retained and the details
+break down as follows;
+
+Initially the score is calculated as a signed 8 bit integer. Such values
+are intrinsically limited to the range -128 to 127, Sargon uses almost
+all of this range for its points calculation (specifically -126 to
+126).
+
+The value is calculated as 4*LIMIT(30,material) + LIMIT(6,board_control)
+The LIMIT(n,x) function is a saturation function that returns either
+the value of x, or n if x is greater than n, or -n if x is less than
+-n. Therefore initially at least scores are constrained to the range
+-126 to 126 (because 4*30+6 = 126). More positive scores favour White.
+
+Material and board control are calculated separately. Board control is
+the number of squares controlled, material is the amount of
+material (using a 1,3,3,5,9 convention) in half pawns. Both of these
+are 'net' values. In fact two netting calculations are made for each
+variable, first a White minus Black subtraction, then a relative to
+initial position calculation, i.e. a current position minus initial
+position subtraction.
+
+So the material and board control variables are effectively extra
+material gained by White and extra board control gained by White.
+Negative numbers indicate gains by Black. If we used absolute numbers
+instead of relative numbers the tiny dynamic range of a one byte number
+would saturate if one side had a massive advantage in the starting
+position, and Sargon would calculate more or less random moves instead
+of trying to make (or resist) further progress.
+
+Importantly, Sargon uses a rudimentary SOMA (Swopping Off Material
+Analyzer, see routine XCHNG() and the pin and attack list routines that
+enable it to do its work) to adjust the material count to reflect
+material that's en-prise. This is an attempt to calculate complete
+routine material exchanges in the absense of extra plies that could do
+that more comprehensively and accurately. It attempts to account for at
+least some pins but it is of course vulnerable to zwichenzugs and other
+tactical nuances messing up its evaluations. This is an inevitable
+downside of simple, fixed depth search.
+
+The board control variable is also adjusted somewhat, to encourage
+castling for example. In general though the Sargon static analyser is
+pretty simple, basically a material calculation plus a few
+adjustments.
+
+The Minimax and Alpha Beta algorithms operate on unsigned 8 bit scores
+rather than signed 8 bit scores. The main reason for this is that the
+Z80 can compare unsigned 8 bit numbers more efficiently than signed 8
+bit numbers. To get the unsigned scores, Sargon adds 128 to the score,
+shifting range -126 to 126 into the unsigned range 2 to 254 (midpoint
+128). A second reason for this is that it is convenient for zero to be
+a sentinel value rather than a valid score value.
+
+In the original Z80 code Sargon somewhat confusingly uses the Z80 negate
+opcode to operate on these numbers that it is clearly treating as
+unsigned 8 bit values. This confused me for a very long time! It turns
+out that negating signed integers is accomplished by the neat
+'twos complement' trick of inverting every bit and adding 1. This does
+something useful even if we are treating our bits as an unsigned
+integer;
+
+0 -> 0         (0x00 -> 0x00)
+1 -> 255       (0x01 -> 0xff)
+2 -> 254       (0x02 -> 0xfe)
+3 -> 253       (0x03 -> 0xfd)
+...
+127 -> 129     (0x7f -> 0x81)
+128 -> 128     (0x80 -> 0x80)
+129 -> 127     (0x81 -> 0x7f)
+...
+253 -> 3       (0xfd -> 0x03)
+254 -> 2       (0xfe -> 0x02)
+255 -> 1       (0xff -> 0x01)
+
+So for our purposes 'negate' does a chesswise negate on the scores,
+scores that are good for White and bad for Black are flipped around to
+be good for Black and bad for White. I will subsequently use the word
+'flip' rather than 'negate', because I don't like to talk about negating
+ unsigned numbers!
+
+The material and board control algorithm generates scores in the range
+2-254 as we have seen. Score values 1 and 255 are used to indicate mate
+for one side or the other. Both values are required so that flipping
+the mating score is possible, if White has a mating advantage Black has
+a corresponding mating disadvantage and vice-versa. 0 is reserved as a
+sentinel, usually to indicate a score that has not yet been
+calculated.
+
+It can be very confusing accounting for which way around scores are in
+any given scenario. A score of 128 always corresponds to 0.0. But
+127 (or 129) might mean a 1/8 pawn advantage to White, or Black, or the
+side to move, or the other side (not to move) at different points in
+the algorithm.
+
+Let's illustrate the conventions used with the ply diagram we have been
+using, with the original example we started with; the starting position
+of standard chess after reaching the first leaf position e4,e5,Nf3,a5.
+Remember the perhaps unexpected move a5 is due to the leaf nodes not
+being sorted. The annotations this time highlight which way around the
+unsigned 8 bit scoring is.
+
+0: (B) [0]   
+1: W [bigger_is_better score] (smaller_is_better: ->e4,d4,c4,Nf3,g3,b3,f4 ... f3)
+2: B [bigger_is_better score] (smaller_is_better: ->e5,c5,c6,e6,g6,Nf3,d6 ... b5)
+3: W [bigger_is_better score] (smaller_is_better: ->Nf3,Nc3,Bc4,f4,d4,c3,Be2 ... b4)
+4u: B [bigger_is_better score] (smaller_is_better: ->a5,a6,b5,b6 ... Nh6)
+
+I've added ply 0, the root position. There is no ply 0 move list, but
+there is a ply 0 score that stays at 0 (sentinel value) through the
+whole algorithm. Strictly speaking it would be consistent to assign it
+with a bigger is better score for Black (so smaller is better score for
+White) for the root position at the very end once Sargon has calculated
+and scored the move it is going to play at ply 1.
+
+I am using conventional C arrays to implement these data structures so
+they are quite properly 0 based, and unfortunately the 0th element of
+the move lists is wasted. The variable NPLY serves as the index into
+the score table and the move lists.
+
+I have labelled the plies explicitly with an alternating colour W(hite),
+B(lack), W, B etc. Ply 0 the root ply gets the Black label for
+consistency with the alternating pattern, you can think of it as a
+virtual Black move creating the start position for Ply 1 where it is
+White to play.
+
+The move lists are sorted according to the static position evaluation
+scores, these use the smaller is better convention as shown so the best
+static scores have the lowest numbers and are listed first. Perhaps I
+should mention again that the Sargon static evaluator is nowhere near
+good enough to determine opening move ordering as plausible as the
+opening moves I list here, it's illustrative only! Don't worry, a
+realistic actual example is not too far away.
+
+If Sargon is playing Black the ply labels are reversed and the static
+move scores flipped so they are still smallest number is better, and
+the ply table scores still have the bigger is better convention;
+
+0: (W) [0]   
+1: B [bigger_is_better score] (smaller_is_better: ...
+2: W [bigger_is_better score] (smaller_is_better: ...
+3: B [bigger_is_better score] (smaller_is_better: ...
+4u: W [bigger_is_better score] (smaller_is_better: ...
+
+With these ideas now hopefully firmly established we can now nail down
+the numerical conventions at the heart of the Sargon FNDMOV()
+algorithm. From the pseudo code previously we have;
+
+SCORE available, from (a [backing up]) or (b [leaf])
+If score is better or equal to score above in the score ply table
+    Alpha Beta cutoff, Ascend (NPLY--, undo move). This abandons
+     the current move list, this reply has refuted the current
+     move a ply higher. That move will not be the best move at
+     that ply, we prefer a previously analysed alternative and
+     its final score. There is no need to analyse the other
+     replies in the current move list.
+Else if score is better than score in current score ply table
+    Update score ply table
+
+The specific comparison calculations are as follows;
+
+score_smaller_is_better available, from (a backing up) or (b leaf)
+If score_smaller_is_better <= bigger_is_better score in table one ply above
+    Alpha Beta cutoff
+Else
+    Flip score_smaller_is_better => score_bigger_is_better
+    If score_bigger_is_better > bigger_is_better score in ply table
+        bigger_is_better score in ply table = score_bigger_is_better
+
+The 'if score_smaller_is_better <= bigger_is_better' comparison makes
+sense because these are adjacent plies which correspond to different
+sides to move. So for example if score_smaller_is_better is for a White
+ply it is also a score_bigger_is_better type score for Black and can be
+directly compared to a Black ply score_bigger_is_better score.
+
+The 0 value at ply 0 in the score table serves to allow us to avoid a
+check for ply 2 or greater when doing an Alpha Beta check, that would
+be unnecessary code in the hot path. Instead we just have a
+harmless 'is score_smaller_is_better <= 0' check at ply 1 which never
+triggers and only executes comparitively rarely (for every N ply 1
+operations there are N*N ply 2 operations, N*N*N ply 3 operations
+etc.).
+
+Detailed Working Example
+------------------------
+
+Just for the really dedicated here is a simple working PLYMAX=2
+example.
+
+The test FEN is '8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1'
+White to move;
+
+    ........
+    ........
+    k....rpr
+    ....N.p.
+    .....p.p
+    ...b....
+    PP......
+    K.......
+
+White has a knight and two pawns versus Black's two rooks, bishop and
+four pawns and for the record is totally lost. But White does have two
+sensible material winning moves, and the example shows Sargon selecting
+the best, or at least the greediest, of those with a PLYMAX = 2
+calculation. The two good moves are Ne5xBd3 grabbing a free piece and
+Ne5-g4 forking the two rooks and actually winning a whole rook not just
+an exchange. I've organised the pawns to avoid the Black rooks
+defending each other or giving checks. In fact the example position is
+chosen to avoid all complications. There are just the two useful
+initial White moves, all other moves for both sides are just do nothing
+moves or simple one move material losing blunders.
+
+The static evaluator ranks Ne5xBd3 grabbing the piece as best which is
+no surprise. The complete merits of Ne5-g4 forking the rooks is beyond
+the static analyser, but it does like a couple of attacks and so it is
+ranked second followed by all the do nothing moves and blunders.
+
+The following is edited extracts from the debug log, with a descriptive
+annotation after each extract.
+
+4) Nxd3 f3 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=154, score_bigger_is_better=102, ply score=0)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->f3(154) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Start considering replies to 1.Nxd3. Only a two ply search so we are
+immediately at the unsorted leaf nodes. The first one is 1...f3 and it
+establishes the initial score to beat.
+
+41) Nxd3 Rd6 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=150, score_bigger_is_better=106, ply score=102)
+1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [102] f3(154) h3(154) g4(154) Kb7(154) Kb5(154) Ka7(154) Ka5(154) Kb6(154) Rf7(154) Rf8(154) Rf5(154) Re6(154) MLPTRJ->Rd6(150) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Continue considering replies to 1.Nxd3. The first 12 replies are all do
+nothing moves that score 102, the 13th is 1...Rd6 which at least
+attacks the knight so it scores slightly better with 106.
+
+59) Nxd3 Alpha-beta cutoff [Nxd3] if score_smaller_is_better<=ply above: NO (score_smaller_is_better=106, ply above=0)
+1: [0] MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+We now have a backed up score for Nxd3, the first move in the move list
+for the root position. The backed up score is the score of the best
+replies, it's score_bigger_is_better=106 when it's a Black reply score
+but score_smaller_is_better=106 for the White move Black is replying
+to. Notice that its score_smaller_is_better of 106 is slightly
+different to its static score of 102. At ply 1 we never do an alpha
+beta cutoff, we aren't considering replies to a move that alpha beta
+can refute.
+
+60) Nxd3 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=106, score_bigger_is_better=150, ply score=0)
+1: [0] MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+Nxd3 does establish the score of the move to beat at ply 1. It is
+106 (smallest_is_better) and 150 (biggest_is_better)
+
+65) Ng4 Bc4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=165, score_bigger_is_better=91, ply score=0)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->Bc4(165) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Start considering replies to 1.Ng4. Only a two ply search so we are
+immediately at the unsorted leaf nodes. The first one is 1...Bc4 and it
+establishes 91 as the (unimpressive!) initial score_bigger_is_better to
+beat.
+
+72) Ng4 Be4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=164, score_bigger_is_better=92, ply score=91)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [91] Bc4(165) Bb5(167) MLPTRJ->Be4(164) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+1...Be4 is a marginal one point improvement over 1...Bc4, 91 becomes 92
+but so far the replies to 1...Ng4 are unimpressive,
+
+97) Ng4 Kb7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=163, score_bigger_is_better=93, ply score=92)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [92] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) MLPTRJ->Kb7(163) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+The 11th reply considered is 1...Kb7, marginal improvement 92->93
+
+113) Ng4 Rf7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=161, score_bigger_is_better=95, ply score=93)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [93] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) MLPTRJ->Rf7(161) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+The 16th reply considered is 1...Rf7, marginal improvement 93->95
+
+123) Ng4 Re6 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=159, score_bigger_is_better=97, ply score=95)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [95] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) MLPTRJ->Re6(159) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+The 19th reply considered is 1...Re6, marginal improvement 95->97
+
+136) Ng4 Rh7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=158, score_bigger_is_better=98, ply score=97)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [97] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) Re6(159) Rd6(161) Rc6(159) Rb6(160) MLPTRJ->Rh7(158) Rh8(0) Rh5(0)
+
+The 23rd reply considered is 1...Rh7, marginal improvement 97->98 All of
+the replies are pretty much equivalent because they all leave a whole
+rook en-prise.
+
+145) Ng4 Alpha-beta cutoff if score_smaller_is_better<=ply above: NO (score_smaller_is_better=98, ply above=0)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+The replies to Ng4 have all been considered and it has a backed up
+smallest_is_better score of 98 (as for Nxd3 the backed up
+smaller_is_better score is the best bigger_is_better score of the
+replies). As always there is no Alpha-beta cutoff at ply 1.
+
+146) Ng4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=98, score_bigger_is_better=158, ply score=150)
+1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+Going one ply deeper has improved Ng4's static score_smaller_is_better
+of 110 to 98, a more significant refinement than the Nxd3's 102 to 106.
+So Ng4 usurps Nxd3 as the best move to date, a triumph indeed for
+minimax.
+
+150) a3 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) current->a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+Alpha Beta comes into its own now as the alternatives to best move 1.Ng4
+are considered in turn. They are all quickly rejected, usually after
+checking just one reply because any Black reply that simply keeps the
+free material White is eschewing with a move other than 1.Ng4 is
+sufficient to refute the White move. Here 1...Bc4 is sufficient to
+refute 1.a3, even though 1...Bc4 actually blunders a bishop, even
+that's better than losing a rook to 1.Ng4
+
+154) a4 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) current->a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0] MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) (a6b5) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+
+1...Bc4 is also sufficient to refute 1.a4, even though like 1.a3 Bc4 it
+simply blunders a bishop.
+
+... There are many more alpha-beta cutoffs of lame alternatives to Nxd3
+    and Ng4 ...
+
+285) Nc6 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=121, ply above=158)
+1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) MLPTRJ->Nc6(156)
+2u: [0] current->Bc4(121) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) (a6a7) (a6a5) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rxc6(0) Rh7(0) Rh8(0) Rh5(0)
+
+1.Nc6 is the last alternative first move considered, it is a truly
+terrible move blundering the knight instead of taking free material
+like Nxd3 or winning material with a fork like Ng4. 1...Bc4 doesn't
+blunder the bishop this time, although it doesn't take the knight
+either. It is still more than sufficient to refute 1.Nc6 with
+alpha-beta cutoff. Once all the ply 1 moves are considered, FNDMOV()
+returns with its conclusion that the best move is 1.Ng4.
+
+Fixing Sargon so it Prefers Quicker Mates
+=========================================
+
+One problem with unmodified Sargon is that it considers all mates to be
+equal, a mate discovered at ply 3 is not weighted more highly than a
+mate at ply 6 (say). It plays the mate it finds first, not the quickest
+mate. This can be quite annoying and I was happy to apply a fairly
+simple fix in Zargon. We start by modifying the basic points formula
+slightly
+
+   points = 4*LIMIT(29,material) + LIMIT(6,board control)
+
+I decided distinguishing between 14.5 and 15 pawns of extra material is
+rarely important (certainly not in any of my test positions). Note that
+some of Sargon's material adjustment calculations do introduce half
+pawn values, so 14.5 is not the same as 14, despite the basic 1,3,3,5,9
+material convention.
+
+The benefit of limiting to 29, rather than 30, is that the points values
+are now in the range -122 to +122 (signed) and 6 to 250 (unsigned).
+This makes room for additional mate sentinel values 254,253,252 and 251
+and their corresponding flipped values 2,3,4 and 5.
+
+The mate score at plies 1 and 2 remains 255/1. Then each pair of deeper
+plies gets a slightly less powerful mating score. So 3 and 4 -> 254/2,
+5 and 6 -> 253/3, 7 and 8 -> 252/4, 9 and higher -> 251/5. We can
+allocate two plies to each mating score because White moves don't
+compete against Black moves in minimax calculations so the same mating
+score doesn't create a conflict.
+
