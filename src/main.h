@@ -27,8 +27,8 @@ void callback_yes_best_move();
 void callback_end_of_points( int8_t &points );
 void callback_after_genmov();
 bool callback_suppress_king_moves( uint8_t piece );
-void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p );
-void callback_no_best_move( uint8_t score, const uint8_t *p );
+void callback_alpha_beta_cutoff( uint8_t score_smaller_is_better, const uint8_t *p );
+void callback_no_best_move( uint8_t score_bigger_is_better, const uint8_t *p );
 
 // UCI needs only a small subset of the callbacks
 void callback_uci_after_genmove();

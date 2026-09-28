@@ -2222,14 +2222,18 @@ void FNDMOV()
         // Alpha Beta cutoff ?
         // How to think about Alpha Beta:
         // Minimax is working on the details, for example if you have a list of
-        // moves A,B... it might be trying each reply to B to see which is best
+        // moves A,B,C,D... it might be trying each reply to D to see which is best
         // Alpha Beta looks at the same replies and says (potentially);
-        //  "Wait a minute, this reply already means that move B is no good,
-        //   because it proves the opponent can do better against B than
-        //   against A. So stop wasting time on B"
+        //  "Wait a minute, this reply already means that move D is no good,
+        //   because it proves the opponent can do better against D than
+        //   against the best to date (B say). So stop wasting time on D"
+
+
 
         // Score table scores are flipped, so bigger is better
         const uint8_t *table_bigger_is_better = &m.SCORE[m.NPLY-1];
+        extraf( "Alpha-beta cutoff if score_smaller_is_better<=ply above: %s (score_smaller_is_better=%u, ply above=%u)\n",
+                score_smaller_is_better<=*table_bigger_is_better?"YES":"NO", score_smaller_is_better, *table_bigger_is_better );
         callback_alpha_beta_cutoff( score_smaller_is_better, table_bigger_is_better );
 
         // If this reply to D (for example) is better (or equal) than the best score
@@ -2252,6 +2256,8 @@ void FNDMOV()
 
         // Flip score (twos complement)
         score_bigger_is_better = (score_smaller_is_better^0xff)+1;
+        extraf( "%s is the best move if score_bigger_is_better > ply score: %s (score_smaller_is_better=%u, score_bigger_is_better=%u, ply score=%u)\n",
+            show_node().c_str(), (score_bigger_is_better > m.SCORE[m.NPLY])?"YES":"NO", (score_bigger_is_better^0xff)+1, score_bigger_is_better, m.SCORE[m.NPLY] );
 
         // Is this the best reply to date?
         bool score_greater = (m.SCORE[m.NPLY] < score_bigger_is_better);

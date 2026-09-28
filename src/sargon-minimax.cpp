@@ -1480,10 +1480,6 @@ bool callback_suppress_king_moves( uint8_t piece )
 // (Name 'Alpha beta cutoff?' -> CB_ALPHA_BETA_CUTOFF)
 void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 {
-#ifdef DEBUG_SHOW_TREE
-    extraf( "Alpha-beta cutoff [%s] if score<=two ply above: %s (score=%s, two ply above=%s)\n",
-        show_node().c_str(), score<=*p?"YES":"NO", show_score(score).c_str(), show_score(*p).c_str() );
-#endif
     if( !callback_minimax_mods_active )
         return;
     Progress prog;
@@ -1499,7 +1495,8 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
         key = "";
     key += toupper(c); 
     uint8_t val = *p;
-    bool jmp = (score <= val);   // Note that Sargon integer values have reverse sense to
+    bool jmp = (score <= val);
+                                // Note that Sargon integer values have reverse sense to
                                 //  float centipawns.
                                 //  So jmp if al <= val means
                                 //     jmp if float(al) >= float(val)
@@ -1535,15 +1532,12 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 // (Name 'No! is this the best move?' -> CB_NO_BEST_MOVE)
 void callback_no_best_move( uint8_t score, const uint8_t *p )
 {
-#ifdef DEBUG_SHOW_TREE
-    extraf( "This [%s] is the best move if score>ply score: %s (score=%s, ply score=%s)\n",
-        show_node().c_str(), (score > *p)?"YES":"NO", show_score(score).c_str(), show_score(*p).c_str() );
-#endif
     if( !callback_minimax_mods_active )
         return;
     Progress prog;
     uint8_t val = *p;
-    bool jmp = (score <= val);  // Note that Sargon integer values have reverse sense to
+    bool jmp = (score <= val);
+                                // Note that Sargon integer values have reverse sense to
                                 //  float centipawns.
                                 //  So jmp if al <= val means
                                 //     jmp if float(al) >= float(val)

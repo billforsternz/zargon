@@ -23,7 +23,14 @@
 #define LOG_SUPER 1         
 #define LOG_EXTRA 2
 #define LOG_TRACE 3         
-#define LOG_DETAILED 4      
+#define LOG_DETAILED 4
+
+/*
+logf
+
+extraf
+*/
+
 
 // Some different use/testing scenarios
 //#define SCENARIO_PRODUCTION
@@ -90,6 +97,26 @@ void tracef( const char *fmt, ... );
 
 // logf()   - show all the details
 void logf( const char *fmt, ... );
+
+/* From Tarrasch - temp, for inspiration
+#ifdef KILL_DEBUG_COMPLETELY
+    #define release_printf(...)
+    #define dbg_printf(...)
+    #define cprintf(...)
+    #define core_printf(...)
+#else
+    #define release_printf(...)   core_printf ( __VA_ARGS__ )
+    #ifdef _DEBUG
+        #define dbg_printf(...) core_printf ( __VA_ARGS__ )
+        #define cprintf(...)    core_printf ( __VA_ARGS__ )
+    #else
+        #define dbg_printf(...)
+        #define cprintf(...)    core_printf ( __VA_ARGS__ )
+    #endif
+    int core_printf( const char *fmt, ... );
+#endif
+*/
+
 
 std::string show_node();
 std::string show_scores();
