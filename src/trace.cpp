@@ -56,7 +56,6 @@ std::string current_status;
 void callback_genmov();
 bool callback_points();
 bool callback_admove();
-void callback_admove_exit();
 
 function_in_out::function_in_out( FUNC_ENUM fe )
 {
@@ -70,7 +69,7 @@ function_in_out::function_in_out( FUNC_ENUM fe )
     else if( fe == FE_GENMOV ) { callback_genmov(); insist=true; }
     else if( fe == FE_POINTS ) { early_exit = callback_points(); }
     else if( fe == FE_ADMOVE ) early_exit = callback_admove();
-    #ifndef DEBUG_FUNC_TRACE_STUB
+    #ifdef DEBUG_FUNC_LOG
     log( fe, true, insist );
     #endif
 }
@@ -82,8 +81,7 @@ function_in_out::~function_in_out()
     else if( saved_fe == FE_SORTM )  insist=true;
     else if( saved_fe == FE_MOVE )   insist=true;
     else if( saved_fe == FE_UNMOVE ) insist=true;
-    else if( saved_fe==FE_ADMOVE && !early_exit ) callback_admove_exit();
-    #ifndef DEBUG_FUNC_TRACE_STUB
+    #ifdef DEBUG_FUNC_LOG
     log( saved_fe, false, insist );
     #endif
 }
@@ -91,35 +89,11 @@ function_in_out::~function_in_out()
 void function_in_out::log( FUNC_ENUM fe, bool in, bool insist )
 {
     static uint64_t log_nbr;
-    #ifdef DEBUG_FUNC_TRACE_FULL
-    std::string diag = show_scores_long();
-    diag += show_ply_chains();
-    bool diff = (diag != current_status);
-    if( diff || insist )
-    {
-        current_status = diag;
-    #else
     if( insist )
     {
         bool diff=true;
-        std::string diag = show_scores_long();
-        diag += show_ply_chains();
-    #endif
-        std::string msg = util::sprintf( "%s() %s%s %llu\n%s", lookup[fe], in?"IN":"OUT", diff?"":" (unchanged)", ++log_nbr, diag.c_str() );
-        if( insist )
-            tracef( "%s\n", msg.c_str() );
-        else
-            logf( "%s\n", msg.c_str() );
+        logf( "%s() %s", lookup[fe], in?"IN":"OUT"  );
     }
-    #ifdef DEBUG_SHOW_POSITIONS
-    if( !in && (fe==FE_MOVE || fe==FE_UNMOVE) )
-    {
-        thc::ChessPosition cp;
-        sargon_export_position(cp);
-        std::string s = cp.ToDebugStr(fe==FE_MOVE?"Position after MOVE()":"Position after UNMOVE()");
-        tracef( "%s\n", s.c_str() );
-    }
-    #endif
 }
 
 //
@@ -325,142 +299,6 @@ bool callback_admove()
     return early_exit;
 }
 
-void callback_admove_exit()
-{
-    #ifdef DEBUG_MOVE_EXTENSIONS
-    static uint32_t creation_count;
-    if( m.MLNXT )
-    {
-        ML *ml = m.MLNXT-1;
-        ml->creation_count = ++creation_count;
-        ml->creation_ply   = m.NPLY;
-        uint8_t piece = m.BOARDA[ml->from];
-        const char *lookup = (piece&0x80) ? "?pnbrqk?" : "?PNBRQK?";
-        char c = lookup[piece&7];
-        ml->creation_piece = c;
-        std::string terse = sargon_export_move(ml);
-        memcpy( ml->terse, terse.c_str(), 4 );
-        ml->terse[4] = '\0';
-    }
-    #endif
-}
-
-std::string show_score( uint8_t val )
-{
-    int n = val>=0x80 ? val-0x80 : 0-(0x80-val);
-    double f = sargon_export_value( val );
-
-    // Sargon points system is;
-    //    0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127 0x00=flag/illegal
-    //  127 positive scores uint8_t 0x7f-0x01 (8 points is one pawn, so 127/8 = 15.75 pawns is max score)
-    //    1 zero score 0x80
-    //  127 negative scores uint8_t 0x81-0xff
-    //    1 special flag/sentinel value 0, means illegal move
-
-    // Confusingly, more negative scores are better: so 0xff = -127 is the best
-    // move. In fact 0xff is reserved for mate.
-    // In original Sargon, the negative or positive score tops out at 126 leaving
-    // room for mate [basic formula is 4*LIMIT(30,material) + LIMIT(6,board_control)]
-    // So top score is actually 126/8 = 15.5 pawns.
-    // We have tweaked this, changing the LIMIT from 30 to 29 creating room for
-    // 4 more "mate" scores, 0xfe (mate in 2), 0xfd (mate in 3), 0xfc (mate in 4)
-    // and 0xfb (mate in 5 or more). 0xff now means mate in 1.
-    // The extra mate codes mean Zargon now no longer considers all mates to be
-    // equivalent
-    std::string s = (val==0 ? "0" : util::sprintf( "%u:%d,%.2f", val, n, f ));
-    if( 0xfc<=val && val<=0xff )
-        s += util::sprintf(" mate in %d", (0xff-val)+1);
-    else if( 0xfb == val )
-        s += " mate in 5 or more";
-    return s;
-}
-
-std::string score_descriptors[40];
-
-// Default version
-std::string show_scores()
-{
-    std::string s;
-    s += util::sprintf( "VALM: %u SCORE[", m.VALM );
-    for( int i=0; i<=m.PLYMAX; i++ )
-    {
-        if( i == m.NPLY )
-            s += "NPLY->";
-        s += util::sprintf( "%u", m.SCORE[i] );
-        if( i+1<=m.PLYMAX )
-            s+=", ";
-    }
-    s += "]";
-    return s;
-}
-
-// Short version
-std::string show_scores_short()
-{
-    std::string s = "[";
-    for( int i=0; i<=m.PLYMAX; i++ )
-    {
-        s += util::sprintf( "%u", m.SCORE[i] );
-        if( i+1<=m.PLYMAX )
-            s+=",";
-    }
-    s += "]";
-    return s;
-}
-
-// Long version
-std::string show_scores_long()
-{
-    std::string s;
-    s += util::sprintf( "%s\n", show_scores().c_str() );
-    s += "SCORE[]:";
-    s += "\n";
-    int last_score = 0;
-    for( int i=sizeof(score_descriptors)/sizeof(score_descriptors[0])-1; i>=0; i-- )
-    {
-        if( last_score==0 && score_descriptors[i] != "" && score_descriptors[i] != "0" )
-            last_score = i;
-        if( score_descriptors[i] == "" )
-            score_descriptors[i] = "0";
-    }
-    if( m.NPLY > last_score )
-        last_score = m.NPLY;
-    for( int i=0; i<=last_score; i++ )
-    {
-        if( i == m.NPLY )
-            s += "NPLY->";
-        s += util::sprintf( "%d: (%u) %s\n", i, m.SCORE[i], score_descriptors[i].c_str() );
-    }
-    return s;
-}
-
-// tracef() - show progress of chess algorithm
-void tracef( const char *fmt, ... )
-{
-    if( log_level < LOG_TRACE )
-        return;
-    int size = (int)strlen(fmt) * 3;   // guess at size
-    std::string str;
-    va_list ap;
-    for(;;)
-    {
-        str.resize(size);
-        va_start(ap, fmt);
-        int n = vsnprintf((char *)str.data(), size, fmt, ap);
-        va_end(ap);
-        if( n>-1 && n<size )    // are we done yet?
-        {
-            str.resize(n);
-            break;
-        }
-        if( n > size )  // Needed size returned
-            size = n + 1;   // For null char
-        else
-            size *= 4;      // Guess at a larger size
-    }
-    printf( "%s", str.c_str() );
-}
-
 static bool restart_test;
 static unsigned long extra_count;
 bool callback_restart_test()
@@ -609,49 +447,6 @@ void extraf( const char *fmt, ... )
 }
 #endif
 
-#ifdef DEBUG_KEEP_EXTRAF
-void superf( const char *fmt, ... )
-{
-    if( log_level < LOG_SUPER )
-        return;
-    std::string s = show_node();
-    int col = printf("%s",s.c_str() );
-    while( col < 28 )
-        col += printf(" ");
-    for( int i=0; i<m.NPLY; i++ )
-        printf( " " );
-    int size = (int)strlen(fmt) * 3;   // guess at size
-    std::string str;
-    va_list ap;
-    for(;;)
-    {
-        str.resize(size);
-        va_start(ap, fmt);
-        int n = vsnprintf((char *)str.data(), size, fmt, ap);
-        va_end(ap);
-        if( n>-1 && n<size )    // are we done yet?
-        {
-            str.resize(n);
-            break;
-        }
-        if( n > size )  // Needed size returned
-            size = n + 1;   // For null char
-        else
-            size *= 4;      // Guess at a larger size
-    }
-    size_t len = str.length();
-    if( len>0 && str[len-1] == '\n' )
-    {
-        str = str.substr(0,len-1);
-        printf( "%s (%d:%lu)\n", str.c_str(), m.NPLY, ++extra_count );
-    }
-    else
-    {
-        printf( "%s (%d:%lu)", str.c_str(), m.NPLY, ++extra_count );
-    }
-}
-#endif
-
 // logf()   - show all the details
 void logf( const char *fmt, ... )
 {
@@ -678,25 +473,6 @@ void logf( const char *fmt, ... )
     }
     printf( "%s", str.c_str() );
 }
-
-#ifdef DEBUG_TRACK_SCORE
-void trace_score_updated( uint8_t *p, uint8_t score )
-{
-    std::string s = show_node();
-    s += " ";
-    s += show_score(score);
-    int idx = (int)(p-m.SCORE);
-    score_descriptors[idx] = s;
-    extraf( "SCORE created %s\n", s.c_str() );
-}
-
-void trace_score_descend()
-{
-    int idx = m.NPLY-1;
-    score_descriptors[idx+2] = score_descriptors[idx];
-    extraf( "SCORE descends %d->%d %s\n", idx, idx+2, score_descriptors[idx].c_str() );
-}
-#endif
 
 std::string show_node()
 {

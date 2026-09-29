@@ -2113,10 +2113,8 @@ void FNDMOV()
                     m.MOVENO++;
 
                 // Update score
-                #ifdef DEBUG_TRACK_SCORE
-                trace_score_descend();
-                #endif
                 m.SCORE[m.NPLY+1] = m.SCORE[m.NPLY-1];
+                extraf( "Descending, initialise ply %d score with ply %d score %u\n", m.NPLY+1, m.NPLY-1, m.SCORE[m.NPLY-1] );
 
                 // Generate moves at next ply
                 m.MATEF = true;                 // assume mate unless legal move found
@@ -2160,9 +2158,7 @@ void FNDMOV()
             // Restore board position
             UNMOVE();
             score_smaller_is_better = m.VALM;             // get value of move
-            #ifdef DEBUG_SHOW_TREE
-            extraf( "Leaf node %s, %s\n", show_node().c_str(), show_scores().c_str() );
-            #endif
+            extraf( "Leaf node, score_smaller_is_better=%u\n", score_smaller_is_better );
             m.MATEF = false;            // it's not mate
         }
 
@@ -2213,7 +2209,7 @@ void FNDMOV()
                 // Sargon mates in 5 (or more) is detected at NPLY=10 (or more), reduce=4
                 // Sargon mated next move is detected at NPLY=3, reduce=0
                 // Sargon mated in 2 is detected at NPLY=5, reduce=1 etc
-                //superf( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
+                extraf( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
                 m.PMATE= m.MOVENO;
             }
             m.MATEF = false;     // mate flag has served its purpose
@@ -2267,9 +2263,7 @@ void FNDMOV()
 
         // Save bigger_is_better score in table
         m.SCORE[m.NPLY] = score_bigger_is_better;
-        #ifdef DEBUG_TRACK_SCORE
-        trace_score_updated( &m.SCORE[m.NPLY], score_bigger_is_better );
-        #endif
+        extraf( "SCORE updated, score_bigger_is_better=%u\n", score_bigger_is_better );
         callback_yes_best_move();
 
         // At top of tree ?

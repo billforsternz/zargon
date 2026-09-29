@@ -8,17 +8,20 @@
 #include "thc.h"
 
 // Allow different types of tracing in DEBUG and RELEASE
-// #define DEBUG_FUNC_TRACE
-// #define DEBUG_FUNC_TRACE_STUB
-// #define DEBUG_FUNC_TRACE_FULL
+// #define DEBUG_FUNC_LOG
 // #define DEBUG_RESTRICTED_MOVES
 // #define DEBUG_GUIDED_MOVES
-// #define DEBUG_MOVE_EXTENSIONS
-// #define DEBUG_SHOW_POSITIONS
 // #define DEBUG_SINGLE_STEP
-// #define DEBUG_TRACK_SCORE
-// #define DEBUG_SHOW_TREE
 // #define DEBUG_KEEP_EXTRAF
+#ifdef DEBUG_FUNC_LOG
+    #define DEBUG_FUNC_CALLBACKS
+#endif
+#ifdef DEBUG_GUIDED_MOVES
+    #define DEBUG_FUNC_CALLBACKS
+#endif
+#ifdef DEBUG_RESTRICTED_MOVES
+    #define DEBUG_FUNC_CALLBACKS
+#endif
 #define LOG_NONE 0         
 #define LOG_SUPER 1         
 #define LOG_EXTRA 2
@@ -45,8 +48,6 @@ extraf
 // Debugging, show the essentials
 #ifdef SCENARIO_BASIC_DEBUGGING
 #define LOG_LEVEL LOG_EXTRA
-#define DEBUG_TRACK_SCORE
-#define DEBUG_SHOW_TREE
 #define DEBUG_KEEP_EXTRAF
 #endif
 
@@ -54,8 +55,6 @@ extraf
 #ifdef SCENARIO_SINGLE_STEPPING
 #define LOG_LEVEL LOG_EXTRA
 #define DEBUG_SINGLE_STEP
-#define DEBUG_TRACK_SCORE
-#define DEBUG_SHOW_TREE
 #define DEBUG_KEEP_EXTRAF
 #endif
 
@@ -85,44 +84,17 @@ enum FUNC_ENUM
     FE_ASCEND
 };
 
-// tracef(), extraf() - show progress of chess algorithm
+// extraf() - show progress of chess algorithm
 #ifdef DEBUG_KEEP_EXTRAF
 void extraf( const char *fmt, ... );
-void superf( const char *fmt, ... );
 #else
 #define extraf(format, ...) (void)0
-#define superf(format, ...) (void)0
 #endif
-void tracef( const char *fmt, ... );
 
 // logf()   - show all the details
 void logf( const char *fmt, ... );
 
-/* From Tarrasch - temp, for inspiration
-#ifdef KILL_DEBUG_COMPLETELY
-    #define release_printf(...)
-    #define dbg_printf(...)
-    #define cprintf(...)
-    #define core_printf(...)
-#else
-    #define release_printf(...)   core_printf ( __VA_ARGS__ )
-    #ifdef _DEBUG
-        #define dbg_printf(...) core_printf ( __VA_ARGS__ )
-        #define cprintf(...)    core_printf ( __VA_ARGS__ )
-    #else
-        #define dbg_printf(...)
-        #define cprintf(...)    core_printf ( __VA_ARGS__ )
-    #endif
-    int core_printf( const char *fmt, ... );
-#endif
-*/
-
-
 std::string show_node();
-std::string show_scores();
-std::string show_scores_short();
-std::string show_scores_long();
-std::string show_score( uint8_t val );
 struct ML;
 std::string show_ply_chains( bool show_score=false );
 
@@ -136,13 +108,9 @@ public:
     void log( FUNC_ENUM fe, bool in, bool insist );
 };
 
-//
-//  Optionally include Zargon function tracing. Useful for
-//   1. Debugging
-//   2. Building tree building models to understand Sargon's
-//      tree construction - the heart of the program
-
-#ifdef DEBUG_FUNC_TRACE
+//  Optionally include Zargon function callbacks for
+//   guided tests and logging
+#ifdef DEBUG_FUNC_CALLBACKS
 #define trace_func(fe)      function_in_out temp_fio(fe)
 #define trace_func_void(fe) function_in_out temp_fio(fe);  if(temp_fio.early_exit) return
 #else
@@ -156,8 +124,6 @@ void callback_restricted_moves_clear();
 
 // Misc diagnostics
 void callback_start_position_register( const thc::ChessPosition &cp );
-void trace_score_updated( uint8_t *p, uint8_t score );
-void trace_score_descend();
 bool callback_restart_test();
 
 std::string score_descriptors[];
