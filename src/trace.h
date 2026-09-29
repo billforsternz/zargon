@@ -7,12 +7,10 @@
 #include <string>
 #include "thc.h"
 
-// Allow different types of tracing in DEBUG and RELEASE
+// Allow different types of logging in DEBUG and RELEASE
 // #define DEBUG_FUNC_LOG
 // #define DEBUG_RESTRICTED_MOVES
 // #define DEBUG_GUIDED_MOVES
-// #define DEBUG_SINGLE_STEP
-// #define DEBUG_KEEP_EXTRAF
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif
@@ -22,40 +20,27 @@
 #ifdef DEBUG_RESTRICTED_MOVES
     #define DEBUG_FUNC_CALLBACKS
 #endif
-#define LOG_NONE 0         
-#define LOG_SUPER 1         
-#define LOG_EXTRA 2
-#define LOG_TRACE 3         
-#define LOG_DETAILED 4
-
-/*
-logf
-
-extraf
-*/
-
 
 // Some different use/testing scenarios
 //#define SCENARIO_PRODUCTION
-#define SCENARIO_BASIC_DEBUGGING
-//#define SCENARIO_SINGLE_STEPPING
+//#define SCENARIO_BASIC_DEBUGGING
+#define SCENARIO_SINGLE_STEPPING
 
 // Production, eliminate all overheads
 #ifdef SCENARIO_PRODUCTION
-#define LOG_LEVEL LOG_NONE
 #endif
 
 // Debugging, show the essentials
 #ifdef SCENARIO_BASIC_DEBUGGING
-#define LOG_LEVEL LOG_EXTRA
 #define DEBUG_KEEP_EXTRAF
+#define DEBUG_KEEP_LOGF
 #endif
 
 // Debugging with single stepping
 #ifdef SCENARIO_SINGLE_STEPPING
-#define LOG_LEVEL LOG_EXTRA
-#define DEBUG_SINGLE_STEP
 #define DEBUG_KEEP_EXTRAF
+#define DEBUG_KEEP_LOGF
+#define DEBUG_SINGLE_STEP
 #endif
 
 // Sargon functions enumeration
@@ -91,8 +76,12 @@ void extraf( const char *fmt, ... );
 #define extraf(format, ...) (void)0
 #endif
 
-// logf()   - show all the details
+// logf()   - show miscellaneous details
+#ifdef DEBUG_KEEP_LOGF
 void logf( const char *fmt, ... );
+#else
+#define logf(format, ...) (void)0
+#endif
 
 std::string show_node();
 struct ML;
@@ -125,7 +114,5 @@ void callback_restricted_moves_clear();
 // Misc diagnostics
 void callback_start_position_register( const thc::ChessPosition &cp );
 bool callback_restart_test();
-
-std::string score_descriptors[];
 
 #endif  // TRACE_H_INCLUDED

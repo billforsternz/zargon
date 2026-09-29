@@ -11,14 +11,12 @@
 #include "sargon-interface.h"
 #include "zargon.h"
 
-static int log_level = LOG_LEVEL;
 static thc::ChessPosition start_position;
 
-// Sargon data structure
+// Reference Sargon data structure
 static emulated_memory &m = gbl_emulated_memory;
 
-
-// Callback function names
+// Sargon function names
 const char *lookup[] =
 {
     "null",
@@ -52,11 +50,12 @@ const char *lookup[] =
     "ASCEND"
 };
 
-std::string current_status;
+// For guided tests using function callbacks
 void callback_genmov();
 bool callback_points();
 bool callback_admove();
 
+// Misc debug and trace using Sargon functions
 function_in_out::function_in_out( FUNC_ENUM fe )
 {
     early_exit = false;
@@ -88,7 +87,6 @@ function_in_out::~function_in_out()
 
 void function_in_out::log( FUNC_ENUM fe, bool in, bool insist )
 {
-    static uint64_t log_nbr;
     if( insist )
     {
         bool diff=true;
@@ -316,8 +314,6 @@ bool callback_restart_test()
 #ifdef DEBUG_KEEP_EXTRAF
 void extraf( const char *fmt, ... )
 {
-    if( log_level < LOG_EXTRA )
-        return;
     static bool suppress_output;
     static unsigned long debug_count;
     #ifdef DEBUG_SINGLE_STEP
@@ -339,119 +335,109 @@ void extraf( const char *fmt, ... )
             return;
         }
     }
-    for( bool keep_going=true; keep_going; )
+    printf( "%lu) ", ++extra_count );
+    std::string s = show_node();
+    printf("%s ",s.c_str() );
+    int size = (int)strlen(fmt) * 3;   // guess at size
+    std::string str;
+    va_list ap;
+    for(;;)
     {
-        keep_going=false;
-        printf( "%lu) ", ++extra_count );
-        std::string s = show_node();
-        printf("%s ",s.c_str() );
-        int size = (int)strlen(fmt) * 3;   // guess at size
-        std::string str;
-        va_list ap;
-        for(;;)
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.data(), size, fmt, ap);
+        va_end(ap);
+        if( n>-1 && n<size )    // are we done yet?
         {
-            str.resize(size);
-            va_start(ap, fmt);
-            int n = vsnprintf((char *)str.data(), size, fmt, ap);
-            va_end(ap);
-            if( n>-1 && n<size )    // are we done yet?
-            {
-                str.resize(n);
-                break;
-            }
-            if( n > size )  // Needed size returned
-                size = n + 1;   // For null char
+            str.resize(n);
+            break;
+        }
+        if( n > size )  // Needed size returned
+            size = n + 1;   // For null char
+        else
+            size *= 4;      // Guess at a larger size
+    }
+    printf("%s",str.c_str() );
+    std::string x2 = show_ply_chains( true );
+    printf( "%s", x2.c_str() );
+    printf( "\n" );
+    static uint8_t target_ply;
+    #ifdef DEBUG_SINGLE_STEP
+    if( free_run )
+    {
+        if( extra_count==debug_count )
+            free_run = false;
+        else if( m.NPLY==target_ply && target_ply!=0 )
+        {
+            target_ply = 0;
+            free_run = false;
+        }
+    }
+    if( !free_run )
+    {
+        printf( "q,d,r,[+/-]n,pn (quit,debug,run,goto n,goto ply)>" );
+        char buf[80];
+        buf[0] = '\0';
+        fgets( buf, sizeof(buf)-2, stdin );
+        if( buf[0]=='q' || buf[0]=='Q' )
+        {
+            exit(0);
+            return;
+        }
+        if( buf[0]=='r' || buf[0]=='R' )
+        {
+            free_run = true;
+            return;
+        }
+        if( buf[0]=='d' || buf[0]=='D' )
+        {
+            #ifdef _DEBUG
+            __debugbreak();
+            #else
+            printf("Sorry, step to debugger in debug builds only\n");
+            #endif
+            return;
+        }
+        const char *txt = buf;
+        if( buf[0]=='+' || buf[0]=='-' || (buf[0]=='p'||buf[0]=='P') )
+            txt++;
+        std::string nbr(txt);
+        size_t len = nbr.length();
+        if( len>0 && nbr[len-1]=='\n' )
+            nbr = nbr.substr(0,len-1);
+        unsigned long n = (unsigned long)atoll(nbr.c_str());
+        if( n > 0 )
+        {
+            free_run = true;
+            if( buf[0]=='p' || buf[0]=='P' )
+                target_ply = (uint8_t)n;
             else
-                size *= 4;      // Guess at a larger size
-        }
-        printf("%s",str.c_str() );
-        std::string x2 = show_ply_chains( true );
-        printf( "%s", x2.c_str() );
-        printf( "\n" );
-        static uint8_t target_ply;
-        #ifndef DEBUG_SINGLE_STEP
-        #ifdef _DEBUG
-        if( extra_count == debug_count )
-           __debugbreak();
-        #endif
-        #else
-        if( free_run )
-        {
-            if( extra_count==debug_count )
-                free_run = false;
-            else if( m.NPLY==target_ply && target_ply!=0 )
             {
-                target_ply = 0;
-                free_run = false;
-            }
-        }
-        if( !free_run )
-        {
-            printf( "q,d,r,[+/-]n,pn (quit,debug,run,goto n,goto ply)>" );
-            char buf[80];
-            buf[0] = '\0';
-            fgets( buf, sizeof(buf)-2, stdin );
-            if( buf[0]=='q' || buf[0]=='Q' )
-            {
-                exit(0);
-                return;
-            }
-            if( buf[0]=='r' || buf[0]=='R' )
-            {
-                free_run = true;
-                return;
-            }
-            if( buf[0]=='d' || buf[0]=='D' )
-            {
-               #ifdef _DEBUG
-               __debugbreak();
-               #else
-               printf("Sorry, step to debugger in debug builds only\n");
-               #endif
-               return;
-            }
-            const char *txt = buf;
-            if( buf[0]=='+' || buf[0]=='-' || (buf[0]=='p'||buf[0]=='P') )
-                txt++;
-            std::string nbr(txt);
-            size_t len = nbr.length();
-            if( len>0 && nbr[len-1]=='\n' )
-                nbr = nbr.substr(0,len-1);
-            unsigned long n = (unsigned long)atoll(nbr.c_str());
-            if( n > 0 )
-            {
-                free_run = true;
-                if( buf[0]=='p' || buf[0]=='P' )
-                    target_ply = (uint8_t)n;
+                if( n > 0 )
+                    n--; //best by test
+                if( buf[0] == '+' )
+                    debug_count = extra_count+n;
+                else if( buf[0] == '-' )
+                    debug_count = extra_count-n;
                 else
+                    debug_count = n;
+                if( debug_count < extra_count )
                 {
-                    if( n > 0 )
-                        n--; //best by test
-                    if( buf[0] == '+' )
-                        debug_count = extra_count+n;
-                    else if( buf[0] == '-' )
-                        debug_count = extra_count-n;
-                    else
-                        debug_count = n;
-                    if( debug_count < extra_count )
-                    {
-                        restart_test = true;
-                        suppress_output = true;
-                        printf( "Test continues and restarts before logging recommences...\n" );
-                    }
+                    restart_test = true;
+                    suppress_output = true;
+                    printf( "Test continues and restarts before logging recommences...\n" );
                 }
             }
         }
-        #endif
     }
+    #endif
 }
 #endif
 
-// logf()   - show all the details
+// logf()   - show miscellaneous details
+#ifdef DEBUG_KEEP_LOGF
 void logf( const char *fmt, ... )
 {
-    if( log_level < LOG_DETAILED )
-        return;
     int size = (int)strlen(fmt) * 3;   // guess at size
     std::string str;
     va_list ap;
@@ -473,6 +459,7 @@ void logf( const char *fmt, ... )
     }
     printf( "%s", str.c_str() );
 }
+#endif
 
 std::string show_node()
 {
