@@ -298,14 +298,14 @@ bool callback_admove()
 }
 
 static bool restart_test;
-static unsigned long extra_count;
+static unsigned long extra_count = 1;
 bool callback_restart_test()
 {
     bool yes_restart = restart_test;
     restart_test = false;
     if( yes_restart )
     {
-        extra_count = 0;
+        extra_count = 1;
     }
     return yes_restart;
 }
@@ -323,7 +323,7 @@ void extraf( const char *fmt, ... )
     #endif
     if( suppress_output )
     {
-        if( extra_count==debug_count )
+        if( extra_count == debug_count )
         {
             free_run = false;
             suppress_output = false;
@@ -335,7 +335,8 @@ void extraf( const char *fmt, ... )
             return;
         }
     }
-    printf( "%lu) ", ++extra_count );
+    printf( "%lu> ", extra_count );
+    extra_count++;
     std::string s = show_node();
     printf("%s ",s.c_str() );
     int size = (int)strlen(fmt) * 3;   // guess at size
@@ -365,7 +366,7 @@ void extraf( const char *fmt, ... )
     #ifdef DEBUG_SINGLE_STEP
     if( free_run )
     {
-        if( extra_count==debug_count )
+        if( (extra_count-1) == debug_count )
             free_run = false;
         else if( m.NPLY==target_ply && target_ply!=0 )
         {
@@ -413,12 +414,10 @@ void extraf( const char *fmt, ... )
                 target_ply = (uint8_t)n;
             else
             {
-                if( n > 0 )
-                    n--; //best by test
                 if( buf[0] == '+' )
-                    debug_count = extra_count+n;
+                    debug_count = extra_count+n-1;
                 else if( buf[0] == '-' )
-                    debug_count = extra_count-n;
+                    debug_count = extra_count-n-1;
                 else
                     debug_count = n;
                 if( debug_count < extra_count )
