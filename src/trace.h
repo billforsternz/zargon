@@ -32,13 +32,13 @@
 
 // Debugging, show the essentials
 #ifdef SCENARIO_BASIC_DEBUGGING
-#define DEBUG_KEEP_EXTRAF
+#define DEBUG_KEEP_TRACEF
 #define DEBUG_KEEP_LOGF
 #endif
 
 // Debugging with single stepping
 #ifdef SCENARIO_SINGLE_STEPPING
-#define DEBUG_KEEP_EXTRAF
+#define DEBUG_KEEP_TRACEF
 #define DEBUG_KEEP_LOGF
 #define DEBUG_SINGLE_STEP
 #endif
@@ -69,11 +69,11 @@ enum FUNC_ENUM
     FE_ASCEND
 };
 
-// extraf() - show progress of chess algorithm
-#ifdef DEBUG_KEEP_EXTRAF
-void extraf( const char *fmt, ... );
+// tracef() - show progress of chess algorithm
+#ifdef DEBUG_KEEP_TRACEF
+void tracef( const char *fmt, ... );
 #else
-#define extraf(format, ...) (void)0
+#define tracef(format, ...) (void)0
 #endif
 
 // logf()   - show miscellaneous details

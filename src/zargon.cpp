@@ -2114,7 +2114,7 @@ void FNDMOV()
 
                 // Update score
                 m.SCORE[m.NPLY+1] = m.SCORE[m.NPLY-1];
-                extraf( "Descending, initialise ply %d score with ply %d score %u\n", m.NPLY+1, m.NPLY-1, m.SCORE[m.NPLY-1] );
+                tracef( "Descending, initialise ply %d score with ply %d score %u\n", m.NPLY+1, m.NPLY-1, m.SCORE[m.NPLY-1] );
 
                 // Generate moves at next ply
                 m.MATEF = true;                 // assume mate unless legal move found
@@ -2158,7 +2158,7 @@ void FNDMOV()
             // Restore board position
             UNMOVE();
             score_smaller_is_better = m.VALM;             // get value of move
-            extraf( "Leaf node, score_smaller_is_better=%u\n", score_smaller_is_better );
+            tracef( "Leaf node, score_smaller_is_better=%u\n", score_smaller_is_better );
             m.MATEF = false;            // it's not mate
         }
 
@@ -2209,7 +2209,7 @@ void FNDMOV()
                 // Sargon mates in 5 (or more) is detected at NPLY=10 (or more), reduce=4
                 // Sargon mated next move is detected at NPLY=3, reduce=0
                 // Sargon mated in 2 is detected at NPLY=5, reduce=1 etc
-                extraf( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
+                tracef( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
                 m.PMATE= m.MOVENO;
             }
             m.MATEF = false;     // mate flag has served its purpose
@@ -2228,7 +2228,7 @@ void FNDMOV()
 
         // Score table scores are flipped, so bigger is better
         const uint8_t *table_bigger_is_better = &m.SCORE[m.NPLY-1];
-        extraf( "Alpha-beta cutoff if score_smaller_is_better<=ply above: %s (score_smaller_is_better=%u, ply above=%u)\n",
+        tracef( "Alpha-beta cutoff if score_smaller_is_better<=ply above: %s (score_smaller_is_better=%u, ply above=%u)\n",
                 score_smaller_is_better<=*table_bigger_is_better?"YES":"NO", score_smaller_is_better, *table_bigger_is_better );
         callback_alpha_beta_cutoff( score_smaller_is_better, table_bigger_is_better );
 
@@ -2252,7 +2252,7 @@ void FNDMOV()
 
         // Flip score (twos complement)
         score_bigger_is_better = (score_smaller_is_better^0xff)+1;
-        extraf( "%s is the best move if score_bigger_is_better > ply score: %s (score_smaller_is_better=%u, score_bigger_is_better=%u, ply score=%u)\n",
+        tracef( "%s is the best move if score_bigger_is_better > ply score: %s (score_smaller_is_better=%u, score_bigger_is_better=%u, ply score=%u)\n",
             show_node().c_str(), (score_bigger_is_better > m.SCORE[m.NPLY])?"YES":"NO", (score_bigger_is_better^0xff)+1, score_bigger_is_better, m.SCORE[m.NPLY] );
 
         // Is this the best reply to date?
@@ -2263,7 +2263,7 @@ void FNDMOV()
 
         // Save bigger_is_better score in table
         m.SCORE[m.NPLY] = score_bigger_is_better;
-        extraf( "SCORE updated, score_bigger_is_better=%u\n", score_bigger_is_better );
+        tracef( "SCORE updated, score_bigger_is_better=%u\n", score_bigger_is_better );
         callback_yes_best_move();
 
         // At top of tree ?
@@ -2306,7 +2306,7 @@ void FNDMOV()
 void ASCEND()
 {
     trace_func(FE_ASCEND);
-    extraf( "ASCEND()\n" );
+    tracef( "ASCEND()\n" );
 
     // Toggle color
     TOGGLE(m.COLOR);
