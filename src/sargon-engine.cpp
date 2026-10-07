@@ -96,7 +96,7 @@ static bool        cmd_interactive_undo();
 static bool is_new_game();
 static int log( const char *fmt, ... );
 static bool run_sargon( int plymax, bool avoid_book );
-static std::string generate_progress_report( bool &we_are_forcing_mate, bool &we_are_stalemating_now );
+static std::string generate_progress_report();
 static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth );
 static bool repetition_calculate( thc::ChessRules &cr, std::vector<thc::Move> &repetition_moves );
 static bool test_whether_move_repeats( thc::ChessRules &cr, thc::Move mv );
@@ -932,8 +932,7 @@ static void cmd_go_infinite()
             plymax++;
         if( !aborted )
         {
-            bool we_are_forcing_mate, we_are_stalemating_now;
-            std::string out = generate_progress_report( we_are_forcing_mate, we_are_stalemating_now );
+            std::string out = generate_progress_report();
             if( out.length() > 0 )
             {
                 fprintf( stdout, out.c_str() );
@@ -1135,10 +1134,8 @@ static bool cmd_interactive_move( const std::string &raw_cmd )
 }
 
 // Return true if PV has us (the engine) forcing mate
-static std::string generate_progress_report( bool &we_are_forcing_mate, bool &we_are_stalemating_now )
+static std::string generate_progress_report()
 {
-    we_are_forcing_mate    = false;
-    we_are_stalemating_now = false;
     int     score_cp   = the_pv.value;
     int     depth      = the_pv.depth;
     thc::ChessRules ce = the_position;
@@ -1176,8 +1173,6 @@ static std::string generate_progress_report( bool &we_are_forcing_mate, bool &we
             {
                 overide = true;
                 score_overide = 0;
-                if( i == 0 )
-                    we_are_stalemating_now = true;
             }
         }
         if( !okay || overide )
@@ -1189,13 +1184,7 @@ static std::string generate_progress_report( bool &we_are_forcing_mate, bool &we
         {
             if( score_overide > 0 ) // are we mating ?
             {
-                mating.active    = true;
-                mating.position  = the_position;
-                mating.variation = the_pv.variation;
-                mating.idx       = 0;
-                mating.nbr       = score_overide;
-                buf_score = util::sprintf( "mate %d", mating.nbr );
-                we_are_forcing_mate = true;
+                buf_score = util::sprintf( "mate %d", score_overide );
                 the_pv.value = 120;
             }
             else if( score_overide < 0 ) // are me being mated ?
@@ -1220,13 +1209,7 @@ static std::string generate_progress_report( bool &we_are_forcing_mate, bool &we
         {
             if( score_overide < 0 ) // are we mating ?
             {
-                mating.active    = true;
-                mating.position  = the_position;
-                mating.variation = the_pv.variation;
-                mating.idx       = 0;
-                mating.nbr       = 0-score_overide;
-                buf_score = util::sprintf( "mate %d", mating.nbr );
-                we_are_forcing_mate = true;
+                buf_score = util::sprintf( "mate %d", 0-score_overide );
                 the_pv.value = -120;
             }
             else if( score_overide > 0 ) // are me being mated ?        
@@ -1414,6 +1397,7 @@ static std::string generate_progress_report( bool &we_are_forcing_mate, bool &we
 
 */
 
+#if 0
 // States
 enum PlayingState
 {
@@ -1456,7 +1440,9 @@ static void log_state_changes( const std::string &msg, PlayingState old_state, P
     else
         log( "%s, state = %s -> %s\n", msg.c_str(), old_txt, new_txt );
 }
+#endif
 
+#if 0
 static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth )
 {
     // Timers
@@ -1961,6 +1947,122 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
         timer_clear();
     return mv;
 }
+#endif
+
+/*
+
+    Calculate next move, simplified approach
+
+
+    Start at depth = 6
+
+        Call FNDMOV() to calculate move and PV
+
+        Use cutoff timer to cut calculation short if T > T1
+
+        If calculation completes
+
+            If T > T2  depth--
+
+            If T < T3  depth++
+
+    T1, T2, and T3 set at (say) P/2 P/15 P/100 respectively
+    where P is the time available.
+
+     1) Don't play down a mating PV, Zargon does not have the same issue
+        with dithering over mate that Sargon had, due to mate in 1,2,3
+        etc. detection.
+     2) In fixed depth mode, (either the FixedDepth engine option is set
+        or the depth parameter to the go command is set), don't loop and don't
+        use the timer.
+     3) ???
+     4) No special repetition avoidance
+
+
+*/
+
+static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth )
+{
+    // Timers
+    const unsigned long LOW  = 100;
+    const unsigned long MED  = 30;
+    const unsigned long HIGH = 5;
+    unsigned long ms_lo  = ms_time / LOW;
+    unsigned long ms_med = ms_time / MED;
+    unsigned long ms_hi  = ms_time / HIGH;
+    bool timer_running = false;
+
+    // Run engine
+    static int plymax = 6;
+    int plymax_before = plymax;
+    bool fixed_depth = (depth_option>0);
+    if( fixed_depth )
+        plymax = depth_option;
+    timer_set( ms_hi );
+    unsigned long base = elapsed_milliseconds();
+    bool aborted = run_sargon(plymax,false);
+    unsigned long now = elapsed_milliseconds();
+    unsigned long elapsed = (now-base);
+    timer_clear();
+
+    // The special case, where Sargon minimax never ran should only be book move
+    bool book_move = (the_pv.variation.size() == 0);
+
+    // Adjust ply max if appropriate
+    if( !book_move && !fixed_depth )
+    {
+        if( (aborted || elapsed>ms_med) && plymax>0 )
+            plymax--;   // we used too much time
+        else if( elapsed<ms_lo )
+            plymax++;   // we can afford to go deeper next time
+    }
+
+    // Report on book move
+    if( book_move )    
+    {
+        std::string bestmove_terse = sargon_export_best_move_temp();
+        thc::Move bestmove;
+        bestmove.Invalid();
+        bool have_move = bestmove.TerseIn( &the_position, bestmove_terse.c_str() );
+        if( have_move )
+            log( "No PV, expect Sargon is playing book move - %s\n%s", bestmove_terse.c_str(), the_position.ToDebugStr().c_str() );
+        else
+            log( "Sargon doesn't find move - %s\n%s", bestmove_terse.c_str(), the_position.ToDebugStr().c_str() );
+        stop_rsp = util::sprintf( "bestmove %s\n", bestmove_terse.c_str() );
+        return bestmove;
+    }
+
+    // Debug state changes
+    if( plymax != plymax_before )
+    {
+        log( "aborted=%s, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d -> %d\n",
+                aborted?"true":"false", elapsed, ms_lo, ms_med, ms_hi, plymax_before, plymax );
+    }
+    else
+    {
+        log( "aborted=%s, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d\n",
+                aborted?"true":"false", elapsed, ms_lo, ms_med, ms_hi, plymax );
+    }
+
+    // Report 
+    std::string info;
+    std::string s = the_pv.variation[0].TerseOut();
+    std::string bestm = sargon_export_best_move_temp();
+    if( s.substr(0,4) != bestm )
+        log( "Unexpected event: BESTM=%s != PV[0]=%s\n%s", bestm.c_str(), s.c_str(), the_position.ToDebugStr().c_str() );
+    info = generate_progress_report();
+    if( !gbl_interactive )
+    {
+        fprintf( stdout, info.c_str() );
+        fflush( stdout );
+    }
+    log( "rsp>%s\n", info.c_str() );
+    stop_rsp = util::sprintf( "bestmove %s\n", the_pv.variation[0].TerseOut().c_str() ); 
+    info.clear();
+    thc::Move mv = the_pv.variation[0];
+    return mv;
+}
+
 
 #if 0
 static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth )
@@ -2241,6 +2343,8 @@ static int log( const char *fmt, ... )
     return 0;
 }
 
+#if 0
+
 // Calculate a list of moves that cause the position to repeat
 //  Returns bool ok. If not ok, all moves repeat
 static bool repetition_calculate( thc::ChessRules &cr, std::vector<thc::Move> &repetition_moves )
@@ -2481,6 +2585,7 @@ static void repetition_remove_moves(  const std::vector<thc::Move> &repetition_m
     //sargon_show();
 }
 
+#endif
 //
 // UCI specific callback handling (minimal)
 //
@@ -2490,8 +2595,6 @@ void callback_uci_after_genmove()
 {
     total_callbacks++;
     genmov_callbacks++;
-    if( m.NPLY==1 && the_repetition_moves.size()>0 )
-        repetition_remove_moves( the_repetition_moves );
 }
 
 // Called by callback_end_of_points()
