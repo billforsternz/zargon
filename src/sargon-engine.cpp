@@ -52,6 +52,7 @@ static std::vector<thc::Move> the_game;
 static int the_level=6;
 static bool gbl_interactive=true;
 static bool gbl_orientation;
+static bool gbl_big_graphics;
 
 // The current 'Master' postion
 static thc::ChessRules the_position;
@@ -62,7 +63,7 @@ static PV the_pv;
 
 // Command line interface
 static std::string interactive_screen( bool help_screen, int nbr_lines );
-static std::string ascii_board( thc::ChessPosition const &cp, bool big=true );
+static std::string ascii_board( thc::ChessPosition const &cp, bool big );
 static bool process( const std::string &s, bool first=false );
 static std::string cmd_uci();
 static std::string cmd_isready();
@@ -77,6 +78,7 @@ static bool        cmd_interactive_position( const std::string &raw_cmd_line );
 static bool        cmd_interactive_level( const std::string &parm );
 static bool        cmd_interactive_flip();
 static bool        cmd_interactive_undo();
+static bool        cmd_interactive_save( const std::string &filename );
 
 // Misc
 static bool is_new_game();
@@ -84,10 +86,6 @@ static int log( const char *fmt, ... );
 static bool run_sargon( int plymax, bool avoid_book );
 static std::string generate_progress_report();
 static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth );
-static bool repetition_calculate( thc::ChessRules &cr, std::vector<thc::Move> &repetition_moves );
-static bool test_whether_move_repeats( thc::ChessRules &cr, thc::Move mv );
-static void repetition_remove_moves( const std::vector<thc::Move> &repetition_moves );
-static bool repetition_test();
 
 // A threadsafe-queue. (from https://stackoverflow.com/questions/15278343/c11-thread-safe-queue )
 template <class T>
@@ -371,7 +369,7 @@ static void read_stdin()
             std::string s(buf);
             util::rtrim(s);
             async_queue.enqueue(s);
-            if( s == "quit" )
+            if( s == "quit" || s=="q" )
                 quit = true;
         }
     }
@@ -406,7 +404,6 @@ static bool run_sargon( int plymax, bool avoid_book )
 
 static const char * help[] =
 {
-    "                       ",
     " Sargon 1978 64 bit    ",
     " By Dan and Kathe      ",
     "  Spracklen            ",
@@ -418,6 +415,8 @@ static const char * help[] =
     " Nf3   ;(eg) make move ",
     " go    ;start game     ",
     " stop  ;stop game      ",
+    " save pgnfile ;save    ",
+    " size  ;toggle graphics",
     " flip  ;flip board     ",
     " undo  ;undo move      ",
     " reset ;start position ",
@@ -429,22 +428,28 @@ static const char * help[] =
     "  (to set FEN position)",
     "                       ",
     " Use -? on command line",
-    " for more information  ",
-    "                       "
+    " for more information  "
 };
 
 // Command line top level handler
 static bool process( const std::string &s, bool first )
 {
-    static int nbr_lines = 0;
+    static int nbr_lines, nbr_lines_big;
     static bool auto_play = false;
     bool show_help = false;
     bool ok = true;
     std::string err_msg;
     if( first )
     {
-        std::string pos = ascii_board(the_position);
+        std::string pos = ascii_board(the_position,true);
         size_t offset = pos.find('\n');
+        while( offset != std::string::npos )
+        {
+            nbr_lines_big++;
+            offset = pos.find('\n',offset+1);
+        }
+        pos = ascii_board(the_position,false);
+        offset = pos.find('\n');
         while( offset != std::string::npos )
         {
             nbr_lines++;
@@ -473,7 +478,7 @@ static bool process( const std::string &s, bool first )
     std::string parm1 = fields.size()<=1 ? "" : fields[1];
     if( gbl_interactive )
     {
-        if( cmd=="uci" || cmd=="quit" )
+        if( cmd=="uci" || cmd=="quit" || cmd=="q" )
         {
             gbl_interactive = false;
             fprintf( stderr, "Leaving interactive mode\n" );
@@ -513,6 +518,18 @@ static bool process( const std::string &s, bool first )
         {
             gbl_orientation = !gbl_orientation;
         }
+        else if( cmd=="save" )
+        {
+            ok = cmd_interactive_save( parm1 );
+            if( !ok )
+            {
+                err_msg = util::sprintf( "Could not open or create file %s", parm1.c_str() );
+            }
+        }
+        else if( cmd=="size" )
+        {
+            gbl_big_graphics = !gbl_big_graphics;
+        }
         else if( cmd=="show" )
         {
             ; // just redraw
@@ -524,7 +541,7 @@ static bool process( const std::string &s, bool first )
         else if( cmd=="go" )
         {
             auto_play = true;
-            cmd_interactive_go( nbr_lines );
+            cmd_interactive_go( gbl_big_graphics ? nbr_lines_big : nbr_lines );
         }
         else if( !first )
         {
@@ -535,7 +552,7 @@ static bool process( const std::string &s, bool first )
                 if( is_move )
                 {
                     if( auto_play )
-                        cmd_interactive_go( nbr_lines );
+                        cmd_interactive_go( gbl_big_graphics ? nbr_lines_big : nbr_lines );
                 }
                 else
                 {
@@ -547,7 +564,7 @@ static bool process( const std::string &s, bool first )
     }
     if( !gbl_interactive )
     {
-        if( cmd == "quit" ) // special command because read_stdin() tests it
+        if( cmd == "quit" || cmd=="q" ) // special command because read_stdin() tests it
             quit = true;
         else if( cmd == "timeout" )
             log( "TIMEOUT event\n" );
@@ -590,7 +607,7 @@ static bool process( const std::string &s, bool first )
         else
         {
             bool help_screen = first || show_help || the_game.size()==0;
-            std::string s = interactive_screen( help_screen , nbr_lines );
+            std::string s = interactive_screen( help_screen ,  gbl_big_graphics ? nbr_lines_big : nbr_lines  );
             fprintf( stderr, "%s\ncmd>", s.c_str() );
         }
         fflush( stderr );
@@ -637,7 +654,7 @@ static std::string interactive_screen( bool help_screen, int nbr_lines )
     while( right_panel.size() < nbr_lines )
         right_panel.push_back("");
     size_t offset=0;
-    std::string pos = ascii_board(the_position);
+    std::string pos = ascii_board(the_position,gbl_big_graphics);
     for( std::string &right: right_panel )
     {
         size_t offset2 = pos.find('\n');
@@ -1090,6 +1107,112 @@ static bool cmd_interactive_undo()
     return ok;
 }
 
+static bool cmd_interactive_save( const std::string &filename )
+{
+    FILE *fout;
+    bool okay = (0 == fopen_s( &fout, filename.c_str(), "a" ));
+    if( !okay )
+        return okay;
+    std::string str1;
+    str1 += "[Event \"";
+    str1 += "Casual chess";
+    str1 += "\"]" "\n";
+    str1 += "[Site \"";
+    str1 += "Desktop computer";
+    str1 += "\"]" "\n";
+    str1 += "[Date \"";
+    struct tm ptime;
+    time_t timer = time(NULL);
+    localtime_s( &ptime, &timer );
+    int yyyy = ptime.tm_year+1900;
+    int mm   = ptime.tm_mon+1;
+    int dd   = ptime.tm_mday;
+    str1 += util::sprintf( "%04d.%02d.%02d", yyyy, mm, dd );
+    str1 += "\"]" "\n";
+    str1 += "[Round \"";
+    str1 += "?";
+    str1 += "\"]" "\n";
+    str1 += "[White \"";
+    str1 += m.COLOR ? "Sargon" : "Human";
+    str1 += "\"]" "\n";
+    str1 += "[Black \"";
+    str1 += m.COLOR ? "Human" : "Sargon";
+    str1 += "\"]" "\n";
+    std::string result = "*";
+    thc::TERMINAL score_terminal;
+    the_position.Evaluate( score_terminal );
+    if( score_terminal == thc::TERMINAL_WCHECKMATE )
+        result = "0-1";
+    if( score_terminal == thc::TERMINAL_BCHECKMATE )
+        result = "1-0";
+    if( score_terminal == thc::TERMINAL_WSTALEMATE )
+        result = "1/2-1/2";
+    if( score_terminal == thc::TERMINAL_BSTALEMATE )
+        result = "1/2-1/2";
+    str1 += "[Result \"";
+    str1 += result;
+    str1 += "\"]" "\n";
+    thc::ChessPosition tmp;
+    bool needs_fen = (tmp!=the_position_base);
+    if( needs_fen )
+    {
+        str1 += "[FEN \"";
+        str1 += the_position_base.ForsythPublish();
+        str1 += "\"]" "\n";
+    }
+    str1 += "\n";
+    thc::ChessRules cr = the_position_base;
+    int sz = (int)the_game.size();
+    std::string str2;
+    int col=0;
+    for( int i=0; i<sz; i++ )
+    {
+        thc::Move mv = the_game[i];
+        std::string s;
+        if( cr.WhiteToPlay() )
+            s += util::sprintf( " %d.", cr.full_move_count );
+        else if( i==0 && !cr.WhiteToPlay() )
+            s += util::sprintf( " %d...", cr.full_move_count );
+        if( col + s.length() > 79 )
+        {
+            str2 += "\n";
+            col = 0;
+        }
+        if( col == 0 )
+            util::ltrim(s);
+        str2 += s;
+        col += (int)(s.length());
+        s = " ";
+        s += mv.NaturalOut(&cr);
+        if( col + s.length() > 79 )
+        {
+            str2 += "\n";
+            col = 0;
+        }
+        if( col == 0 )
+            util::ltrim(s);
+        str2 += s;
+        col += (int)(s.length());
+        cr.PlayMove(mv);         
+    }
+    std::string s = " ";
+    s += result;
+    if( col + s.length() > 79 )
+    {
+        str2 += "\n";
+        col = 0;
+    }
+    if( col == 0 )
+        util::ltrim(s);
+    str2 += s;
+    str2 += "\n";
+    str2 += "\n";
+    fputs( str1.c_str(), fout );
+    fputs( str2.c_str(), fout );
+    fclose(fout);
+    return okay;
+}
+
 static bool cmd_interactive_move( const std::string &raw_cmd )
 {
     std::string move_txt = raw_cmd;
@@ -1270,11 +1393,10 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     bool timer_running = false;
 
     // Run engine
-    static int plymax = 6;
-    int plymax_before = plymax;
-    bool fixed_depth = (depth_option>0);
-    if( fixed_depth )
-        plymax = depth_option;
+    static int plymax_adaptive = 6;
+    bool fixed_depth = (depth>0);
+    int plymax = fixed_depth ? depth : plymax_adaptive;
+    int plymax_before = plymax_adaptive;
     timer_set( ms_hi );
     unsigned long base = elapsed_milliseconds();
     bool aborted = run_sargon(plymax,false);
@@ -1288,10 +1410,10 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     // Adjust ply max if appropriate
     if( !book_move && !fixed_depth )
     {
-        if( (aborted || elapsed>ms_med) && plymax>0 )
-            plymax--;   // we used too much time
-        else if( elapsed<ms_lo )
-            plymax++;   // we can afford to go deeper next time
+        if( (aborted || elapsed>ms_med) && plymax_adaptive>0 )
+            plymax_adaptive--;   // we used too much time
+        else if( elapsed<ms_lo && plymax_adaptive<20 )
+            plymax_adaptive++;   // we can afford to go deeper next time
     }
 
     // Report on book move
@@ -1310,10 +1432,10 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     }
 
     // Debug state changes
-    if( plymax != plymax_before )
+    if( plymax_adaptive != plymax_before )
     {
         log( "aborted=%s, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d -> %d\n",
-                aborted?"true":"false", elapsed, ms_lo, ms_med, ms_hi, plymax_before, plymax );
+                aborted?"true":"false", elapsed, ms_lo, ms_med, ms_hi, plymax, plymax_adaptive );
     }
     else
     {
