@@ -78,7 +78,7 @@ static bool        cmd_interactive_position( const std::string &raw_cmd_line );
 static bool        cmd_interactive_level( const std::string &parm );
 static bool        cmd_interactive_flip();
 static bool        cmd_interactive_undo();
-static bool        cmd_interactive_save( const std::string &filename );
+static void        cmd_interactive_save( const std::string &filename, std::string &output_msg );
 
 // Misc
 static bool is_new_game();
@@ -407,7 +407,6 @@ static const char * help[] =
     " Sargon 1978 64 bit    ",
     " By Dan and Kathe      ",
     "  Spracklen            ",
-    "                       ",
     " UCI engine with bonus ",
     "  interactive shell    ",
     "                       ",
@@ -415,14 +414,14 @@ static const char * help[] =
     " Nf3   ;(eg) make move ",
     " go    ;start game     ",
     " stop  ;stop game      ",
-    " save pgnfile ;save    ",
-    " size  ;toggle graphics",
+    " big   ;big graphics   ",
     " flip  ;flip board     ",
     " undo  ;undo move      ",
     " reset ;start position ",
     " uci   ;exit to UCI    ",
     " quit  ;exit program   ",
     " level n ;set level    ",
+    " save pgnfile ;save    ",
     " r3k2r/8/8/8/8/8/8/4K2R",
     "  w Kkq - 0 1 ;(eg)    ",
     "  (to set FEN position)",
@@ -437,8 +436,7 @@ static bool process( const std::string &s, bool first )
     static int nbr_lines, nbr_lines_big;
     static bool auto_play = false;
     bool show_help = false;
-    bool ok = true;
-    std::string err_msg;
+    std::string interactive_msg;
     if( first )
     {
         std::string pos = ascii_board(the_position,true);
@@ -472,8 +470,7 @@ static bool process( const std::string &s, bool first )
     }
     else
     {
-        if( !first )
-            return false;
+        cmd = "";
     }
     std::string parm1 = fields.size()<=1 ? "" : fields[1];
     if( gbl_interactive )
@@ -484,27 +481,36 @@ static bool process( const std::string &s, bool first )
             fprintf( stderr, "Leaving interactive mode\n" );
         }
         else if( cmd=="stop" )
-            auto_play = false;
+        {
+            if( !auto_play )
+                interactive_msg = "Game not running, command 'go' starts it";
+            else
+            {
+                interactive_msg = "Game play stopped, command 'go' restarts it";
+                auto_play = false;
+            }
+        }
         else if( cmd=="level" )
         {
             if( fields.size() == 1 )
             {
-                ok = false;
-                err_msg = util::sprintf( "Level is currently %d, valid range is 1-20", the_level );
+                interactive_msg = util::sprintf( "Level is currently %d, valid range is 1-20", the_level );
             }
             else
             {
-                ok = cmd_interactive_level( parm1 );
-                if( !ok )
-                    err_msg = "Level out of range, valid range is 1-20";
+                bool ok = cmd_interactive_level( parm1 );
+                if( ok )
+                    interactive_msg = util::sprintf( "Level is now %d", the_level );
+                else
+                    interactive_msg = "Level out of range, valid range is 1-20";
             }
         }
         else if( cmd=="undo" )
         {
-            ok = cmd_interactive_undo();
+            bool ok = cmd_interactive_undo();
             auto_play = false;
             if( !ok )
-                err_msg = "Error: No move to undo";
+                interactive_msg = "Error: No move to undo";
         }
         else if( cmd=="reset" )
         {
@@ -520,21 +526,24 @@ static bool process( const std::string &s, bool first )
         }
         else if( cmd=="save" )
         {
-            ok = cmd_interactive_save( parm1 );
-            if( !ok )
-            {
-                err_msg = util::sprintf( "Could not open or create file %s", parm1.c_str() );
-            }
+            if( fields.size() <= 1 )
+                interactive_msg = "Error: No filename specified";
+            else
+                cmd_interactive_save( parm1, interactive_msg );
         }
-        else if( cmd=="size" )
+        else if( cmd=="big" && !gbl_big_graphics )
         {
-            gbl_big_graphics = !gbl_big_graphics;
+            gbl_big_graphics = true;
+        }
+        else if( cmd=="small" && gbl_big_graphics )
+        {
+            gbl_big_graphics = false;
         }
         else if( cmd=="show" )
         {
             ; // just redraw
         }
-        else if( cmd=="help" || cmd=="?" || cmd=="-?" )
+        else if( cmd=="help" || cmd=="?" || cmd=="-?" || cmd=="" )
         {
             show_help = true;
         }
@@ -556,8 +565,7 @@ static bool process( const std::string &s, bool first )
                 }
                 else
                 {
-                    ok = false;
-                    err_msg = "Not a valid command, move or position. type ? for help, show to redraw";
+                    interactive_msg = "Not a valid command, move or position. type ? for help, show to redraw";
                 }
             }
         }
@@ -602,12 +610,12 @@ static bool process( const std::string &s, bool first )
     }
     if( gbl_interactive )
     {
-        if( !ok )
-            fprintf( stderr, "%s\ncmd>", err_msg.c_str() );
+        if( interactive_msg != "" )
+            fprintf( stderr, "%s\ncmd>", interactive_msg.c_str() );
         else
         {
             bool help_screen = first || show_help || the_game.size()==0;
-            std::string s = interactive_screen( help_screen ,  gbl_big_graphics ? nbr_lines_big : nbr_lines  );
+            std::string s = interactive_screen( help_screen, gbl_big_graphics ? nbr_lines_big : nbr_lines  );
             fprintf( stderr, "%s\ncmd>", s.c_str() );
         }
         fflush( stderr );
@@ -666,8 +674,14 @@ static std::string interactive_screen( bool help_screen, int nbr_lines )
             if( offset != 0 )
                 s = pos.substr(offset+1,offset2-offset-1);
             offset = offset2;
+            const char *right_txt = right.c_str();
+            if( gbl_big_graphics &&
+                right == " big   ;big graphics   " )
+            {
+                right_txt = " small ;small graphics ";
+            }
             ret += util::sprintf( "\n%s  %s",
-                s.c_str(), right.c_str() );
+                s.c_str(), right_txt );
         }
     }
     return ret;
@@ -721,7 +735,7 @@ static std::string ascii_board( thc::ChessPosition const &cp, bool big )
         "  [#=#=#]  ::|__O@):::   (@//)   ::::/\\:::::    /\\     :::(@//)::: |__O )    ::[#=#=#]::",
         "   |@@@|   ::::/@@\\:::    /@\\    :::/@@\\::::   /@@\\    ::::/@\\::::   /@@\\    :::|@@@|:::",
         "   /@@@\\   :::/@@@@\\::   /@@@\\   ::(@@@@):::  (@@@@)   :::/@@@\\:::  /@@@@\\   :::/@@@\\:::",
-        "  [__@__]  ::[__@@__]:  [__@__]  ::[_@@_]:::  [_@@_]   ::[__@__]:: [__@@__]  ::[__@__]::",
+        "  [_@@@_]  ::[_@@@@_]:  [_@@@_]  ::[_@@_]:::  [_@@_]   ::[_@@@_]:: [_@@@@_]  ::[_@@@_]::",
         ":::::::::::           :::::::::::           :::::::::::           :::::::::::           ",
         ":::::_:::::     _     :::::_:::::     _     :::::_:::::     _     :::::_:::::     _     ",
         "::::(@)::::    (@)    ::::(@)::::    (@)    ::::(@)::::    (@)    ::::(@)::::    (@)    ",
@@ -1107,12 +1121,18 @@ static bool cmd_interactive_undo()
     return ok;
 }
 
-static bool cmd_interactive_save( const std::string &filename )
+static void cmd_interactive_save( const std::string &filename, std::string &output_msg )
 {
     FILE *fout;
-    bool okay = (0 == fopen_s( &fout, filename.c_str(), "a" ));
-    if( !okay )
-        return okay;
+    size_t offset = filename.find('.');
+    bool no_period = (offset==std::string::npos);
+    std::string fname = no_period ? filename + ".pgn" : filename;
+    bool ok = (0 == fopen_s( &fout, fname.c_str(), "a" ));
+    if( !ok )
+    {
+        output_msg = util::sprintf( "Could not open or create file %s", fname.c_str() );
+        return;
+    }
     std::string str1;
     str1 += "[Event \"";
     str1 += "Casual chess";
@@ -1210,7 +1230,8 @@ static bool cmd_interactive_save( const std::string &filename )
     fputs( str1.c_str(), fout );
     fputs( str2.c_str(), fout );
     fclose(fout);
-    return okay;
+    output_msg = util::sprintf( "Game saved to PGN file %s", fname.c_str() );
+    return;
 }
 
 static bool cmd_interactive_move( const std::string &raw_cmd )
@@ -1354,7 +1375,6 @@ static std::string generate_progress_report()
 
     Calculate next move, simplified approach for Zargon
 
-
     Start at depth = 6
 
         Call FNDMOV() to calculate move and PV
@@ -1370,14 +1390,13 @@ static std::string generate_progress_report()
     T1, T2, and T3 set at (say) P/2 P/15 P/100 respectively
     where P is the time available.
 
-     1) Don't play down a mating PV, Zargon does not have the same issue
-        with dithering over mate that Sargon had, due to mate in 1,2,3
-        etc. detection.
+     1) No complex "play down a mating PV" logic from Sargon predecessor,
+        Zargon does not have the same issue with dithering over mate that
+        Sargon had, due to mate in 1,2,3 etc. detection.
      2) In fixed depth mode, (either the FixedDepth engine option is set
         or the depth parameter to the go command is set), don't loop and don't
         use the timer.
-     3) No special repetition avoidance
-
+     3) No complex repetition avoidance
 
 */
 
@@ -1537,4 +1556,3 @@ void callback_uci_yes_best_move()
     // sargon_pv_callback_yes_best_move() is
     // now called by by callback_yes_best_move()
 }
-
