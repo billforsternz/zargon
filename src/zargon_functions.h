@@ -21,7 +21,7 @@ enum path_t
 };
 
 inline path_t PATH( int8_t dir );
-void MPIECE();
+void MPIECE( uint8_t piece );
 void ENPSNT();
 inline void ADJPTR();
 void CASTLE();
