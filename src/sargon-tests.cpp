@@ -295,7 +295,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             CPTRMV();
             thc::ChessRules cr_after;
             sargon_export_position(cr_after);
-            std::string terse = sargon_export_best_move_temp();
+            std::string terse = sargon_export_best_move();
             thc::Move mv;
             bool ok = mv.TerseIn( &cr, terse.c_str() );
             if( !ok )
@@ -446,7 +446,7 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
                 else
                 {
                     CPTRMV();
-                    std::string terse = sargon_export_best_move_temp();
+                    std::string terse = sargon_export_best_move();
                     ok = mv.TerseIn( &cr, terse.c_str() );
                 }
                 natural_move = ok ? mv.NaturalOut(&cr) : "??";
@@ -1155,7 +1155,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
         s_pv += mv.NaturalOut(&cr);
         cr.PlayMove(mv);
     }
-    std::string sargon_move = sargon_export_best_move_temp();
+    std::string sargon_move = sargon_export_best_move();
     bool pass = (s_pv==std::string(pt->pv));
     if( !pass )
         printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
@@ -1219,7 +1219,7 @@ bool sargon_undocumented_dev_test()
     //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
     sargon_run_engine( cp, 6, pv, false );
-    terse = sargon_export_best_move_temp();
+    terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );
     ok = (terse == "e5f7");
     ok = (terse == "h6f7");
@@ -1240,7 +1240,7 @@ bool sargon_undocumented_dev_test()
     sargon_pv_clear( cp );
     m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
-    terse = sargon_export_best_move_temp();
+    terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );
     ok = (terse == "b1c3");
     return ok;
@@ -1255,7 +1255,7 @@ bool sargon_undocumented_dev_test()
     sargon_pv_clear( cp );
     m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
-    std::string terse = sargon_export_best_move_temp();
+    std::string terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );
     bool ok = (terse == "g8f8");
     return ok;
@@ -1288,7 +1288,7 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
         s_pv += mv.NaturalOut(&cr);
         cr.PlayMove(mv);
     }
-    std::string sargon_move = sargon_export_best_move_temp();
+    std::string sargon_move = sargon_export_best_move();
     bool pass = (sargon_move==std::string(pt->solution));
     if( !pass )
         printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
@@ -1359,7 +1359,7 @@ bool sargon_position_tests( bool quiet, int comprehensive )
             s_pv += mv.NaturalOut(&cr);
             cr.PlayMove(mv);
         }
-        std::string sargon_move = sargon_export_best_move_temp();
+        std::string sargon_move = sargon_export_best_move();
         bool pass = (s_pv==std::string(pt->pv));
         if( !pass )
             printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
@@ -1557,38 +1557,5 @@ Level 6: ..................................   34 tests
     }
     printf( "\n" );
     return ok;
-}
-
-// Show Sargon data struture
-void sargon_show()
-{
-    unsigned char nply = m.NPLY;
-    thc::ChessPosition cp;
-    sargon_export_position(cp);
-    std::string s = cp.ToDebugStr();
-    printf( "%s\n", s.c_str() );
-    printf( "NPLY = %02x\n", nply );
-    printf( "Ply ptrs;\n" );
-    for( int i=0; i<4; i++ )
-    {
-        printf( "%04llx", (uint8_t *)m.PLYIX[i].link_ptr - (uint8_t*)&m );
-        printf( i+1<4 ? " " : "\n" );
-    }
-    printf( "MLPTRI=%04llx\n", (uint8_t *)m.MLPTRI - (uint8_t*)&m );
-    printf( "MLPTRJ=%04llx\n", (uint8_t *)m.MLPTRJ - (uint8_t*)&m );
-    printf( "MLLST =%04llx\n", (uint8_t *)m.MLLST  - (uint8_t*)&m );
-    printf( "MLNXT =%04llx\n", (uint8_t *)m.MLNXT  - (uint8_t*)&m );
-    uint8_t *move = (uint8_t *)&m.MLIST[0];
-    uint8_t *mlnxt = (uint8_t *)(m.MLNXT);
-    for( int i=0; i<256; i++ )
-    {
-        printf( "%04llx: %04llx ", move-(uint8_t *)&m, mlnxt-(uint8_t *)&m );
-        ML *ml = (ML *)move;
-        printf( "%02x %02x %02x %02x ", ml->from, ml->to, ml->flags, ml->val );
-        printf( "%s\n", sargon_export_move(ml).c_str() );
-        if( move == mlnxt )
-            break;
-        move += sizeof(ML);
-    }
 }
 
