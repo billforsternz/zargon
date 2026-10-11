@@ -7,6 +7,7 @@
  *       main() entry point and dispatch to either tests or UCI engine
  *
  * Bill Forster, https://github.com/billforsternz/retro-sargon
+ * Bill Forster, https://github.com/billforsternz/zargon
  ****************************************************************************/
 
 #include <stdio.h>
@@ -47,7 +48,7 @@ int main( int argc, const char *argv[] )
         zargon_tests = true;
         ret = main_tests( argc, argv );
     }
-    extern std::string sargon_pv_report_stats();
-    printf( "%s\n", sargon_pv_report_stats().c_str() );
+    // extern std::string sargon_pv_report_stats();
+    // printf( "%s\n", sargon_pv_report_stats().c_str() );
     return ret;
 }
