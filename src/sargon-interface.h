@@ -25,7 +25,7 @@ bool sargon_export_square( unsigned int sargon_square, thc::Square &sq );
 // Read a chess move out of Sargon (returns "Terse" form - eg "e1g1" for White O-O, note
 //  that Sargon always promotes to Queen, so four character form is sufficient)
 std::string sargon_export_move( ML *p );
-std::string sargon_export_best_move_temp();
+std::string sargon_export_best_move();
 
 // Play a move inside Sargon (i.e. update Sargon's representation with a legal
 //  played move)
