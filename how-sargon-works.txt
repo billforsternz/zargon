@@ -67,7 +67,7 @@ second move) by playing that reply, then the third move is effectively
 refuted and we can save time by skipping further replies and going
 straight on to the fourth move.
 
-The skipped replies can each involve a whole (sub)tree of analysis, so
+The skipped replies each involve a whole (sub)tree of analysis, so
 this can be tremendously effective, but only if good alternatives tend
 to be analysed first, and in turn good replies to those alternatives
 are also analysed first.
@@ -77,7 +77,8 @@ Tracing Sargon's Processing
 
 I have added a trace facility to Zargon that allows us to trace the
 progress of the move calculation algorithm by showing the state of the
-analysis tree as it develops.
+analysis tree as it develops. The main trace function is tracef(),
+it can be found in file trace.cpp.
 
 Sargon uses a very simple and efficient system to store the move tree
 effectively as a single long list of moves. The list is divided into
@@ -113,7 +114,7 @@ First it generates all the moves in the opening position and statically
 sorts them in place using a linked list. This is provisional, rough
 sorting that we later refine with search, but let's imagine it's pretty
 smart and gives us an order like e4,d4,c4,Nf3 ... f3 (Is 1.f3 the worst
-opening move? not sure).
+opening move? Not sure).
 
 Then it internally "plays" the first move (so 1.e4) and generates and
 sorts all the ply two moves after that. Hopefully something like
@@ -148,9 +149,12 @@ each ply (shown with ->) and one for the end of storage of each ply.
 
 At the moment the current location corresponds to the start of each ply
 list, but that situation is only temporary. Note that Sargon's end of
-ply storage pointers don't correspond to the start and end of the
-sorted lines, because the sort is performed in place with a linked
-list (the moves themselves don't move, only the link pointers).
+ply storage pointers don't correspond to the end of the sorted lines,
+because the sort is performed in place with a linked list (the moves
+themselves don't move, only the link pointers). So for example the end
+of ply 1 storage will be after h4, the last move generated at ply 1.
+The end of ply 4 storage will be after Nh6. Since ply 4 (and only ply
+4) isn't sorted, the end of ply 4 storage does show in our diagram.
 
 Sargon doesn't actually keep pointers to the start of the ply lists, it
 doesn't need them. To trace and debug Sargon's workings it is useful to
@@ -161,8 +165,8 @@ of list.
 
 Returning to Sargon's depth 4 search for the best White opening move,
 Sargon now statically evaluates each 'leaf' position after each ply 4
-move in turn, to find the best such Black move. The score of the best
-move is in turn the backed up (refined) score of White move Nf3 in the
+move in turn, to find the best such Black move. The score of this best
+move becomes the backed up (refined) score of White move Nf3 in the
 sequence e4 e5 Nf3.
 
 Ascending and Descending
@@ -322,7 +326,7 @@ We have been considering this scenario;
 
 The arrow -> indicators establish a node in the total tree of moves
 arising from the initial position, currently that node is c4 c5 Nf3
-ab.
+b6.
 
 I have added a few things compared to the earlier diagram of the same
 scenario. The scoring table is shown in [brackets]. At ply 1 +0.3 is
@@ -347,7 +351,7 @@ We are not always at a leaf node like this of course. A bit later the
 situation might look like this;
 
 1: [+0.3] e4,BESTM=d4,c4,->Nf3,g3,b3,f4 ... f3 2: [+0.4]
-MLPTRI->d5,Nf6,c5,e6,c6,MLPTRJ->d6,g6 ... f6
+2: MLPTRI->d5,Nf6,c5,e6,c6,MLPTRJ->d6,g6 ... f6
 
 The node under consideration is now Nf3 d6. The score table and move
 lists for plies 3 and 4 are not shown because the current values of
@@ -399,7 +403,7 @@ Loop through the current move list
         Else if max depth
             Evaluate SCORE (b) at leaf node using POINTS()
             Unmake the move
-    SCORE available, from (a bubble up) or (b leaf)
+    SCORE available, from (a [bubble up]) or (b [leaf])
     If score is better or equal to score above in the score ply table
         Alpha Beta cutoff, Ascend (NPLY--, undo move). This abandons
          the current move list, this reply has refuted the current
@@ -499,7 +503,7 @@ So for our purposes 'negate' does a chesswise negate on the scores,
 scores that are good for White and bad for Black are flipped around to
 be good for Black and bad for White. I will subsequently use the word
 'flip' rather than 'negate', because I don't like to talk about negating
- unsigned numbers!
+unsigned numbers!
 
 The material and board control algorithm generates scores in the range
 2-254 as we have seen. Score values 1 and 255 are used to indicate mate
