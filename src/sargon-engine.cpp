@@ -494,7 +494,7 @@ static bool process( const std::string &s, bool first )
         {
             if( fields.size() == 1 )
             {
-                interactive_msg = util::sprintf( "Level is currently %d, valid range is 1-20", the_level );
+                interactive_msg = util::sprintf( "Level is currently %d, valid range is 1-%d", the_level, MAX_DEPTH );
             }
             else
             {
@@ -502,7 +502,7 @@ static bool process( const std::string &s, bool first )
                 if( ok )
                     interactive_msg = util::sprintf( "Level is now %d", the_level );
                 else
-                    interactive_msg = "Level out of range, valid range is 1-20";
+                    interactive_msg = util::sprintf( "Level out of range, valid range is %d", MAX_DEPTH );
             }
         }
         else if( cmd=="undo" )
@@ -828,12 +828,12 @@ static std::string ascii_board( thc::ChessPosition const &cp, bool big )
 
 static std::string cmd_uci()
 {
-    std::string rsp=
+    std::string rsp= util::sprintf(
     "id name " ENGINE_NAME " " VERSION "\n"
     "id author Dan and Kathe Spracklin, Zargon C++ port by Bill Forster\n"
-    "option name FixedDepth type spin min 0 max 20 default 0\n"
+    "option name FixedDepth type spin min 0 max %d default 0\n"
     "option name LogFileName type string default\n"
-    "uciok\n";
+    "uciok\n", MAX_DEPTH );
     return rsp;
 }
 
@@ -853,13 +853,13 @@ static std::string cmd_stop()
 static void cmd_setoption( const std::vector<std::string> &fields )
 {
     // Option "FixedDepth"
-    //  Range is 0-20, default is 0. 0 indicates auto depth selection,
+    //  Range is 0-MAX_DEPTH, default is 0. 0 indicates auto depth selection,
     //   others are fixed depth
     // eg "setoption name FixedDepth value 3"
     if( fields.size()>4 && fields[1]=="name" && fields[2]=="fixeddepth" && fields[3]=="value" )
     {
         depth_option = atoi(fields[4].c_str());
-        if( depth_option<0 || depth_option>20 )
+        if( depth_option<0 || depth_option>MAX_DEPTH )
             depth_option = 0;
     }
 
@@ -943,7 +943,7 @@ static void cmd_go_infinite()
     while( !aborted )
     {
         aborted = run_sargon(plymax,true);  // note avoid_book = true
-        if( plymax < 20 )
+        if( plymax < MAX_DEPTH )
             plymax++;
         if( !aborted )
         {
@@ -960,7 +960,7 @@ static void cmd_go_infinite()
     if( stop_rsp == "" )    // Shouldn't actually ever happen as callback polling doesn't abort
     {                       //  run_sargon() if plymax is 1
         run_sargon(1,false);
-        std::string bestmove = sargon_export_best_move_temp();
+        std::string bestmove = sargon_export_best_move();
         stop_rsp = util::sprintf( "bestmove %s\n", bestmove.c_str() ); 
     }
 }
@@ -1095,7 +1095,7 @@ static bool cmd_interactive_level( const std::string &parm )
 {
     bool ok = false;
     int n = atol(parm.c_str());
-    if( 1<=n && n<=20 )
+    if( 1<=n && n<=MAX_DEPTH )
     {
         the_level = n;
         ok = true;
@@ -1431,14 +1431,14 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     {
         if( (aborted || elapsed>ms_med) && plymax_adaptive>0 )
             plymax_adaptive--;   // we used too much time
-        else if( elapsed<ms_lo && plymax_adaptive<20 )
+        else if( elapsed<ms_lo && plymax_adaptive<MAX_DEPTH )
             plymax_adaptive++;   // we can afford to go deeper next time
     }
 
     // Report on book move
     if( book_move )    
     {
-        std::string bestmove_terse = sargon_export_best_move_temp();
+        std::string bestmove_terse = sargon_export_best_move();
         thc::Move bestmove;
         bestmove.Invalid();
         bool have_move = bestmove.TerseIn( &the_position, bestmove_terse.c_str() );
@@ -1465,7 +1465,7 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     // Report 
     std::string info;
     std::string s = the_pv.variation[0].TerseOut();
-    std::string bestm = sargon_export_best_move_temp();
+    std::string bestm = sargon_export_best_move();
     if( s.substr(0,4) != bestm )
         log( "Unexpected event: BESTM=%s != PV[0]=%s\n%s", bestm.c_str(), s.c_str(), the_position.ToDebugStr().c_str() );
     info = generate_progress_report();
