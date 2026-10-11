@@ -228,10 +228,11 @@ uint8_t     POSQ[2] = {
 // SCORE   --  Score Array. Used during Alpha-Beta pruning to
 //             hold the scores at each ply. It includes two
 //             "dummy" entries for ply -1 and ply 0.
+//             (Zargon - no -1 dummy entry)
 //***********************************************************
-uint8_t padding[8];
-uint8_t SCORE[40];      // Z80 max 6 ply
-                        // x86 max 20 ply
+#define MAX_DEPTH 20
+#define ALLOCATION_PADDING 4
+uint8_t SCORE[ MAX_DEPTH + ALLOCATION_PADDING ];
 
 //***********************************************************
 // PLYIX   --  Ply Table. Contains pairs of pointers, a pair
@@ -240,9 +241,12 @@ uint8_t SCORE[40];      // Z80 max 6 ply
 //             The second pointer points to which move in the
 //             list is the one currently being considered.
 //***********************************************************
-ML_HEAD PLYIX[22];          // linked list head
-ML *    PLYIX_nxt[22];      // allocate next move here after
-                            //  returning to indexed ply
+
+// Linked list head
+ML_HEAD PLYIX[ MAX_DEPTH + ALLOCATION_PADDING ];
+
+// Allocate next move here after returning to indexed ply
+ML *    PLYIX_nxt[ MAX_DEPTH + ALLOCATION_PADDING ];
 
 //***********************************************************
 // 2) TABLE INDICES SECTION
@@ -371,6 +375,10 @@ ML      *MLNXT   =      MLIST;
 // BMOVES  --  Our very tiny book of openings. Determines
 //             the first move for the computer.
 //
+// Possible future names (just starting out :)
+// KOLOR      bool is_sargon_black;     // Computer versus human or vice versa
+// COLOR      bool is_black;            // Side to move
+
 //***********************************************************
 uint8_t KOLOR   =      0;
 uint8_t COLOR   =      0;
