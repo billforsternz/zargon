@@ -150,7 +150,6 @@
     <ClInclude Include="src\zargon_functions.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\hash_lookup.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\sargon-engine.cpp" />
     <ClCompile Include="src\sargon-interface.cpp" />
