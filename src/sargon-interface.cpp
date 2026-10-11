@@ -25,58 +25,60 @@ static void sargon_import_position_inner( const thc::ChessPosition &cp );
 
 // Convert Sargon value to pawns
 double sargon_export_value( unsigned int value )
+{
 
 // Basic Sargon evaluation works as follows;
 //
 //   Evaluation = Relative Material + Relative Mobility
 //   Dynamic range is -126 to +126 (to fit in one byte)
-//   Units correspond to 1/8 of a pawn of material or one extra move of mobility
+//   Units correspond to 1/8 of a pawn of material or one
+//   extra move of mobility
 //   Material difference is limited to +/- 15 pawns (+/- 120 units)
 //   Mobility difference is limited to +/- 6 moves (+/- 6 units)
 //   The limits combine to enforce the -126 to +126 limit
 //
-//   Conventional signed arithmetic maps onto a byte as;
-//     0x80=-128, 0x81=-127 ... 0xff=-1, 0x00=0, 0x01=1 ... 0x7e=126, 0x7f=127
+//   Sargon uses unsigned arithmetic because the Z80
+//   is not good at signed comparisons. So after calculating
+//   a score as a signed byte in the range -126 to +126 (0
+//   is neutral) it adds 128 to make an unsigned byte in
+//   the range 2 to 254, (128 is neutral). 0 is reserved as
+//   a special or sentinel flag value and 1 and 255 are
+//   reserved to represent mate (good!) and being mated
+//   (bad!) respectively, at least when using a smaller is
+//   better convention. Of course smaller is better for
+//   White is equivalent to bigger is better for Black.
 //
-//   Sargon scoring points instead use the convention;
-//    0xff=-127, 0xfe=-126 ... 0x81=-1, 0x80=0, 0x7f=1 ... 0x01=127 0x00=flag/illegal
+//   Zargon has adjusted things slightly by adjusting the
+//   dynamic range from -126,126 to -122,122 (by limiting
+//   the material difference to 14.5 pawns instead of 15
+//   pawns) to make room for four more mating value pairs
+//   in addition to 1,255. The extra pairs are 2,254
+//   3,253 4,252 and 5,251 and represent mate in 2,3,4
+//   or 5 or more (1,255 now represents mate in 1 rather
+//   than just unqualified mate). This solves the problem of
+//   Sargon dithering about when mate is available, Zargon
+//   goes straight for the quickest mate instead.
 //
-//   (I realised that 0x00 = illegal giving a balanced system of 127 negative
-//   values and 127 positive values, one zero value and one flag value very
-//   recently - the following paragraphs don't reflect this new understanding)
+//   There are now some detailed notes on the Sargon one
+//   byte scores elsewhere in the project, for example in
+//   zargon.cpp and/or zargon.hpp. Remember it's one byte
+//   due to the limitations of the Z80, which necessitates
+//   some discombobulation to cope with the consequent
+//   limited dynamic range - in particular using relative
+//   scores rather than absolute scores.
 //
-//   I am not sure why this is so, it could be just that this method was more
-//   convenient or comfortable for the programmer - using a highly constrained
-//   one byte system adds to the potential confusion, and really whatever helps
-//   you get it done. One obvious possiblility that the Sargon system makes it
-//   very easy to compare one score to another with simple unsigned comparison.
+//   Interally Sargon uses Pawn=2, Bishop/Knight=6, Rook=10,
+//   Queen=18 and then multiplies by 4 to get units. I don't
+//   know why they didn't use the equivalent and traditional
+//   1/3/3/5/9 system and multiply by 8. One possibility
+//   is that the method used allows a simple change to Rook
+//   = 4.5 or Bishop = 3.5 (say)
 //
-//   A Dynamic range of -128 to +128, extending the limit on mobility difference
-//   to +/- 8 moves would be nice, except that this is actually 257 steps and
-//   breaks the one byte representation.
+//   The conversion formula here from points to pawns uses
+//   the graph below, points are worth 1/8 pawn, and the
+//   "smaller is better" convention applies because that
+//   is more commonly used in Sargon (for example when sorting)
 //
-//   A Dynamic range of -127 to +127, extending the limit on mobility difference
-//   to +/- 7 moves doesn't have that fundamental problem. I don't know why the
-//   programmers didn't go that way. Maybe they just wanted to avoid the absolute
-//   bounds at both ends of the range for the sake of simplicity.
-//
-//   There are two levels of score relativity in Sargon's scoring. Both material
-//   and mobility is always measured relatively - material and mobility compared
-//   to the opponent. Additionally, ultimately the score is the difference (or
-//   delta) between this relative score in the start position and in the node
-//   that is being evaluated. For example, if Sargon  calculates that in the
-//   current position White is 5 pawns ahead, and that in the starting
-//   position White is 3 pawns ahead, it will score this position as +2 pawns
-//   (or 16 units)
-//
-//   Interally Sargon uses Pawn=2, Bishop/Knight=6, Rook=10, Queen=18 and
-//   then multiplies by 4 to get units. I don't know why they didn't use the
-//   equivalent and traditional 1/3/3/5/9 system and multiply by 8. One possibility
-//   is that the method used allows a simple change to Rook = 4.5 or Bishop = 3.5
-//   (say)
-//
-
-{
 //           y |
 //             |           From schoolboy algebra
 //         +16 *           y = m*x + c
@@ -156,7 +158,7 @@ bool sargon_export_square( unsigned int sargon_square, thc::Square &sq )
     return ok;
 }
 
-std::string sargon_export_best_move_temp()
+std::string sargon_export_best_move()
 {
     uint8_t from = m.BESTM->from;
     uint8_t to   = m.BESTM->to;
@@ -663,8 +665,8 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
     sargon_pv_clear( cp );
     if( plymax < 1 )  // constrain to sensible range
         plymax = 1;
-    else if( plymax > 20 )
-        plymax = 20;
+    else if( plymax > MAX_DEPTH )
+        plymax = MAX_DEPTH;
     m.PLYMAX = plymax;
     sargon_import_position( cp, avoid_book );
     m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
