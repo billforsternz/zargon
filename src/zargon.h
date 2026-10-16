@@ -197,8 +197,8 @@ uint8_t BOARDA[120];
 // BACT   --  Black Attack Count. This is the eighth byte of
 //            the array and does the same for black.
 //***********************************************************
-uint8_t     wact[7];
-uint8_t     bact[7];
+uint8_t     wact[8];    // To fix ATKSAV_BUG2, 8 not 7
+uint8_t     bact[8];
 
 //***********************************************************
 // PLIST   --  Pinned Piece Array. This is a two part array.

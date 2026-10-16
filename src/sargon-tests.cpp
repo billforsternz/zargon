@@ -944,6 +944,7 @@ static TEST code_explanation_example4 =
 };
 
 // Code explanation example (fork winning rook beats simple capture of bishop)
+//  This example used in the worked example in 'How Sargon Works'
 static TEST code_explanation_example4b =
 {
     "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
@@ -962,8 +963,6 @@ static TEST code_explanation_example4c =
     775,
     "Ng5 Rh2"
 };
-
-
 
 // Code explanation example (e4 e5 Nf3 Nc6)
 static TEST code_explanation_example4d =
@@ -1003,6 +1002,21 @@ static TEST code_explanation_example4g =
     "e5c6",
     -125,
     "Nxc6 bxc6"
+};
+
+// Analyse ordering of pieces in wact[], bact[]
+static TEST code_explanation_example4h =
+{
+    // "6kb/4r3/4r3/4P3/4Q3/4R3/4R3/7K b - - 0 1",
+    //"6kb/3nr3/4r3/4P3/4QK2/4R3/4R3/8 b - - 0 1",
+    //"6kb/3nr3/4r3/3KP3/4Q3/4R3/4R3/8 b - - 0 1",
+    //"6kb/3nr3/4r3/4PK2/4Q3/4R3/4R3/8 b - - 0 1",
+    //"4r1kb/3nr3/3K4/4P3/4Q3/4R3/4R3/8 b - - 0 1",
+    "6kb/3nr3/4r3/4PK2/4Q3/4Q3/4R3/4R3 b - - 0 1",     // reproduces ATKSAV_BUG2
+    1,
+    "e6e5",
+    850,
+    "Rxe5+ Qxe5"
 };
 
 // Code explanation example
@@ -1185,7 +1199,7 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    ok = sargon_position_test( &code_explanation_example4b, 1, 1, false );
+    ok = sargon_position_test( &code_explanation_example4h, 1, 1, false );
     return ok;
     // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
     // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );

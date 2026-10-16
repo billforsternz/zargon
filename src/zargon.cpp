@@ -832,6 +832,107 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
 {
     trace_func(FE_ATKSAV);
 
+     /*
+
+     How this works
+
+     This routine collects an ordered list of up to 12 attackers (or
+     defenders) of a square. The attackers (or defenders, but from
+     now on I'll just say attackers even though it could also be
+     defenders) are organised into 6 double entry slots, one for
+     each piece type. The slots are byte sized at PAWN, KNIGHT,
+     BISHOP, ROOK, QUEEN, KING (1,2,3,4,5,6 repectively) offset from
+     the start of the wact or bact 7 byte array, leaving offset 0
+     for the attacker count in a 7 byte data structure. Two entries
+     are packed into one slot by using the two nibbles of a byte.
+     The values stored are 1,3,3,5,9,10 respectively for each
+     piece type, i.e. the conventional pawn value of the pieces
+     with 10 used for the king. Under normal circumstances up to
+     two pieces of each type are present, sufficient for all but
+     edge cases as only two pawns can ever combine attacks on
+     one square and Sargon doesn't really do underpromotion. A
+     zero value is used to indicate an unused entry in the table.
+     Basically the attacking values are placed into position in
+     a sparse matrix so that ordered values are available without
+     needing any sorting.
+
+     Some examples;
+
+     5,0x01,0x00,0x03,0x05,0x09,0x0a -> PBRQK
+
+     A square is attacked by a pawn, a bishop, a rook, a queen and
+     a king. This is also the order, it's setup this way because
+     in chess you usually prefer to capture with your lowest value
+     piece first when you have a choice. Sargon was written way
+     before master level computer chess was possible and it was
+     happy to get it right more often than not, without worrying
+     about unusual edge cases.
+
+     5,0x01,0x33,0x00,0x05,0x09a -> PNNRQ
+
+     Both entries of the knight slot are used, indicating two
+     capturing knights.
+
+     3,0x00,0x00,0x03,0x00,0x59,0x00 -> BQR
+
+     A bishop, queen and rook in that order. The ATKSAV algorithm
+     and data structure is set up to accommodate the situation
+     where you cannot capture in the preferred lowest value piece
+     first order because you have either rooks or bishops lined
+     up behind a queen. Here a rook is behind the queen. The
+     least significant nibble is ordered ahead of the most
+     significant nibble, so 0x59 not 0x95. In fact 0x95 never
+     occurs because a rook and queen only share one slot in the
+     table in this specific situation where the rook is behind
+     the queen so the queen must come first.
+
+     4,0x00,0x00,0x03,0x00,0x59,0x05 -> BQRR
+
+     What if two rooks are lined up behind a queen? (two bishops
+     are a little implausible, especially in the no
+     underpromotion world of Sargon). In that case one of the
+     rooks slides over into the king's slot.
+
+     5,0x00,0x00,0x03,0x00,0x59,0xa5 -> BQRRK
+
+     Finally, a situation where the king also attacks the square,
+     no problem there is rook and queen in the queen slot and
+     another rook and the king in the king's slot. The king's
+     slot may have 0xa5 indicating rook followed by king but
+     never 0x5a indicating king followed by rook, similar to
+     (although the other way around) to the way the queen's
+     slot may have 0x59 but never 0x95.
+
+     These complications are handled with some surprisingly
+     compact code - translated directly from the Sargon 1978
+     original which made good use of special Z80 nibble
+     opcodes. See comments below. However, the code is not
+     set up to deal with promotion, I suspect the trade-off
+     was maximise speed and efficiency for all but extreme
+     edge cases, similar to the ROYALT() situation (one king
+     plus one queen) which is fine, but we can make a very
+     worthwhile improvement by allocating one extra byte
+     (so 8 bytes total not 7) to avoid a very unfortunate
+     buffer overflow in the following situation
+
+     5,0x00,0x00,0x00,0x00,0x99,0x55,0x0a
+
+     Here two queens and two rooks fully occupy the king and
+     queen slots, before a king is added. In that case the
+     king is the piece that triggers the p++ overflow in the
+     code below, and an extra byte beyond the king slot
+     should be added to accommodate this. I will tag this
+     with ATKSAV_BUG2, for search purposes. Note that this
+     is an edge of an edge case, if the king is encountered
+     first it will be shifted out of the king slot by a
+     second rook and lost, a different and less serious problem
+     (in general ATKSAV() doesn't necessarily fully cope with
+     promotion edge cases, ATKSAV_BUG2 is judged special and
+     worthy of a fix simply because it involves buffer
+     overflow)
+
+     */
+
     // If there are pins, check whether this attacking piece is
     //  pinned and therefore not worthy of being saved to the list
     if( m.NPINS )
@@ -852,28 +953,73 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
     // Rest of list is 6 slots, one for each piece type
     uint8_t offset = m.P2 & 0x07;   // get piece type
 
-    // If queen previously found use Queen slot
-    //  (not sure why)
-    if( (scan_count&0x80) != 0 )         // Queen found this scan ?
+    // If queen previously found on this vector use Queen slot as shown
+    //  in the rook (or bishop, or queen actually) behind queen examples
+    //  in "How this works" above
+    if( (scan_count&0x80) != 0 )   // Queen found this scan ?
         offset = QUEEN;
     p += offset;    // point at piece type slot
 
     // Add the value of the piece as a nibble to attack list
-    //  If both nibbles in slot non-zero overflow to next slot
-    //  I think this means there should be room for 7 pieces
-    //  not 6 in the list right?
-    uint8_t *pvalue = &m.pvalue[0] - 1;
+    uint8_t piece_value = m.pvalue[m.T2-1];     // 1,3,3,5,9 or 10 for king
     uint8_t hi = *p&0xf0;
     uint8_t lo = *p&0x0f;
     if( lo!=0 && hi==0 )
     {
-        *p = (pvalue[m.T2]<<4) + lo;
+
+        // Add second attacker into high nibble
+        *p = (piece_value<<4) + lo;
+
+        // In the tricky rooks or bishops behind queen
+        // scenario, the Queen must already be in the
+        // queen slot, so it will correctly always be
+        // in the low nibble (ordered first) position,
+        // so 0x59 not 0x95 as discussed above
+
+        // If we add a king into the king slot, after
+        // another piece has overflowed into the king
+        // slot, this clause will correctly add the
+        // king into the high nibble, leaving the
+        // overflow piece as the low nibble (ordered
+        // first, the king should always be ordered
+        // last). So 0xa5 instead of the incorrect
+        // 0x5a as discussed above.
     }
     else
     {
-        if( lo != 0 )
-            p++;
-        *p = (*p<<4) + (pvalue[m.T2]&0x0f);
+
+        // If lo != 0 then hi cannot be 0 either [because
+        //  we didn't take if( lo!=0 && hi==0 ) above]
+        if( lo != 0 )   // if both nibbles occupied  
+            p++;        //     use the next slot
+
+        // Add new attacker into low nibble while shifting
+        //  possible existing attacker into high nibble
+        *p = (*p<<4) + (piece_value&0x0f);
+
+        // In the tricky rooks or bishops behind queen
+        // scenario, the Queen must already be in the
+        // queen slot, so if we take this else{} block
+        // then lo != 0 (because queen in queen slot)
+        // which implies in turn that p++; above has
+        // happened, overflowing us into the king slot.
+        // If the king value (0x0a) is already present
+        // it will correctly be shifted into the high
+        // nibble, so that it is ordered last, so 0xa5
+        // instead of the incorrect 0x5a as discussed
+        // above.
+
+        // ATKSAV_BUG2 occurs if both entries of the
+        // king slot are used by overflows from the
+        // queen slot and then the king tries to use
+        // the king slot, a p++ overflow into an 8th
+        // byte in the buffer occurs, which is a
+        // problem if we only allocated 7 bytes as
+        // in Sargon 1978. Note that this bug is an
+        // extreme edge case, eg two rooks need to be
+        // lined up behind two queens, nothing like
+        // ATKSAV_BUG in terms of overall
+        // significance
     }
 }
 
