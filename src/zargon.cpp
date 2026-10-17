@@ -1251,7 +1251,7 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
                         : NEXTAD( count_black, bact );
 
     // Return if none
-    if( val==0 )
+    if( val == 0 )
         return;
 
     // Loop through attackers and defenders
@@ -1279,14 +1279,14 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
             {
 
                 // Defender less than attacker ?
-                if( save_val>val )
+                if( val < save_val )
                     return; //  Yes - return
 
                 // Get next attacker
                 val = black ? NEXTAD( count_black, bact )
                             : NEXTAD( count_white, wact );
                 if( val == 0 )
-                    return; // Return if none
+                    return; // return if none
 
                 // Save attacker value
                 save_val = val;
@@ -1295,14 +1295,14 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
                 val = black ? NEXTAD( count_white, wact )
                             : NEXTAD( count_black, bact );
                 if( val == 0 )
-                    break; // End subloop if none
+                    break; // end subloop if none
             }
         }
 
         // Get value of attacked piece
         int8_t temp = (int8_t)piece_val;
 
-        //  Attacker or defender ?
+        // Attacker or defender ?
         if( side_flag )
             temp = 0-temp;  // negate value for attacker
 
@@ -1353,13 +1353,13 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
         } while( *p == 0 );    // keep going if empty
 
         // Get nibble value from list and remove it
-        val = *p &0x0f;
+        val = *p & 0x0f;    // order is low nibble first
         *p = *p >> 4;
 
         // Double it
         val = val+val;
         p--;    // decrement list pointer to retrieve second
-                // nibble (if present) next
+                // (high) nibble (if present) next
     }
     return val;
 }
@@ -1481,7 +1481,7 @@ void POINTS()
         m.BRDC += (*wact-*bact);
 
         // If square is empty continue loop
-        if( m.P1 == 0 )            //  Get piece on current square
+        if( m.P1 == 0 )   // get piece on current square
             continue;
 
         // Evaluate exchange, if any
@@ -1496,7 +1496,7 @@ void POINTS()
             //  Deduct half a Pawn value
             attacked_piece_val--;
 
-            // If color of piece under attack matches color of side just moved
+            // If color of piece under attack matches color of side to move
             if( IS_SAME_COLOR(m.COLOR,m.P1) )
             {
 
@@ -1515,7 +1515,7 @@ void POINTS()
                 }
             }
 
-            // Else color of piece under attack doesn't match color of side just moved
+            // Else color of piece under attack doesn't match color of side to move
             else
             {
 
@@ -1598,7 +1598,7 @@ void POINTS()
     ptsw -= m.MV0;
 
     // Limit to +/- 30 (Sargon refinement => 29 see asterisked comments
-    // below about higher weighting for mates in fewer moves)
+    //  below about higher weighting for mates in fewer moves)
     int8_t points = LIMIT(29,ptsw);
 
     // Board control points minus board control at ply zero
