@@ -46,7 +46,7 @@ inline bool IS_WHITE( uint8_t piece ) { return (piece&0x80) == 0;  }
 inline bool IS_BLACK( uint8_t piece ) { return (piece&0x80) != 0;  }
 inline void TOGGLE  ( uint8_t &color) { color = (color==0?0x80:0); }
 inline bool IS_SAME_COLOR( uint8_t piece1, uint8_t piece2 )      { return (piece1&0x80) == (piece2&0x80); }
-inline bool IS_DIFFERENT_COLOR( uint8_t piece1, uint8_t piece2 ) { return ((piece1&0x80) ^ (piece2&0x80)) != 0; }
+inline bool IS_DIFFERENT_COLOR( uint8_t piece1, uint8_t piece2 ) { return (piece1&0x80) != (piece2&0x80); }
 inline bool HAS_MOVED( uint8_t piece ) { return (piece&0x08) != 0;  }
 inline bool HAS_NOT_MOVED( uint8_t piece ) { return (piece&0x08) == 0;  }
 inline void SET_MOVED( uint8_t &piece ) { piece|=0x08;  }
@@ -61,37 +61,42 @@ inline bool IS_CASTLED( uint8_t piece ) { return (piece&0x10) != 0;  }
 inline void SET_CASTLED( uint8_t &piece ) { piece|=0x10;  }
 inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 
-// Sargon squares
+// Sargon squares (at least all those that are explicitly mentioned in code)
 #define SQ_a1 21
 #define SQ_b1 22
 #define SQ_d1 24
 #define SQ_e1 25
+#define SQ_f1 26
+#define SQ_g1 27
 #define SQ_h1 28
 #define SQ_a2 31
 #define SQ_b2 32
 #define SQ_c2 33
+#define SQ_d2 34
 #define SQ_e2 35
 #define SQ_a3 41
+#define SQ_f3 46
 #define SQ_a4 51
+#define SQ_d4 54
+#define SQ_e4 55
 #define SQ_a5 61
+#define SQ_d5 64
+#define SQ_e5 65
 #define SQ_h5 68
 #define SQ_a6 71
 #define SQ_a7 81
+#define SQ_d7 84
+#define SQ_e7 85
 #define SQ_a8 91
 #define SQ_b8 92
 #define SQ_d8 94
 #define SQ_e8 95
 #define SQ_h8 98
-#define SQ_f3 46
-#define SQ_e5 65
-#define SQ_f1 26
-#define SQ_g1 27
 
 // Initially at least we were emulating 64K of Z80 memory
 //  at some point we will probably rename this to simply
 //  zargon_data or similar
 struct emulated_memory {
-    uint64_t hash;
 
 //***********************************************************
 // TABLES SECTION
@@ -218,10 +223,10 @@ uint8_t     plistd[10];     // corresponding directions
 // POSQ    --  Position of Queens. Like POSK,but for queens.
 //***********************************************************
 uint8_t     POSK[2] = {
-    25,95
+    SQ_e1,SQ_e8
 };
 uint8_t     POSQ[2] = {
-    24,94
+    SQ_d1,SQ_d8
 };
 
 //***********************************************************
@@ -392,19 +397,19 @@ uint8_t NPLY    =      0;
 bool    CKFLG   =      false;
 bool    MATEF   =      true;    // Mate unless proven otherwise
 uint8_t VALM    =      0;
-uint8_t BRDC    =      0;
+int8_t  BRDC    =      0;
 uint8_t PTSL    =      0;
 uint8_t PTSW1   =      0;
 uint8_t PTSW2   =      0;
-uint8_t MTRL    =      0;
-uint8_t BC0     =      0;
-uint8_t MV0     =      0;
+int8_t  MTRL    =      0;
+int8_t  BC0     =      0;
+int8_t  MV0     =      0;
 uint8_t PTSCK   =      0;
 uint8_t BMOVES[12] = {
-    35,55,0x10,        // e2-e4 double move
-    34,54,0x10,        // d2-d4 double move
-    85,65,0x10,        // e7-e5 double move
-    84,64,0x10         // d7-d5 double move
+    SQ_e2,SQ_e4,0x10,        // e2-e4 double move
+    SQ_d2,SQ_d4,0x10,        // d2-d4 double move
+    SQ_e7,SQ_e5,0x10,        // e7-e5 double move
+    SQ_d7,SQ_d5,0x10         // d7-d5 double move
 };
 uint8_t LINECT = 0;
 char MVEMSG[5]; // = {'a','1','-','a','1'};
