@@ -1245,10 +1245,13 @@ void XCHNG( int8_t &points, int8_t &piece_val )
     // We are calculating the profit or (loss) of capturing the
     //  piece on the current square by a series of exchanges.
     //  It doesn't matter which side is to move. (So the capture
-    //  might not be possible until next move). Our convention
-    //  is that during the capturing sequence, capturing pieces
-    //  are alternatively attackers and defenders. Defenders
-    //  are of the same color as the original piece.
+    //  might not be possible until next move). During the
+    //  capturing sequence, the color of capturing and defending
+    //  pieces swaps. In terms of points accumulation, we add
+    //  the value of captured pieces of the same color as the
+    //  original piece on the square (and subtract the value
+    //  of captured attackers of the opposite color to the
+    //  original piece on the square).
     int8_t attacked_val = m.pvalue[m.T3-1];
     attacked_val = attacked_val+attacked_val;   // units of value are half pawns
     piece_val = (uint8_t)attacked_val;  
@@ -1273,40 +1276,37 @@ void XCHNG( int8_t &points, int8_t &piece_val )
         int8_t defender_val = black ? NEXTAD( count_black, bact )
                                     : NEXTAD( count_white, wact );
 
-        // If have a defender and attacked < attacker
+        // If have a defender and attacked < attacker at
+        //  any point in the exchanging sequence THEN
+        //   Switch modes (one time only) into a different
+        //    algorithm for remainder of loop.
+        //   Different algorithm is;
+        //   Save attacked value that triggered mode switch
+        //    (it could be an attacker or defender)
+        //   Loop until run out of defenders or attackers
+        //     If defender < attacker end
+        //   If we ran out of defenders
+        //     Add value of saved defender to points OR
+        //     Subtract value of saved attacker from points
         bool attacked_lt_attacker = (attacked_val<attacker_val);
-        if( defender_val!=0 && attacked_lt_attacker )
+        while( defender_val!=0 && attacked_lt_attacker )
         {
 
-            // Switch modes (one time only) into a different algorithm
-            //  for remainder of loop, different algorithm is;
-            //  Save attacked value that triggered mode switch
-            //   (it could be an attacker or defender)
-            //  Loop until run out of defenders or attackers
-            //    If defender < attacker end
-            //  If we ran out of defenders
-            //    add value of saved defender to points OR
-            //    subtract value of saved attacker from points
-            for(;;)
-            {
+            // Defender less than attacker ?
+            if( defender_val < attacker_val )
+                return; // yes - return
 
-                // Defender less than attacker ?
-                if( defender_val < attacker_val )
-                    return; // yes - return
+            // Get next attacker
+            attacker_val = black ? NEXTAD( count_white, wact )
+                                 : NEXTAD( count_black, bact );
+            if( attacker_val == 0 )
+                return; // return if none
 
-                // Get next attacker
-                attacker_val = black ? NEXTAD( count_white, wact )
-                                     : NEXTAD( count_black, bact );
-                if( attacker_val == 0 )
-                    return; // return if none
-
-                //  Get next defender
-                defender_val = black ? NEXTAD( count_black, bact )
-                                     : NEXTAD( count_white, wact );
-                if( defender_val == 0 )
-                    break;  // fall through to add or subtract 
-                            //  attacker_val to points then end
-            }
+            //  Get next defender
+            defender_val = black ? NEXTAD( count_black, bact )
+                                 : NEXTAD( count_white, wact );
+            // if defender_val == 0, fall through to add or subtract 
+            //  attacker_val to points then end
         }
 
         // Add values of captured defenders, subtract values
