@@ -1013,7 +1013,8 @@ static TEST code_explanation_example4h =
     //"6kb/3nr3/4r3/4PK2/4Q3/4R3/4R3/8 b - - 0 1",
     //"4r1kb/3nr3/3K4/4P3/4Q3/4R3/4R3/8 b - - 0 1",
     //"6kb/3nr3/4r3/4PK2/4Q3/4Q3/4R3/4R3 b - - 0 1",     // reproduces ATKSAV_BUG2
-    "4r2k/4r3/8/4b3/8/3NR3/4R3/7K w - - 0 1", //temp
+    //"4r2k/4r3/8/4b3/8/3NR3/4R3/7K w - - 0 1", //temp NxB with extra rook attackers and defenders
+    "7k/8/8/4b3/8/3N4/8/7K w - - 0 1", //temp, simply NxB
     1,
     "e6e5",
     850,

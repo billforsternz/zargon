@@ -1230,7 +1230,8 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
 {
     trace_func(FE_XCHNG);
     bool black = IS_BLACK(m.P1);
-    bool side_flag = true;
+    bool have_reversed_sides = false;
+    bool testing_flag = false;
 
     uint8_t *wact = m.wact;
     uint8_t *bact = m.bact;
@@ -1242,9 +1243,9 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
     points = 0;
 
     // Get attacked piece value
-    uint8_t piece_val = m.pvalue[m.T3-1];
-    piece_val = piece_val+piece_val;
-    attacked_piece_val = piece_val;
+    uint8_t attacked_val = m.pvalue[m.T3-1];
+    attacked_val = attacked_val+attacked_val;
+    attacked_piece_val = attacked_val;
 
     // Retrieve first attacker
     uint8_t val = black ? NEXTAD( count_white, wact )
@@ -1259,18 +1260,15 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
     {
 
         // Save attacker value
-        uint8_t save_val = val;
+        uint8_t attacker_val = val;
 
         // Get next defender
         val = black ? NEXTAD( count_black, bact )
                     : NEXTAD( count_white, wact );
-
-        // Toggle
         black = !black;
-        side_flag = !side_flag;
 
         // If have a defender and attacked < attacker
-        bool attacked_lt_attacker = (piece_val<save_val);
+        bool attacked_lt_attacker = (attacked_val<attacker_val);
         if( val!=0 && attacked_lt_attacker )
         {
 
@@ -1279,7 +1277,7 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
             {
 
                 // Defender less than attacker ?
-                if( val < save_val )
+                if( val < attacker_val )
                     return; //  Yes - return
 
                 // Get next attacker
@@ -1289,7 +1287,7 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
                     return; // return if none
 
                 // Save attacker value
-                save_val = val;
+                attacker_val = val;
 
                 //  Get next defender
                 val = black ? NEXTAD( count_white, wact )
@@ -1300,21 +1298,27 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
         }
 
         // Get value of attacked piece
-        int8_t temp = (int8_t)piece_val;
+        int8_t attacked_val_signed = (int8_t)attacked_val;
 
-        // Attacker or defender ?
-        if( side_flag )
-            temp = 0-temp;  // negate value for attacker
+        // Have we reversed sides since start of sequence?
+        if( have_reversed_sides )
+        {
+
+            // If yes, the attacked piece is an attacker
+            //  in the context of the starting position
+            attacked_val_signed = 0-attacked_val_signed;
+        }
 
         // Accumulate total points lost
-        points += temp;
+        points += attacked_val_signed;
 
-        // Save total
+        // Return at end of list
         if( val == 0 )
-            return; // return at end of list
+            return; 
 
         // Prev attacker becomes defender
-        piece_val = save_val;
+        attacked_val = attacker_val;
+        have_reversed_sides = !have_reversed_sides;
     }
 }
 
