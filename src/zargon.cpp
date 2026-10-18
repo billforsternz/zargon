@@ -1226,7 +1226,7 @@ void PINFND()
 //
 // ARGUMENTS:  --  None.
 //***********************************************************
-void XCHNG( int8_t &points, int8_t &attacked_piece_val )
+void XCHNG( int8_t &points, int8_t &piece_val )
 {
     trace_func(FE_XCHNG);
     bool black = IS_BLACK(m.P1);
@@ -1239,37 +1239,54 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
     uint8_t count_white = *wact;
     uint8_t count_black = *bact;
 
-    // Init points lost count
+    // Initialise points won or lost
     points = 0;
 
-    // Get attacked piece value
-    uint8_t attacked_val = m.pvalue[m.T3-1];
-    attacked_val = attacked_val+attacked_val;
-    attacked_piece_val = attacked_val;
+    // We are calculating the profit or (loss) of capturing the
+    //  piece on the current square by a series of exchanges.
+    //  It doesn't matter which side is to move. (So the capture
+    //  might not be possible until next move). Our convention
+    //  is that during the capturing sequence, capturing pieces
+    //  are alternatively attackers and defenders. Defenders
+    //  are of the same color as the original piece.
+    int8_t attacked_val = m.pvalue[m.T3-1];
+    attacked_val = attacked_val+attacked_val;   // units of value are half pawns
+    piece_val = (uint8_t)attacked_val;  
 
     // Retrieve first attacker
-    uint8_t attacker_val = black ? NEXTAD( count_white, wact )
-                                 : NEXTAD( count_black, bact );
+    int8_t attacker_val = black ? NEXTAD( count_white, wact )
+                                : NEXTAD( count_black, bact );
 
     // Return if none
     if( attacker_val == 0 )
         return;
 
     // Loop through attackers and defenders
+    //  Main algorithm is
+    //  Loop until run out of defenders or attackers
+    //    Add value of initial captured piece and its defenders to points
+    //    Subtract value of captured attackers from points
     for(;;)
     {
 
         // Get next defender
-        uint8_t defender_val = black ? NEXTAD( count_black, bact )
-                                     : NEXTAD( count_white, wact );
-        black = !black;
+        int8_t defender_val = black ? NEXTAD( count_black, bact )
+                                    : NEXTAD( count_white, wact );
 
         // If have a defender and attacked < attacker
         bool attacked_lt_attacker = (attacked_val<attacker_val);
         if( defender_val!=0 && attacked_lt_attacker )
         {
 
-            // Evaluate this as special case
+            // Switch modes (one time only) into a different algorithm
+            //  for remainder of loop, different algorithm is;
+            //  Save attacked value that triggered mode switch
+            //   (it could be an attacker or defender)
+            //  Loop until run out of defenders or attackers
+            //    If defender < attacker end
+            //  If we ran out of defenders
+            //    add value of saved defender to points OR
+            //    subtract value of saved attacker from points
             for(;;)
             {
 
@@ -1278,33 +1295,27 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
                     return; // yes - return
 
                 // Get next attacker
-                attacker_val = black ? NEXTAD( count_black, bact )
-                                     : NEXTAD( count_white, wact );
+                attacker_val = black ? NEXTAD( count_white, wact )
+                                     : NEXTAD( count_black, bact );
                 if( attacker_val == 0 )
                     return; // return if none
 
                 //  Get next defender
-                defender_val = black ? NEXTAD( count_white, wact )
-                                     : NEXTAD( count_black, bact );
+                defender_val = black ? NEXTAD( count_black, bact )
+                                     : NEXTAD( count_white, wact );
                 if( defender_val == 0 )
-                    break; // end subloop if none
+                    break;  // fall through to add or subtract 
+                            //  attacker_val to points then end
             }
         }
 
-        // Get value of attacked piece
-        int8_t attacked_val_signed = (int8_t)attacked_val;
-
-        // Have we reversed sides since start of sequence?
+        // Add values of captured defenders, subtract values
+        //  of captured attackers (in the context of the
+        //  starting position)
         if( have_reversed_sides )
-        {
-
-            // If yes, the attacked piece is an attacker
-            //  in the context of the starting position
-            attacked_val_signed = 0-attacked_val_signed;
-        }
-
-        // Accumulate total points lost
-        points += attacked_val_signed;
+            points -= attacked_val;
+        else
+            points += attacked_val;
 
         // Return at end of list
         if( defender_val == 0 )
@@ -1313,6 +1324,7 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
         // Prev attacker becomes defender
         attacked_val = attacker_val;
         have_reversed_sides = !have_reversed_sides;
+        black = !black;
     }
 }
 
