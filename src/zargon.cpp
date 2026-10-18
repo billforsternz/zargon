@@ -1248,28 +1248,25 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
     attacked_piece_val = attacked_val;
 
     // Retrieve first attacker
-    uint8_t val = black ? NEXTAD( count_white, wact )
-                        : NEXTAD( count_black, bact );
+    uint8_t attacker_val = black ? NEXTAD( count_white, wact )
+                                 : NEXTAD( count_black, bact );
 
     // Return if none
-    if( val == 0 )
+    if( attacker_val == 0 )
         return;
 
     // Loop through attackers and defenders
     for(;;)
     {
 
-        // Save attacker value
-        uint8_t attacker_val = val;
-
         // Get next defender
-        val = black ? NEXTAD( count_black, bact )
-                    : NEXTAD( count_white, wact );
+        uint8_t defender_val = black ? NEXTAD( count_black, bact )
+                                     : NEXTAD( count_white, wact );
         black = !black;
 
         // If have a defender and attacked < attacker
         bool attacked_lt_attacker = (attacked_val<attacker_val);
-        if( val!=0 && attacked_lt_attacker )
+        if( defender_val!=0 && attacked_lt_attacker )
         {
 
             // Evaluate this as special case
@@ -1277,22 +1274,19 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
             {
 
                 // Defender less than attacker ?
-                if( val < attacker_val )
-                    return; //  Yes - return
+                if( defender_val < attacker_val )
+                    return; // yes - return
 
                 // Get next attacker
-                val = black ? NEXTAD( count_black, bact )
-                            : NEXTAD( count_white, wact );
-                if( val == 0 )
+                attacker_val = black ? NEXTAD( count_black, bact )
+                                     : NEXTAD( count_white, wact );
+                if( attacker_val == 0 )
                     return; // return if none
 
-                // Save attacker value
-                attacker_val = val;
-
                 //  Get next defender
-                val = black ? NEXTAD( count_white, wact )
-                            : NEXTAD( count_black, bact );
-                if( val == 0 )
+                defender_val = black ? NEXTAD( count_white, wact )
+                                     : NEXTAD( count_black, bact );
+                if( defender_val == 0 )
                     break; // end subloop if none
             }
         }
@@ -1313,7 +1307,7 @@ void XCHNG( int8_t &points, int8_t &attacked_piece_val )
         points += attacked_val_signed;
 
         // Return at end of list
-        if( val == 0 )
+        if( defender_val == 0 )
             return; 
 
         // Prev attacker becomes defender
