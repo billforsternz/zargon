@@ -1229,9 +1229,163 @@ void PINFND()
 void XCHNG( int8_t &points, int8_t &piece_val )
 {
     trace_func(FE_XCHNG);
+
+/*
+    How this works
+
+    We are calculating the profit or (loss) of capturing the
+     piece on the current square by a series of exchanges.
+     The material units are half pawns, so pawn=2, knight=6
+     etc.
+
+     It doesn't matter which side is to move. (So the capture
+     might not be possible until next move). During the
+     capturing sequence, the color of capturing and defending
+     pieces swaps. In terms of points accumulation, we add
+     the value of captured pieces of the same color as the
+     original piece on the square (and subtract the value
+     of captured attackers of the opposite color to the
+     original piece on the square).
+
+    Main algorithm is;
+    Loop until run out of defenders or attackers
+      Add value of initial captured piece and same coloured defenders to points
+      Subtract value of captured pieces of the attacking side from points
+      Alternate sides, defender becomes attacker at next iteration
+
+    Some examples, note the '@' symbols, which are explained below.
+
+    Rook attacks a rook, net points +10
+        Step  Attacker   Attacked  Defender  Points
+        1     Rook(10)   Rook(10)  -         +10
+
+    Rook attacks a rook defended by a pawn, net points 0
+        Step  Attacker   Attacked  Defender  Points
+        1     Rook(10)   Rook(10)  Pawn(2)   +10
+        2     Pawn(2)    Rook(10)  -         -10
+
+    Bishop attacks a rook defended by a pawn, net points 4
+        Step  Attacker   Attacked  Defender  Points
+        1     Bishop(6)  Rook(10)  Pawn(2)   +10
+        2     Pawn(2)    Bishop(6) -         -6
+
+    Knight and bishop attack a rook defended by knight and bishop, net points 4
+        Step  Attacker   Attacked  Defender  Points
+        1     Knight(6)  Rook(10)  Knight(6) +10
+        2     Knight(6)  Knight(6) Bishop(6) -6
+        3     Bishop(6)  Knight(6) Bishop(6) +6
+        4     Bishop(6)  Bishop(6) -         -6
+
+    Queen ahead of rook attacks rook defended by rook, net points +2
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Queen(18)  Rook(10)  Rook(10)  +10
+        2     Rook(10)   Queen(18) Rook(10)  -18
+        3     Rook(10)   Rook(10)   -        +10
+
+    Knight and bishop attack a pawn defended by knight, net points +2
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Knight(6)  Pawn(2)   Knight(6) +2
+        2     Knight(6)  Knight(6) Bishop(6) -6
+        3     Bishop(6)  Knight(6) -         +6
+
+    Knight and bishop attack a pawn defended by knight and bishop, net points -4
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Knight(6)  Pawn(2)   Knight(6) +2
+        2     Knight(6)  Knight(6) Bishop(6) -6
+        3     Bishop(6)  Knight(6) Bishop(6) +6
+        4     Bishop(6)  Bishop(6) -         -6
+
+    Knight and bishop attack a pawn defended by rook and king, net points 0
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Knight(6)  Pawn(2)   Rook(10)  +2
+        2     Rook(10)   Knight(6) Bishop(6) -6
+        3     Bishop(6)  Rook(10)  King(20)  +10
+        4     King(20)   Bishop(6) -         -6
+
+    Two rooks ahead of a queen attack a rook defended by rook and king, net points 20
+        Step  Attacker   Attacked  Defender  Points
+        1     Rook(10)   Rook(10)  Rook(10)  +10
+        2     Rook(10)   Rook(10)  Rook(10)  -10
+        3     Rook(10)   Rook(10)  King(20)  +10
+    @   4     King(20)   Rook(10)  Queen(18) -10
+        5     Queen(18)  King(20)  -         +20
+
+    A queen ahead of two rooks attacks a rook defended by rook and king, net points 12
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Queen(18)  Rook(10)  Rook(10)  +10
+        2     Rook(10)   Queen(18) Rook(10)  -18
+        3     Rook(10)   Rook(10)  King(20)  +10
+        4     King(20)   Rook(10)  Rook(18)  -10
+        5     Rook(18)   King(20)  -         +20
+
+    The algorithm works reasonably well, however we apply an improvement.
+    The @ symbols show points where we refine things by switching to a
+    different algorithm as follows;
+
+    If have a defender and attacker > attacked
+        Don't proceed with remaining net points loop, end now and
+        this attacked value might be applied to net points (or not).
+        To determine whether this attacked value is applied (YES) or
+        not (NO);
+        Secondary loop
+            If defender value < attacker value end and NO
+            Get next attacker, if absent end and NO
+            Get next defender, if absent end and YES
+
+    Note that in this secondary loop, we get a new attacker and defender in
+    every iteration, rather than swapping sides with defenders becoming
+    attackers.
+
+    The logic of this is that a valuable attacker attacking a low value
+    defended piece can normally be dismissed as not viable immediately.
+    But if a series of defenders that are just as valuable as their
+    corresponding attackers are eventually outnumbered by attackers
+    that is an exception and we judge the initial capture as viable,
+    although the sequence of exchanges (trades) is likely to end with
+    the initial capture by the valuable attacker.
+
+    Applying this refinment to the earlier examples gives improved
+    results I think we can agree;
+
+    Queen ahead of rook attacks rook defended by rook, net points 0
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Queen(18)  Rook(10)  Rook(10)  +10 NO (defender < attacker)
+
+    Knight and bishop attack a pawn defended by knight, net points +2
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Knight(6)  Pawn(2)   Knight(6) +2 YES (defender absent at step 2)
+        2     Bishop(6)            -            
+
+    Knight and bishop attack a pawn defended by knight and bishop, net points 0
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Knight(6)  Pawn(2)   Knight(6) +2 NO (attacker absent at step 3)
+        2     Bishop(6)            Bishop(6)    
+        3     -                                  
+
+    Knight and bishop attack a pawn defended by rook and king, net points 0
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Knight(6)  Pawn(2)   Rook(10)  +2 NO (attacker absent at step 3)
+        2     Bishop(6)            King(20)             
+        3     -                                  
+
+    Two rooks ahead of a queen attack a rook defended by rook and king, net points 10
+        Step  Attacker   Attacked  Defender  Points
+        1     Rook(10)   Rook(10)  Rook(10)  +10
+        2     Rook(10)   Rook(10)  Rook(10)  -10
+        3     Rook(10)   Rook(10)  King(20)  +10
+    @   4     King(20)   Rook(10)  Queen(18) -10 NO (defender < attacker)
+
+    A queen ahead of two rooks attacks a rook defended by rook and king, net points 0
+        Step  Attacker   Attacked  Defender  Points
+    @   1     Queen(18)  Rook(10)  Rook(10)  +10 NO (defender < attacker)
+
+*/
+
+    // Initialise points won or lost
+    points = 0;
+
     bool black = IS_BLACK(m.P1);
     bool have_reversed_sides = false;
-    bool testing_flag = false;
 
     uint8_t *wact = m.wact;
     uint8_t *bact = m.bact;
@@ -1239,19 +1393,6 @@ void XCHNG( int8_t &points, int8_t &piece_val )
     uint8_t count_white = *wact;
     uint8_t count_black = *bact;
 
-    // Initialise points won or lost
-    points = 0;
-
-    // We are calculating the profit or (loss) of capturing the
-    //  piece on the current square by a series of exchanges.
-    //  It doesn't matter which side is to move. (So the capture
-    //  might not be possible until next move). During the
-    //  capturing sequence, the color of capturing and defending
-    //  pieces swaps. In terms of points accumulation, we add
-    //  the value of captured pieces of the same color as the
-    //  original piece on the square (and subtract the value
-    //  of captured attackers of the opposite color to the
-    //  original piece on the square).
     int8_t attacked_val = m.pvalue[m.T3-1];
     attacked_val = attacked_val+attacked_val;   // units of value are half pawns
     piece_val = (uint8_t)attacked_val;  
@@ -1265,10 +1406,11 @@ void XCHNG( int8_t &points, int8_t &piece_val )
         return;
 
     // Loop through attackers and defenders
-    //  Main algorithm is
-    //  Loop until run out of defenders or attackers
-    //    Add value of initial captured piece and its defenders to points
-    //    Subtract value of captured attackers from points
+    // Main algorithm is;
+    // Loop until run out of defenders or attackers
+    //   Add value of initial captured piece and its defenders to points
+    //   Subtract value of captured attackers from points
+    //   Alternate sides, defender becomes attacker at next iteration
     for(;;)
     {
 
@@ -1276,20 +1418,17 @@ void XCHNG( int8_t &points, int8_t &piece_val )
         int8_t defender_val = black ? NEXTAD( count_black, bact )
                                     : NEXTAD( count_white, wact );
 
-        // If have a defender and attacked < attacker at
-        //  any point in the exchanging sequence THEN
-        //   Switch modes (one time only) into a different
-        //    algorithm for remainder of loop.
-        //   Different algorithm is;
-        //   Save attacked value that triggered mode switch
-        //    (it could be an attacker or defender)
-        //   Loop until run out of defenders or attackers
-        //     If defender < attacker end
-        //   If we ran out of defenders
-        //     Add value of saved defender to points OR
-        //     Subtract value of saved attacker from points
-        bool attacked_lt_attacker = (attacked_val<attacker_val);
-        while( defender_val!=0 && attacked_lt_attacker )
+        // If have a defender and attacker > attacked
+        //     Don't proceed with remaining net points loop, end now and
+        //     this attacked value might be applied to net points (or not).
+        //     To determine whether this attacked value is applied (YES) or
+        //     not (NO);
+        //     Secondary loop
+        //         If defender value < attacker value end and NO
+        //         Get next attacker, if absent end and NO
+        //         Get next defender, if absent end and YES
+        bool attacker_gt_attacked = (attacker_val>attacked_val);
+        while( defender_val!=0 && attacker_gt_attacked )
         {
 
             // Defender less than attacker ?
@@ -1306,7 +1445,7 @@ void XCHNG( int8_t &points, int8_t &piece_val )
             defender_val = black ? NEXTAD( count_black, bact )
                                  : NEXTAD( count_white, wact );
             // if defender_val == 0, fall through to add or subtract 
-            //  attacker_val to points then end
+            //  attacked_val to points then end
         }
 
         // Add values of captured defenders, subtract values
