@@ -143,6 +143,16 @@ int main_uci( int argc, const char *argv[] )
 #ifdef _DEBUG
     static const std::vector<std::string> test_sequence =
     {
+#if 1
+        "",
+        "8/8/8/4k/8/8/8/KQ w - - 0 1",
+        "level 9",
+        "go",
+        "Kf4",
+        "Ke5",
+        "Kf5"
+#endif
+
 #if 0
         "setoption name FixedDepth value 6",
         "position fen 8/3R2pk/4Np1p/5r2/8/1P2PK2/5PPP/8 w - - 9 41 moves f3e2 h7h8 d7d8 h8h7\n",
@@ -244,11 +254,13 @@ int main_uci( int argc, const char *argv[] )
     };
     if( test_sequence.size() > 0 )
     {
+        bool first = true;
         for( std::string s: test_sequence )
         {
             util::rtrim(s);
             log( "cmd>%s\n", s.c_str() );
-            process(s);
+            process(s,first);
+            first = false;
         }
         return 0;
     }
@@ -1087,7 +1099,10 @@ static bool cmd_interactive_position( const std::string &raw_cmd_line )
 {
     bool ok = the_position.Forsyth(raw_cmd_line.c_str());
     if( ok )
+    {
         the_position_base = the_position;
+        the_game.clear();
+    }
     return ok;
 }
 

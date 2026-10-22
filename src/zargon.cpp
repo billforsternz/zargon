@@ -1249,9 +1249,8 @@ void XCHNG( int8_t &points, int8_t &piece_val )
 
     Main algorithm is;
     Loop until run out of defenders or attackers
-      Add value of initial captured piece and same coloured defenders to points
-      Subtract value of captured pieces of the attacking side from points
-      Alternate sides, defender becomes attacker at next iteration
+      Add value of initial captured piece and defenders to points
+      Subtract value of captured attackers from points
 
     Some examples, note the '@' symbols, which are explained below.
 
@@ -1259,15 +1258,15 @@ void XCHNG( int8_t &points, int8_t &piece_val )
         Step  Attacker   Attacked  Defender  Points
         1     Rook(10)   Rook(10)  -         +10
 
-    Rook attacks a rook defended by a pawn, net points 0
-        Step  Attacker   Attacked  Defender  Points
-        1     Rook(10)   Rook(10)  Pawn(2)   +10
-        2     Pawn(2)    Rook(10)  -         -10
-
     Bishop attacks a rook defended by a pawn, net points 4
         Step  Attacker   Attacked  Defender  Points
         1     Bishop(6)  Rook(10)  Pawn(2)   +10
         2     Pawn(2)    Bishop(6) -         -6
+
+    Rook attacks a rook defended by a pawn, net points 0
+        Step  Attacker   Attacked  Defender  Points
+        1     Rook(10)   Rook(10)  Pawn(2)   +10
+        2     Pawn(2)    Rook(10)  -         -10
 
     Knight and bishop attack a rook defended by knight and bishop, net points 4
         Step  Attacker   Attacked  Defender  Points
@@ -1318,11 +1317,11 @@ void XCHNG( int8_t &points, int8_t &piece_val )
         4     King(20)   Rook(10)  Rook(18)  -10
         5     Rook(18)   King(20)  -         +20
 
-    The algorithm works reasonably well, however we apply an improvement.
-    The @ symbols show points where we refine things by switching to a
-    different algorithm as follows;
+    The algorithm works reasonably well, however let's introduce an
+    improvement. The @ symbols show points where we refine things by
+    switching to a different algorithm as follows;
 
-    If have a defender and attacker > attacked
+    If have attacker > attacked and there is a defender
         Don't proceed with remaining net points loop, end now and
         this attacked value might be applied to net points (or not).
         To determine whether this attacked value is applied (YES) or
@@ -1693,6 +1692,19 @@ void POINTS()
             attacked_piece_val = 0-attacked_piece_val;    // negate piece value if Black
         m.MTRL += attacked_piece_val;
     }
+
+    /*
+
+    Remember up to two pieces that side to move can capture (PTSW1 [bigger] and PTSW2 [smaller])
+      But cut this to one piece if one of these has just moved into position
+
+    Remember one piece that is attacked by side to move next (PTSL)
+
+    ptsw = func(PTSW1,PTSW2) (smaller than either of them)
+    ptsl = PTSL-1
+
+
+    */
 
     // If moving piece lost
     if( m.PTSCK != 0 )
