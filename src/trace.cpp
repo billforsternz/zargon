@@ -459,36 +459,6 @@ void logf( const char *fmt, ... )
     }
     printf( "%s", str.c_str() );
 }
-#endif
-
-static std::string show_node()
-{
-    std::string s;
-    thc::ChessRules cr(start_position);
-    thc::Move mv;
-    int idx=1;
-    while( idx <= m.NPLY )
-    {
-        ML *ml = m.PLYIX[idx].link_ptr;
-        std::string terse = sargon_export_move(ml);
-        bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
-        if( idx > 1 )
-            s += ' ';
-        if( illegal_move )
-        {
-            s += util::sprintf( "(%s)", terse.c_str() );
-            break;
-        }
-        else
-        {
-            std::string txt = mv.NaturalOut(&cr);
-            s += util::sprintf( "%s", txt.c_str() );
-            cr.PlayMove(mv);
-            idx++;
-        }
-    }
-    return s;
-}
 
 static std::string score_table_entry[ MAX_DEPTH + ALLOCATION_PADDING ];
 
@@ -525,6 +495,37 @@ void trace_alpha_beta( uint8_t score_smaller_is_better, uint8_t table_bigger_is_
                 refutes, previous_moves, yes_no, score_smaller_is_better, above, table_bigger_is_better );
         }
     }
+}
+
+#endif
+
+static std::string show_node()
+{
+    std::string s;
+    thc::ChessRules cr(start_position);
+    thc::Move mv;
+    int idx=1;
+    while( idx <= m.NPLY )
+    {
+        ML *ml = m.PLYIX[idx].link_ptr;
+        std::string terse = sargon_export_move(ml);
+        bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
+        if( idx > 1 )
+            s += ' ';
+        if( illegal_move )
+        {
+            s += util::sprintf( "(%s)", terse.c_str() );
+            break;
+        }
+        else
+        {
+            std::string txt = mv.NaturalOut(&cr);
+            s += util::sprintf( "%s", txt.c_str() );
+            cr.PlayMove(mv);
+            idx++;
+        }
+    }
+    return s;
 }
 
 std::string to_algebraic( int sq )
