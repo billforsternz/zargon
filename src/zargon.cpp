@@ -995,7 +995,7 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
 
         // Add new attacker into low nibble while shifting
         //  possible existing attacker into high nibble
-        *p = (*p<<4) + (piece_value&0x0f);
+        *p = (*p<<4) + piece_value;
 
         // In the tricky rooks or bishops behind queen
         // scenario, the Queen must already be in the
@@ -1720,8 +1720,7 @@ void POINTS()
     //  points won (even more)
     if( m.PTSCK != 0 )
     {
-        m.PTSW1 = m.PTSW2;
-        m.PTSW2 = 0;
+        m.PTSW1 = 0;
     }
 
     // Adjust points lost slightly, it should not be quite as bad as not having
@@ -1736,16 +1735,7 @@ void POINTS()
     //  valued of the two most valuble en-prise attacks, if and only if there are
     //  at least two such attacks, and and only after discounting a half pawn's
     //  value as we did for points lost.
-    int8_t ptsw = m.PTSW1;
-    if( ptsw != 0 )
-    {
-        ptsw = m.PTSW2;
-        if( ptsw != 0 )
-        {
-            ptsw--;
-            ptsw = ptsw/2;
-        }
-    }
+    int8_t ptsw = (m.PTSW1!=0 && m.PTSW2!=0) ? (m.PTSW2-1)/2 : 0;
 
     // Points won net = points won - points lost
     ptsw -= ptsl;
