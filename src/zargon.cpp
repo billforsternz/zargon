@@ -3674,7 +3674,7 @@ beta cutoff, we aren't considering replies to a move that alpha beta
 can refute.
 
 Nxd3 does establish the score of the move to beat at ply 1. It is
-106 (smallest_is_better) and 150 (biggest_is_better)
+106 (smaller_is_better) and 150 (bigger_is_better)
 
 65> Ng4 Bc4 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=165, score_bigger_is_better=91, ply score=0)
 1: [150]  (a1b1) BESTM->Nxd3(102) ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
@@ -3725,7 +3725,7 @@ rook en-prise.
 1: [150]  (a1b1) BESTM->Nxd3(102) MLPTRJ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
 
 The replies to Ng4 have all been considered and it has a backed up
-smallest_is_better score of 98 (as for Nxd3 the backed up
+smaller_is_better score of 98 (as for Nxd3 the backed up
 smaller_is_better score is the best bigger_is_better score of the
 replies). As always there is no Alpha-beta cutoff at ply 1.
 
