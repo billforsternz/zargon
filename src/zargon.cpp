@@ -1268,7 +1268,7 @@ void XCHNG( int8_t &points, int8_t &piece_val )
         1     Rook(10)   Rook(10)  Pawn(2)   +10
         2     Pawn(2)    Rook(10)  -         -10
 
-    Knight and bishop attack a rook defended by knight and bishop, net points 4
+    Knight and bishop attack a rook defended by knight and bishop, net points +4
         Step  Attacker   Attacked  Defender  Points
         1     Knight(6)  Rook(10)  Knight(6) +10
         2     Knight(6)  Knight(6) Bishop(6) -6
@@ -1632,7 +1632,14 @@ void POINTS()
         if( m.P1 == 0 )   // get piece on current square
             continue;
 
-        // Evaluate exchange, if any
+        // Check for an en-prise piece on this square, for either color.
+        //  XCHNG() makes its best attempt to do a deep en-prise evaluation,
+        //  without search, by ordering attackers and defenders and judging
+        //  whether the piece can be safely (profitably) taken. It sets
+        //  points to a positive profit if that is available, eg if a rook
+        //  can be captured at the expense of a minor piece, then points
+        //  will be 4 (so 5-3 = 2 pawns, units are half pawns) while
+        //  attacked_piece_val will be 10 (Rook = 5 pawns)
         int8_t points;
         int8_t attacked_piece_val;
         XCHNG( points, attacked_piece_val );
@@ -1641,36 +1648,52 @@ void POINTS()
         if( points != 0 )
         {
 
-            //  Deduct half a Pawn value
+            //  Devalue an unstable piece by half a Pawn value in m.MTRL calculation
             attacked_piece_val--;
 
-            // If color of piece under attack matches color of side to move
+            // m.COLOR is still set to the side that just moved.If color of piece
+            //  under attack matches color of side that just moved, then it can
+            //  be taken next move, we set "points lost" by the side that just moved
+            //  to (almost) the full value of this loss, almost as much of a negative
+            //  as if the material had already been lost
             if( IS_SAME_COLOR(m.COLOR,m.P1) )
             {
 
-                // If points lost >= previous max points lost
+                // Save the worst such loss
                 if( points >= m.PTSL )
                 {
-
-                    // Store new value as max lost
                     m.PTSL = points;
 
                     // Is the lost piece the one moving ?
                     if( m.M3 == m.MLPTRJ->to )
                     {
-                        m.PTSCK = m.M3; // yes, save position as a flag
+
+                        // Yes, save position as a flag, in the final
+                        //  points tally we will adjust the points to
+                        //  punish / discourage moving a piece to an
+                        //  en-prise location
+                        m.PTSCK = m.M3; 
                     }
                 }
             }
 
-            // Else color of piece under attack doesn't match color of side to move
+            // Else color of piece under attack doesn't match color of the side that
+            //  just moved. In this case the side that just moved is now attacking
+            //  an en-prise piece. We call such material "points won" by analogy to the
+            //  previously discussed "points lost", but since this material is not won
+            //  immediately the positive effect is much less than the full material
+            //  loss of points lost, this attack is merely a future possiblility of
+            //  winning material. The method chosen by Sargon to discount points won is
+            //  to only count a positive contribution if two separate pieces are
+            //  en-prise to attacks by the side just moved, (eg a fork), and to count
+            //  half the least valued of the two pieces.
             else
             {
 
                 // Points won
                 int8_t temp = points;
 
-                // If points won >= previous maximum points won
+                // PTSW1 is set to the largest points won value
                 if( points >= m.PTSW1 )
                 {
 
@@ -1679,7 +1702,7 @@ void POINTS()
                     m.PTSW1 = points;
                 }
 
-                // Update 2nd max points won with old value of max points won
+                // PTSW2 is set to the second largest points won value
                 if( temp >= m.PTSW2 )
                 {
                     m.PTSW2 = temp;
@@ -1693,54 +1716,33 @@ void POINTS()
         m.MTRL += attacked_piece_val;
     }
 
-    /*
-
-    Remember up to two pieces that side to move can capture (PTSW1 [bigger] and PTSW2 [smaller])
-      But cut this to one piece if one of these has just moved into position
-
-    Remember one piece that is attacked by side to move next (PTSL)
-
-    ptsw = func(PTSW1,PTSW2) (smaller than either of them)
-    ptsl = PTSL-1
-
-
-    */
-
-    // If moving piece lost
+    // Punish moving a piece into an en-prise location firstly by devaluing
+    //  points won (even more)
     if( m.PTSCK != 0 )
     {
-
-        // Shift two element max points stack
         m.PTSW1 = m.PTSW2;
         m.PTSW2 = 0;
     }
 
-    // Adjust max points lost (decrement if non-zero)
+    // Adjust points lost slightly, it should not be quite as bad as not having
+    //  the material on the board at all - it might be taken, but it hasn't yet
+    //  been taken!
     int8_t ptsl = m.PTSL;
     if( ptsl != 0 )
         ptsl--;
 
-    // Get max points won
+    // As discussed earlier points won is far less tangible than points lost, it's
+    //  just a hope for the future. Calculate its actual value as half of the lesser
+    //  valued of the two most valuble en-prise attacks, if and only if there are
+    //  at least two such attacks, and and only after discounting a half pawn's
+    //  value as we did for points lost.
     int8_t ptsw = m.PTSW1;
-
-    // Experiment: Both PTSW1 and PTSW2 are small integers in the 0-20 (ish) range
-    //  See commit bd4b1b3db9ecf5c529325ceb49be2df7ba09414e for the scatter()
-    //  source code we used to probe that (and other "Experiment:" results below)
-
-    // Adjust max points won if both 1st and 2nd max points won are non-zero
-    //  Value is;
-    //      0 if 1st max points won is 0
-    //      else 2nd max points won
-    //      except then if not zero adjusted val = (val-1)/2
-    // I don't currently understand the reasoning behind this
     if( ptsw != 0 )
     {
         ptsw = m.PTSW2;
         if( ptsw != 0 )
         {
             ptsw--;
-
-            // Experiment: ptsw is also a small integer in the 0-20 range
             ptsw = ptsw/2;
         }
     }
@@ -1748,9 +1750,12 @@ void POINTS()
     // Points won net = points won - points lost
     ptsw -= ptsl;
 
-    // Color of side just moved
+    // Harmonise conventions:
+    //  Material and board control are bigger is better for White
+    //  Points won net are bigger is better for the side that just moved
+    //  Harmonise on "bigger is better for White" for now
     if( IS_BLACK(m.COLOR) )
-        ptsw = 0-ptsw;  // negate for black
+        ptsw = 0-ptsw;  // so negate points won net if Black just moved
 
     // Add net material on board
     ptsw += m.MTRL;
@@ -1765,7 +1770,8 @@ void POINTS()
     // Board control points minus board control at ply zero
     int8_t bcp = m.BRDC - m.BC0;
 
-    // If moving piece lost, set board control points to zero
+    // Punish moving a piece into an en-prise location a second time by
+    //  seting board control points to zero
     if( m.PTSCK != 0 )
         bcp = 0;
 
@@ -1775,20 +1781,31 @@ void POINTS()
     // Add material*4
     points = points*4 + bcp;
 
-    // Color of side to move
+    // Change convention from "bigger is better for White"
+    //  to "smaller is better for the side that just moved"
+    // If White just moved negate a score that was bigger better for White
+    // If Black just moved a score that was bigger better for White is already smaller is
+    //  better for Black
     if( IS_WHITE(m.COLOR) )
-        points = 0-points;  // negate for white
+        points = 0-points;
 
     // Rescale score (neutral = 0x80)
-    // Experiment: points here is a balanced signed value, so 0 = even +126=very good for Black, -126=very bad for Black
+    // Convention is still "smaller is better for the side that just moved"
+    //  but scale is different;
+    //   before: -127 is smallest value, +127 is largest, 0 is neutral
+    //   after:  1 is smallest value, 255 is largest, 128 is neutral
+    // As discussed in "How Sargon Works" this has two benefits, Z80
+    // assembly does unsigned comparisons more easily than signed comparisons
+    // and 0 becomes available as a magic or sentinel value.
     points += 0x80;
     callback_end_of_points(points);
 
     // Save score value
-    // Experiment: after rescale -126->2 ... -1->127, 0->128, 1->129 ... 126->254
     m.VALM = (uint8_t)points;
 
     // Save score value to move pointed to by current move ptr
+    // Note that this val field is never updated from this initial static
+    // evaluation to a backed up refined minimax evaluation.
     m.MLPTRJ->val = m.VALM;
 }
 
@@ -1889,7 +1906,7 @@ void MOVE()
             uint8_t *q = &m.POSK[0];    // addr of saved king position
             if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )  // castling ?
                 SET_CASTLED(piece);
-            if( IS_BLACK(piece ) )      // is king black ?
+            if( IS_BLACK(piece) )       // is king black ?
                 q++;                    // increment to black king pos
             *q = m.M2;                  // set new king position
         }
@@ -1912,7 +1929,7 @@ void MOVE()
         else
         {
 
-            // Was captured piece a queen
+            // Was captured piece a queen ?
             if( (captured_piece_plus_flags & 7) == QUEEN )
             {
 
@@ -2015,7 +2032,7 @@ void UNMOVE()
         else
         {
 
-            // Was captured piece a queen
+            // Was captured piece a queen ?
             if( (captured_piece_plus_flags & 7) == QUEEN )
             {
 
@@ -2102,6 +2119,7 @@ void SORTM()
     m.MLPTRJ           = ml_begin;
     m.MLLST            = ml_end-1;
 
+    #else
     // The original Sargon implementation is by necessity more complicated,
     //  given the lack of a standard Z80 sort facility!
     //  The sort technique is merge sort. The list of moves stays in the
@@ -2117,7 +2135,6 @@ void SORTM()
     //  is just an append operation). Subsequent merges involve stepping
     //  through the sorted portion of the list to find the right place to
     //  link the move in to extend the sorted chain by one.
-    #else
 
     // Loop over the unsorted list starting at the ply pointer MLPTRI. The
     // link_ptr can be used by both the unsorted and sorted lists because
@@ -2344,9 +2361,12 @@ void FNDMOV()
     PINFND();
 
     //  Evaluate board at ply 0
+    TOGGLE(m.COLOR);    // POINTS() expects m.COLOR to be side just moved, not side to move
     POINTS();
-    m.BC0 = m.BRDC;
-    m.MV0 = m.MTRL;
+    TOGGLE(m.COLOR);    // Restore m.COLOR
+    m.BC0 = m.BRDC;     // Strictly speaking we didn't need to toggle color, and Sargon Z80
+    m.MV0 = m.MTRL;     //  doesn't bother, because the calculation of both m.BRDC and m.MTRL
+                        //  in POINTS() does not depend on m.COLOR
 
     // Generate move list for ply 1, from start position
     m.MATEF = true;             // Assume mate unless legal move found

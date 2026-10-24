@@ -7,7 +7,12 @@
 #include <string>
 #include "thc.h"
 
-// Allow different types of logging in DEBUG and RELEASE
+// Some different use/testing scenarios (pick one only)
+#define SCENARIO_PRODUCTION
+//#define SCENARIO_BASIC_DEBUGGING
+//#define SCENARIO_SINGLE_STEPPING
+
+// Allow different types of logging in DEBUG and RELEASE (pick zero or more)
 // #define DEBUG_FUNC_LOG
 // #define DEBUG_RESTRICTED_MOVES
 // #define DEBUG_GUIDED_MOVES
@@ -20,11 +25,6 @@
 #ifdef DEBUG_RESTRICTED_MOVES
     #define DEBUG_FUNC_CALLBACKS
 #endif
-
-// Some different use/testing scenarios
-#define SCENARIO_PRODUCTION
-//#define SCENARIO_BASIC_DEBUGGING
-//#define SCENARIO_SINGLE_STEPPING
 
 // Production, eliminate all overheads
 #ifdef SCENARIO_PRODUCTION
