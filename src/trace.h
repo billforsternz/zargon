@@ -8,8 +8,8 @@
 #include "thc.h"
 
 // Some different use/testing scenarios (pick one only)
-#define SCENARIO_PRODUCTION
-//#define SCENARIO_BASIC_DEBUGGING
+//#define SCENARIO_PRODUCTION
+#define SCENARIO_BASIC_DEBUGGING
 //#define SCENARIO_SINGLE_STEPPING
 
 // Allow different types of logging in DEBUG and RELEASE (pick zero or more)
@@ -72,8 +72,12 @@ enum FUNC_ENUM
 // tracef() - show progress of chess algorithm
 #ifdef DEBUG_KEEP_TRACEF
 void tracef( const char *fmt, ... );
+void trace_score_updated( uint8_t score_bigger_is_better );
+void trace_alpha_beta( uint8_t score_smaller_is_better, uint8_t table_bigger_is_better );
 #else
 #define tracef(format, ...) (void)0
+#define trace_score_updated( uint8_t score_bigger_is_better ) (void)0
+#define trace_alpha_beta( uint8_t score_smaller_is_better, uint8_t table_bigger_is_better ) (void)0
 #endif
 
 // logf()   - show miscellaneous details
@@ -83,7 +87,6 @@ void logf( const char *fmt, ... );
 #define logf(format, ...) (void)0
 #endif
 
-std::string show_node();
 struct ML;
 std::string show_ply_chains( bool show_score=false );
 

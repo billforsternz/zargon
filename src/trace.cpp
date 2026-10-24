@@ -12,6 +12,7 @@
 #include "zargon.h"
 
 static thc::ChessPosition start_position;
+static std::string show_node();
 
 // Reference Sargon data structure
 static emulated_memory &m = gbl_emulated_memory;
@@ -460,7 +461,7 @@ void logf( const char *fmt, ... )
 }
 #endif
 
-std::string show_node()
+static std::string show_node()
 {
     std::string s;
     thc::ChessRules cr(start_position);
@@ -487,6 +488,43 @@ std::string show_node()
         }
     }
     return s;
+}
+
+static std::string score_table_entry[ MAX_DEPTH + ALLOCATION_PADDING ];
+
+void trace_score_updated( uint8_t score_bigger_is_better )
+{
+    std::string node = show_node();
+    score_table_entry[m.NPLY] = node;
+    tracef("SCORE updated, score_bigger_is_better=%u\n", score_bigger_is_better );
+}
+
+void trace_alpha_beta( uint8_t score_smaller_is_better, uint8_t table_bigger_is_better )
+{
+    if( m.NPLY == 1 )
+        tracef( "Alpha-beta dummy check, never cuts off at ply 1\n" );
+    else
+    {
+        std::string node = show_node();
+        size_t offset = node.find_last_of(' ');
+        if( offset != std::string::npos )
+            node = node.substr(0,offset);
+        bool cutoff = (score_smaller_is_better<=table_bigger_is_better);
+        const char *previous_moves = node.c_str();
+        const char *refutes = cutoff?"refutes":"does not refute";
+        const char *yes_no  = cutoff?"YES":"NO";
+        const char *above   = m.SCORE[m.NPLY-1]==0 ? "NO MOVE YET" : score_table_entry[m.NPLY-1].c_str();
+        if( !cutoff && m.SCORE[m.NPLY-1] == 0 )
+        {
+            tracef( "%s %s by Alpha-beta cutoff, no alternative to %s yet\n",
+                        refutes, previous_moves, previous_moves );
+        }
+        else
+        {
+            tracef( "%s %s Alpha-beta cutoff, score_smaller_is_better<=ply above: %s (score_smaller_is_better=%u, %s is ply above=%u)\n",
+                refutes, previous_moves, yes_no, score_smaller_is_better, above, table_bigger_is_better );
+        }
+    }
 }
 
 std::string to_algebraic( int sq )
@@ -551,14 +589,6 @@ std::string show_ply_chains( bool show_score )
             if( ml == m.BESTM )
             {
                 s += "BESTM";
-                gap = true;
-                need_arrow=true;
-            }
-            if( m.MLPTRI && ml == m.MLPTRI->link_ptr )
-            {
-                if( gap )
-                    s += " ";
-                s += "MLPTRI";
                 gap = true;
                 need_arrow=true;
             }

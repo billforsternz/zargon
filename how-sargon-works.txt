@@ -343,15 +343,14 @@ indicated that with BESTM= where BESTM is the name of the Sargon
 variable used for this purpose. So d4 is the best move found to date,
 with a fully backed up score of +0.3.
 
-I've also added indicators for the Sargon variables MLPTRI (pointer to
-the start of current linked list of moves) and MLPTRJ (pointer to the
-current move within that list).
+I've also added an indicator for the Sargon variable MLPTRJ (pointer
+to the current move at the current depth).
 
 We are not always at a leaf node like this of course. A bit later the
 situation might look like this;
 
-1: [+0.3] e4,BESTM=d4,c4,->Nf3,g3,b3,f4 ... f3 2: [+0.4]
-2: MLPTRI->d5,Nf6,c5,e6,c6,MLPTRJ->d6,g6 ... f6
+1: [+0.3] e4,BESTM=d4,c4,->Nf3,g3,b3,f4 ... f3
+2: [+0.4] d5,Nf6,c5,e6,c6,MLPTRJ->d6,g6 ... f6
 
 The node under consideration is now Nf3 d6. The score table and move
 lists for plies 3 and 4 are not shown because the current values of
@@ -368,7 +367,8 @@ good or better for Black than +0.3 (so less than or equal to 0.3) then
 Sargon would have continued to 1.g3 immediately.
 
 I'm using this example because of the familiarity of opening move
-sequences, the actual scoring is not representative of Sargon at all.
+sequences, the actual scoring is not representative of Sargon at all,
+it is not as subtle as these illustrative scores.
 
 The Sargon algorithm will next generate a list of all White moves
 available in the position after c4 d6 and sort them. It will then step
@@ -468,7 +468,7 @@ downside of simple, fixed depth search.
 The board control variable is also adjusted somewhat, to encourage
 castling for example. In general though the Sargon static analyser is
 pretty simple, basically a material calculation plus a few
-adjustments.
+adjustments (as I mentioned earlier, it is not subtle).
 
 The Minimax and Alpha Beta algorithms operate on unsigned 8 bit scores
 rather than signed 8 bit scores. The main reason for this is that the
@@ -526,7 +526,7 @@ Remember the perhaps unexpected move a5 is due to the leaf nodes not
 being sorted. The annotations this time highlight which way around the
 unsigned 8 bit scoring is.
 
-0: (B) [0]   
+0: (B) [0]
 1: W [bigger_is_better score] (smaller_is_better: ->e4,d4,c4,Nf3,g3,b3,f4 ... f3)
 2: B [bigger_is_better score] (smaller_is_better: ->e5,c5,c6,e6,g6,Nf3,d6 ... b5)
 3: W [bigger_is_better score] (smaller_is_better: ->Nf3,Nc3,Bc4,f4,d4,c3,Be2 ... b4)
@@ -562,7 +562,7 @@ If Sargon is playing Black the ply labels are reversed and the static
 move scores flipped so they are still smallest number is better, and
 the ply table scores still have the bigger is better convention;
 
-0: (W) [0]   
+0: (W) [0]
 1: B [bigger_is_better score] (smaller_is_better: ...
 2: W [bigger_is_better score] (smaller_is_better: ...
 3: B [bigger_is_better score] (smaller_is_better: ...
@@ -645,24 +645,27 @@ ranked second followed by all the do nothing moves and blunders.
 The following is edited extracts from the debug log, with a descriptive
 annotation after each extract.
 
-4) Nxd3 f3 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=154, score_bigger_is_better=102, ply score=0)
-1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [0] MLPTRJ->f3(154) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+4> Nxd3 f3 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=154, score_bigger_is_better=102, ply score=0)
+1: [0]  (a1b1) ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0]  MLPTRJ->f3(154) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 Start considering replies to 1.Nxd3. Only a two ply search so we are
 immediately at the unsorted leaf nodes. The first one is 1...f3 and it
 establishes the initial score to beat.
 
-41) Nxd3 Rd6 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=150, score_bigger_is_better=106, ply score=102)
-1: [0] current->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [102] f3(154) h3(154) g4(154) Kb7(154) Kb5(154) Ka7(154) Ka5(154) Kb6(154) Rf7(154) Rf8(154) Rf5(154) Re6(154) MLPTRJ->Rd6(150) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+41> Nxd3 Rd6 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=150, score_bigger_is_better=106, ply score=102)
+1: [0]  (a1b1) ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [102]  f3(154) h3(154) g4(154) Kb7(154) Kb5(154) Ka7(154) Ka5(154) Kb6(154) Rf7(154) Rf8(154) Rf5(154) Re6(154) MLPTRJ->Rd6(150) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 Continue considering replies to 1.Nxd3. The first 12 replies are all do
 nothing moves that score 102, the 13th is 1...Rd6 which at least
 attacks the knight so it scores slightly better with 106.
 
-59) Nxd3 Alpha-beta cutoff [Nxd3] if score_smaller_is_better<=ply above: NO (score_smaller_is_better=106, ply above=0)
-1: [0] MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+59> Nxd3 Alpha-beta dummy check, never cuts off at ply 1
+1: [0]  (a1b1) MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+60> Nxd3 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=106, score_bigger_is_better=150, ply score=0)
+1: [0]  (a1b1) MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
 
 We now have a backed up score for Nxd3, the first move in the move list
 for the root position. The backed up score is the score of the best
@@ -673,73 +676,70 @@ different to its static score of 102. At ply 1 we never do an alpha
 beta cutoff, we aren't considering replies to a move that alpha beta
 can refute.
 
-60) Nxd3 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=106, score_bigger_is_better=150, ply score=0)
-1: [0] MLPTRJ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-
 Nxd3 does establish the score of the move to beat at ply 1. It is
 106 (smallest_is_better) and 150 (biggest_is_better)
 
-65) Ng4 Bc4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=165, score_bigger_is_better=91, ply score=0)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [0] MLPTRJ->Bc4(165) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+65> Ng4 Bc4 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=165, score_bigger_is_better=91, ply score=0)
+1: [150]  (a1b1) BESTM->Nxd3(102) ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0]  MLPTRJ->Bc4(165) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 Start considering replies to 1.Ng4. Only a two ply search so we are
 immediately at the unsorted leaf nodes. The first one is 1...Bc4 and it
 establishes 91 as the (unimpressive!) initial score_bigger_is_better to
 beat.
 
-72) Ng4 Be4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=164, score_bigger_is_better=92, ply score=91)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [91] Bc4(165) Bb5(167) MLPTRJ->Be4(164) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+72> Ng4 Be4 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=164, score_bigger_is_better=92, ply score=91)
+1: [150]  (a1b1) BESTM->Nxd3(102) ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [91]  Bc4(165) Bb5(167) MLPTRJ->Be4(164) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 1...Be4 is a marginal one point improvement over 1...Bc4, 91 becomes 92
 but so far the replies to 1...Ng4 are unimpressive,
 
-97) Ng4 Kb7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=163, score_bigger_is_better=93, ply score=92)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [92] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) MLPTRJ->Kb7(163) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+97> Ng4 Kb7 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=163, score_bigger_is_better=93, ply score=92)
+1: [150]  (a1b1) BESTM->Nxd3(102) ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [92]  Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) MLPTRJ->Kb7(163) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 The 11th reply considered is 1...Kb7, marginal improvement 92->93
 
-113) Ng4 Rf7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=161, score_bigger_is_better=95, ply score=93)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [93] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) MLPTRJ->Rf7(161) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+113> Ng4 Rf7 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=161, score_bigger_is_better=95, ply score=93)
+1: [150]  (a1b1) BESTM->Nxd3(102) ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [93]  Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) MLPTRJ->Rf7(161) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 The 16th reply considered is 1...Rf7, marginal improvement 93->95
 
-123) Ng4 Re6 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=159, score_bigger_is_better=97, ply score=95)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [95] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) MLPTRJ->Re6(159) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+123> Ng4 Re6 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=159, score_bigger_is_better=97, ply score=95)
+1: [150]  (a1b1) BESTM->Nxd3(102) ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [95]  Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) MLPTRJ->Re6(159) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 The 19th reply considered is 1...Re6, marginal improvement 95->97
 
-136) Ng4 Rh7 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=158, score_bigger_is_better=98, ply score=97)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [97] Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) Re6(159) Rd6(161) Rc6(159) Rb6(160) MLPTRJ->Rh7(158) Rh8(0) Rh5(0)
+136> Ng4 Rh7 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=158, score_bigger_is_better=98, ply score=97)
+1: [150]  (a1b1) BESTM->Nxd3(102) ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [97]  Bc4(165) Bb5(167) Be4(164) Bf5(164) Bc2(168) Bb1(172) Be2(164) Bf1(169) f3(165) h3(165) Kb7(163) Kb5(164) Ka7(166) Ka5(166) Kb6(164) Rf7(161) Rf8(161) Rf5(163) Re6(159) Rd6(161) Rc6(159) Rb6(160) MLPTRJ->Rh7(158) Rh8(0) Rh5(0)
 
 The 23rd reply considered is 1...Rh7, marginal improvement 97->98 All of
 the replies are pretty much equivalent because they all leave a whole
 rook en-prise.
 
-145) Ng4 Alpha-beta cutoff if score_smaller_is_better<=ply above: NO (score_smaller_is_better=98, ply above=0)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+145> Ng4 Alpha-beta dummy check, never cuts off at ply 1
+1: [150]  (a1b1) BESTM->Nxd3(102) MLPTRJ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+
+146> Ng4 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=98, score_bigger_is_better=158, ply score=150)
+1: [150]  (a1b1) BESTM->Nxd3(102) MLPTRJ->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
 
 The replies to Ng4 have all been considered and it has a backed up
 smallest_is_better score of 98 (as for Nxd3 the backed up
 smaller_is_better score is the best bigger_is_better score of the
 replies). As always there is no Alpha-beta cutoff at ply 1.
 
-146) Ng4 This is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=98, score_bigger_is_better=158, ply score=150)
-1: [150] BESTM->Nxd3(102) current->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-
 Going one ply deeper has improved Ng4's static score_smaller_is_better
 of 110 to 98, a more significant refinement than the Nxd3's 102 to 106.
 So Ng4 usurps Nxd3 as the best move to date, a triumph indeed for
 minimax.
 
-150) a3 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, ply above=158)
-1: [158] Nxd3(102) BESTM->Ng4(110) current->a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [0] MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+150> a3 Bc4 refutes a3 Alpha-beta cutoff, score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, Ng4 is ply above=158)
+1: [158]  (a1b1) Nxd3(102) BESTM->Ng4(110) ->a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0]  MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 Alpha Beta comes into its own now as the alternatives to best move 1.Ng4
 are considered in turn. They are all quickly rejected, usually after
@@ -749,9 +749,9 @@ sufficient to refute the White move. Here 1...Bc4 is sufficient to
 refute 1.a3, even though 1...Bc4 actually blunders a bishop, even
 that's better than losing a rook to 1.Ng4
 
-154) a4 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, ply above=158)
-1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) current->a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
-2u: [0] MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) (a6b5) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
+154> a4 Bc4 refutes a4 Alpha-beta cutoff, score_smaller_is_better<=ply above: YES (score_smaller_is_better=148, Ng4 is ply above=158)
+1: [158]  (a1b1) Nxd3(102) BESTM->Ng4(110) a3(128) ->a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)
+2u: [0]  MLPTRJ->Bc4(148) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) (a6b5) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 1...Bc4 is also sufficient to refute 1.a4, even though like 1.a3 Bc4 it
 simply blunders a bishop.
@@ -759,9 +759,9 @@ simply blunders a bishop.
 ... There are many more alpha-beta cutoffs of lame alternatives to Nxd3
     and Ng4 ...
 
-285) Nc6 Bc4 Alpha-beta cutoff if score_smaller_is_better<=ply above: YES (score_smaller_is_better=121, ply above=158)
-1: [158] Nxd3(102) BESTM->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) MLPTRJ->Nc6(156)
-2u: [0] current->Bc4(121) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) (a6a7) (a6a5) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rxc6(0) Rh7(0) Rh8(0) Rh5(0)
+285> Nc6 Bc4 refutes Nc6 Alpha-beta cutoff, score_smaller_is_better<=ply above: YES (score_smaller_is_better=121, Ng4 is ply above=158)
+1: [158]  (a1b1) Nxd3(102) BESTM->Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) ->Nc6(156)
+2u: [0]  MLPTRJ->Bc4(121) Bb5(0) Be4(0) Bf5(0) Bc2(0) Bb1(0) Be2(0) Bf1(0) f3(0) h3(0) g4(0) Kb7(0) Kb5(0) (a6a7) (a6a5) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rxc6(0) Rh7(0) Rh8(0) Rh5(0)
 
 1.Nc6 is the last alternative first move considered, it is a truly
 terrible move blundering the knight instead of taking free material
@@ -800,4 +800,3 @@ plies gets a slightly less powerful mating score. So 3 and 4 -> 254/2,
 allocate two plies to each mating score because White moves don't
 compete against Black moves in minimax calculations so the same mating
 score doesn't create a conflict.
-
