@@ -30,7 +30,7 @@ Zargon gbl_zargon;        // Now made available as simple global
 #if 0
 static Zargon &z = gbl_zargon;    // This is good practice, but slow
 #else
-#define z gbl_zargon                       // This is bad practice, but fast
+#define z gbl_zargon              // This is bad practice, but fast
 #endif
 
 //***********************************************************
@@ -1531,6 +1531,117 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 void POINTS()
 {
     trace_func_void(FE_POINTS);
+
+/*
+    How this Works
+
+    As mentioned elsewhere, the basic score (or points)
+    calculation is
+
+    points = 4*LIMIT(29,net_material_gain) + LIMIT(6,net_board_control_gain)
+
+    Where units of material are half pawns and units of
+    board control are squares attacked.
+
+    The LIMIT() constraints restrict the score dynamic
+    range so that 8 bit variables can be used.
+
+    net_material_gain is the change in net_material since
+    the ply 0 base position, where net_material is
+    white material - black material.
+
+    net_board_control_gain is the change in net_board_control
+    since the ply 0 base position, where net_board_control
+    is squares attacked by white - squares attacked by black.
+    
+    Both these values are adjusted in various ways as
+    discussed below.
+
+    Board control is adjusted by bonuses and penalties as
+    follows;
+
+    Unmoved bishop or knight, 2 point penalty.
+    Castling, 6 point bonus.
+    King has not castled but has moved, 2 point penalty.
+    Rook or Queen moves before move 7, 2 point penalty.
+    Moving a piece to an enprise location, sets board control to zero.
+
+    Material is adjusted based on en-prise pieces of
+    either color. Every piece is judged en-prise (or not) by
+    routine XCHNG().
+
+    XCHNG() makes its best attempt to do a deep en-prise evaluation,
+    without search, by ordering attackers and defenders and judging
+    whether the piece can be safely (profitably) taken. It judges
+    a piece en-prise if a positive trading profit is available, eg
+    if a rook can be captured at the expense of a minor piece, then
+    the rook is en-prise and the available profit will be 4 (so 5-3
+    = 2 pawns, units are half pawns). 
+
+    The first material adjustment based on the XCHNG() calculation
+    is reduction of half a pawn in the value of any piece of
+    either color that is en-prise. The piece is judged unstable I
+    suppose.
+    
+    There are also points lost and points won material adjustments,
+    these names are relative to the side that moved to create the
+    current position. So points lost refers to pieces that can be
+    taken by the other side, that is the side that moves next. The
+    points lost adjustment is the largest trading profit available
+    to the other side, minus the half pawn adjustment that the
+    lost piece has already accumulated in the basic net material
+    calculation.
+
+    The points won adjustment is less immediate, since these points
+    are not available immediately, since the side that just moved
+    has to wait for the opponent to move first.
+
+    The points won adjustment is the second greatest trading
+    profit available to the side that just moved, minus the
+    half point adjustment, divided by two. The adjustment is
+    zero unless at least two pieces are en-prise. The logic
+    of this is that the opponent has a move to move or
+    defend one vulnerable piece, but may not be able to cope
+    with two attacks. The division by two reflects the
+    uncertainty inherant in applying this reasoning without
+    search.
+
+    Moving a piece to an enprise location, which has already
+    incurred a board control penalty, is also penalised by
+    removing any points won adjustment.
+
+    The basic net material and net board control variables
+    are MTRL and BRDC respectively. The adjustment variables
+    are PTSL (points lost), PTSW1, PTSW2 (points won) and
+    PTSCK (used to determine whether the last move moved
+    a piece into an en-prise position).
+
+    The base MTRL and BRDC are values before applying the
+    points won and lost adjustments, and the zero board
+    control when moving a piece to an en-prise position
+    adjustment. They are both net values, in the sense
+    that they are White - Black values.
+
+    POINTS() is run on the base ply 0 position, and the
+    resulting MTRL and BRDC values are saved as MTRL0 and
+    BRDC0, the base of the subsequent material and board
+    control *GAINED* subtraction.
+
+    All adjustments are made (except the zero board
+    control when moving a piece to an en-prise position
+    adjustment which is made after the base value
+    subtraction) then the MTRL0 and BRDC0 base values
+    subtracted, then the basic formula applied;
+
+    points = 4*LIMIT(29,net_material_gain) + LIMIT(6,net_board_control_gain)
+
+    Finally 128 is added to shift from a signed range to
+    an unsigned range, as discussed at length elsewhere,
+    and the points value stored with the move that
+    created the current position.
+
+*/
+
     int8_t *wact = (int8_t *)z.wact;
     int8_t *bact = (int8_t *)z.bact;
 
@@ -1723,9 +1834,8 @@ void POINTS()
         z.PTSW1 = 0;
     }
 
-    // Adjust points lost slightly, it should not be quite as bad as not having
-    //  the material on the board at all - it might be taken, but it hasn't yet
-    //  been taken!
+    // Adjust points lost to reflect the half pawn reduction in material already
+    //  accumulated into z.MTRL
     int8_t ptsl = z.PTSL;
     if( ptsl != 0 )
         ptsl--;
@@ -1761,7 +1871,7 @@ void POINTS()
     int8_t bcp = z.BRDC - z.BC0;
 
     // Punish moving a piece into an en-prise location a second time by
-    //  seting board control points to zero
+    //  setting board control points to zero
     if( z.PTSCK != 0 )
         bcp = 0;
 
