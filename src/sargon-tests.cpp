@@ -24,7 +24,7 @@
 #include "zargon_functions.h"
 
 // Sargon data structure
-static emulated_memory &m = gbl_emulated_memory;
+static Zargon &m = gbl_zargon;
 
 // Individual tests
 bool sargon_position_tests( bool quiet, int comprehensive );

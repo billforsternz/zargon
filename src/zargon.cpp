@@ -26,11 +26,11 @@
 #include "zargon.h"
 
 // Up to 64K of emulated memory
-emulated_memory gbl_emulated_memory;        // Now made available as simple global
+Zargon gbl_zargon;        // Now made available as simple global
 #if 0
-static emulated_memory &m = gbl_emulated_memory;    // This is good practice, but slow
+static Zargon &m = gbl_zargon;    // This is good practice, but slow
 #else
-#define m gbl_emulated_memory                       // This is bad practice, but fast
+#define m gbl_zargon                       // This is bad practice, but fast
 #endif
 
 //***********************************************************

@@ -18,7 +18,7 @@
 #include "zargon_functions.h"
 
 // Sargon data
-static emulated_memory &m = gbl_emulated_memory;
+static Zargon &m = gbl_zargon;
 
 // Write chess position into Sargon (inner-most part)
 static void sargon_import_position_inner( const thc::ChessPosition &cp );

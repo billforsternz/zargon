@@ -15,7 +15,7 @@ static thc::ChessPosition start_position;
 static std::string show_node();
 
 // Reference Sargon data structure
-static emulated_memory &m = gbl_emulated_memory;
+static Zargon &m = gbl_zargon;
 
 // Sargon function names
 const char *lookup[] =

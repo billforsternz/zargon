@@ -19,7 +19,7 @@
 #include "zargon_functions.h"
 
 // Sargon data structure
-static emulated_memory &m = gbl_emulated_memory;
+static Zargon &m = gbl_zargon;
 
 // A move in Sargon's evaluation graph, in this program a move that is marked as
 //  the best move found so far at a given level

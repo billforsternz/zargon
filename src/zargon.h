@@ -7,8 +7,8 @@
 #include "trace.h"
 
 // Now export emulated memory as a global, transitional I think
-struct emulated_memory;
-extern emulated_memory gbl_emulated_memory;
+struct Zargon;
+extern Zargon gbl_zargon;
 
 // Linked move
 struct ML
@@ -93,10 +93,7 @@ inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 #define SQ_e8 95
 #define SQ_h8 98
 
-// Initially at least we were emulating 64K of Z80 memory
-//  at some point we will probably rename this to simply
-//  zargon_data or similar
-struct emulated_memory {
+struct Zargon {
 
 //***********************************************************
 // TABLES SECTION
@@ -464,7 +461,7 @@ char MVEMSG[5]; // = {'a','1','-','a','1'};
 //***********************************************************
 ML      MLIST[4000];
 uint8_t MLEND;
-};   //  end struct emulated_memory
+};   //  end struct Zargon
 
 #endif // ZARGON_H_INCLUDED
 
