@@ -58,38 +58,6 @@ PV sargon_pv_get()
     return provisional;
 }
 
-/*
-
-  An improved Sargon value/centipawns calculation based on the following
-  code in sargon-x86.asm
-
-PT25A:  MOV     al,byte ptr [ebp+PTSL]          ; Get max points lost
-        AND     al,al                           ; Is it zero ?
-        JZ      rel013                          ; Yes - jump
-        DEC     al                              ; Decrement it
-rel013: MOV     ch,al                           ; Save it
-        MOV     al,byte ptr [ebp+PTSW1]         ; Max,points won
-        AND     al,al                           ; Is it zero ?
-        JZ      rel014                          ; Yes - jump
-        MOV     al,byte ptr [ebp+PTSW2]         ; 2nd max points won
-        AND     al,al                           ; Is it zero ?
-        JZ      rel014                          ; Yes - jump
-        DEC     al                              ; Decrement it
-        SHR     al,1                            ; Divide it by 2
-rel014: SUB     al,ch                           ; Subtract points lost
-        MOV     bx,COLOR                        ; Color of side just moved ???
-        TEST    byte ptr [ebp+ebx],80h          ; Is it white ?
-        JZ      rel015                          ; Yes - jump
-        NEG     al                              ; Negate for black
-rel015: MOV     bx,MTRL                         ; Net material on board
-        ADD     al,byte ptr [ebp+ebx]           ; Add exchange adjustments
-        MOV     _gbl_adjusted_material,al  ;<-- We added this temporarily, now
-                                           ;    removed as we have confirmed we
-                                           ;    can calculate it using the
-                                           ;    callbacks we already have
-
-*/
-
 static unsigned char end_of_points_color;
 void sargon_pv_callback_end_of_points()
 {
@@ -126,6 +94,9 @@ void sargon_pv_callback_yes_best_move()
     //  point where the old RELATIVE calculation was removed for
     //  simplicity's sake.
 
+// Replace this original Sargon code with equivalent Zargon code
+//  below (#else) now we have a real C++ POINTS() function
+#if 0
 // PT25A:  MOV     al,byte ptr [ebp+PTSL]          ; Get max points lost
 //         AND     al,al                           ; Is it zero ?
 //         JZ      rel013                          ; Yes - jump
@@ -183,6 +154,47 @@ void sargon_pv_callback_yes_best_move()
     char brdc = static_cast<char>(m.BRDC);
     if( m.PTSCK )
         brdc = 0;
+
+#else
+    // Adjust points lost slightly, it should not be quite as bad as not having
+    //  the material on the board at all - it might be taken, but it hasn't yet
+    //  been taken!
+    int8_t ptsl = m.PTSL;
+    if( ptsl != 0 )
+        ptsl--;
+
+    // As discussed earlier points won is far less tangible than points lost, it's
+    //  just a hope for the future. Calculate its actual value as half of the lesser
+    //  valued of the two most valuble en-prise attacks, if and only if there are
+    //  at least two such attacks, and and only after discounting a half pawn's
+    //  value as we did for points lost.
+    int8_t ptsw = (m.PTSW1!=0 && m.PTSW2!=0) ? (m.PTSW2-1)/2 : 0;
+
+    // Points won net = points won - points lost
+    ptsw -= ptsl;
+
+    // Harmonise conventions:
+    //  Material and board control are bigger is better for White
+    //  Points won net are bigger is better for the side that just moved
+    //  Harmonise on "bigger is better for White" for now
+    if( IS_BLACK(end_of_points_color) )
+        ptsw = 0-ptsw;  // so negate points won net if Black just moved
+
+    // Add net material on board
+    int8_t adjusted_material = ptsw + m.MTRL;
+
+    // Subtract material at ply 0
+    // ABSOLUTE not RELATIVE, so don't subtract m.MV0;
+
+    // Board control points minus board control at ply zero
+    int8_t brdc = m.BRDC; // ABSOLUTE not RELATIVE, so don't subtract m.BC0
+
+    // Punish moving a piece into an en-prise location a second time by
+    //  setting board control points to zero
+    if( m.PTSCK != 0 )
+        brdc = 0;
+#endif
+
     NODE n(level,from,to,adjusted_material,brdc);
     nodes.push_back(n);
     if( nodes.size() > max_len_so_far )
