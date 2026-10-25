@@ -24,7 +24,7 @@
 #include "zargon_functions.h"
 
 // Sargon data structure
-static Zargon &m = gbl_zargon;
+static Zargon &z = gbl_zargon;
 
 // Individual tests
 bool sargon_position_tests( bool quiet, int comprehensive );
@@ -285,11 +285,11 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
         bool regenerate_position=true;
         int nbr_moves_played = 0;
         unsigned char moveno=1;
-        m.MOVENO = moveno;
+        z.MOVENO = moveno;
         while( nbr_moves_played < 200 )
         {
-            m.KOLOR  = 0; // Sargon is white
-            m.PLYMAX = plymax;
+            z.KOLOR  = 0; // Sargon is white
+            z.PLYMAX = plymax;
             if( regenerate_position )
                 sargon_import_position(cr);
             CPTRMV();
@@ -338,7 +338,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             game_text += " ";
             game_text += s;
             nbr_moves_played++;
-            m.COLOR = 0x80;
+            z.COLOR = 0x80;
             ok = sargon_play_move(mv);
             cr.PlayMove(mv);
             if( ok )
@@ -352,7 +352,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
             }
             if( moveno <= 254 )
                 moveno++;
-            m.MOVENO = moveno;
+            z.MOVENO = moveno;
             regenerate_position = !ok;
             if( regenerate_position )
                 printf( "Move by move operation has broken down, need to regenerate position ??\n" );
@@ -419,9 +419,9 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
         thc::ChessRules cr;
         sargon_import_position(cr);
         unsigned char moveno=1;
-        m.MOVENO = moveno;
-        m.KOLOR  = 0x80; // Sargon is black
-        m.PLYMAX = 2;
+        z.MOVENO = moveno;
+        z.KOLOR  = 0x80; // Sargon is black
+        z.PLYMAX = 2;
         std::string game_text;
         int idx = 0;
         for( thc::Move mv: moves )
@@ -433,14 +433,14 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
             thc::ChessRules cr_after;
             if( white_to_move )
             {
-                m.COLOR = 0; // White to move
+                z.COLOR = 0; // White to move
                 ok = sargon_play_move(mv);
                 sargon_export_position(cr_after);
                 natural_move = mv.NaturalOut(&cr);
             }
             else
             {
-                m.COLOR = 0x80; // Black to move
+                z.COLOR = 0x80; // Black to move
                 if( dummy )
                     ok = sargon_play_move(mv);
                 else
@@ -454,7 +454,7 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
                 if( moveno <= 254 )
                 {
                     moveno++;
-                    m.MOVENO = moveno;
+                    z.MOVENO = moveno;
                 }
             }
             if( ok )
@@ -1251,10 +1251,10 @@ bool sargon_undocumented_dev_test()
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
     callback_start_position_register( cp );
     //cp.Forsyth("2k1K3/8/8/8/8/1r1qN1Q1/b2Bn2R/2N2n2 w - - 0 1");            // A knight munching fest on plies one and two
-    m.PLYMAX = 4;
+    z.PLYMAX = 4;
     sargon_import_position( cp, true );
     sargon_pv_clear( cp );
-    m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
+    z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
     terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );
@@ -1266,10 +1266,10 @@ bool sargon_undocumented_dev_test()
     //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
     cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
     callback_start_position_register( cp );
-    m.PLYMAX = 5;
+    z.PLYMAX = 5;
     sargon_import_position( cp, true );
     sargon_pv_clear( cp );
-    m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
+    z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
     std::string terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );

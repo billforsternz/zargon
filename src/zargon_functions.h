@@ -54,11 +54,11 @@ void EXECMV( uint8_t &out_double_flags, uint8_t &out_from, uint8_t &out_to );
 // Defining uint8_t PATH( int8_t dir ) as a macro instead of a function
 // like this doesn't improve performance, which demonstrates that the
 // inline keyword is doing its job
-// #define PATH(dir) (m.BOARDA[m.M2+=(dir)] == ((uint8_t)-1) ? 3 : \
+// #define PATH(dir) (z.BOARDA[z.M2+=(dir)] == ((uint8_t)-1) ? 3 : \
 //             (                                                   \
-//                 0 == (m.T2 = 7&(m.P2 = m.BOARDA[m.M2])) ? 0 :   \
+//                 0 == (z.T2 = 7&(z.P2 = z.BOARDA[z.M2])) ? 0 :   \
 //                     (                                           \
-//                         (m.P2 ^ m.P1)&0x80 ? 1 : 2              \
+//                         (z.P2 ^ z.P1)&0x80 ? 1 : 2              \
 //                     )                                           \
 //             )                                                   \
 //         )

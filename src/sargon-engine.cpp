@@ -36,7 +36,7 @@
 #include "zargon_functions.h"
 
 // Sargon data structure
-static Zargon &m = gbl_zargon;
+static Zargon &z = gbl_zargon;
 
 // Measure elapsed time, nodes    
 static unsigned long base_time;
@@ -1167,10 +1167,10 @@ static void cmd_interactive_save( const std::string &filename, std::string &outp
     str1 += "?";
     str1 += "\"]" "\n";
     str1 += "[White \"";
-    str1 += m.COLOR ? "Sargon" : "Human";
+    str1 += z.COLOR ? "Sargon" : "Human";
     str1 += "\"]" "\n";
     str1 += "[Black \"";
-    str1 += m.COLOR ? "Human" : "Sargon";
+    str1 += z.COLOR ? "Human" : "Sargon";
     str1 += "\"]" "\n";
     std::string result = "*";
     thc::TERMINAL score_terminal;
@@ -1559,7 +1559,7 @@ void callback_uci_end_of_points()
 
     // Abort run_sargon() if new event in queue (and not PLYMAX==1 which is
     //  effectively instantaneous, finds a baseline move)
-    if( !async_queue.empty() && m.PLYMAX>1 )
+    if( !async_queue.empty() && z.PLYMAX>1 )
     {
         longjmp( jmp_buf_env, 1 );
     }

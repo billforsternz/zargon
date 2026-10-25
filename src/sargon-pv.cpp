@@ -19,7 +19,7 @@
 #include "zargon_functions.h"
 
 // Sargon data structure
-static Zargon &m = gbl_zargon;
+static Zargon &z = gbl_zargon;
 
 // A move in Sargon's evaluation graph, in this program a move that is marked as
 //  the best move found so far at a given level
@@ -61,14 +61,14 @@ PV sargon_pv_get()
 static unsigned char end_of_points_color;
 void sargon_pv_callback_end_of_points()
 {
-    end_of_points_color = m.COLOR;
+    end_of_points_color = z.COLOR;
 }
 
 void sargon_pv_callback_yes_best_move()
 {
     // Collect the best moves' attributes
-    ML *p = m.MLPTRJ;
-    unsigned int level  = m.NPLY;
+    ML *p = z.MLPTRJ;
+    unsigned int level  = z.NPLY;
     unsigned char from  = p->from;
     unsigned char to    = p->to;
     //unsigned char flags = p->flags;
@@ -102,7 +102,7 @@ void sargon_pv_callback_yes_best_move()
 //         JZ      rel013                          ; Yes - jump
 //         DEC     al                              ; Decrement it
 // rel013: MOV     ch,al                           ; Save it
-    char ptsl  = static_cast<char>(m.PTSL);
+    char ptsl  = static_cast<char>(z.PTSL);
     if( ptsl != 0 )
         ptsl--;
 
@@ -114,8 +114,8 @@ void sargon_pv_callback_yes_best_move()
 //         JZ      rel014                          ; Yes - jump
 //         DEC     al                              ; Decrement it
 //         SHR     al,1                            ; Divide it by 2
-    char ptsw1 = static_cast<char>(m.PTSW1);
-    char ptsw2 = static_cast<char>(m.PTSW2);
+    char ptsw1 = static_cast<char>(z.PTSW1);
+    char ptsw2 = static_cast<char>(z.PTSW2);
     char val = ptsw1;
     if( ptsw1 != 0 )
     {
@@ -133,14 +133,14 @@ void sargon_pv_callback_yes_best_move()
 //         JZ      rel015                          ; Yes - jump
 //         NEG     al                              ; Negate for black
     val -= ptsl;
-    //unsigned char color = m.COLOR;
+    //unsigned char color = z.COLOR;
     if( (end_of_points_color&0x80) != 0 )
         val = 0 - val;
 
 // rel015: MOV     bx,MTRL                         ; Net material on board
 //         ADD     al,byte ptr [ebp+ebx]           ; Add exchange adjustments
 //         MOV     _gbl_adjusted_material,al
-    char mtrl = static_cast<char>(m.MTRL);
+    char mtrl = static_cast<char>(z.MTRL);
     char adjusted_material = (val + mtrl);
 
     //  It took a few goes to get the calculation working right, we
@@ -151,15 +151,15 @@ void sargon_pv_callback_yes_best_move()
     //   Sargon's COLOR had toggled since the POINTS() function ran,
     //   so now we save the value of COLOR in POINTS() [which we
     //   have a callback for].
-    char brdc = static_cast<char>(m.BRDC);
-    if( m.PTSCK )
+    char brdc = static_cast<char>(z.BRDC);
+    if( z.PTSCK )
         brdc = 0;
 
 #else
     // Adjust points lost slightly, it should not be quite as bad as not having
     //  the material on the board at all - it might be taken, but it hasn't yet
     //  been taken!
-    int8_t ptsl = m.PTSL;
+    int8_t ptsl = z.PTSL;
     if( ptsl != 0 )
         ptsl--;
 
@@ -168,7 +168,7 @@ void sargon_pv_callback_yes_best_move()
     //  valued of the two most valuble en-prise attacks, if and only if there are
     //  at least two such attacks, and and only after discounting a half pawn's
     //  value as we did for points lost.
-    int8_t ptsw = (m.PTSW1!=0 && m.PTSW2!=0) ? (m.PTSW2-1)/2 : 0;
+    int8_t ptsw = (z.PTSW1!=0 && z.PTSW2!=0) ? (z.PTSW2-1)/2 : 0;
 
     // Points won net = points won - points lost
     ptsw -= ptsl;
@@ -181,17 +181,17 @@ void sargon_pv_callback_yes_best_move()
         ptsw = 0-ptsw;  // so negate points won net if Black just moved
 
     // Add net material on board
-    int8_t adjusted_material = ptsw + m.MTRL;
+    int8_t adjusted_material = ptsw + z.MTRL;
 
     // Subtract material at ply 0
-    // ABSOLUTE not RELATIVE, so don't subtract m.MV0;
+    // ABSOLUTE not RELATIVE, so don't subtract z.MV0;
 
     // Board control points minus board control at ply zero
-    int8_t brdc = m.BRDC; // ABSOLUTE not RELATIVE, so don't subtract m.BC0
+    int8_t brdc = z.BRDC; // ABSOLUTE not RELATIVE, so don't subtract z.BC0
 
     // Punish moving a piece into an en-prise location a second time by
     //  setting board control points to zero
-    if( m.PTSCK != 0 )
+    if( z.PTSCK != 0 )
         brdc = 0;
 #endif
 
@@ -225,7 +225,7 @@ static void calculate_pv( PV &pv )
     std::vector<NODE> nodes_pv;
     int nbr = (int)nodes.size();
     int target = 1;
-    int plymax = m.PLYMAX;
+    int plymax = z.PLYMAX;
     for( int i=nbr-1; i>=0; i-- )
     {
         NODE *p = &nodes[i];

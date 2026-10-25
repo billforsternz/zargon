@@ -15,7 +15,7 @@ static thc::ChessPosition start_position;
 static std::string show_node();
 
 // Reference Sargon data structure
-static Zargon &m = gbl_zargon;
+static Zargon &z = gbl_zargon;
 
 // Sargon function names
 const char *lookup[] =
@@ -77,7 +77,7 @@ function_in_out::~function_in_out()
 {
     bool insist = false;
     if(      saved_fe == FE_PATH ) return;
-    else if( saved_fe == FE_EVAL && m.NPLY>=m.PLYMAX )  insist=true;
+    else if( saved_fe == FE_EVAL && z.NPLY>=z.PLYMAX )  insist=true;
     else if( saved_fe == FE_SORTM )  insist=true;
     else if( saved_fe == FE_MOVE )   insist=true;
     else if( saved_fe == FE_UNMOVE ) insist=true;
@@ -174,12 +174,12 @@ void callback_genmov()
     thc::ChessPosition cp;
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
-    printf( "GENMOV() call %d, NPLY=%d%s\n", ++nbr_calls, m.NPLY, s.c_str() );
+    printf( "GENMOV() call %d, NPLY=%d%s\n", ++nbr_calls, z.NPLY, s.c_str() );
     if( restricted_moves.size() != 0 )
         return;        
     bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
     const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
-    if( guide && *guide == ('0'+m.NPLY) )
+    if( guide && *guide == ('0'+z.NPLY) )
     {
         const char *t = guide+2;
         int nbr_pruned=0;
@@ -190,7 +190,7 @@ void callback_genmov()
         }
         admove_count = 0;
         admove_limit = (int)strlen(guide+2) - nbr_pruned;     // eg "74@5" -> 3. '5' is pruned but the move must be generated
-        if( m.NPLY < 4 )
+        if( z.NPLY < 4 )
             wikipedia_string_nbr++;
         printf( "GENMOV() %d moves please!\n", admove_limit );
     }
@@ -198,14 +198,14 @@ void callback_genmov()
     {
         printf( "ERROR: GENMOV() tree wikipedia_string_nbr=%d\n",  wikipedia_string_nbr );
         if( guide )
-            printf( "*guide=%c m.NPLY=%d\n", *guide, m.NPLY );
+            printf( "*guide=%c z.NPLY=%d\n", *guide, z.NPLY );
         exit(0);
     }
 }
 
 bool callback_points()
 {
-    if( m.NPLY == 0 )   // single call to POINTS() at ply 0
+    if( z.NPLY == 0 )   // single call to POINTS() at ply 0
         return false;   // Normal processing
     if( restricted_moves.size() != 0 )
         return false;   // Normal processing     
@@ -213,15 +213,15 @@ bool callback_points()
     thc::ChessPosition cp;
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
-    printf( "POINTS() call %d, NPLY=%d%s\n", ++nbr_calls, m.NPLY, s.c_str() );
+    printf( "POINTS() call %d, NPLY=%d%s\n", ++nbr_calls, z.NPLY, s.c_str() );
     bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
     const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
-    if( m.NPLY < 4 )
+    if( z.NPLY < 4 )
     {
         int score = 0;
         unsigned int val = sargon_import_value( 1.0 * score );
-        m.VALM = val;
-        m.MLPTRJ->val = m.VALM;
+        z.VALM = val;
+        z.MLPTRJ->val = z.VALM;
         printf( "POINTS() injected placeholder %d,%f\n", val, score*1.0 );
     }
     else if( guide && *guide=='4' && wikipedia_string_offset < strlen(guide) )
@@ -229,8 +229,8 @@ bool callback_points()
         int score = *(guide  + wikipedia_string_offset++) - '0';
         score = 0-score;
         unsigned int val = sargon_import_value( 1.0 * score );
-        m.VALM = val;
-        m.MLPTRJ->val = m.VALM;
+        z.VALM = val;
+        z.MLPTRJ->val = z.VALM;
         if( *(guide  + wikipedia_string_offset) == '@' )
             wikipedia_string_offset += 2;   // skip over a pruned move
         if( *(guide  + wikipedia_string_offset) == '\0' )
@@ -267,12 +267,12 @@ bool callback_admove()
     //  restricted move list
     #ifdef DEBUG_RESTRICTED_MOVES
     thc::Square from, to;
-    sargon_export_square(m.M1,from);
-    sargon_export_square(m.M2,to);
+    sargon_export_square(z.M1,from);
+    sargon_export_square(z.M2,to);
     int ply = 1;
     for( const std::string s: restricted_moves )
     {
-        if( ply == m.NPLY )
+        if( ply == z.NPLY )
         {
             size_t len = s.length();
             for( size_t offset=0; offset+4 <= len; offset+=5 )
@@ -369,7 +369,7 @@ void tracef( const char *fmt, ... )
     {
         if( (tracef_count-1) == debug_count )
             free_run = false;
-        else if( m.NPLY==target_ply && target_ply!=0 )
+        else if( z.NPLY==target_ply && target_ply!=0 )
         {
             target_ply = 0;
             free_run = false;
@@ -465,13 +465,13 @@ static std::string score_table_entry[ MAX_DEPTH + ALLOCATION_PADDING ];
 void trace_score_updated( uint8_t score_bigger_is_better )
 {
     std::string node = show_node();
-    score_table_entry[m.NPLY] = node;
+    score_table_entry[z.NPLY] = node;
     tracef("SCORE updated, score_bigger_is_better=%u\n", score_bigger_is_better );
 }
 
 void trace_alpha_beta( uint8_t score_smaller_is_better, uint8_t table_bigger_is_better )
 {
-    if( m.NPLY == 1 )
+    if( z.NPLY == 1 )
         tracef( "Alpha-beta dummy check, never cuts off at ply 1\n" );
     else
     {
@@ -483,8 +483,8 @@ void trace_alpha_beta( uint8_t score_smaller_is_better, uint8_t table_bigger_is_
         const char *previous_moves = node.c_str();
         const char *refutes = cutoff?"refutes":"does not refute";
         const char *yes_no  = cutoff?"YES":"NO";
-        const char *above   = m.SCORE[m.NPLY-1]==0 ? "NO MOVE YET" : score_table_entry[m.NPLY-1].c_str();
-        if( !cutoff && m.SCORE[m.NPLY-1] == 0 )
+        const char *above   = z.SCORE[z.NPLY-1]==0 ? "NO MOVE YET" : score_table_entry[z.NPLY-1].c_str();
+        if( !cutoff && z.SCORE[z.NPLY-1] == 0 )
         {
             tracef( "%s %s by Alpha-beta cutoff, no alternative to %s yet\n",
                         refutes, previous_moves, previous_moves );
@@ -505,9 +505,9 @@ static std::string show_node()
     thc::ChessRules cr(start_position);
     thc::Move mv;
     int idx=1;
-    while( idx <= m.NPLY )
+    while( idx <= z.NPLY )
     {
-        ML *ml = m.PLYIX[idx].link_ptr;
+        ML *ml = z.PLYIX[idx].link_ptr;
         std::string terse = sargon_export_move(ml);
         bool illegal_move = !mv.TerseIn( &cr, terse.c_str() );
         if( idx > 1 )
@@ -543,14 +543,14 @@ std::string show_ply_chains( bool show_score )
     std::string s;
     thc::ChessRules cr(start_position);
     thc::Move mv;
-    for( int idx=1; idx<=m.NPLY; idx++ )
+    for( int idx=1; idx<=z.NPLY; idx++ )
     {
-        s += util::sprintf( "%d%s: [%u] ", idx, idx<m.PLYMAX? "" :"u", m.SCORE[idx] );
+        s += util::sprintf( "%d%s: [%u] ", idx, idx<z.PLYMAX? "" :"u", z.SCORE[idx] );
 
         // All moves for this ply are in adjacent memory, with boundaries
         //  of this section of memory stored in array PLYIX_nxt[]
-        ML *ml = m.PLYIX_nxt[idx-1];
-        ML *ml_nxt = idx<m.NPLY ? m.PLYIX_nxt[idx] : m.MLNXT;
+        ML *ml = z.PLYIX_nxt[idx-1];
+        ML *ml_nxt = idx<z.NPLY ? z.PLYIX_nxt[idx] : z.MLNXT;
 
         // An O(N^2) algorithm to find the move with the longest chain of ptrs
         //  starting at that move. If the ply has been sorted, then that is 
@@ -587,20 +587,20 @@ std::string show_ply_chains( bool show_score )
             //  at in this ply
             bool gap=false;
             bool need_arrow=false;
-            if( ml == m.BESTM )
+            if( ml == z.BESTM )
             {
                 s += "BESTM";
                 gap = true;
                 need_arrow=true;
             }
-            if( ml == m.MLPTRJ )
+            if( ml == z.MLPTRJ )
             {
                 if( gap )
                     s += " ";
                 s += "MLPTRJ";
                 need_arrow=true;
             }
-            if( ml == m.PLYIX[idx].link_ptr )
+            if( ml == z.PLYIX[idx].link_ptr )
             {
                 need_arrow=true;
             }
@@ -628,7 +628,7 @@ std::string show_ply_chains( bool show_score )
             ml = ml->link_ptr;
         }
         s += "\n";
-        ml = m.PLYIX[idx].link_ptr;
+        ml = z.PLYIX[idx].link_ptr;
         std::string terse = sargon_export_move(ml);
         bool ok = mv.TerseIn( &cr, terse.c_str() );
         if( ok )

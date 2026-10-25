@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "trace.h"
 
-// Now export emulated memory as a global, transitional I think
+// No longer emulated memory, instead a type (Zargon) and an instance (gbl_zargon)
 struct Zargon;
 extern Zargon gbl_zargon;
 

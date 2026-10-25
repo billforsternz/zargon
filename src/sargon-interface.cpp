@@ -18,7 +18,7 @@
 #include "zargon_functions.h"
 
 // Sargon data
-static Zargon &m = gbl_zargon;
+static Zargon &z = gbl_zargon;
 
 // Write chess position into Sargon (inner-most part)
 static void sargon_import_position_inner( const thc::ChessPosition &cp );
@@ -160,8 +160,8 @@ bool sargon_export_square( unsigned int sargon_square, thc::Square &sq )
 
 std::string sargon_export_best_move()
 {
-    uint8_t from = m.BESTM->from;
-    uint8_t to   = m.BESTM->to;
+    uint8_t from = z.BESTM->from;
+    uint8_t to   = z.BESTM->to;
     char buf[5];
     buf[0] = '\0';
     thc::Square f, t;
@@ -266,9 +266,9 @@ bool sargon_play_move( thc::Move &mv )
     */
 
     bool ok=false;
-    unsigned char color = m.COLOR; // who to move?
-    unsigned char kolor = m.KOLOR; // which side is Sargon?
-    m.KOLOR = (color==0?0x80:0);   // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
+    unsigned char color = z.COLOR; // who to move?
+    unsigned char kolor = z.KOLOR; // which side is Sargon?
+    z.KOLOR = (color==0?0x80:0);   // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
     std::string terse = mv.TerseOut();
     for( int i=0; i<2; i++ )
     {
@@ -278,22 +278,22 @@ bool sargon_play_move( thc::Move &mv )
         ok = (board_index>0);
         if( ok )
         {
-            uint8_t *p = (uint8_t *)&m.MVEMSG[0];
+            uint8_t *p = (uint8_t *)&z.MVEMSG[0];
             *(p+i) = board_index;
         }
     }
     if( ok )
     {
-        m.NPLY = 0;
+        z.NPLY = 0;
         ok = VALMOV();
     }
 
     // Restore COLOR and KOLOR
-    m.KOLOR = kolor;
+    z.KOLOR = kolor;
     if( ok )
-        m.COLOR = (color==0?0x80:0);  // toggle side to move
+        z.COLOR = (color==0?0x80:0);  // toggle side to move
     else
-        m.COLOR = color;
+        z.COLOR = color;
     return ok;
 }
 
@@ -301,7 +301,7 @@ bool sargon_play_move( thc::Move &mv )
 void sargon_export_position( thc::ChessPosition &cp )
 {
     cp.Init();
-    const unsigned char *sargon_board = &m.BOARDA[0];
+    const unsigned char *sargon_board = &z.BOARDA[0];
     const unsigned char *src_base = sargon_board + 28;  // square h1
     char *dst_base = &cp.squares[thc::h1];
     for( int i=0; i<8; i++ )
@@ -336,8 +336,8 @@ void sargon_export_position( thc::ChessPosition &cp )
     }
 
     // Start attending to all the details other than just which pieces are on each square
-    cp.white = IS_WHITE(m.COLOR);
-    cp.full_move_count = m.MOVENO;
+    cp.white = IS_WHITE(z.COLOR);
+    cp.full_move_count = z.MOVENO;
 
     // Before clearing the temporary 'have moved' marks, check for castling legality
     //  (note moved Kings and Rooks won't be 'K', 'R' etc because of the marks)
@@ -360,7 +360,7 @@ void sargon_export_position( thc::ChessPosition &cp )
 
     // This is a bit insane, but why not. Let's figure out the enpassant target square
     //  if there is one. By default of course Init() has set it to thc::SQUARE_INVALID
-    ML *last_move_ptr = m.MLPTRJ;
+    ML *last_move_ptr = z.MLPTRJ;
     if( last_move_ptr )
     {
         thc::Square sq_from, sq_to;
@@ -409,7 +409,7 @@ void sargon_import_position( const thc::ChessPosition &cp, bool avoid_book )
     //  We used to set MLPTRJ to 0 here, but with the transition to native pointers that
     //  obviously caused NULL pointer problems, so now set the pointer to point at a sensible
     //  place in the data structure definition and here.
-    m.MLPTRJ = m.MLIST;
+    z.MLPTRJ = z.MLIST;
 
     // Sargon's move evaluation takes some account of the full move number (it
     //  prioritises moving unmoved pieces early). So get an approximation to
@@ -547,14 +547,14 @@ void sargon_import_position( const thc::ChessPosition &cp, bool avoid_book )
     //  its play in the opening judging the opening phase with a MOVENO threshold, so it's
     //  worth getting it right if possible
     if( cp.full_move_count > 1 )
-        m.MOVENO = cp.full_move_count;
+        z.MOVENO = cp.full_move_count;
 }
 
 // Write chess position into Sargon (inner-most part)
 static void sargon_import_position_inner( const thc::ChessPosition &cp )
 {
-    m.COLOR  = cp.white?0:0x80;
-    m.MOVENO = cp.full_move_count;
+    z.COLOR  = cp.white?0:0x80;
+    z.MOVENO = cp.full_move_count;
     static unsigned char board_position[120] =
     {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -654,7 +654,7 @@ static void sargon_import_position_inner( const thc::ChessPosition &cp )
             *dst-- = b;
         }
     }
-    memcpy( &m.BOARDA[0], board_position, sizeof(board_position) );
+    memcpy( &z.BOARDA[0], board_position, sizeof(board_position) );
     ROYALT();
 }
 
@@ -667,9 +667,9 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
         plymax = 1;
     else if( plymax > MAX_DEPTH )
         plymax = MAX_DEPTH;
-    m.PLYMAX = plymax;
+    z.PLYMAX = plymax;
     sargon_import_position( cp, avoid_book );
-    m.KOLOR = m.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
+    z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
     pv = sargon_pv_get(); // only update if CPTRMV completes (engine uses longjmp to abort if timeout)
 }

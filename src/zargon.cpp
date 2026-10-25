@@ -28,9 +28,9 @@
 // Up to 64K of emulated memory
 Zargon gbl_zargon;        // Now made available as simple global
 #if 0
-static Zargon &m = gbl_zargon;    // This is good practice, but slow
+static Zargon &z = gbl_zargon;    // This is good practice, but slow
 #else
-#define m gbl_zargon                       // This is bad practice, but fast
+#define z gbl_zargon                       // This is bad practice, but fast
 #endif
 
 //***********************************************************
@@ -68,11 +68,11 @@ static Zargon &m = gbl_zargon;    // This is good practice, but slow
 void INITBD()
 {
     // Pre-fill board with -1's
-    memset( &m.BOARDA[0], -1, sizeof(m.BOARDA) );
+    memset( &z.BOARDA[0], -1, sizeof(z.BOARDA) );
 
     // Init the 64 squares within the 120 byte BOARD[] array
-    uint8_t *dst = &m.BOARDA[SQ_a1];
-    uint8_t *src = &m.pieces[0];
+    uint8_t *dst = &z.BOARDA[SQ_a1];
+    uint8_t *src = &z.pieces[0];
     for( int i=0; i<8; i++ )
     {
         *dst      = *src;               // White RNBQKBNR
@@ -88,10 +88,10 @@ void INITBD()
     }
 
     //  Init King/Queen position list
-    m.POSK[0] = SQ_e1;
-    m.POSK[1] = SQ_e8;
-    m.POSQ[0] = SQ_d1;
-    m.POSQ[1] = SQ_d8;
+    z.POSK[0] = SQ_e1;
+    z.POSK[1] = SQ_e8;
+    z.POSQ[0] = SQ_d1;
+    z.POSQ[1] = SQ_d8;
 }
 
 //***********************************************************
@@ -126,7 +126,7 @@ inline path_t PATH( int8_t dir )
     trace_func(FE_PATH);
 
     // Step along the path
-    uint8_t piece = m.BOARDA[m.M2+=dir];
+    uint8_t piece = z.BOARDA[z.M2+=dir];
 
     // Off board?
     //  return 3 if off board
@@ -135,13 +135,13 @@ inline path_t PATH( int8_t dir )
 
     // Set P2=piece and T2=piece type (=piece&7)
     //  return 0 if empty
-    else if(  0 == (m.T2 = (m.P2=piece)&7) )
+    else if(  0 == (z.T2 = (z.P2=piece)&7) )
         return PATH_EMPTY;
 
     // Else we have run into non zero piece P2
     //  return 1 if opposite color to origin piece P1
     //  return 2 if same color as origin piece P1
-    return IS_SAME_COLOR(m.P2,m.P1) ? PATH_SAME_COLOR : PATH_OPPOSITE_COLOR;
+    return IS_SAME_COLOR(z.P2,z.P1) ? PATH_SAME_COLOR : PATH_OPPOSITE_COLOR;
 }
 
 //***********************************************************
@@ -173,7 +173,7 @@ void MPIECE( uint8_t piece )
     if( piece == BPAWN )
         piece--;
     piece &= 7;      // clear colour flag to isolate piece type
-    m.T1 = piece;
+    z.T1 = piece;
 
     // For minimax experiments, suppress king moves
     if( callback_suppress_king_moves(piece) )
@@ -212,16 +212,16 @@ void MPIECE( uint8_t piece )
     //                dir_count =  4, 3, 2, 1
     //                move_dir  = -10, -10, -11, -9
 
-    m.INDX2 = m.dpoint[m.T1];       //  Get direction pointer
-    for( uint8_t dir_count = m.dcount[m.T1], dir_idx = m.INDX2;
+    z.INDX2 = z.dpoint[z.T1];       //  Get direction pointer
+    for( uint8_t dir_count = z.dcount[z.T1], dir_idx = z.INDX2;
          dir_count != 0;
          dir_count--, dir_idx++
        )
     {
-        uint8_t move_dir = m.direct[dir_idx];
+        uint8_t move_dir = z.direct[dir_idx];
 
         // From position
-        m.M2 = m.M1;
+        z.M2 = z.M1;
 
         // Loop through steps in each direction vector
         bool stepping = true;
@@ -277,14 +277,14 @@ void MPIECE( uint8_t piece )
                         {
 
                             // Check promotion
-                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )    // destination on 1st or 8th rank?
-                                SET_PROMOTION(m.P2);            // set promotion flag
+                            if( z.M2<=SQ_h1 || z.M2>=SQ_a8 )    // destination on 1st or 8th rank?
+                                SET_PROMOTION(z.P2);            // set promotion flag
 
                             // Add single step move to move list
                             ADMOVE();
 
                             // Check Pawn moved flag, for double step
-                            if( HAS_NOT_MOVED(m.P1) )
+                            if( HAS_NOT_MOVED(z.P1) )
                             {
 
                                 // This is the only pawn path that continues the inner PATH() stepping
@@ -312,8 +312,8 @@ void MPIECE( uint8_t piece )
                             ENPSNT();               //  Try en passant capture
                         else
                         {
-                            if( m.M2<=SQ_h1 || m.M2>=SQ_a8 )    // destination on 1st or 8th rank?
-                                SET_PROMOTION(m.P2);            // set promotion flag
+                            if( z.M2<=SQ_h1 || z.M2>=SQ_a8 )    // destination on 1st or 8th rank?
+                                SET_PROMOTION(z.P2);            // set promotion flag
                             ADMOVE();                           // add to move list
                         }
                     }
@@ -346,10 +346,10 @@ void ENPSNT()
     trace_func(FE_ENPSNT);
 
     // Pawn position
-    uint8_t idx = m.M1;
+    uint8_t idx = z.M1;
 
     // Add 10 for black
-    if( IS_BLACK(m.P1) )
+    if( IS_BLACK(z.P1) )
         idx += 10;
 
     // Check on en-passant capture rank
@@ -357,13 +357,13 @@ void ENPSNT()
         return;  // not on fifth rank
 
     // Previous move must be first move for that piece
-    if( !IS_FIRST_MOVE(m.MLPTRJ->flags) )
+    if( !IS_FIRST_MOVE(z.MLPTRJ->flags) )
         return;
 
     // Get "to" position for previous move
-    m.M4 = m.MLPTRJ->to;
-    uint8_t piece = m.BOARDA[m.M4];
-    m.P3 = piece;
+    z.M4 = z.MLPTRJ->to;
+    uint8_t piece = z.BOARDA[z.M4];
+    z.P3 = piece;
 
     // Check that previous move was a pawn move
     piece &= 7;
@@ -371,23 +371,23 @@ void ENPSNT()
         return;
 
     // Compare "to" position for previous and current moves
-    int8_t diff = m.M4-m.M2;
+    int8_t diff = z.M4-z.M2;
     if( diff!=10 && diff!=-10) // should be one rank different
         return;
 
     // Set double move flag and add en-passant move in two steps
-    SET_DOUBLE_MOVE(m.P2);
+    SET_DOUBLE_MOVE(z.P2);
     ADMOVE();       // first step, move the pawn
-    m.M3 = m.M1;    // save initial pawn position
+    z.M3 = z.M1;    // save initial pawn position
 
     // Dummy pawn move, to effect capture, as second part of move
-    m.M1 = m.M4;    // dummy pawn move "from"
-    m.M2 = m.M4;    // dummy pawn move "to"
-    m.P2 = m.P3;    // captured pawn
+    z.M1 = z.M4;    // dummy pawn move "from"
+    z.M2 = z.M4;    // dummy pawn move "to"
+    z.P2 = z.P3;    // captured pawn
     ADMOVE();       // second step capture the pawn
 
     // Restore "from" position
-    m.M1 = m.M3;
+    z.M1 = z.M3;
     ADJPTR();
 }
 
@@ -411,10 +411,10 @@ inline void ADJPTR()
     trace_func(FE_ADJPTR);
 
     // Adjust list pointer to point at previous move
-    m.MLLST--;
+    z.MLLST--;
 
     // Zero link
-    m.MLLST->link_ptr = 0;
+    z.MLLST->link_ptr = 0;
 }
 
 //***********************************************************
@@ -437,11 +437,11 @@ void CASTLE()
     trace_func(FE_CASTLE);
 
     // If king has moved return
-    if( HAS_MOVED(m.P1) )
+    if( HAS_MOVED(z.P1) )
         return;
 
     // If king is in check return
-    if( m.CKFLG )
+    if( z.CKFLG )
         return;
 
     // Check both sides, kingside first
@@ -449,10 +449,10 @@ void CASTLE()
     {
 
         // King rook is king+3, Queen rook is king-4
-        m.M3 = (uint8_t)(i==0 ? m.M1+3 : m.M1-4);
+        z.M3 = (uint8_t)(i==0 ? z.M1+3 : z.M1-4);
 
         // Check that it is an unmoved rook
-        uint8_t piece = m.BOARDA[m.M3];
+        uint8_t piece = z.BOARDA[z.M3];
         piece &= 0x7f;
         if( piece == ROOK )
         {
@@ -461,47 +461,47 @@ void CASTLE()
             uint8_t step = (uint8_t)(i==0 ? (-1) : 1);
 
             // Save start rook position
-            uint8_t starting_rook_pos = m.M3;
+            uint8_t starting_rook_pos = z.M3;
 
             // Step from the rook to the king, checking each square between
             for(;;)
             {
 
                 // Use M3 as a rover, from rook to king
-                m.M3 += step;
-                piece = m.BOARDA[m.M3];
+                z.M3 += step;
+                piece = z.BOARDA[z.M3];
 
                 // Must be empty (this will always stop loop when we reach the king)
                 if( piece != 0 )
                     break;
 
                 // Must not be under attack (except for b1 and b8)
-                if( m.M3 != SQ_b1 && m.M3 != SQ_b8 && ATTACK() )
+                if( z.M3 != SQ_b1 && z.M3 != SQ_b8 && ATTACK() )
                     break;
             }
 
             // If we didn't stop *BEFORE* reaching king, we have found a legal
             //  castling move, represent it as a double move, king then rook
-            if( m.M3 == m.M1 )
+            if( z.M3 == z.M1 )
             {
 
                 // M1 is king "from" position, M2 is the king "to" position
-                m.M2 = m.M3;
-                m.M2 -= step;
-                m.M2 -= step;
-                m.P2 = 0;
-                SET_DOUBLE_MOVE(m.P2);    // set double move flag
+                z.M2 = z.M3;
+                z.M2 -= step;
+                z.M2 -= step;
+                z.P2 = 0;
+                SET_DOUBLE_MOVE(z.P2);    // set double move flag
                 ADMOVE();       // add to list
 
                 // M1 is rook "from" position, M2 is rook "to" position, one step from king
-                m.M1 = starting_rook_pos;
-                m.M2 = m.M3 - step;
-                m.P2 = 0;       // clear move flags
+                z.M1 = starting_rook_pos;
+                z.M2 = z.M3 - step;
+                z.P2 = 0;       // clear move flags
                 ADMOVE();       // add to list
                 ADJPTR();       // re-adjust move list pointer
 
                 // Restore King position
-                m.M1 = m.M3;
+                z.M1 = z.M3;
             }
         }
     }
@@ -526,10 +526,10 @@ void ADMOVE()
     trace_func_void(FE_ADMOVE);
 
     // Address of next location in move list
-    ML *ml = m.MLNXT;
+    ML *ml = z.MLNXT;
 
     // Check that we haven't run out of memory
-    if( ml > (ML *)&m.MLEND )
+    if( ml > (ML *)&z.MLEND )
     {
 
         // TODO - Maybe this is probably what was intended in the original code,
@@ -537,32 +537,32 @@ void ADMOVE()
         //  This is hopeless though, probably should panic and quit
         printf( "PANIC - Sargon out of memory\n" );
         fprintf( stderr, "PANIC - Sargon out of memory\n" );
-        m.MLNXT = &m.MLIST[0];
+        z.MLNXT = &z.MLIST[0];
         return;
     }
 
     // Address of previous move
-    ML *previous_move = m.MLLST;
+    ML *previous_move = z.MLLST;
 
     // Save next as previous
-    m.MLLST = ml;
+    z.MLLST = ml;
 
     // Store as link address
     previous_move->link_ptr = ml;
 
     // If piece hasn't moved before set first move flag
-    if( HAS_NOT_MOVED(m.P1) )
-        SET_FIRST_MOVE(m.P2);
+    if( HAS_NOT_MOVED(z.P1) )
+        SET_FIRST_MOVE(z.P2);
 
     // Now write move details
     ml->link_ptr = 0;           // store zero in link address
-    ml->from  = m.M1;           // store "from" move position
-    ml->to    = m.M2;           // store "to" move position
-    ml->flags = m.P2;           // store move flags/capt. piece
+    ml->from  = z.M1;           // store "from" move position
+    ml->to    = z.M2;           // store "to" move position
+    ml->flags = z.P2;           // store move flags/capt. piece
     ml->val   = 0;              // store initial move value
 
     // Save next slot address
-    m.MLNXT = ml + 1;
+    z.MLNXT = ml + 1;
 }
 
 //***********************************************************
@@ -584,33 +584,33 @@ void GENMOV()
     trace_func(FE_GENMOV);
 
     // Test for King in check
-    bool inchk = INCHK(m.COLOR);
-    m.CKFLG = inchk;
+    bool inchk = INCHK(z.COLOR);
+    z.CKFLG = inchk;
 
     // Next ply
-    m.PLYIX_nxt[m.NPLY++] = m.MLNXT;    // save end of move list ptr
-    m.MLPTRI = &m.PLYIX[m.NPLY];        // start of move linked list
-    m.MLLST  = (ML *)m.MLPTRI;          // current end of list
+    z.PLYIX_nxt[z.NPLY++] = z.MLNXT;    // save end of move list ptr
+    z.MLPTRI = &z.PLYIX[z.NPLY];        // start of move linked list
+    z.MLLST  = (ML *)z.MLPTRI;          // current end of list
 
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
     {
-        m.M1 = pos;
-        uint8_t piece = m.BOARDA[pos];
+        z.M1 = pos;
+        uint8_t piece = z.BOARDA[pos];
 
         // If piece not empty or border
         if( piece!=0 && piece!=0xff )
         {
-            m.P1 = piece;
+            z.P1 = piece;
 
             // If piece color is side to move, gen moves
-            if( IS_SAME_COLOR(m.COLOR,piece) )
+            if( IS_SAME_COLOR(z.COLOR,piece) )
             {
 
-                // MPIECE() now uses piece including colour is m.P1
+                // MPIECE() now uses piece including colour is z.P1
                 //  rather than recreating it. Not sure why original
                 //  code didn't do that
-                MPIECE(m.P1);
+                MPIECE(z.P1);
             }
         }
     }
@@ -636,9 +636,9 @@ inline bool INCHK( uint8_t color )
 
     // Set index M3 to point at White or Black king, Set P1 as piece
     //  with flags and T1 as piece type (piece&7)
-	const uint8_t *p = &m.POSK[color?1:0];
-	m.P1 = m.BOARDA[m.M3 = *p];
-	m.T1 = m.P1 & 7;
+	const uint8_t *p = &z.POSK[color?1:0];
+	z.P1 = z.BOARDA[z.M3 = *p];
+	z.T1 = z.P1 & 7;
 
     // Return true if there are attackers to the king
 	return ATTACK();
@@ -685,13 +685,13 @@ bool ATTACK()
     trace_func(FE_ATTACK);
 
     // Loop over the 16 directions in the direct[] table
-    m.INDX2 = 0;
-    const int8_t *dir_ptr = (int8_t *)m.direct;
+    z.INDX2 = 0;
+    const int8_t *dir_ptr = (int8_t *)z.direct;
     for( uint8_t dir_count=16; dir_count>0; dir_count-- )
     {
         int8_t dir = *dir_ptr++;
         uint8_t scan_count = 0;
-        m.M2 = m.M3;
+        z.M2 = z.M3;
 
         // Stepping loop
         for(;;)
@@ -733,7 +733,7 @@ bool ATTACK()
 
             // Encountered a piece of either colour, determine if
             //  piece attacks square
-            uint8_t piece = m.T2;
+            uint8_t piece = z.T2;
 
             // Knight moves?
             if( dir_count < 9 )
@@ -772,7 +772,7 @@ bool ATTACK()
                     break;
 
                 // Pawn attack logic
-                if( IS_WHITE(m.P2) )
+                if( IS_WHITE(z.P2) )
                 {
                     if( dir_count >= 15 )
                         break;   // not the right direction for this colour
@@ -788,7 +788,7 @@ bool ATTACK()
             //
             // Check attacked piece type 1-6. Use 7 as a special sentinel
             //  value to indicate called from POINTS()
-            if( m.T1 == 7 )
+            if( z.T1 == 7 )
             {
                 // If called from POINTS(), save attacker in attack list
                 ATKSAV(scan_count,dir);
@@ -801,7 +801,7 @@ bool ATTACK()
             }
 
             // Keep stepping unless single step piece
-            if( m.T2==KING || m.T2==KNIGHT )
+            if( z.T2==KING || z.T2==KNIGHT )
                 break;
         }
     }
@@ -935,9 +935,9 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
 
     // If there are pins, check whether this attacking piece is
     //  pinned and therefore not worthy of being saved to the list
-    if( m.NPINS )
+    if( z.NPINS )
     {
-        bool invalid_attacker = PNCK(m.NPINS,dir);
+        bool invalid_attacker = PNCK(z.NPINS,dir);
         if( invalid_attacker )
             return;
         // scan_count = dir;   // reproduce bug in original Sargon
@@ -945,13 +945,13 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
     }
 
     // Point at White or Black attack list
-    uint8_t *p = IS_BLACK(m.P2) ? m.bact : m.wact;
+    uint8_t *p = IS_BLACK(z.P2) ? z.bact : z.wact;
 
     // First byte of attack list is count, increment it
     (*p)++;
 
     // Rest of list is 6 slots, one for each piece type
-    uint8_t offset = m.P2 & 0x07;   // get piece type
+    uint8_t offset = z.P2 & 0x07;   // get piece type
 
     // If queen previously found on this vector use Queen slot as shown
     //  in the rook (or bishop, or queen actually) behind queen examples
@@ -961,7 +961,7 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
     p += offset;    // point at piece type slot
 
     // Add the value of the piece as a nibble to attack list
-    uint8_t piece_value = m.pvalue[m.T2-1];     // 1,3,3,5,9 or 10 for king
+    uint8_t piece_value = z.pvalue[z.T2-1];     // 1,3,3,5,9 or 10 for king
     uint8_t hi = *p&0xf0;
     uint8_t lo = *p&0x0f;
     if( lo!=0 && hi==0 )
@@ -1050,7 +1050,7 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction )
 
     // Loop over the pin list
     bool not_first_find=false;
-    uint8_t *p = &m.PLISTA[0];  // Pin list address
+    uint8_t *p = &z.PLISTA[0];  // Pin list address
     bool expired = false;
     while(!expired)
     {
@@ -1059,7 +1059,7 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction )
         bool found = false;
         while( !found )
         {
-            found = (m.M2 == *p);
+            found = (z.M2 == *p);
             p++;
             pin_count--;
             if( pin_count == 0 )
@@ -1109,27 +1109,27 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction )
 void PINFND()
 {
     trace_func(FE_PINFND);
-    m.NPINS = 0;
+    z.NPINS = 0;
 
     // Loop over 4 royal pieces
     for( uint8_t i=0; i<4; i++ )
     {
-        uint8_t *p = i<2 ? &m.POSK[i] : &m.POSQ[i-2];
+        uint8_t *p = i<2 ? &z.POSK[i] : &z.POSQ[i-2];
 
         // Check piece is on the board
         if( *p == 0 )
             continue;
 
         // Loop over all directions
-        m.M3 = *p;              //  Save position as board index
-        m.P1 = m.BOARDA[m.M3];
-        m.INDX2 = 0;
-        int8_t *y = &m.direct[m.INDX2];
+        z.M3 = *p;              //  Save position as board index
+        z.P1 = z.BOARDA[z.M3];
+        z.INDX2 = 0;
+        int8_t *y = &z.direct[z.INDX2];
         for( uint8_t dir_count=8; dir_count>0; dir_count-- )
         {
             int8_t dir = *y++;      // get direction of scan
-            m.M2 = m.M3;            // get King/Queen position
-            m.M4 = 0;               // clear pinned piece saved pos
+            z.M2 = z.M3;            // get King/Queen position
+            z.M4 = 0;               // clear pinned piece saved pos
 
             // Step through squares in this direction
             bool stepping = true;
@@ -1145,50 +1145,50 @@ void PINFND()
                 }
 
                 // Piece of same color it might be a pinned piece
-                else if( path_result==PATH_SAME_COLOR && m.M4==0 )
+                else if( path_result==PATH_SAME_COLOR && z.M4==0 )
                 {
 
                     // Register a possible pin position
-                    m.M4 = m.M2;
+                    z.M4 = z.M2;
                     stepping= true;  // keep stepping
                 }
 
                 // Else piece of different colour and we have a potential pinned piece
-                else if( path_result==PATH_OPPOSITE_COLOR && m.M4 != 0 )
+                else if( path_result==PATH_OPPOSITE_COLOR && z.M4 != 0 )
                 {
                     bool save_pinned_piece = false;
 
                     // Bishop pins piece to king or queen ?
-                    if( dir_count >=5 && m.T2 == BISHOP )
+                    if( dir_count >=5 && z.T2 == BISHOP )
                     {
                         save_pinned_piece = true;
                     }
 
                     // Rook pins piece to king or queen ?
-                    else if( dir_count <5 && m.T2 == ROOK )
+                    else if( dir_count <5 && z.T2 == ROOK )
                     {
                         save_pinned_piece = true;
                     }
 
                     // Queen pins piece to king or queen ?
-                    else if( m.T2 == QUEEN )
+                    else if( z.T2 == QUEEN )
                     {
 
                         // If king, yes that's a pin
-                        if( (m.P1&7) == KING )
+                        if( (z.P1&7) == KING )
                             save_pinned_piece = true;
                         else
                         {
 
                             // If queen do an attackers v defenders calculation
-                            m.T1 = 7;
-                            memset( m.wact, 0, sizeof(m.wact) );
-                            memset( m.bact, 0, sizeof(m.bact) );
+                            z.T1 = 7;
+                            memset( z.wact, 0, sizeof(z.wact) );
+                            memset( z.bact, 0, sizeof(z.bact) );
                             ATTACK();
                             int8_t defenders_minus_attackers;
-                            int8_t *wact = (int8_t *)m.wact;
-                            int8_t *bact = (int8_t *)m.bact;
-                            if( IS_BLACK(m.P1) )   // Is queen black ?
+                            int8_t *wact = (int8_t *)z.wact;
+                            int8_t *bact = (int8_t *)z.bact;
+                            if( IS_BLACK(z.P1) )   // Is queen black ?
                             {
                                 defenders_minus_attackers = *bact - *wact;
                             }
@@ -1204,8 +1204,8 @@ void PINFND()
                     // Save direction of pin and position of pinned piece
                     if( save_pinned_piece )
                     {
-                        m.plistd[m.NPINS]   = dir;
-                        m.PLISTA[m.NPINS++] = m.M4;
+                        z.plistd[z.NPINS]   = dir;
+                        z.PLISTA[z.NPINS++] = z.M4;
                     }
                 }
             }
@@ -1383,16 +1383,16 @@ void XCHNG( int8_t &points, int8_t &piece_val )
     // Initialise points won or lost
     points = 0;
 
-    bool black = IS_BLACK(m.P1);
+    bool black = IS_BLACK(z.P1);
     bool have_reversed_sides = false;
 
-    uint8_t *wact = m.wact;
-    uint8_t *bact = m.bact;
+    uint8_t *wact = z.wact;
+    uint8_t *bact = z.bact;
 
     uint8_t count_white = *wact;
     uint8_t count_black = *bact;
 
-    int8_t attacked_val = m.pvalue[m.T3-1];
+    int8_t attacked_val = z.pvalue[z.T3-1];
     attacked_val = attacked_val+attacked_val;   // units of value are half pawns
     piece_val = (uint8_t)attacked_val;  
 
@@ -1531,36 +1531,36 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 void POINTS()
 {
     trace_func_void(FE_POINTS);
-    int8_t *wact = (int8_t *)m.wact;
-    int8_t *bact = (int8_t *)m.bact;
+    int8_t *wact = (int8_t *)z.wact;
+    int8_t *bact = (int8_t *)z.bact;
 
     // Init points algorithm variables
-    m.MTRL  = 0;
-    m.BRDC  = 0;
-    m.PTSL  = 0;
-    m.PTSW1 = 0;
-    m.PTSW2 = 0;
-    m.PTSCK = 0;
+    z.MTRL  = 0;
+    z.BRDC  = 0;
+    z.PTSL  = 0;
+    z.PTSW1 = 0;
+    z.PTSW2 = 0;
+    z.PTSCK = 0;
 
     // Attacked piece type 1-6 for pawn to king. Use 7 as a special sentinel
     //  value to indicate to ATTACK() it's being called by POINTS()
-    m.T1 = 7;
+    z.T1 = 7;
 
     // Loop around board
-    for( m.M3=SQ_a1; m.M3<=SQ_h8; m.M3++ )
+    for( z.M3=SQ_a1; z.M3<=SQ_h8; z.M3++ )
     {
-        uint8_t piece = m.BOARDA[m.M3];
+        uint8_t piece = z.BOARDA[z.M3];
 
         //  Off board edge ?
         if( piece == 0xff )
             continue;
 
         // Piece with flags
-        m.P1 = piece;
+        z.P1 = piece;
 
         // Piece without flags
         piece &= 7;
-        m.T3 = piece;
+        z.T3 = piece;
 
         // Pawn (or empty) ?
         if( piece < KNIGHT )
@@ -1571,12 +1571,12 @@ void POINTS()
         {
 
             // If bishop or knight has not moved, 2 point penalty
-            if( HAS_NOT_MOVED(m.P1) )
+            if( HAS_NOT_MOVED(z.P1) )
             {
                 int8_t bonus = -2;
-                if( IS_BLACK(m.P1) )
+                if( IS_BLACK(z.P1) )
                     bonus = 2;  // 2 point penalty for Black
-                m.BRDC += bonus;
+                z.BRDC += bonus;
             }
         }
 
@@ -1585,51 +1585,51 @@ void POINTS()
         {
 
             // 6 point bonus for castling
-            if( IS_CASTLED(m.P1) )
+            if( IS_CASTLED(z.P1) )
             {
                 int8_t bonus = +6;
-                if( IS_BLACK(m.P1) )
+                if( IS_BLACK(z.P1) )
                     bonus = -6;     // 6 point bonus for Black
-                m.BRDC += bonus;
+                z.BRDC += bonus;
             }
 
             // Else if king has not castled but has moved, 2 point penalty
-            else if( HAS_MOVED(m.P1) )
+            else if( HAS_MOVED(z.P1) )
             {
                 int8_t bonus = -2;
-                if( IS_BLACK(m.P1) )
+                if( IS_BLACK(z.P1) )
                     bonus = 2;  // 2 point penalty for Black
-                m.BRDC += bonus;
+                z.BRDC += bonus;
             }
         }
 
         // Rook or queen early in game
-        else if( m.MOVENO < 7 )
+        else if( z.MOVENO < 7 )
         {
 
             // If rook or queen early in the game HAS moved, 2 point penalty
-            if( HAS_MOVED(m.P1) )
+            if( HAS_MOVED(z.P1) )
             {
                 int8_t bonus = -2;
-                if( IS_BLACK(m.P1) )
+                if( IS_BLACK(z.P1) )
                     bonus = 2;  // 2 point penalty for Black
-                m.BRDC += bonus;
+                z.BRDC += bonus;
             }
         }
 
         // Zero out attack lists
-        memset( m.wact, 0, sizeof(m.wact) );
-        memset( m.bact, 0, sizeof(m.bact) );
+        memset( z.wact, 0, sizeof(z.wact) );
+        memset( z.bact, 0, sizeof(z.bact) );
 
         // Build attack list for square
         ATTACK();
 
         // Get (White attacker count - Black attacker count) and accumulate
         //  into board control score
-        m.BRDC += (*wact-*bact);
+        z.BRDC += (*wact-*bact);
 
         // If square is empty continue loop
-        if( m.P1 == 0 )   // get piece on current square
+        if( z.P1 == 0 )   // get piece on current square
             continue;
 
         // Check for an en-prise piece on this square, for either color.
@@ -1648,31 +1648,31 @@ void POINTS()
         if( points != 0 )
         {
 
-            //  Devalue an unstable piece by half a Pawn value in m.MTRL calculation
+            //  Devalue an unstable piece by half a Pawn value in z.MTRL calculation
             attacked_piece_val--;
 
-            // m.COLOR is still set to the side that just moved.If color of piece
+            // z.COLOR is still set to the side that just moved.If color of piece
             //  under attack matches color of side that just moved, then it can
             //  be taken next move, we set "points lost" by the side that just moved
             //  to (almost) the full value of this loss, almost as much of a negative
             //  as if the material had already been lost
-            if( IS_SAME_COLOR(m.COLOR,m.P1) )
+            if( IS_SAME_COLOR(z.COLOR,z.P1) )
             {
 
                 // Save the worst such loss
-                if( points >= m.PTSL )
+                if( points >= z.PTSL )
                 {
-                    m.PTSL = points;
+                    z.PTSL = points;
 
                     // Is the lost piece the one moving ?
-                    if( m.M3 == m.MLPTRJ->to )
+                    if( z.M3 == z.MLPTRJ->to )
                     {
 
                         // Yes, save position as a flag, in the final
                         //  points tally we will adjust the points to
                         //  punish / discourage moving a piece to an
                         //  en-prise location
-                        m.PTSCK = m.M3; 
+                        z.PTSCK = z.M3; 
                     }
                 }
             }
@@ -1694,39 +1694,39 @@ void POINTS()
                 int8_t temp = points;
 
                 // PTSW1 is set to the largest points won value
-                if( points >= m.PTSW1 )
+                if( points >= z.PTSW1 )
                 {
 
                     // Update max points won (but save previous value)
-                    temp = m.PTSW1;
-                    m.PTSW1 = points;
+                    temp = z.PTSW1;
+                    z.PTSW1 = points;
                 }
 
                 // PTSW2 is set to the second largest points won value
-                if( temp >= m.PTSW2 )
+                if( temp >= z.PTSW2 )
                 {
-                    m.PTSW2 = temp;
+                    z.PTSW2 = temp;
                 }
             }
         }
 
         // Accumulate total material
-        if( IS_BLACK(m.P1) )
+        if( IS_BLACK(z.P1) )
             attacked_piece_val = 0-attacked_piece_val;    // negate piece value if Black
-        m.MTRL += attacked_piece_val;
+        z.MTRL += attacked_piece_val;
     }
 
     // Punish moving a piece into an en-prise location firstly by devaluing
     //  points won (even more)
-    if( m.PTSCK != 0 )
+    if( z.PTSCK != 0 )
     {
-        m.PTSW1 = 0;
+        z.PTSW1 = 0;
     }
 
     // Adjust points lost slightly, it should not be quite as bad as not having
     //  the material on the board at all - it might be taken, but it hasn't yet
     //  been taken!
-    int8_t ptsl = m.PTSL;
+    int8_t ptsl = z.PTSL;
     if( ptsl != 0 )
         ptsl--;
 
@@ -1735,7 +1735,7 @@ void POINTS()
     //  valued of the two most valuble en-prise attacks, if and only if there are
     //  at least two such attacks, and and only after discounting a half pawn's
     //  value as we did for points lost.
-    int8_t ptsw = (m.PTSW1!=0 && m.PTSW2!=0) ? (m.PTSW2-1)/2 : 0;
+    int8_t ptsw = (z.PTSW1!=0 && z.PTSW2!=0) ? (z.PTSW2-1)/2 : 0;
 
     // Points won net = points won - points lost
     ptsw -= ptsl;
@@ -1744,25 +1744,25 @@ void POINTS()
     //  Material and board control are bigger is better for White
     //  Points won net are bigger is better for the side that just moved
     //  Harmonise on "bigger is better for White" for now
-    if( IS_BLACK(m.COLOR) )
+    if( IS_BLACK(z.COLOR) )
         ptsw = 0-ptsw;  // so negate points won net if Black just moved
 
     // Add net material on board
-    ptsw += m.MTRL;
+    ptsw += z.MTRL;
 
     // Subtract material at ply 0
-    ptsw -= m.MV0;
+    ptsw -= z.MV0;
 
     // Limit to +/- 30 (Sargon refinement => 29 see asterisked comments
     //  below about higher weighting for mates in fewer moves)
     int8_t points = LIMIT(29,ptsw);
 
     // Board control points minus board control at ply zero
-    int8_t bcp = m.BRDC - m.BC0;
+    int8_t bcp = z.BRDC - z.BC0;
 
     // Punish moving a piece into an en-prise location a second time by
     //  seting board control points to zero
-    if( m.PTSCK != 0 )
+    if( z.PTSCK != 0 )
         bcp = 0;
 
     // Limit to +/- 6
@@ -1776,7 +1776,7 @@ void POINTS()
     // If White just moved negate a score that was bigger better for White
     // If Black just moved a score that was bigger better for White is already smaller is
     //  better for Black
-    if( IS_WHITE(m.COLOR) )
+    if( IS_WHITE(z.COLOR) )
         points = 0-points;
 
     // Rescale score (neutral = 0x80)
@@ -1791,12 +1791,12 @@ void POINTS()
     callback_end_of_points(points);
 
     // Save score value
-    m.VALM = (uint8_t)points;
+    z.VALM = (uint8_t)points;
 
     // Save score value to move pointed to by current move ptr
     // Note that this val field is never updated from this initial static
     // evaluation to a backed up refined minimax evaluation.
-    m.MLPTRJ->val = m.VALM;
+    z.MLPTRJ->val = z.VALM;
 }
 
 //***********************************************************
@@ -1857,23 +1857,23 @@ void MOVE()
     trace_func(FE_MOVE);
 
     //  Load move list pointer
-    ML *p = m.MLPTRJ;
+    ML *p = z.MLPTRJ;
 
     // Loop for possible double move
     for(;;)
     {
 
         // "From" position
-        m.M1 = p->from;
+        z.M1 = p->from;
 
         // "To" position
-        m.M2 = p->to;
+        z.M2 = p->to;
 
         // Get captured piece plus flags
         uint8_t captured_piece_plus_flags = p->flags;
 
         // Get piece moved from "from" pos board index
-        uint8_t piece = m.BOARDA[m.M1];
+        uint8_t piece = z.BOARDA[z.M1];
 
         // Promote pawn if required
         if( IS_PROMOTION(captured_piece_plus_flags) )
@@ -1884,36 +1884,36 @@ void MOVE()
         // Update queen position if required
         else if( (piece&7) == QUEEN )
         {
-            uint8_t *q = &m.POSQ[0];    // addr of saved queen position
+            uint8_t *q = &z.POSQ[0];    // addr of saved queen position
             if( IS_BLACK(piece) )       // is queen black ?
                 q++;                    // increment to black queen pos
-            *q = m.M2;                  // set new queen position
+            *q = z.M2;                  // set new queen position
         }
 
         // Update king position if required
         else if( (piece&7) == KING )
         {
-            uint8_t *q = &m.POSK[0];    // addr of saved king position
+            uint8_t *q = &z.POSK[0];    // addr of saved king position
             if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )  // castling ?
                 SET_CASTLED(piece);
             if( IS_BLACK(piece) )       // is king black ?
                 q++;                    // increment to black king pos
-            *q = m.M2;                  // set new king position
+            *q = z.M2;                  // set new king position
         }
 
         // Set piece moved flag
         SET_MOVED(piece);
 
         // Insert piece at new position
-        m.BOARDA[m.M2] = piece;
+        z.BOARDA[z.M2] = piece;
 
         // Empty previous position
-        m.BOARDA[m.M1] = 0;
+        z.BOARDA[z.M1] = 0;
 
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
-            p = m.MLPTRJ;  // reload move list pointer
+            p = z.MLPTRJ;  // reload move list pointer
             p++;           // go to second move of double move
         }
         else
@@ -1924,7 +1924,7 @@ void MOVE()
             {
 
                 // Clear queen royalty position after capture
-                uint8_t *q = &m.POSQ[0];
+                uint8_t *q = &z.POSQ[0];
                 if( IS_BLACK(captured_piece_plus_flags) )  // is queen black ?
                     q++; // increment to black queen pos
                 *q = 0;
@@ -1956,23 +1956,23 @@ void UNMOVE()
     trace_func(FE_UNMOVE);
 
     //  Load move list pointer
-    ML *p = m.MLPTRJ;
+    ML *p = z.MLPTRJ;
 
     // Loop for possible double move
     for(;;)
     {
 
         // "From" position
-        m.M1 = p->from;
+        z.M1 = p->from;
 
         // "To" position
-        m.M2 = p->to;
+        z.M2 = p->to;
 
         // Get captured piece plus flags
         uint8_t captured_piece_plus_flags = p->flags;
 
         // Get piece moved from "to" pos board index
-        uint8_t piece = m.BOARDA[m.M2];
+        uint8_t piece = z.BOARDA[z.M2];
 
         // Unpromote pawn if required
         if( IS_PROMOTION(captured_piece_plus_flags) )
@@ -1983,21 +1983,21 @@ void UNMOVE()
         // Update queen position if required
         else if( (piece&7) == QUEEN )
         {
-            uint8_t *q = &m.POSQ[0];    // addr of saved queen position
+            uint8_t *q = &z.POSQ[0];    // addr of saved queen position
             if( IS_BLACK(piece) )       // is queen black ?
                 q++;                    // increment to black queen pos
-            *q = m.M1;                  // set previous queen position
+            *q = z.M1;                  // set previous queen position
         }
 
         // Update king position if required
         else if( (piece&7) == KING )
         {
-            uint8_t *q = &m.POSK[0];    // addr of saved king position
+            uint8_t *q = &z.POSK[0];    // addr of saved king position
             if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )  // castling ?
                 CLR_CASTLED(piece);     // clear castled flag
             if( IS_BLACK(piece) )       // is king black ?
                 q++;                    // increment to black king pos
-            *q = m.M1;                  // set previous king position
+            *q = z.M1;                  // set previous king position
         }
 
         // If this is the first move for piece, clear piece moved flag
@@ -2007,16 +2007,16 @@ void UNMOVE()
         }
 
         // Return piece to previous board position
-        m.BOARDA[m.M1] = piece;
+        z.BOARDA[z.M1] = piece;
 
         // Restore captured piece with cleared flags
         uint8_t temp = captured_piece_plus_flags & 0x8f;
-        m.BOARDA[m.M2] = temp;
+        z.BOARDA[z.M2] = temp;
 
         // Double move ?
         if( IS_DOUBLE_MOVE(captured_piece_plus_flags) )
         {
-            p = m.MLPTRJ;  // reload move list pointer
+            p = z.MLPTRJ;  // reload move list pointer
             p++;           // go to second move of double move
         }
         else
@@ -2027,10 +2027,10 @@ void UNMOVE()
             {
 
                 // Restore queen royalty position after capture
-                uint8_t *q = &m.POSQ[0];
+                uint8_t *q = &z.POSQ[0];
                 if( IS_BLACK(captured_piece_plus_flags) )  // is queen black ?
                     q++; // increment to black queen pos
-                *q = m.M2;
+                *q = z.M2;
             }
             return;
         }
@@ -2065,11 +2065,11 @@ void SORTM()
     //  moves are unscored, so start by looping through them and scoring
     //  them with EVAL() whilst also establishing conventional begin and
     //  end ptrs (by convention end points one beyond the last element)
-    ML *ml_begin = m.MLPTRI->link_ptr;
+    ML *ml_begin = z.MLPTRI->link_ptr;
     ML *ml = ml_begin;
-    while( ml <= m.MLLST )
+    while( ml <= z.MLLST )
     {   
-        m.MLPTRJ = ml;
+        z.MLPTRJ = ml;
         EVAL();
         if( IS_DOUBLE_MOVE(ml->flags) )
         {
@@ -2106,8 +2106,8 @@ void SORTM()
 
     // Leave MLPTRJ pointing at the best move and MLLST pointing at the
     //  worst move, just to match the Sargon SORTM() behaviour
-    m.MLPTRJ           = ml_begin;
-    m.MLLST            = ml_end-1;
+    z.MLPTRJ           = ml_begin;
+    z.MLLST            = ml_end-1;
 
     #else
     // The original Sargon implementation is by necessity more complicated,
@@ -2170,7 +2170,7 @@ void SORTM()
     //
     ML *sorted_tail = 0;   // sorted tail needs to be relinked into
                            // sorted list after each sort step
-    ML_HEAD *unsorted_rover = m.MLPTRI;
+    ML_HEAD *unsorted_rover = z.MLPTRI;
 
     // Loop over the unsorted list, EVAL() and sort one move at a time
     // Example from above, we are just finishing up sorting J and then
@@ -2199,11 +2199,11 @@ void SORTM()
 
         // Evaluate this unsorted move
         // Example: unsorted_move = H
-        m.MLPTRJ = unsorted_move;               
+        z.MLPTRJ = unsorted_move;               
         EVAL();
 
         // Search loop, find the right point in the sorted list
-        ML_HEAD *sorted_rover = m.MLPTRI;  // sorted moves replace unsorted moves in ply list MLPTRI
+        ML_HEAD *sorted_rover = z.MLPTRI;  // sorted moves replace unsorted moves in ply list MLPTRI
 
         // Example: MLPTRI -> D -> J -> K   
         for(;;)
@@ -2222,10 +2222,10 @@ void SORTM()
                 break;
             }
 
-            // Compare value to list value (note m.VALM = m.MLPTRJ->val)
+            // Compare value to list value (note z.VALM = z.MLPTRJ->val)
             // Example iteration 1: H < D? (NO)
             // Example iteration 2: H < J? (YES)
-            if( m.VALM < sorted_tail->val )   // is unsorted better than sorted?
+            if( z.VALM < sorted_tail->val )   // is unsorted better than sorted?
             {
                 break;  // Yes sorted_rover->link_ptr will point to the new unsorted
                         // element instead of the inferior old sorted element
@@ -2276,11 +2276,11 @@ void EVAL()
     MOVE();
 
     // Determine if move is legal
-    bool inchk = INCHK(m.COLOR);
+    bool inchk = INCHK(z.COLOR);
 
     // Score of zero for illegal move
     if( inchk )
-        m.VALM = 0;
+        z.VALM = 0;
     else
     {
 
@@ -2319,52 +2319,52 @@ void FNDMOV()
     trace_func(FE_FNDMOV);
 
     // Book move ?
-    if( m.MOVENO == 1 )
+    if( z.MOVENO == 1 )
     {
         BOOK();
         return;
     }
 
     //  Initialize best move
-    m.NPLY  = 0;
-    m.BESTM = 0;
+    z.NPLY  = 0;
+    z.BESTM = 0;
 
     //  Initialize ply list pointers
-    m.MLNXT  = m.MLIST;
-    m.MLPTRI = m.PLYIX;
+    z.MLNXT  = z.MLIST;
+    z.MLPTRI = z.PLYIX;
     
     // The original Sargon code actually sets it this way which is
     //  a tricky way of saving one element in the PLYIX array
-    //m.MLPTRI = &m.PLYIX[-1];    // don't worry, it's incremented just before first ptr store
+    //z.MLPTRI = &z.PLYIX[-1];    // don't worry, it's incremented just before first ptr store
 
     // Initialise color
-    m.COLOR = m.KOLOR;
+    z.COLOR = z.KOLOR;
 
     // Initialize score table
-    memset( m.SCORE, 0, sizeof(m.SCORE) );
+    memset( z.SCORE, 0, sizeof(z.SCORE) );
 
     // Init board control and material
-    m.BC0 = 0;
-    m.MV0 = 0;
+    z.BC0 = 0;
+    z.MV0 = 0;
 
     //  Compile pin list
     PINFND();
 
     //  Evaluate board at ply 0
-    TOGGLE(m.COLOR);    // POINTS() expects m.COLOR to be side just moved, not side to move
+    TOGGLE(z.COLOR);    // POINTS() expects z.COLOR to be side just moved, not side to move
     POINTS();
-    TOGGLE(m.COLOR);    // Restore m.COLOR
-    m.BC0 = m.BRDC;     // Strictly speaking we didn't need to toggle color, and Sargon Z80
-    m.MV0 = m.MTRL;     //  doesn't bother, because the calculation of both m.BRDC and m.MTRL
-                        //  in POINTS() does not depend on m.COLOR
+    TOGGLE(z.COLOR);    // Restore z.COLOR
+    z.BC0 = z.BRDC;     // Strictly speaking we didn't need to toggle color, and Sargon Z80
+    z.MV0 = z.MTRL;     //  doesn't bother, because the calculation of both z.BRDC and z.MTRL
+                        //  in POINTS() does not depend on z.COLOR
 
     // Generate move list for ply 1, from start position
-    m.MATEF = true;             // Assume mate unless legal move found
+    z.MATEF = true;             // Assume mate unless legal move found
     GENMOV();                   // Generate list of moves
     callback_after_genmov();
-    if( m.PLYMAX > m.NPLY )
+    if( z.PLYMAX > z.NPLY )
         SORTM();                // If not at max ply, score and sort (for alpha-beta) the moves
-    m.MLPTRJ = (ML *)m.MLPTRI;  // Current move is first move in the move list for this ply
+    z.MLPTRJ = (ML *)z.MLPTRI;  // Current move is first move in the move list for this ply
 
     // Loop through the moves
     for(;;)
@@ -2372,18 +2372,18 @@ void FNDMOV()
         bool is_leaf_node = false;
 
         //  If more moves in move list
-        if( m.MLPTRJ->link_ptr != 0 )
+        if( z.MLPTRJ->link_ptr != 0 )
         {
 
-            m.MLPTRJ           = m.MLPTRJ->link_ptr;    // next move in move list
-            m.MLPTRI->link_ptr = m.MLPTRJ;              // update ply pointer to point current move
+            z.MLPTRJ           = z.MLPTRJ->link_ptr;    // next move in move list
+            z.MLPTRI->link_ptr = z.MLPTRJ;              // update ply pointer to point current move
 
             // Not yet at max depth, make the move
-            if( m.NPLY < m.PLYMAX )
+            if( z.NPLY < z.PLYMAX )
             {
 
                 // If score is zero (illegal move) continue looping
-                if( m.MLPTRJ->val == 0 )
+                if( z.MLPTRJ->val == 0 )
                     continue;
 
                 // Execute move on board array
@@ -2398,7 +2398,7 @@ void FNDMOV()
                 MOVE();
 
                 // Check move legality
-                bool inchk = INCHK(m.COLOR); // illegal if we are in check after making move
+                bool inchk = INCHK(z.COLOR); // illegal if we are in check after making move
 
                 //  If move not legal, restore board position and continue looping
                 if( inchk )
@@ -2414,7 +2414,7 @@ void FNDMOV()
                 // So
                 //  leaf node if move does not check or if we have already gone one move
                 //  deeper
-                if( m.NPLY > m.PLYMAX || !INCHK(m.COLOR^0x80) )
+                if( z.NPLY > z.PLYMAX || !INCHK(z.COLOR^0x80) )
                 {
                     is_leaf_node = true;
                 }
@@ -2425,18 +2425,18 @@ void FNDMOV()
             {
 
                 // Toggle color
-                TOGGLE(m.COLOR);
+                TOGGLE(z.COLOR);
 
                 // If new colour is white increment move number
-                if( IS_WHITE(m.COLOR) )
-                    m.MOVENO++;
+                if( IS_WHITE(z.COLOR) )
+                    z.MOVENO++;
 
                 // Update score
-                m.SCORE[m.NPLY+1] = m.SCORE[m.NPLY-1];
-                tracef( "Descending, initialise ply %d score with ply %d score %u\n", m.NPLY+1, m.NPLY-1, m.SCORE[m.NPLY-1] );
+                z.SCORE[z.NPLY+1] = z.SCORE[z.NPLY-1];
+                tracef( "Descending, initialise ply %d score with ply %d score %u\n", z.NPLY+1, z.NPLY-1, z.SCORE[z.NPLY-1] );
 
                 // Generate moves at next ply
-                m.MATEF = true;                 // assume mate unless legal move found
+                z.MATEF = true;                 // assume mate unless legal move found
                 GENMOV();                       // generate list of moves
                 callback_after_genmov();
 
@@ -2446,9 +2446,9 @@ void FNDMOV()
                 // performed to speed up the algorithm by making alpha-beta cutoffs
                 // more likely. No need to sort at max depth (there's not going to
                 // be alpha-beta cutoffs at the leaves)
-                if( m.PLYMAX > m.NPLY )
+                if( z.PLYMAX > z.NPLY )
                     SORTM();                    // not at max ply, so call sort
-                m.MLPTRJ = (ML *)m.MLPTRI;      // set current move to first move in
+                z.MLPTRJ = (ML *)z.MLPTRI;      // set current move to first move in
                                                 //  the move list for this ply
 
                 // Continue loop to iterate through the new move list
@@ -2457,7 +2457,7 @@ void FNDMOV()
         }
 
         // Get to this point if
-        //  if( m.MLPTRJ->link_ptr == 0 )   // No more moves in move list
+        //  if( z.MLPTRJ->link_ptr == 0 )   // No more moves in move list
         //  OR if a leaf node
         // Apply minimax and alpha beta and then ASCEND() up tree
 
@@ -2476,15 +2476,15 @@ void FNDMOV()
 
             // Restore board position
             UNMOVE();
-            score_smaller_is_better = m.VALM;             // get value of move
+            score_smaller_is_better = z.VALM;             // get value of move
             tracef( "Leaf node, score_smaller_is_better=%u\n", score_smaller_is_better );
-            m.MATEF = false;            // it's not mate
+            z.MATEF = false;            // it's not mate
         }
 
         // Else if legal move found, so not mate or stalemate, ASCEND
-        else if( !m.MATEF )
+        else if( !z.MATEF )
         {
-            if( m.NPLY == 1 )           // at top of tree ?
+            if( z.NPLY == 1 )           // at top of tree ?
                 return;                 // yes
             ASCEND();                   // ascend one ply in tree
 
@@ -2493,14 +2493,14 @@ void FNDMOV()
             //  scores in the ply table are bigger_is_better but
             //  bigger_is_better for replies is smaller_is_better
             //  for the move the replies are replying to
-            score_smaller_is_better = m.SCORE[m.NPLY+1];
+            score_smaller_is_better = z.SCORE[z.NPLY+1];
         }
 
         // Else if mate or stalemate
         else
         {
             score_smaller_is_better = 128;   // stalemate score
-            if( m.CKFLG )   // test check flag
+            if( z.CKFLG )   // test check flag
             {
                 score_smaller_is_better = 0xff;   // if in check, then checkmate score
                                          //  (player to move has worse possible score)
@@ -2516,7 +2516,7 @@ void FNDMOV()
                 //  to
                 //    4*LIMIT(29,material) + LIMIT(6,board control)
                 //    (maxes out at 122)
-                uint8_t reduce = (m.NPLY-2)/2;
+                uint8_t reduce = (z.NPLY-2)/2;
                 if( reduce > 4 )
                     reduce = 4;
                 score_smaller_is_better -= reduce;
@@ -2528,10 +2528,10 @@ void FNDMOV()
                 // Sargon mates in 5 (or more) is detected at NPLY=10 (or more), reduce=4
                 // Sargon mated next move is detected at NPLY=3, reduce=0
                 // Sargon mated in 2 is detected at NPLY=5, reduce=1 etc
-                tracef( "Mate detected, NPLY=%d, reduce=%d\n", m.NPLY, reduce );
-                m.PMATE= m.MOVENO;
+                tracef( "Mate detected, NPLY=%d, reduce=%d\n", z.NPLY, reduce );
+                z.PMATE= z.MOVENO;
             }
-            m.MATEF = false;     // mate flag has served its purpose
+            z.MATEF = false;     // mate flag has served its purpose
         }
 
         // Alpha Beta cutoff ?
@@ -2548,7 +2548,7 @@ void FNDMOV()
         //   against the best to date (B say). So stop wasting time on D"
 
         // Score table scores are flipped, so bigger is better
-        const uint8_t *table_bigger_is_better = &m.SCORE[m.NPLY-1];
+        const uint8_t *table_bigger_is_better = &z.SCORE[z.NPLY-1];
         //tracef( "Alpha-beta cutoff if score_smaller_is_better<=ply above: %s (score_smaller_is_better=%u, ply above=%u)\n",
         //        score_smaller_is_better<=*table_bigger_is_better?"YES":"NO", score_smaller_is_better, *table_bigger_is_better );
         trace_alpha_beta( score_smaller_is_better, *table_bigger_is_better );
@@ -2576,40 +2576,40 @@ void FNDMOV()
         // Flip score (twos complement)
         score_bigger_is_better = (score_smaller_is_better^0xff)+1;
         tracef( "is the best move if score_bigger_is_better > ply score: %s (score_smaller_is_better=%u, score_bigger_is_better=%u, ply score=%u)\n",
-                      (score_bigger_is_better > m.SCORE[m.NPLY])?"YES":"NO", (score_bigger_is_better^0xff)+1, score_bigger_is_better, m.SCORE[m.NPLY] );
+                      (score_bigger_is_better > z.SCORE[z.NPLY])?"YES":"NO", (score_bigger_is_better^0xff)+1, score_bigger_is_better, z.SCORE[z.NPLY] );
 
         // Is this the best reply to date?
-        bool score_greater = (m.SCORE[m.NPLY] < score_bigger_is_better);
-        callback_no_best_move( score_bigger_is_better, &m.SCORE[m.NPLY] );
+        bool score_greater = (z.SCORE[z.NPLY] < score_bigger_is_better);
+        callback_no_best_move( score_bigger_is_better, &z.SCORE[z.NPLY] );
         if( !score_greater )
             continue;   // continue unless score is greater
 
         // Save bigger_is_better score in table
-        m.SCORE[m.NPLY] = score_bigger_is_better;
+        z.SCORE[z.NPLY] = score_bigger_is_better;
         //tracef( "SCORE updated, score_bigger_is_better=%u\n", score_bigger_is_better );
         trace_score_updated( score_bigger_is_better );
         callback_yes_best_move();
 
         // At top of tree ?
-        if( m.NPLY != 1 )
+        if( z.NPLY != 1 )
             continue;   // no - loop
 
         // Set best move pointer = current move pointer
-        m.BESTM = m.MLPTRJ;
+        z.BESTM = z.MLPTRJ;
 
         //  Was it mate on the move ?
-        if( m.SCORE[1] != 0xff )
+        if( z.SCORE[1] != 0xff )
             continue;   // no - loop
 
         // Subtract 2 from maximum ply number
         //  (Presumably so Sargon will find the mate faster when it is
         //   its turn to play next - but this is not really necessary
         //   or desirable in Sargon x86 / C++ ports so commented out)
-        // m.PLYMAX -= 2;
+        // z.PLYMAX -= 2;
 
         // Calculate checkmate move number and return
-        if( IS_BLACK(m.KOLOR) )  // if computer's color is black decrement
-            m.PMATE--;
+        if( IS_BLACK(z.KOLOR) )  // if computer's color is black decrement
+            z.PMATE--;
         return;
     }
 }
@@ -2633,17 +2633,17 @@ void ASCEND()
     tracef( "ASCEND()\n" );
 
     // Toggle color
-    TOGGLE(m.COLOR);
+    TOGGLE(z.COLOR);
 
     // If new colour is Black, decrement move number
-    if( IS_BLACK(m.COLOR) )
-        m.MOVENO--;
+    if( IS_BLACK(z.COLOR) )
+        z.MOVENO--;
 
     // Decrement ply counter and update pointers
-    m.NPLY--;
-    m.MLNXT  = m.PLYIX_nxt[m.NPLY];     // end of moves at this ply
-    m.MLPTRI = &(m.PLYIX[m.NPLY]);      // linked list head
-    m.MLPTRJ = m.MLPTRI->link_ptr;      // current move
+    z.NPLY--;
+    z.MLNXT  = z.PLYIX_nxt[z.NPLY];     // end of moves at this ply
+    z.MLPTRI = &(z.PLYIX[z.NPLY]);      // linked list head
+    z.MLPTRJ = z.MLPTRI->link_ptr;      // current move
 
     // Restore board to previous ply
     UNMOVE();
@@ -2665,13 +2665,13 @@ void ASCEND()
 void BOOK()
 {
     // Set score to zero
-    uint8_t *p = (uint8_t *)&m.SCORE;
+    uint8_t *p = (uint8_t *)&z.SCORE;
     *(p+1) = 0;
 
     // Point to 4 individual first move book moves, in order 1.e4, 1.d4, 1...e5, 1...d5
     //  For each move only the bytes at MLFRP, MLTOP, MLFG respectively (from, to, flags)
     //  are stored (so 3 bytes per move)
-    p = &m.BMOVES[0];
+    p = &z.BMOVES[0];
 
     // Adjust p so that MLFRP points at "from" (then "to", then "flags")
     p -= offsetof(ML,from);
@@ -2680,7 +2680,7 @@ void BOOK()
     uint8_t *e4=p, *d4=p+3, *e5=p+6, *d5=p+9;
 
     // If computer is White
-    if( m.KOLOR == 0 )
+    if( z.KOLOR == 0 )
     {
 
         // Get a random number
@@ -2689,24 +2689,24 @@ void BOOK()
 
         // Play e4 or d4 randomly
         if( (rand&1) == 0 )
-            m.BESTM = (ML *)e4;
+            z.BESTM = (ML *)e4;
         else
-            m.BESTM = (ML *)d4;
+            z.BESTM = (ML *)d4;
     }
 
     // Else computer is Black
     else
     {
-        uint8_t from = m.MLPTRJ->from;   // get "from" square for opponent's 1st move
+        uint8_t from = z.MLPTRJ->from;   // get "from" square for opponent's 1st move
 
         // Play d5 after all White first moves except a,b,c or e pawn moves
         bool play_d5 = true;
         if( from==SQ_a2 || from==SQ_b2 || from==SQ_c2 || from==SQ_e2 )
             play_d5 = false;
         if( play_d5 )
-            m.BESTM = (ML *)d5;
+            z.BESTM = (ML *)d5;
         else
-            m.BESTM = (ML *)e5;
+            z.BESTM = (ML *)e5;
     }
 }
 
@@ -2748,13 +2748,13 @@ void CPTRMV()
     FNDMOV();
 
     // Save best move
-    m.MLPTRJ = m.BESTM;
+    z.MLPTRJ = z.BESTM;
 
     // Make the move
     MOVE();
 
     // Toggle color
-    TOGGLE(m.COLOR);
+    TOGGLE(z.COLOR);
 
     // Unnecessary Z80 User interface stuff, including EXECMV (graphics move)
     // has now been removed
@@ -2871,26 +2871,26 @@ bool VALMOV()
     bool ok=false;
 
     //  Save last move pointer
-    ML *mlptrj_save = m.MLPTRJ;
+    ML *mlptrj_save = z.MLPTRJ;
 
     // Set user color to opposite of computer's color
-    m.COLOR = IS_WHITE(m.KOLOR) ? BLACK : WHITE;
+    z.COLOR = IS_WHITE(z.KOLOR) ? BLACK : WHITE;
 
     // Load move list index
-    ML_HEAD *p = m.PLYIX;
+    ML_HEAD *p = z.PLYIX;
     p--;
-    m.MLPTRI = p;
+    z.MLPTRI = p;
 
     // Next available list pointer
-    ML *ml = m.MLIST;
+    ML *ml = z.MLIST;
     ml += 1024/sizeof(ML);      // FIXME this is a mystery
-    m.MLNXT = ml;
+    z.MLNXT = ml;
 
     // Generate opponent's moves
     GENMOV();
 
     // Search for move, "From" position (offset 0) "To" position (offset 1)
-    uint8_t *q = (uint8_t *)&m.MVEMSG;
+    uint8_t *q = (uint8_t *)&z.MVEMSG;
     for(;;)
     {
 
@@ -2904,19 +2904,19 @@ bool VALMOV()
         {
 
             // Invalid move, restore last move pointer
-            m.MLPTRJ = mlptrj_save;
+            z.MLPTRJ = mlptrj_save;
             return ok;  // false
         }
     }
 
     //  Save opponents move pointer
-    m.MLPTRJ = ml;
+    z.MLPTRJ = ml;
 
     //  Make move on board array
     MOVE();
 
     //  Was it a legal move ?
-    bool inchk = INCHK(m.COLOR);
+    bool inchk = INCHK(z.COLOR);
     ok = !inchk;
     if( !ok )
     {
@@ -2925,7 +2925,7 @@ bool VALMOV()
         UNMOVE();
 
         //  Restore last move pointer
-        m.MLPTRJ = mlptrj_save;
+        z.MLPTRJ = mlptrj_save;
     }
     return ok;
 }
@@ -2953,29 +2953,29 @@ void ROYALT()
 {
 
     // Clear royalty array
-    m.POSK[0] = 0;
-    m.POSK[1] = 0;
-    m.POSQ[0] = 0;
-    m.POSQ[1] = 0;
+    z.POSK[0] = 0;
+    z.POSK[1] = 0;
+    z.POSQ[0] = 0;
+    z.POSQ[1] = 0;
 
     // Board idx = a1 to h8 inclusive
     for( int idx=SQ_a1; idx<=SQ_h8; idx++ )
     {
-        uint8_t piece = m.BOARDA[idx];
+        uint8_t piece = z.BOARDA[idx];
 
         // Update king or queen position if king or queen found
         if( (piece&7) == KING )
         {
-            m.POSK[IS_BLACK(piece)?1:0] = idx;
+            z.POSK[IS_BLACK(piece)?1:0] = idx;
         }
         else if( (piece&7) == QUEEN )
         {
-            m.POSQ[IS_BLACK(piece)?1:0] = idx;
+            z.POSQ[IS_BLACK(piece)?1:0] = idx;
         }
     }
 
     // leave M1 at h8, not padding beyond h8 [probably not needed]
-    m.M1 = SQ_h8;
+    z.M1 = SQ_h8;
 }
 
 //
