@@ -76,7 +76,6 @@ static bool        cmd_interactive_go( int nbr_lines );
 static bool        cmd_interactive_move( const std::string &raw_cmd );
 static bool        cmd_interactive_position( const std::string &raw_cmd_line );
 static bool        cmd_interactive_level( const std::string &parm );
-static bool        cmd_interactive_flip();
 static bool        cmd_interactive_undo();
 static void        cmd_interactive_save( const std::string &filename, std::string &output_msg );
 
@@ -85,7 +84,7 @@ static bool is_new_game();
 static int log( const char *fmt, ... );
 static bool run_sargon( int plymax, bool avoid_book );
 static std::string generate_progress_report();
-static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth );
+static thc::Move calculate_next_move( bool interactive_mode, bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth );
 
 // A threadsafe-queue. (from https://stackoverflow.com/questions/15278343/c11-thread-safe-queue )
 template <class T>
@@ -143,7 +142,7 @@ int main_uci( int argc, const char *argv[] )
 #ifdef _DEBUG
     static const std::vector<std::string> test_sequence =
     {
-#if 1
+#if 0
         "",
         "8/8/8/4k/8/8/8/KQ w - - 0 1",
         "level 9",
@@ -937,7 +936,7 @@ static std::string cmd_go( const std::vector<std::string> &fields )
         }
     }
     bool new_game = is_new_game();
-    thc::Move bestmove = calculate_next_move( new_game, ms_time, ms_inc, depth );
+    thc::Move bestmove = calculate_next_move( false, new_game, ms_time, ms_inc, depth );
     return util::sprintf( "bestmove %s\n", bestmove.TerseOut().c_str() );
 }
 
@@ -1083,7 +1082,7 @@ static bool cmd_interactive_go( int nbr_lines )
     fprintf( stderr, "%s\n", s.c_str() );
     fprintf( stderr, "Thinking [level %d]....", the_level );
     fflush( stderr );
-    thc::Move bestmove = calculate_next_move( true, 1000000, 1000000, the_level );
+    thc::Move bestmove = calculate_next_move( true, true, 1000000, 1000000, the_level );
     ok = bestmove.Valid();
     if( ok )
     {
@@ -1415,7 +1414,7 @@ static std::string generate_progress_report()
 
 */
 
-static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth )
+static thc::Move calculate_next_move(  bool interactive_mode, bool new_game, unsigned long ms_time, unsigned long ms_inc, int depth )
 {
     // Timers
     const unsigned long LOW  = 100;
@@ -1431,12 +1430,16 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     bool fixed_depth = (depth>0);
     int plymax = fixed_depth ? depth : plymax_adaptive;
     int plymax_before = plymax_adaptive;
-    timer_set( ms_hi );
+    if( !interactive_mode )
+        timer_set( ms_hi );
     unsigned long base = elapsed_milliseconds();
     bool aborted = run_sargon(plymax,false);
+    if( aborted )
+        run_sargon(3,false);    // PLYMAX=3 is close to instantaneous
     unsigned long now = elapsed_milliseconds();
     unsigned long elapsed = (now-base);
-    timer_clear();
+    if( !interactive_mode )
+        timer_clear();
 
     // The special case, where Sargon minimax never ran should only be book move
     bool book_move = (the_pv.variation.size() == 0);
@@ -1444,7 +1447,7 @@ static thc::Move calculate_next_move( bool new_game, unsigned long ms_time, unsi
     // Adjust ply max if appropriate
     if( !book_move && !fixed_depth )
     {
-        if( (aborted || elapsed>ms_med) && plymax_adaptive>0 )
+        if( (aborted || elapsed>ms_med) && plymax_adaptive>3 )
             plymax_adaptive--;   // we used too much time
         else if( elapsed<ms_lo && plymax_adaptive<MAX_DEPTH )
             plymax_adaptive++;   // we can afford to go deeper next time
