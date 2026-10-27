@@ -3091,7 +3091,10 @@ bool VALMOV()
 
     // Next available list pointer
     ML *ml = z.MLIST;
-    ml += 1024/sizeof(ML);      // FIXME this is a mystery
+    ml += 1024/sizeof(ML);      // Just point beyond the PLY 1 part of the move list
+                                //  FNDMOV() is not running so we don't have to worry
+                                //  that we are overwriting anything relevant or still
+                                //  in scope.
     z.MLNXT = ml;
 
     // Generate opponent's moves
