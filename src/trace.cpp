@@ -377,13 +377,19 @@ void tracef( const char *fmt, ... )
     }
     if( !free_run )
     {
-        printf( "q,d,r,[+/-]n,pn (quit,debug,run,goto n,goto ply)>" );
+        printf( "q,v,d,r,[+/-]n,pn (quit,verbose,debug,run,goto n,goto ply)>" );
         char buf[80];
         buf[0] = '\0';
         fgets( buf, sizeof(buf)-2, stdin );
         if( buf[0]=='q' || buf[0]=='Q' )
         {
             exit(0);
+            return;
+        }
+        if( buf[0]=='v' || buf[0]=='V' )
+        {
+            suppress_output = !suppress_output; 
+            printf( "Verbose output now %s\n",  suppress_output?"off":"on" );
             return;
         }
         if( buf[0]=='r' || buf[0]=='R' )
@@ -425,7 +431,7 @@ void tracef( const char *fmt, ... )
                 {
                     restart_test = true;
                     suppress_output = true;
-                    printf( "Test continues and restarts before logging recommences...\n" );
+                    printf( "Test will continue until end then restart to simulate going backwards...\n" );
                 }
             }
         }

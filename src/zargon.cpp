@@ -832,106 +832,105 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
 {
     trace_func(FE_ATKSAV);
 
-     /*
+/*
+    How this Works
 
-     How this works
+    This routine collects an ordered list of up to 12 attackers (or
+    defenders) of a square. The attackers (or defenders, but from
+    now on I'll just say attackers even though it could also be
+    defenders) are organised into 6 double entry slots, one for
+    each piece type. The slots are byte sized at PAWN, KNIGHT,
+    BISHOP, ROOK, QUEEN, KING (1,2,3,4,5,6 repectively) offset from
+    the start of the wact or bact 7 byte array, leaving offset 0
+    for the attacker count in a 7 byte data structure. Two entries
+    are packed into one slot by using the two nibbles of a byte.
+    The values stored are 1,3,3,5,9,10 respectively for each
+    piece type, i.e. the conventional pawn value of the pieces
+    with 10 used for the king. Under normal circumstances up to
+    two pieces of each type are present, sufficient for all but
+    edge cases as only two pawns can ever combine attacks on
+    one square and Sargon doesn't really do underpromotion. A
+    zero value is used to indicate an unused entry in the table.
+    Basically the attacking values are placed into position in
+    a sparse matrix so that ordered values are available without
+    needing any sorting.
 
-     This routine collects an ordered list of up to 12 attackers (or
-     defenders) of a square. The attackers (or defenders, but from
-     now on I'll just say attackers even though it could also be
-     defenders) are organised into 6 double entry slots, one for
-     each piece type. The slots are byte sized at PAWN, KNIGHT,
-     BISHOP, ROOK, QUEEN, KING (1,2,3,4,5,6 repectively) offset from
-     the start of the wact or bact 7 byte array, leaving offset 0
-     for the attacker count in a 7 byte data structure. Two entries
-     are packed into one slot by using the two nibbles of a byte.
-     The values stored are 1,3,3,5,9,10 respectively for each
-     piece type, i.e. the conventional pawn value of the pieces
-     with 10 used for the king. Under normal circumstances up to
-     two pieces of each type are present, sufficient for all but
-     edge cases as only two pawns can ever combine attacks on
-     one square and Sargon doesn't really do underpromotion. A
-     zero value is used to indicate an unused entry in the table.
-     Basically the attacking values are placed into position in
-     a sparse matrix so that ordered values are available without
-     needing any sorting.
+    Some examples;
 
-     Some examples;
+    5,0x01,0x00,0x03,0x05,0x09,0x0a -> PBRQK
 
-     5,0x01,0x00,0x03,0x05,0x09,0x0a -> PBRQK
+    A square is attacked by a pawn, a bishop, a rook, a queen and
+    a king. This is also the order, it's setup this way because
+    in chess you usually prefer to capture with your lowest value
+    piece first when you have a choice. Sargon was written way
+    before master level computer chess was possible and it was
+    happy to get it right more often than not, without worrying
+    about unusual edge cases.
 
-     A square is attacked by a pawn, a bishop, a rook, a queen and
-     a king. This is also the order, it's setup this way because
-     in chess you usually prefer to capture with your lowest value
-     piece first when you have a choice. Sargon was written way
-     before master level computer chess was possible and it was
-     happy to get it right more often than not, without worrying
-     about unusual edge cases.
+    5,0x01,0x33,0x00,0x05,0x09a -> PNNRQ
 
-     5,0x01,0x33,0x00,0x05,0x09a -> PNNRQ
+    Both entries of the knight slot are used, indicating two
+    capturing knights.
 
-     Both entries of the knight slot are used, indicating two
-     capturing knights.
+    3,0x00,0x00,0x03,0x00,0x59,0x00 -> BQR
 
-     3,0x00,0x00,0x03,0x00,0x59,0x00 -> BQR
+    A bishop, queen and rook in that order. The ATKSAV algorithm
+    and data structure is set up to accommodate the situation
+    where you cannot capture in the preferred lowest value piece
+    first order because you have either rooks or bishops lined
+    up behind a queen. Here a rook is behind the queen. The
+    least significant nibble is ordered ahead of the most
+    significant nibble, so 0x59 not 0x95. In fact 0x95 never
+    occurs because a rook and queen only share one slot in the
+    table in this specific situation where the rook is behind
+    the queen so the queen must come first.
 
-     A bishop, queen and rook in that order. The ATKSAV algorithm
-     and data structure is set up to accommodate the situation
-     where you cannot capture in the preferred lowest value piece
-     first order because you have either rooks or bishops lined
-     up behind a queen. Here a rook is behind the queen. The
-     least significant nibble is ordered ahead of the most
-     significant nibble, so 0x59 not 0x95. In fact 0x95 never
-     occurs because a rook and queen only share one slot in the
-     table in this specific situation where the rook is behind
-     the queen so the queen must come first.
+    4,0x00,0x00,0x03,0x00,0x59,0x05 -> BQRR
 
-     4,0x00,0x00,0x03,0x00,0x59,0x05 -> BQRR
+    What if two rooks are lined up behind a queen? (two bishops
+    are a little implausible, especially in the no
+    underpromotion world of Sargon). In that case one of the
+    rooks slides over into the king's slot.
 
-     What if two rooks are lined up behind a queen? (two bishops
-     are a little implausible, especially in the no
-     underpromotion world of Sargon). In that case one of the
-     rooks slides over into the king's slot.
+    5,0x00,0x00,0x03,0x00,0x59,0xa5 -> BQRRK
 
-     5,0x00,0x00,0x03,0x00,0x59,0xa5 -> BQRRK
+    Finally, a situation where the king also attacks the square,
+    no problem there is rook and queen in the queen slot and
+    another rook and the king in the king's slot. The king's
+    slot may have 0xa5 indicating rook followed by king but
+    never 0x5a indicating king followed by rook, similar to
+    (although the other way around) to the way the queen's
+    slot may have 0x59 but never 0x95.
 
-     Finally, a situation where the king also attacks the square,
-     no problem there is rook and queen in the queen slot and
-     another rook and the king in the king's slot. The king's
-     slot may have 0xa5 indicating rook followed by king but
-     never 0x5a indicating king followed by rook, similar to
-     (although the other way around) to the way the queen's
-     slot may have 0x59 but never 0x95.
+    These complications are handled with some surprisingly
+    compact code - translated directly from the Sargon 1978
+    original which made good use of special Z80 nibble
+    opcodes. See comments below. However, the code is not
+    set up to deal with promotion, I suspect the trade-off
+    was maximise speed and efficiency for all but extreme
+    edge cases, similar to the ROYALT() situation (one king
+    plus one queen) which is fine, but we can make a very
+    worthwhile improvement by allocating one extra byte
+    (so 8 bytes total not 7) to avoid a very unfortunate
+    buffer overflow in the following situation
 
-     These complications are handled with some surprisingly
-     compact code - translated directly from the Sargon 1978
-     original which made good use of special Z80 nibble
-     opcodes. See comments below. However, the code is not
-     set up to deal with promotion, I suspect the trade-off
-     was maximise speed and efficiency for all but extreme
-     edge cases, similar to the ROYALT() situation (one king
-     plus one queen) which is fine, but we can make a very
-     worthwhile improvement by allocating one extra byte
-     (so 8 bytes total not 7) to avoid a very unfortunate
-     buffer overflow in the following situation
+    5,0x00,0x00,0x00,0x00,0x99,0x55,0x0a
 
-     5,0x00,0x00,0x00,0x00,0x99,0x55,0x0a
+    Here two queens and two rooks fully occupy the king and
+    queen slots, before a king is added. In that case the
+    king is the piece that triggers the p++ overflow in the
+    code below, and an extra byte beyond the king slot
+    should be added to accommodate this. I will tag this
+    with ATKSAV_BUG2, for search purposes. Note that this
+    is an edge of an edge case, if the king is encountered
+    first it will be shifted out of the king slot by a
+    second rook and lost, a different and less serious problem
+    (in general ATKSAV() doesn't necessarily fully cope with
+    promotion edge cases, ATKSAV_BUG2 is judged special and
+    worthy of a fix simply because it involves buffer
+    overflow)
 
-     Here two queens and two rooks fully occupy the king and
-     queen slots, before a king is added. In that case the
-     king is the piece that triggers the p++ overflow in the
-     code below, and an extra byte beyond the king slot
-     should be added to accommodate this. I will tag this
-     with ATKSAV_BUG2, for search purposes. Note that this
-     is an edge of an edge case, if the king is encountered
-     first it will be shifted out of the king slot by a
-     second rook and lost, a different and less serious problem
-     (in general ATKSAV() doesn't necessarily fully cope with
-     promotion edge cases, ATKSAV_BUG2 is judged special and
-     worthy of a fix simply because it involves buffer
-     overflow)
-
-     */
+ */
 
     // If there are pins, check whether this attacking piece is
     //  pinned and therefore not worthy of being saved to the list
@@ -1231,21 +1230,21 @@ void XCHNG( int8_t &points, int8_t &piece_val )
     trace_func(FE_XCHNG);
 
 /*
-    How this works
+    How this Works
 
     We are calculating the profit or (loss) of capturing the
-     piece on the current square by a series of exchanges.
-     The material units are half pawns, so pawn=2, knight=6
-     etc.
+    piece on the current square by a series of exchanges.
+    The material units are half pawns, so pawn=2, knight=6
+    etc.
 
-     It doesn't matter which side is to move. (So the capture
-     might not be possible until next move). During the
-     capturing sequence, the color of capturing and defending
-     pieces swaps. In terms of points accumulation, we add
-     the value of captured pieces of the same color as the
-     original piece on the square (and subtract the value
-     of captured attackers of the opposite color to the
-     original piece on the square).
+    It doesn't matter which side is to move. (So the capture
+    might not be possible until next move). During the
+    capturing sequence, the color of capturing and defending
+    pieces swaps. In terms of points accumulation, we add
+    the value of captured pieces of the same color as the
+    original piece on the square (and subtract the value
+    of captured attackers of the opposite color to the
+    original piece on the square).
 
     Main algorithm is;
     Loop until run out of defenders or attackers
@@ -1547,28 +1546,40 @@ void POINTS()
     range so that 8 bit variables can be used.
 
     net_material_gain is the change in net_material since
-    the ply 0 base position, where net_material is
-    white material - black material.
+    the ply 0 base position.
 
     net_board_control_gain is the change in net_board_control
-    since the ply 0 base position, where net_board_control
-    is squares attacked by white - squares attacked by black.
-    
-    Both these values are adjusted in various ways as
-    discussed below.
+    since the ply 0 base position.
 
+    In both cases the word 'net' means the difference between
+    sides, we use the convention that the difference is relative
+    to COLOR which when POINTS() runs reflects the COLOR of the
+    side that just moved (meaning that we score the position
+    according to the side that created the position, which makes
+    sense because fundamentally we are looking for the best
+    move for that side).
+
+    To represent values with only 8 bits, we use gain of net
+    value from the base position, so a difference of
+    differences if you like.
+
+    The net material gain and net board control gain are
+    calculated via the variables MTRL (and MTRL0) and
+    BRDC (and BC0). These variables are adjusted slightly
+    from their raw values, as follows.
+    
     Board control is adjusted by bonuses and penalties as
     follows;
 
-    Unmoved bishop or knight, 2 point penalty.
-    Castling, 6 point bonus.
-    King has not castled but has moved, 2 point penalty.
-    Rook or Queen moves before move 7, 2 point penalty.
-    Moving a piece to an enprise location, sets board control to zero.
+    - Unmoved bishop or knight, 2 point penalty.
+    - Castling, 6 point bonus.
+    - King has not castled but has moved, 2 point penalty.
+    - Rook or Queen moves before move 7, 2 point penalty.
+    - Moving a piece to an enprise location, sets board control to zero.
 
-    Material is adjusted based on en-prise pieces of
-    either color. Every piece is judged en-prise (or not) by
-    routine XCHNG().
+    Material is adjusted based on en-prise pieces of either
+    color. Every piece is judged en-prise (or not) by routine
+    XCHNG().
 
     XCHNG() makes its best attempt to do a deep en-prise evaluation,
     without search, by ordering attackers and defenders and judging
@@ -1582,63 +1593,58 @@ void POINTS()
     is reduction of half a pawn in the value of any piece of
     either color that is en-prise. The piece is judged unstable I
     suppose.
-    
-    There are also points lost and points won material adjustments,
-    these names are relative to the side that moved to create the
-    current position. So points lost refers to pieces that can be
-    taken by the other side, that is the side that moves next. The
-    points lost adjustment is the largest trading profit available
-    to the other side, minus the half pawn adjustment that the
-    lost piece has already accumulated in the basic net material
-    calculation.
 
-    The points won adjustment is less immediate, since these points
-    are not available immediately, since the side that just moved
-    has to wait for the opponent to move first.
+    With those adjustments complete we are nearly ready to apply;
+
+    points = 4*LIMIT(29,net_material_gain) + LIMIT(6,net_board_control_gain)
+
+    but before then there are some additional adjustments (that are
+    not reflected in MTRL, MTRL0, BRDC and BC0 variables).
+    
+    Most importantly there are points lost and points won material
+    adjustments, these names are relative to the side that moved
+    to create the current position. So points lost refers to pieces
+    that can be taken by the other side, that is the side that moves
+    next. The points lost adjustment is the largest trading profit
+    available to the other side (as judged by XCHNG(), minus the
+    half pawn adjustment that the lost piece has already
+    accumulated in the basic net material calculation.
+
+    The points won adjustment is more conservative, since these
+    points represent a threat rather than points that can be
+    cashed in immediately. The side that just moved has to wait
+    for the opponent to move before they can move again and win
+    the points.
 
     The points won adjustment is the second greatest trading
     profit available to the side that just moved, minus the
     half point adjustment, divided by two. The adjustment is
     zero unless at least two pieces are en-prise. The logic
-    of this is that the opponent has a move to move or
-    defend one vulnerable piece, but may not be able to cope
+    of this is that the opponent has a move to defend or
+    move one vulnerable piece, but may not be able to cope
     with two attacks. The division by two reflects the
     uncertainty inherant in applying this reasoning without
     search.
 
-    Moving a piece to an enprise location, which has already
-    incurred a board control penalty, is also penalised by
-    removing any points won adjustment.
+    Finally POINTS() checks whether the last move played moved
+    a piece to an enprise location (again as judged by XCHNG()).
+    This is considered likely to be a serious error and so
+    additional penalty adjustments are made as follows;
 
-    The basic net material and net board control variables
-    are MTRL and BRDC respectively. The adjustment variables
-    are PTSL (points lost), PTSW1, PTSW2 (points won) and
-    PTSCK (used to determine whether the last move moved
-    a piece into an en-prise position).
+    - Any points won adjustment is cancelled (set to zero)
+    - net_board_control_gain is set to zero (not necessarily
+    a penalty to the side that just moved actually) - presumably
+    the idea is to avoid a subtle board control issue overturning
+    a likely tactical blunder.
 
-    The base MTRL and BRDC are values before applying the
-    points won and lost adjustments, and the zero board
-    control when moving a piece to an en-prise position
-    adjustment. They are both net values, in the sense
-    that they are White - Black values.
+    Finally 128 is added to shift from a signed range to an
+    unsigned range, as discussed at length elsewhere, and the
+    points value stored with the move that created the current
+    position.
 
-    POINTS() is run on the base ply 0 position, and the
-    resulting MTRL and BRDC values are saved as MTRL0 and
-    BRDC0, the base of the subsequent material and board
-    control *GAINED* subtraction.
+    Detailed example POINTS() calculations are presented in the
+    'Working examples of POINTS() calculation' section below.
 
-    All adjustments are made (except the zero board
-    control when moving a piece to an en-prise position
-    adjustment which is made after the base value
-    subtraction) then the MTRL0 and BRDC0 base values
-    subtracted, then the basic formula applied;
-
-    points = 4*LIMIT(29,net_material_gain) + LIMIT(6,net_board_control_gain)
-
-    Finally 128 is added to shift from a signed range to
-    an unsigned range, as discussed at length elsewhere,
-    and the points value stored with the move that
-    created the current position.
 
 */
 
@@ -2165,6 +2171,67 @@ void SORTM()
 {
     trace_func(FE_SORTM);
 
+/*
+    How this Works
+
+    The sort technique is merge sort. The list of moves stays in the
+    original order (unlike the C++ sort above), and the sort property
+    is obtained by threading a linked list through the stationary moves.
+    The list is divided conceptually into two sections, a sorted section
+    followed by an unsorted section. Initially the sorted section is
+    zero sized. We loop through the list of moves scoring them one by
+    one with EVAL() and immediately merging the newly scored move into
+    the sorted section increasing its length by one and simultaneously
+    decreasing the length of the unsorted section by one.
+    The first merge is trivial ('merging' an element into an empty list
+    is just an append operation). Subsequent merges involve stepping
+    through the sorted portion of the list to find the right place to
+    link the move in to extend the sorted chain by one.
+
+    Loop over the unsorted list starting at the ply pointer MLPTRI. The
+    link_ptr can be used by both the unsorted and sorted lists because
+    a move is on one list or the other, never both.
+    This means that as soon as the unsorted rover advances it can lose
+    its connection to the ply pointer MLPTRI, and sorted moves are in
+    fact linked into a new sorted list reusing MLPTRI as the head pointer
+    
+    If the list is originally say;
+     KDJHKAFHKF
+    
+    We divide it into two with a sorted/unsorted partition; Initially
+     |KDJHKAFHKF   nbr sorted = 0
+    
+    After 'sorting' one element
+     K|DJHKAFHKF   nbr sorted = 1
+    
+    After sorting two elements
+     DK|JHKAFHKF   nbr sorted = 2
+    
+    After sorting three elements
+     DJK|HKAFHKF   nbr sorted = 3
+    
+    After sorting all elements
+     ADFFHHJKKK|   nbr sorted = 10
+    
+
+    Example used in line line by line comments below
+    After sorting three elements
+     DJK|HKAFHKF   nbr sorted = 3
+    (|KDJHKAFHKF   original list)
+    
+     u = unsorted list (pointers are straight line left to right)
+     s = MLPTRI sorted list (pointers hop about)  
+     +---+
+     | s |   u
+     | | |   |
+     V V |   V
+     K D J | H-> K-> A-> F-> H-> K-> F   nbr sorted = 3
+       | ^
+       | |
+       +-+
+
+*/
+
     // Alternative implementation of SORTM() using the standard C++
     //  library to do the sorting. It works, but it's actually a little
     //  slower than the standard Sargon merge sort below.
@@ -2222,62 +2289,6 @@ void SORTM()
     #else
     // The original Sargon implementation is by necessity more complicated,
     //  given the lack of a standard Z80 sort facility!
-    //  The sort technique is merge sort. The list of moves stays in the
-    //  original order (unlike the C++ sort above), and the sort property
-    //  is obtained by threading a linked list through the stationary moves.
-    //  The list is divided conceptually into two sections, a sorted section
-    //  followed by an unsorted section. Initially the sorted section is
-    //  zero sized. We loop through the list of moves scoring them one by
-    //  one with EVAL() and immediately merging the newly scored move into
-    //  the sorted section increasing its length by one and simultaneously
-    //  decreasing the length of the unsorted section by one.
-    //  The first merge is trivial ('merging' an element into an empty list
-    //  is just an append operation). Subsequent merges involve stepping
-    //  through the sorted portion of the list to find the right place to
-    //  link the move in to extend the sorted chain by one.
-
-    // Loop over the unsorted list starting at the ply pointer MLPTRI. The
-    // link_ptr can be used by both the unsorted and sorted lists because
-    // a move is on one list or the other, never both.
-    // This means that as soon as the unsorted rover advances it can lose
-    // its connection to the ply pointer MLPTRI, and sorted moves are in
-    // fact linked into a new sorted list reusing MLPTRI as the head pointer
-    //
-    // If the list is originally say;
-    //  KDJHKAFHKF
-    //
-    // We divide it into two with a sorted/unsorted partition; Initially
-    //  |KDJHKAFHKF   nbr sorted = 0
-    //
-    // After 'sorting' one element
-    //  K|DJHKAFHKF   nbr sorted = 1
-    //
-    // After sorting two elements
-    //  DK|JHKAFHKF   nbr sorted = 2
-    //
-    // After sorting three elements
-    //  DJK|HKAFHKF   nbr sorted = 3
-    //
-    // After sorting all elements
-    //  ADFFHHJKKK|   nbr sorted = 10
-    //
-
-    // Example used in line line by line comments below
-    // After sorting three elements
-    //  DJK|HKAFHKF   nbr sorted = 3
-    // (|KDJHKAFHKF   original list)
-    //
-    //  u = unsorted list (pointers are straight line left to right)
-    //  s = MLPTRI sorted list (pointers hop about)  
-    //  +---+
-    //  | s |   u
-    //  | | |   |
-    //  V V |   V
-    //  K D J | H-> K-> A-> F-> H-> K-> F   nbr sorted = 3
-    //    | ^
-    //    | |
-    //    +-+
-    //
     ML *sorted_tail = 0;   // sorted tail needs to be relinked into
                            // sorted list after each sort step
     ML_HEAD *unsorted_rover = z.MLPTRI;
@@ -2428,6 +2439,93 @@ void FNDMOV()
 {
     trace_func(FE_FNDMOV);
 
+ /*
+    How this Works
+
+    FNDMOV() is the heart of Sargon, it calculates the best move it can find,
+    using minimax as the basic algorithm, optimised with alpha-beta for better
+    performance. Refer to 'How Sargon Works' at the bottom of this file to
+    understand the background to the discussion here.
+    
+    From that documentation here is an outline of FNDMOV() in pseudo code;
+
+    Set NPLY = 1 and generate move ply 1 list
+    If not at max ply, score and sort the moves
+    Loop through the current move list
+         If no more moves in move list
+            If NPLY == 1 return
+            Get SCORE (a) from score ply table and Ascend (NPLY--, undo move)
+         Else if more moves in move list
+            Make the move
+            If not yet at max depth
+                Generate moves at next ply and Descend (NPLY++)
+                If not at max ply, score and sort the moves
+                Continue loop to iterate through the new move list
+            Else if max depth
+                Evaluate SCORE (b) at leaf node using POINTS()
+                Unmake the move
+        SCORE available, from (a [bubble up]) or (b [leaf])
+        If score is better or equal to score above in the score ply table
+            Alpha Beta cutoff, Ascend (NPLY--, undo move). This abandons
+             the current move list, this reply has refuted the current
+             move a ply higher. That move will not be the best move at
+             that ply, we prefer a previously analysed alternative and
+             its final score. There is no need to analyse the other
+             replies in the current move list.
+        Else if score is better than score in current score ply table
+            Update score ply table
+            If NPLY == 1
+                 Update best move found to date, if it gives mate return
+    End loop
+
+    There is some additional logic handled within the same loops to detect
+    and score mate (and stalemate), so here is a slightly more elaborate
+    version;
+
+    Set NPLY = 1 and generate move ply 1 list
+    Set MATE = true ;mate unless we prove otherwise
+    If not at max ply, score and sort the moves
+    Loop through the current move list
+         If no more moves in move list
+            If NPLY == 1 return
+            If MATE still set
+                SCORE (a) is MATE or STALEMATE based on whether we were in check
+            Else
+                Get SCORE, also (a) from score ply table
+            Ascend (NPLY--, undo move)
+         Else if more moves in move list
+            Make the move
+            If not yet at max depth
+                Skip the move if it was scored as illegal
+                Generate moves at next ply and Descend (NPLY++)
+                Set MATE = true ;mate unless we prove otherwise
+                If not at max ply, score and sort the moves
+                Continue loop to iterate through the new move list
+            Else if max depth
+                The move hasn't been scored, so check it's legal (doesn't put us in check)
+                If the move puts the other side in check do an extra ply
+                    Generate moves at next ply and Descend (NPLY++)
+                    Set MATE = true ;mate unless we prove otherwise
+                    Continue loop to iterate through the new move list
+                Evaluate SCORE (b) at leaf node using POINTS()
+                Set MATE = false;  ;Do this for every legal move that's SCORE()ed here
+                Unmake the move
+        SCORE available, from (a [bubble up]) or (b [leaf])
+        If score is better or equal to score above in the score ply table
+            Alpha Beta cutoff, Ascend (NPLY--, undo move). This abandons
+             the current move list, this reply has refuted the current
+             move a ply higher. That move will not be the best move at
+             that ply, we prefer a previously analysed alternative and
+             its final score. There is no need to analyse the other
+             replies in the current move list.
+        Else if score is better than score in current score ply table
+            Update score ply table
+            If NPLY == 1
+                 Update best move found to date, if it gives mate return
+    End loop
+
+ */
+
     // Book move ?
     if( z.MOVENO == 1 )
     {
@@ -2448,7 +2546,7 @@ void FNDMOV()
     //z.MLPTRI = &z.PLYIX[-1];    // don't worry, it's incremented just before first ptr store
 
     // Initialise color
-    z.COLOR = z.KOLOR;
+    z.COLOR = z.KOLOR;      // Set side to move is Sargon
 
     // Initialize score table
     memset( z.SCORE, 0, sizeof(z.SCORE) );
@@ -3098,11 +3196,14 @@ void ROYALT()
 
 /*
 
+How Sargon Works
+================
+
 Sargon calculates good chess moves using the classic minimax and
 alpha-beta algorithms.
 
 Minimax
--------
+=======
 
 To calculate a move by minimax, first we need a scoring function which
 takes as input any chess position and provides as output a numerical
@@ -3138,7 +3239,7 @@ where the program seeks to minimise the maximum the opponent can
 achieve.
 
 Alpha-Beta
-----------
+==========
 
 The score of every position in the tree of analysis is either a static
 score at a leaf position or a backed up score anywhere else. So it
@@ -3170,7 +3271,7 @@ to be analysed first, and in turn good replies to those alternatives
 are also analysed first.
 
 Tracing Sargon's Processing
----------------------------
+===========================
 
 I have added a trace facility to Zargon that allows us to trace the
 progress of the move calculation algorithm by showing the state of the
@@ -3202,7 +3303,7 @@ after 2 moves and the list continues with all available ply moves in
 that position.
 
 Illustrative Example, Opening Moves
------------------------------------
+===================================
 
 As an example, imagine Sargon is trying to calculate the best move in
 the opening position, at depth 4 ply (with no opening book).
@@ -3267,7 +3368,7 @@ move becomes the backed up (refined) score of White move Nf3 in the
 sequence e4 e5 Nf3.
 
 Ascending and Descending
-------------------------
+========================
 
 Up until now we've always been going in one direction, we've
 been 'descending' down the tree. To make further progress it's now time
@@ -3412,7 +3513,7 @@ to refute the move early and allow us to abandon it without checking
 any more replies.
 
 The Score Table
----------------
+===============
 
 We have been considering this scenario;
 
@@ -3478,7 +3579,7 @@ Although Sargon doesn't implement the minimax search using a function
 calling itself, it is in essence a recursive algorithm.
 
 Pseudo Code
------------
+===========
 
 Putting these ideas together gives us FNDMOV() (calculate best move)
 pseudo code, the heart of Sargon. This pseudo code ignores some
@@ -3515,7 +3616,7 @@ Loop through the current move list
 End loop
 
 Score Representation
---------------------
+====================
 
 Sargon does not use floating point to score positions of course (I used
 it in my example above for illustrative purposes only). In fact the
@@ -3705,7 +3806,7 @@ operations there are N*N ply 2 operations, N*N*N ply 3 operations
 etc.).
 
 Detailed Working Example
-------------------------
+========================
 
 Just for the really dedicated here is a simple working PLYMAX=2
 example.
@@ -3735,9 +3836,17 @@ initial White moves, all other moves for both sides are just do nothing
 moves or simple one move material losing blunders.
 
 The static evaluator ranks Ne5xBd3 grabbing the piece as best which is
-no surprise. The complete merits of Ne5-g4 forking the rooks is beyond
-the static analyser, but it does like a couple of attacks and so it is
-ranked second followed by all the do nothing moves and blunders.
+no surprise. The static evaluator does notice the merit of Ne5-g4
+forking the rooks with its 'points won' mechanism, but it conservatively
+rates this as worth about half the potential material gain (so half a
+rook) since without search it cannot be sure the defending side
+cannot defuse the fork with tactics. So Ne5-g4, which minimax ultimately
+judges to be the best move is initially ranked second by the static
+analyser, followed by all the do nothing moves and blunders.
+
+The section 'Working examples of POINTS() calculation' below uses
+positions from this example to illustrate the details of the scoring
+calculation.
 
 The following is edited extracts from the debug log, with a descriptive
 annotation after each extract.
@@ -3897,6 +4006,339 @@ plies gets a slightly less powerful mating score. So 3 and 4 -> 254/2,
 allocate two plies to each mating score because White moves don't
 compete against Black moves in minimax calculations so the same mating
 score doesn't create a conflict.
+
+Working Examples of POINTS() Calculation
+========================================
+
+Refer to the 'How this works' section of function POINTS() to see how
+Sargon scores positions. For examples of these calculations, here are
+the POINTS() calculations for 5 positions from the 'Detailed Working
+Example' above. The positions are the start position (ply 0), then
+three ply 1 positions (after the two good moves and a gross material
+losing blunder), then the ply 2 position after the PV (principle
+variation = best line of play) which occurs after White forks Black's
+rooks and Black accepts his lot, leaving one rook en-prise.
+
+Start position
+--------------
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight e5  8    6
+                ==   ==
+                14   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    5*
+Black rook f6   10   10
+Black rook h6    5   10
+                ==   ==
+                37   53
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and an asterisked 1 point MTRL deficit for an
+en-prise bishop on d3.
+
+MTRL = 30-53 = -23
+BRDC = 14-37 = -23
+
+These variables are always oriented as White minus
+Black. They are used in the start position to
+establish MTRL0 and BC0 then discarded.
+
+So
+MTRL0 = -23
+BC0   = -23
+
+The actual final points value for the base position,
+including any other adjustments, is not needed but is
+calculated and attached to whichever MLPTRJ move finished
+off the previous FNDMOV() calculation. This is actually a
+bug in the original Z80 Sargon because initial MLPTRJ
+pointed at 0/NULL and so a byte was written into memory at
+offset 6 to that. The simple fix is to just initialise
+MLPTRJ to point at the move storage area.
+
+Position after good move Nxd3
+-----------------------------
+
+White captures a free bishop
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight d3  8    6
+                ==   ==
+                14   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black rook f6   10   10
+Black rook h6    5   10
+                ==   ==
+                27   48
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out).
+
+MTRL = 30-48 = -18
+BRDC = 14-27 = -13
+
+Net material      = -18 - -23 = 5
+Net board control = -13 - -23 = 10 (6 after LIMIT applied)
+
+White has more material and more board control after
+capturing a free bishop
+
+Points = 4*5 + 6 = 26
+
+White has improved from the base position by 26 points (26/8 pawns)
+
+But score should be smaller is better for the side which just
+moved, so negate score. Then add 128 to rescale.
+
+Final score_smaller_is_better = -26 + 128 = 102
+
+This value appears as the static score for Nxd3 in our trace
+diagnostics for the 'Detailed Working Example' section.
+
+
+Position after good move Ng4
+----------------------------
+
+White forks Black's rooks
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight g4  6    6
+                ==   ==
+                12   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    6
+Black rook f6   10    9*
+Black rook h6    5    9*
+                ==   ==
+                37   52
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and two asterisked 1 point MTRL deficits for the
+en-prise rooks.
+
+MTRL = 30-52 = -22
+BRDC = 12-37 = -25
+
+Net material      = -22 - -23 = 1
+Net board control = -25 - -23 = -2
+
+A PTSW (points won) adjustment is applied after the MTRL
+and BRDC calculation. PTSW = 9/2=4, White has two independent
+attacks on separate en-prise pieces, the lowest valued of
+which is 9 points (including its previous en-prise 1 point
+adjustment).
+
+Adjusted net material = 1 + 4 = 5
+
+White's rook fork is conservatively (as described in the POINTS()
+'How this works' comment) valued as being worth about half a rook.
+
+Points = 4*5 -2 = 18
+
+White has improved 18 points (18/8 pawns) from the base position
+
+But score should be smaller is better for the side which just
+moved, so negate score. Then add 128 to rescale.
+
+Final score_smaller_is_better = -18 + 128 = 110
+
+This value appears as the static score for Ng4 in our trace
+diagnostics for the 'Detailed Working Example' section. The
+uncertainty of cashing in on a future fork of two rooks does
+not outweigh simply capturing a free bishop at ply 1. So
+Ng4 is ranked as the second best move after the ply 1 sort.
+
+
+Position after blunder Nxg6
+---------------------------
+
+White captures a doubly protected pawn
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight g6  6    5*
+                ==   ==
+                12   29
+
+                BC   ML
+Black king a6    5   20
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    6
+Black rook f6   10   10
+Black rook h6    5   10
+                ==   ==
+                35   52
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and an asterisked 1 point MTRL deficit for an
+en-prise knight on g6.
+
+MTRL = 29-52 = -23
+BRDC = 12-35 = -23
+
+Net material      = -23 - -23 = 0
+Net board control = -23 - -23 = 0
+
+Adjustments that apply after the MTRL and BRDC calculation
+are as follows;
+
+- PTSL = 5, the material profit available for capture next move
+(discounted by 1 point because the knight's value has already
+been discounted by 1 point for being en-prise in the material
+calculation)
+- PTSCK flag is set, indicating that the moved piece went to an
+en-prise square
+- PTSW = 0, White does not have at least two attacks on any
+en-prise material, and if they did PTSCK would set this to zero
+as punishment for a likely blunder.
+- Net board control is set to zero (actually it was already
+zero) another consequence of the PTSCK flag being set. Presumably
+board control is considered irrelevant in the presence of apparent
+tactical blunders.
+
+Adjusted net material      = 0 - 5 = -5
+Adjusted net board control = 0
+
+White blunders his knight to capture a pawn. This is scored
+as -5 points (rather than (3-1)/2 = 4 points) because White has
+also lost the benefit of attacking the loose bishop he enjoyed
+in the original position.
+
+Points = 4*-5 + 0 = -20
+
+White declined 20 points (20/8 pawns) from the base position
+
+But score should be smaller is better for the side which just
+moved, so negate score. Then add 128 to rescale.
+
+Final score_smaller_is_better = 20 + 128 = 148
+
+This value appears as the static score for Nxg6 in our trace
+diagnostics for the 'Detailed Working Example' section.
+Unsurprisingly it is very near to the end of the list of moves
+after the ply 1 sort.
+
+Position after PV Ng4 Rh7
+-------------------------
+
+Black accepts the loss of one of his forked rooks
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight g4  6    6
+                ==   ==
+                12   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    6
+Black rook f6   10    9*
+Black rook h7   11   10
+                ==   ==
+                43   53
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and an asterisked 1 point MTRL deficit for an
+en-prise knight on g6.
+
+MTRL = 30-53 = -23
+BRDC = 12-43 = -31
+
+Net material      = -23 - -23 = 0
+Net board control = -31 - -23 = -8
+
+A PTSL (points lost) adjustment is applied after the MTRL
+and BRDC calculation. PTSL = 9, the material profit
+available for capture next move (discounted by 1 point
+because the rook's value has already been discounted by 1
+point for being en-prise in the material calculation)
+
+Adjusted net material      = 0 + 9
+Adjusted net board control = -6 (after applying limit)
+
+White wins a rook next move, these values are relative to White.
+Black has improved their board control my moving the h6 rook to
+h7 and a free rank (a rather futile gesture, but judged the best
+of a bad lot).
+
+Points = 4*9 - 6 = 30
+
+White has improved 30 points (30/8 pawns) from the base position
+
+Score should be smaller is better for the side which just
+moved, which is Black this time. Bigger is better for White is
+smaller is better for Black, so no need to negate the score.
+Just add 128 to rescale.
+
+Final score_smaller_is_better = 30 + 128 = 158
+
+This value appears as the static score for Rh7 and the backed
+up score for Ng4 (negated for the other side, so 98) in our trace
+diagnostics for the 'Detailed Working Example' section. The
+minimax backing up procedure has improved the smaller_is_better
+score of Ng4 dramatically from 110 to 98, allowing Ng4 to
+usurp Bxd3 as the best move in the position. The underlying
+reason for the improvement is that the potential fork has
+graduated to a realised fork winning a rook.
+
+See Also
+========
+
+All Sargon functions are now decently commented to describe their
+low level workings, but your attention is drawn in particular to
+the following functions that are particularly complicated and
+which I found especially confusing in the original Z80 Sargon.
+I have added 'How this Works' sections to those functions to
+supplement the material in this documentation;
+
+ATKSAV()
+XCHNG()
+POINTS()
+SORT()
+FNDMOV()
 
 */
 

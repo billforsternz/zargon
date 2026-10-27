@@ -5,7 +5,7 @@ Sargon calculates good chess moves using the classic minimax and
 alpha-beta algorithms.
 
 Minimax
--------
+=======
 
 To calculate a move by minimax, first we need a scoring function which
 takes as input any chess position and provides as output a numerical
@@ -41,7 +41,7 @@ where the program seeks to minimise the maximum the opponent can
 achieve.
 
 Alpha-Beta
-----------
+==========
 
 The score of every position in the tree of analysis is either a static
 score at a leaf position or a backed up score anywhere else. So it
@@ -73,7 +73,7 @@ to be analysed first, and in turn good replies to those alternatives
 are also analysed first.
 
 Tracing Sargon's Processing
----------------------------
+===========================
 
 I have added a trace facility to Zargon that allows us to trace the
 progress of the move calculation algorithm by showing the state of the
@@ -105,7 +105,7 @@ after 2 moves and the list continues with all available ply moves in
 that position.
 
 Illustrative Example, Opening Moves
------------------------------------
+===================================
 
 As an example, imagine Sargon is trying to calculate the best move in
 the opening position, at depth 4 ply (with no opening book).
@@ -170,7 +170,7 @@ move becomes the backed up (refined) score of White move Nf3 in the
 sequence e4 e5 Nf3.
 
 Ascending and Descending
-------------------------
+========================
 
 Up until now we've always been going in one direction, we've
 been 'descending' down the tree. To make further progress it's now time
@@ -315,7 +315,7 @@ to refute the move early and allow us to abandon it without checking
 any more replies.
 
 The Score Table
----------------
+===============
 
 We have been considering this scenario;
 
@@ -381,7 +381,7 @@ Although Sargon doesn't implement the minimax search using a function
 calling itself, it is in essence a recursive algorithm.
 
 Pseudo Code
------------
+===========
 
 Putting these ideas together gives us FNDMOV() (calculate best move)
 pseudo code, the heart of Sargon. This pseudo code ignores some
@@ -418,7 +418,7 @@ Loop through the current move list
 End loop
 
 Score Representation
---------------------
+====================
 
 Sargon does not use floating point to score positions of course (I used
 it in my example above for illustrative purposes only). In fact the
@@ -608,7 +608,7 @@ operations there are N*N ply 2 operations, N*N*N ply 3 operations
 etc.).
 
 Detailed Working Example
-------------------------
+========================
 
 Just for the really dedicated here is a simple working PLYMAX=2
 example.
@@ -638,9 +638,17 @@ initial White moves, all other moves for both sides are just do nothing
 moves or simple one move material losing blunders.
 
 The static evaluator ranks Ne5xBd3 grabbing the piece as best which is
-no surprise. The complete merits of Ne5-g4 forking the rooks is beyond
-the static analyser, but it does like a couple of attacks and so it is
-ranked second followed by all the do nothing moves and blunders.
+no surprise. The static evaluator does notice the merit of Ne5-g4
+forking the rooks with its 'points won' mechanism, but it conservatively
+rates this as worth about half the potential material gain (so half a
+rook) since without search it cannot be sure the defending side
+cannot defuse the fork with tactics. So Ne5-g4, which minimax ultimately
+judges to be the best move is initially ranked second by the static
+analyser, followed by all the do nothing moves and blunders.
+
+The section 'Working examples of POINTS() calculation' below uses
+positions from this example to illustrate the details of the scoring
+calculation.
 
 The following is edited extracts from the debug log, with a descriptive
 annotation after each extract.
@@ -800,3 +808,336 @@ plies gets a slightly less powerful mating score. So 3 and 4 -> 254/2,
 allocate two plies to each mating score because White moves don't
 compete against Black moves in minimax calculations so the same mating
 score doesn't create a conflict.
+
+Working Examples of POINTS() Calculation
+========================================
+
+Refer to the 'How this works' section of function POINTS() to see how
+Sargon scores positions. For examples of these calculations, here are
+the POINTS() calculations for 5 positions from the 'Detailed Working
+Example' above. The positions are the start position (ply 0), then
+three ply 1 positions (after the two good moves and a gross material
+losing blunder), then the ply 2 position after the PV (principle
+variation = best line of play) which occurs after White forks Black's
+rooks and Black accepts his lot, leaving one rook en-prise.
+
+Start position
+--------------
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight e5  8    6
+                ==   ==
+                14   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    5*
+Black rook f6   10   10
+Black rook h6    5   10
+                ==   ==
+                37   53
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and an asterisked 1 point MTRL deficit for an
+en-prise bishop on d3.
+
+MTRL = 30-53 = -23
+BRDC = 14-37 = -23
+
+These variables are always oriented as White minus
+Black. They are used in the start position to
+establish MTRL0 and BC0 then discarded.
+
+So
+MTRL0 = -23
+BC0   = -23
+
+The actual final points value for the base position,
+including any other adjustments, is not needed but is
+calculated and attached to whichever MLPTRJ move finished
+off the previous FNDMOV() calculation. This is actually a
+bug in the original Z80 Sargon because initial MLPTRJ
+pointed at 0/NULL and so a byte was written into memory at
+offset 6 to that. The simple fix is to just initialise
+MLPTRJ to point at the move storage area.
+
+Position after good move Nxd3
+-----------------------------
+
+White captures a free bishop
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight d3  8    6
+                ==   ==
+                14   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black rook f6   10   10
+Black rook h6    5   10
+                ==   ==
+                27   48
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out).
+
+MTRL = 30-48 = -18
+BRDC = 14-27 = -13
+
+Net material      = -18 - -23 = 5
+Net board control = -13 - -23 = 10 (6 after LIMIT applied)
+
+White has more material and more board control after
+capturing a free bishop
+
+Points = 4*5 + 6 = 26
+
+White has improved from the base position by 26 points (26/8 pawns)
+
+But score should be smaller is better for the side which just
+moved, so negate score. Then add 128 to rescale.
+
+Final score_smaller_is_better = -26 + 128 = 102
+
+This value appears as the static score for Nxd3 in our trace
+diagnostics for the 'Detailed Working Example' section.
+
+
+Position after good move Ng4
+----------------------------
+
+White forks Black's rooks
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight g4  6    6
+                ==   ==
+                12   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    6
+Black rook f6   10    9*
+Black rook h6    5    9*
+                ==   ==
+                37   52
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and two asterisked 1 point MTRL deficits for the
+en-prise rooks.
+
+MTRL = 30-52 = -22
+BRDC = 12-37 = -25
+
+Net material      = -22 - -23 = 1
+Net board control = -25 - -23 = -2
+
+A PTSW (points won) adjustment is applied after the MTRL
+and BRDC calculation. PTSW = 9/2=4, White has two independent
+attacks on separate en-prise pieces, the lowest valued of
+which is 9 points (including its previous en-prise 1 point
+adjustment).
+
+Adjusted net material = 1 + 4 = 5
+
+White's rook fork is conservatively (as described in the POINTS()
+'How this works' comment) valued as being worth about half a rook.
+
+Points = 4*5 -2 = 18
+
+White has improved 18 points (18/8 pawns) from the base position
+
+But score should be smaller is better for the side which just
+moved, so negate score. Then add 128 to rescale.
+
+Final score_smaller_is_better = -18 + 128 = 110
+
+This value appears as the static score for Ng4 in our trace
+diagnostics for the 'Detailed Working Example' section. The
+uncertainty of cashing in on a future fork of two rooks does
+not outweigh simply capturing a free bishop at ply 1. So
+Ng4 is ranked as the second best move after the ply 1 sort.
+
+
+Position after blunder Nxg6
+---------------------------
+
+White captures a doubly protected pawn
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight g6  6    5*
+                ==   ==
+                12   29
+
+                BC   ML
+Black king a6    5   20
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    6
+Black rook f6   10   10
+Black rook h6    5   10
+                ==   ==
+                35   52
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and an asterisked 1 point MTRL deficit for an
+en-prise knight on g6.
+
+MTRL = 29-52 = -23
+BRDC = 12-35 = -23
+
+Net material      = -23 - -23 = 0
+Net board control = -23 - -23 = 0
+
+Adjustments that apply after the MTRL and BRDC calculation
+are as follows;
+
+- PTSL = 5, the material profit available for capture next move
+(discounted by 1 point because the knight's value has already
+been discounted by 1 point for being en-prise in the material
+calculation)
+- PTSCK flag is set, indicating that the moved piece went to an
+en-prise square
+- PTSW = 0, White does not have at least two attacks on any
+en-prise material, and if they did PTSCK would set this to zero
+as punishment for a likely blunder.
+- Net board control is set to zero (actually it was already
+zero) another consequence of the PTSCK flag being set. Presumably
+board control is considered irrelevant in the presence of apparent
+tactical blunders.
+
+Adjusted net material      = 0 - 5 = -5
+Adjusted net board control = 0
+
+White blunders his knight to capture a pawn. This is scored
+as -5 points (rather than (3-1)/2 = 4 points) because White has
+also lost the benefit of attacking the loose bishop he enjoyed
+in the original position.
+
+Points = 4*-5 + 0 = -20
+
+White declined 20 points (20/8 pawns) from the base position
+
+But score should be smaller is better for the side which just
+moved, so negate score. Then add 128 to rescale.
+
+Final score_smaller_is_better = 20 + 128 = 148
+
+This value appears as the static score for Nxg6 in our trace
+diagnostics for the 'Detailed Working Example' section.
+Unsurprisingly it is very near to the end of the list of moves
+after the ply 1 sort.
+
+Position after PV Ng4 Rh7
+-------------------------
+
+Black accepts the loss of one of his forked rooks
+
+                BC   ML
+White king a1    3   20
+White pawn a2    1    2
+White pawn b2    2    2
+White knight g4  6    6
+                ==   ==
+                12   30
+
+                BC   ML
+Black king a6    5   20
+Black pawn g6    2    2
+Black pawn g5    2    2
+Black pawn f4    2    2
+Black pawn h4    1    2
+Black bishop d3 10    6
+Black rook f6   10    9*
+Black rook h7   11   10
+                ==   ==
+                43   53
+
+Adjustments that apply to MTRL and BRDC calculation are a
+BRDC 6 point castling bonus for white and black (these net
+out), and an asterisked 1 point MTRL deficit for an
+en-prise knight on g6.
+
+MTRL = 30-53 = -23
+BRDC = 12-43 = -31
+
+Net material      = -23 - -23 = 0
+Net board control = -31 - -23 = -8
+
+A PTSL (points lost) adjustment is applied after the MTRL
+and BRDC calculation. PTSL = 9, the material profit
+available for capture next move (discounted by 1 point
+because the rook's value has already been discounted by 1
+point for being en-prise in the material calculation)
+
+Adjusted net material      = 0 + 9
+Adjusted net board control = -6 (after applying limit)
+
+White wins a rook next move, these values are relative to White.
+Black has improved their board control my moving the h6 rook to
+h7 and a free rank (a rather futile gesture, but judged the best
+of a bad lot).
+
+Points = 4*9 - 6 = 30
+
+White has improved 30 points (30/8 pawns) from the base position
+
+Score should be smaller is better for the side which just
+moved, which is Black this time. Bigger is better for White is
+smaller is better for Black, so no need to negate the score.
+Just add 128 to rescale.
+
+Final score_smaller_is_better = 30 + 128 = 158
+
+This value appears as the static score for Rh7 and the backed
+up score for Ng4 (negated for the other side, so 98) in our trace
+diagnostics for the 'Detailed Working Example' section. The
+minimax backing up procedure has improved the smaller_is_better
+score of Ng4 dramatically from 110 to 98, allowing Ng4 to
+usurp Bxd3 as the best move in the position. The underlying
+reason for the improvement is that the potential fork has
+graduated to a realised fork winning a rook.
+
+See Also
+========
+
+All Sargon functions are now decently commented to describe their
+low level workings, but your attention is drawn in particular to
+the following functions that are particularly complicated and
+which I found especially confusing in the original Z80 Sargon.
+I have added 'How this Works' sections to those functions to
+supplement the material in this documentation;
+
+ATKSAV()
+XCHNG()
+POINTS()
+SORT()
+FNDMOV()
