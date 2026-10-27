@@ -360,9 +360,10 @@ c4 at ply 1 and d5 Nf6, c5, e6 and c6 at ply 2.
 
 Compared to the previous picture, Sargon has finished with 1.c4 and it
 evidently did not replace 1.d4 as the best move to date. So far 1.Nf3
-is doing a bit better than 1.d4 with [+0.4] after processing the
-replies d5, Nf6, c5, e6 and c6. If any of these replies had been as
-good or better for Black than +0.3 (so less than or equal to 0.3) then
+is holding up as an alternative to 1.d4 with [+0.4] after processing
+the replies d5, Nf6, c5, e6 and c6. This is the best score for Black,
+so the smallest number. If any of these replies had been as good or
+better for Black than +0.3 (so less than or equal to +0.3) then
 1.Nf3 would have been considered refuted by Alpha-Beta pruning and
 Sargon would have continued to 1.g3 immediately.
 
