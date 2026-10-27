@@ -322,7 +322,7 @@ We have been considering this scenario;
 1: [+0.3] e4,BESTM=d4,->c4,Nf3,g3,b3,f4 ... f3
 2: [+0.4] Nf6,e5,->c5,e6,c6,d6,g6 ... f6
 3: [+0.2] Nc3,->Nf3,g3,e3 ... h3
-4u: [+1.1] MLPTRI->a5,a6,b5,MLPTRJ->b6, ... Qb6,Qa5,Nf6,Nh6
+4u: [+1.1] a5,a6,b5,MLPTRJ->b6, ... Qb6,Qa5,Nf6,Nh6
 
 The arrow -> indicators establish a node in the total tree of moves
 arising from the initial position, currently that node is c4 c5 Nf3
