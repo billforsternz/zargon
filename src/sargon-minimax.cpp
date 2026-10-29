@@ -1402,7 +1402,7 @@ void callback_ldar( uint8_t &out_random_number )
 void callback_yes_best_move()
 {
 
-    // Important PV callback (1 of 2)
+    // Important PV callback
     sargon_pv_callback_yes_best_move();
 
     // If UCI, UCI stats and abort check
@@ -1427,8 +1427,6 @@ void callback_yes_best_move()
 // End of POINTS routine
 void callback_end_of_points( int8_t &points )
 {
-    // Important PV callback (2 of 2)
-    sargon_pv_callback_end_of_points();
 
     // If UCI, UCI stats and abort check
     if( !zargon_tests )

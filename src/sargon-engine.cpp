@@ -1551,9 +1551,6 @@ void callback_uci_end_of_points()
     total_callbacks++;
     end_of_points_callbacks++;
 
-    // sargon_pv_callback_end_of_points() is
-    // now called by callback_end_of_points()
-
     // Need to call the following regularly, but no need for all three
     // routines to do it, so now just do it at end of points
 

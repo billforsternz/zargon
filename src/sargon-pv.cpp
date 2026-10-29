@@ -25,15 +25,12 @@ static Zargon &z = gbl_zargon;
 //  the best move found so far at a given level
 struct NODE
 {
-    unsigned int level;
-    unsigned char from;
-    unsigned char to;
-    char adjusted_material;
-    char brdc;
-    NODE() : level(0), from(0), to(0), adjusted_material(0), brdc(0) {}
-    NODE( unsigned int l, unsigned char f, unsigned char t,
-          char a, char b ) :
-                level(l), from(f), to(t), adjusted_material(a), brdc(b) {}
+    uint8_t  level;
+    uint8_t  from;
+    uint8_t  to;
+    NODE() : level(0), from(0), to(0) {}
+    NODE( uint8_t l, uint8_t f, uint8_t t ) :
+                level(l), from(f), to(t) {}
 };
 
 //
@@ -42,179 +39,51 @@ struct NODE
 
 static thc::ChessRules pv_base_position;
 static std::vector< NODE > nodes;
+static std::vector< NODE > nodes_pv;
 static unsigned long max_len_so_far;
-static void calculate_pv( PV &pv );
-static PV provisional;
 
 void sargon_pv_clear( const thc::ChessPosition &current_position )
 {
     pv_base_position = current_position;
-    provisional.clear();
     nodes.clear();
-}
-
-PV sargon_pv_get()
-{
-    static PV pv;
-    calculate_pv( pv );
-    return pv;
-}
-
-static unsigned char end_of_points_color;
-void sargon_pv_callback_end_of_points()
-{
-    end_of_points_color = z.COLOR;
 }
 
 void sargon_pv_callback_yes_best_move()
 {
     // Collect the best moves' attributes
     ML *p = z.MLPTRJ;
-    unsigned int level  = z.NPLY;
-    unsigned char from  = p->from;
-    unsigned char to    = p->to;
-    //unsigned char flags = p->flags;
-    //unsigned char value = p->val;
-
-    // In this 'value' is used by Sargon for minimax. It is the value
-    //  we convert to and from centipawns in sargon_import_value()
-    //  and sargon_export_value(). See also the commentary associated
-    //  with sargon_import_value() and sargon_export_value(). This
-    //  value cannot be used directly to report the chess engine's
-    //  score, as it is relative to ply 0. We need an absolute value.
-    //  Teasing out the absolute value is awkward. The score has two
-    //  components (material and board control) and these are stored
-    //  and limited (i.e. truncated) separately. The errors associated
-    //  with truncation can compound if we try to work backwards from
-    //  a relative score, so it is best to pick out the absolute
-    //  score before it is made relative. That approach eventually
-    //  yielded the code below - which is just a C++ conversion of
-    //  the sargon assembly code above. See other comments with
-    //  the text ABSOLUTE (all caps) in this file.
-    //
-    //  Also check the git log for ABSOLUTE and RELATIVE to find the
-    //  point where the old RELATIVE calculation was removed for
-    //  simplicity's sake.
-
-// Replace this original Sargon code with equivalent Zargon code
-//  below (#else) now we have a real C++ POINTS() function
-#if 0
-// PT25A:  MOV     al,byte ptr [ebp+PTSL]          ; Get max points lost
-//         AND     al,al                           ; Is it zero ?
-//         JZ      rel013                          ; Yes - jump
-//         DEC     al                              ; Decrement it
-// rel013: MOV     ch,al                           ; Save it
-    char ptsl  = static_cast<char>(z.PTSL);
-    if( ptsl != 0 )
-        ptsl--;
-
-//         MOV     al,byte ptr [ebp+PTSW1]         ; Max,points won
-//         AND     al,al                           ; Is it zero ?
-//         JZ      rel014                          ; Yes - jump
-//         MOV     al,byte ptr [ebp+PTSW2]         ; 2nd max points won
-//         AND     al,al                           ; Is it zero ?
-//         JZ      rel014                          ; Yes - jump
-//         DEC     al                              ; Decrement it
-//         SHR     al,1                            ; Divide it by 2
-    char ptsw1 = static_cast<char>(z.PTSW1);
-    char ptsw2 = static_cast<char>(z.PTSW2);
-    char val = ptsw1;
-    if( ptsw1 != 0 )
+    uint8_t level  = z.NPLY;
+    uint8_t from  = p->from;
+    uint8_t to    = p->to;
+    int sz = (int)nodes.size();
+    NODE n(level,from,to);
+    static uint8_t previous_level;
+    bool level_change = (level!=previous_level);
+    previous_level = level;
+    if( 1 ) //level_change )    // TODO why doesn't this level_change idea work?
+        nodes.push_back(n);
+    else
     {
-        val = ptsw2;
-        if( ptsw2 != 0 )
-        {
-            val--;
-            val /= 2;
-        }
+        int idx = sz - 1;
+        if( idx > 0 )
+            nodes[idx] = n;
     }
-
-// rel014: SUB     al,ch                           ; Subtract points lost
-//         MOV     bx,COLOR                        ; Color of side just moved ???
-//         TEST    byte ptr [ebp+ebx],80h          ; Is it white ?
-//         JZ      rel015                          ; Yes - jump
-//         NEG     al                              ; Negate for black
-    val -= ptsl;
-    //unsigned char color = z.COLOR;
-    if( (end_of_points_color&0x80) != 0 )
-        val = 0 - val;
-
-// rel015: MOV     bx,MTRL                         ; Net material on board
-//         ADD     al,byte ptr [ebp+ebx]           ; Add exchange adjustments
-//         MOV     _gbl_adjusted_material,al
-    char mtrl = static_cast<char>(z.MTRL);
-    char adjusted_material = (val + mtrl);
-
-    //  It took a few goes to get the calculation working right, we
-    //   checked it and debugged the process here by comparing
-    //   adjusted_material to gbl_adjusted_material (now removed)
-    //   and making sure it was the same.
-    //  The biggest problem was that sometimes (but not always)
-    //   Sargon's COLOR had toggled since the POINTS() function ran,
-    //   so now we save the value of COLOR in POINTS() [which we
-    //   have a callback for].
-    char brdc = static_cast<char>(z.BRDC);
-    if( z.PTSCK )
-        brdc = 0;
-#endif
-
-#if 0
-    // Adjust points lost slightly, it should not be quite as bad as not having
-    //  the material on the board at all - it might be taken, but it hasn't yet
-    //  been taken!
-    int8_t ptsl = z.PTSL;
-    if( ptsl != 0 )
-        ptsl--;
-
-    // As discussed earlier points won is far less tangible than points lost, it's
-    //  just a hope for the future. Calculate its actual value as half of the lesser
-    //  valued of the two most valuble en-prise attacks, if and only if there are
-    //  at least two such attacks, and and only after discounting a half pawn's
-    //  value as we did for points lost.
-    int8_t ptsw = (z.PTSW1!=0 && z.PTSW2!=0) ? (z.PTSW2-1)/2 : 0;
-
-    // Points won net = points won - points lost
-    ptsw -= ptsl;
-
-    // Harmonise conventions:
-    //  Material and board control are bigger is better for White
-    //  Points won net are bigger is better for the side that just moved
-    //  Harmonise on "bigger is better for White" for now
-    if( IS_BLACK(end_of_points_color) )
-        ptsw = 0-ptsw;  // so negate points won net if Black just moved
-
-    // Add net material on board
-    int8_t adjusted_material = ptsw + z.MTRL;
-
-    // Subtract material at ply 0
-    // ABSOLUTE not RELATIVE, so don't subtract z.MV0;
-
-    // Board control points minus board control at ply zero
-    int8_t brdc = z.BRDC; // ABSOLUTE not RELATIVE, so don't subtract z.BC0
-
-    // Punish moving a piece into an en-prise location a second time by
-    //  setting board control points to zero
-    if( z.PTSCK != 0 )
-        brdc = 0;
-#endif
-
-    NODE n(level,from,to,0,0); //adjusted_material,brdc);
-    nodes.push_back(n);
-    if( nodes.size() > max_len_so_far )
-        max_len_so_far = (unsigned long)nodes.size();
-//    if( level == 1 )
-//    {
-//        calculate_pv( provisional );
-//        nodes.clear();
-//    } 
+    if( sz > (int)max_len_so_far )
+        max_len_so_far = (unsigned long)sz;
+    if( level == 1 )
+    {
+        nodes_pv = nodes;   // snapshot every time we select best ply 1 move
+        nodes.clear();
+    } 
 }
 
-#if 1
 // Use our knowledge for the way Sargon does minimax/alpha-beta to build a PV
 // When a node is indicated as 'BEST' at level one, we can look back through
 //  previously indicated nodes at higher level and construct a PV
-static void calculate_pv( PV &pv )
+PV sargon_pv_get()
 {
+    PV pv;
+    thc::ChessRules cr = pv_base_position;
     pv.variation.clear();
 
     // The PV calculation algorithm is derived in the executable documentation within
@@ -224,87 +93,61 @@ static void calculate_pv( PV &pv )
     // Collect a list of nodes representing all positive 'best move so far' decisions
     // Define an initially empty list PV
     // Set N = 1
-    // Scan the best so far node list once in reverse order
-    // If a scanned node has level equal to N, append it to PV and increment N
-    std::vector<NODE> nodes_pv;
-    int nbr = (int)nodes.size();
-    int target = 1;
-    int plymax = z.PLYMAX;
+    // Loop over the best so far node list once in reverse order
+    //   Skip over nodes of all levels looking for the next of level N
+    //   If a scanned node has level equal to N, append it to PV and increment N
+    int nbr = (int)nodes_pv.size();
+    uint8_t target = 1;
+    uint8_t plymax = z.PLYMAX;
+    uint8_t last_move_to = SQ_a1;
     for( int i=nbr-1; i>=0; i-- )
     {
-        NODE *p = &nodes[i];
+        NODE *p = &nodes_pv[i];
         if( p->level == target )
         {
-            nodes_pv.push_back( *p );
-            //if( target == plymax ) // commented out to allow extra depth nodes in case of checks - see below *
-            //    break;
-            target++;
-        }
-    }
-    thc::ChessRules cr = pv_base_position;
-    nbr = (int)nodes_pv.size();
-    bool ok = true;
-    for( int i=0; ok && i<nbr; i++ )
-    {
-        // See above *
-        // Normally we expect plymax nodes. So plymax=3; 3 nodes at level 1,2,3; i=0,1,2.
-        // But Sargon does an extra ply if the king is in check, so allow (but don't insist on)
-        // extra node(s) if terminal node is check.
-        // Example Fen: r1bqk2r/pppp1ppp/2n5/2b4n/4Pp2/2NP1N2/PPPBB1PP/R2QK2R b KQkq - 6 7
-        // PV at plymax=5 is: Sargon 1978 -0.97 (depth 5) 7...Qf6 8.Ng1 Bxg1 9.Rxg1 Qh4+ 10.Kf1
-        // Before the next paragraph of code was added 10.Kf1 didn't show in the line and the
-        // score was -12.80 pawns, the leaf score of Qh4+, which presumably is allowed to be
-        // exaggerated because of the check and alpha-beta optimisation (make sure checks are
-        // evaluated first).
-        if( i >= plymax )
-        {
-            thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
-            bool in_check = cr.AttackedPiece(sq);
-            printf( "in_check = %s\n", in_check ? "true" : "false" );
-            if( !in_check )
+
+            // We only go above target if we are in check
+            if( target > plymax )
             {
-                nodes_pv.resize(i);  // Called this BUG_EXTRA_PLY_RESIZE in the git commit message
-                break;
+                thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
+                bool in_check = cr.AttackedPiece(sq);
+                //printf( "target=%u, p->level=%u; in_check = %s\n", target, p->level, in_check ? "true" : "false" );
+                if( !in_check )
+                    break;  // Presumambly this node is not in the PV tree
             }
-        }
-        NODE *p = &nodes_pv[i];
-        thc::Square src;
-        ok = sargon_export_square( p->from, src );
-        if( ok )
-        {
+            target++;
+            thc::Square src;
+            bool ok = sargon_export_square( p->from, src );
+            if( !ok )
+                break;
             thc::Square dst;
             ok = sargon_export_square( p->to, dst );
-            if( ok )
+            if( !ok )
+                break;
+            char buf[5];
+            buf[0] = thc::get_file(src);
+            buf[1] = thc::get_rank(src);
+            buf[2] = thc::get_file(dst);
+            buf[3] = thc::get_rank(dst);
+            buf[4] = '\0';
+            thc::Move mv;
+            bool legal = mv.TerseIn( &cr, buf );
+            if( !legal )
+                break;
+            else
             {
-                char buf[5];
-                buf[0] = thc::get_file(src);
-                buf[1] = thc::get_rank(src);
-                buf[2] = thc::get_file(dst);
-                buf[3] = thc::get_rank(dst);
-                buf[4] = '\0';
-                thc::Move mv;
-                bool legal = mv.TerseIn( &cr, buf );
-                if( !legal )
-                    break;
-                else
-                {
-                    cr.PlayMove(mv);
-                    pv.variation.push_back(mv);
-                }
+                last_move_to = p->to;
+                cr.PlayMove(mv);
+                pv.variation.push_back(mv);
             }
         }
     }
     thc::TERMINAL score_terminal;
     cr.Evaluate( score_terminal );
-
-    // Note that nodes_pv might have been resized by in_check test above, so
-    //  recalculate nbr (fixing BUG_EXTRA_PLY_RESIZE)
-    nbr = (int)nodes_pv.size();
-    pv.depth = plymax;
-    int absolute_score = 0;
-    if( nbr > 0 )
+    int points = 0;
+    if( pv.variation.size() > 0 )
     {
-        NODE *nptr = &nodes_pv[nbr-1];
+
         bool white_last = !cr.WhiteToPlay();
 
         // Save things we are changing
@@ -312,36 +155,40 @@ static void calculate_pv( PV &pv )
         uint8_t sv_to    = z.MLPTRJ->to;
         uint8_t sv_val1  = z.MLPTRJ->val;
         uint8_t sv_val2  = z.VALM;
+        uint8_t sv_MV0   = z.MV0;
+        uint8_t sv_BC0   = z.BC0;
         thc::ChessPosition sv_cp;
         sargon_export_position(sv_cp);
 
         // Temporarily set Sargon position to end position
         sargon_import_position(cr);
         z.COLOR      = white_last?0:0x80;
-        z.MLPTRJ->to = nptr->to;
+        z.MLPTRJ->to = last_move_to;
+
+        // Set base values to zero for an absolute rather than
+        //  a relative points calculation
+        z.MV0 = 0;
+        z.BC0 = 0;
 
         // Calculate points
         POINTS();
-        int points = z.VALM;    // 1-254, unsigned smaller_is better for last side to move in leaf position
+        points = z.VALM;        // 1-254, unsigned smaller_is better for last side to move in leaf position
         points -= 128;          // signed smaller_is better for last side to move in leaf position
         if( white_last )
-            points = 0-points;                          // signed bigger_is_better for white  
-        int net_material_gain = z.MTRL - z.MV0;         // signed bigger_is_better for white  
-        int net_board_control_gain = z.BRDC - z.BC0;    // signed bigger_is_better for white
-        int base_gain = 4*LIMIT(29,net_material_gain) + LIMIT(6,net_board_control_gain);
-        int all_adjustments = points - base_gain;
-        absolute_score = 4*LIMIT(29,z.MTRL) + LIMIT(6,z.BRDC) + all_adjustments;
+            points = 0-points;   // signed bigger_is_better for white  
 
         // Restore things we changed
         z.COLOR       = sv_color;
         z.MLPTRJ->to  = sv_to;
         z.MLPTRJ->val = sv_val1; 
         z.VALM        = sv_val2;
+        z.MV0         = sv_MV0;
+        z.BC0         = sv_BC0;
         sargon_import_position(sv_cp);
     }
 
     // Final adjustments
-    double centipawns = absolute_score * 100.0/8.0;
+    double centipawns = points * 100.0/8.0;
     pv.value = static_cast<int>(centipawns);
     if( score_terminal != thc::NOT_TERMINAL )
     {
@@ -367,142 +214,8 @@ static void calculate_pv( PV &pv )
             }
         }
     }
+    return pv;
 }
-
-#else
-
-// Use our knowledge for the way Sargon does minimax/alpha-beta to build a PV
-// When a node is indicated as 'BEST' at level one, we can look back through
-//  previously indicated nodes at higher level and construct a PV
-static void calculate_pv( PV &pv )
-{
-    pv.variation.clear();
-
-    // The PV calculation algorithm is derived in the executable documentation within
-    //  std::string pv_algorithm_txt in src/sargon-minimax.cpp
-    // 
-    // Summarising the PV algorithm is;
-    // Collect a list of nodes representing all positive 'best move so far' decisions
-    // Define an initially empty list PV
-    // Set N = 1
-    // Scan the best so far node list once in reverse order
-    // If a scanned node has level equal to N, append it to PV and increment N
-    std::vector<NODE> nodes_pv;
-    int nbr = (int)nodes.size();
-    int target = 1;
-    int plymax = z.PLYMAX;
-    for( int i=nbr-1; i>=0; i-- )
-    {
-        NODE *p = &nodes[i];
-        if( p->level == target )
-        {
-            nodes_pv.push_back( *p );
-            //if( target == plymax ) // commented out to allow extra depth nodes in case of checks - see below *
-            //    break;
-            target++;
-        }
-    }
-    thc::ChessRules cr = pv_base_position;
-    nbr = (int)nodes_pv.size();
-    bool ok = true;
-    for( int i=0; ok && i<nbr; i++ )
-    {
-        // See above *
-        // Normally we expect plymax nodes. So plymax=3; 3 nodes at level 1,2,3; i=0,1,2.
-        // But Sargon does an extra ply if the king is in check, so allow (but don't insist on)
-        // extra node(s) if terminal node is check.
-        // Example Fen: r1bqk2r/pppp1ppp/2n5/2b4n/4Pp2/2NP1N2/PPPBB1PP/R2QK2R b KQkq - 6 7
-        // PV at plymax=5 is: Sargon 1978 -0.97 (depth 5) 7...Qf6 8.Ng1 Bxg1 9.Rxg1 Qh4+ 10.Kf1
-        // Before the next paragraph of code was added 10.Kf1 didn't show in the line and the
-        // score was -12.80 pawns, the leaf score of Qh4+, which presumably is allowed to be
-        // exaggerated because of the check and alpha-beta optimisation (make sure checks are
-        // evaluated first).
-        if( i >= plymax )
-        {
-            thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
-            bool in_check = cr.AttackedPiece(sq);
-            if( !in_check )
-            {
-                nodes_pv.resize(i);  // Called this BUG_EXTRA_PLY_RESIZE in the git commit message
-                break;
-            }
-        }
-        NODE *p = &nodes_pv[i];
-        thc::Square src;
-        ok = sargon_export_square( p->from, src );
-        if( ok )
-        {
-            thc::Square dst;
-            ok = sargon_export_square( p->to, dst );
-            if( ok )
-            {
-                char buf[5];
-                buf[0] = thc::get_file(src);
-                buf[1] = thc::get_rank(src);
-                buf[2] = thc::get_file(dst);
-                buf[3] = thc::get_rank(dst);
-                buf[4] = '\0';
-                thc::Move mv;
-                bool legal = mv.TerseIn( &cr, buf );
-                if( !legal )
-                    break;
-                else
-                {
-                    cr.PlayMove(mv);
-                    pv.variation.push_back(mv);
-                }
-            }
-        }
-    }
-    thc::TERMINAL score_terminal;
-    cr.Evaluate( score_terminal );
-
-    // Note that nodes_pv might have been resized by in_check test above, so
-    //  recalculate nbr (fixing BUG_EXTRA_PLY_RESIZE)
-    nbr = (int)nodes_pv.size();
-    pv.depth = plymax;
-    NODE *nptr = &nodes_pv[nbr-1];
-
-    // Simplified and improved ABSOLUTE value calculation
-    int limit_brdc = nptr->brdc;
-    if( limit_brdc > 6 )
-        limit_brdc = 6;
-    else if( limit_brdc < -6 )
-        limit_brdc = -6;
-    int limit_material = nptr->adjusted_material;
-    if( limit_material > 29 )
-        limit_material = 29;
-    else if( limit_material < -29 )
-        limit_material = -29;
-    double centipawns = (4*limit_material + limit_brdc) * 100.0/8.0;
-    pv.value = static_cast<int>(centipawns);
-    if( score_terminal != thc::NOT_TERMINAL )
-    {
-        switch( score_terminal )
-        {
-            case thc::TERMINAL_WCHECKMATE:  // White is checkmated
-            case thc::TERMINAL_BCHECKMATE:  // Black is checkmated
-            {
-                int nbr = (int)pv.variation.size();
-                int value = 6000;                           // mate in 1 is worth 60 pawns (say)
-                int nbr_full_moves_to_mate = (nbr+1)/2;     // nbr=1,2 =>1 3,4=>2
-                if( nbr_full_moves_to_mate == 0 )           // eg initial position is checkmate
-                    nbr_full_moves_to_mate = 1;
-                value -= (nbr_full_moves_to_mate-1)*100;    // subtract 1 pawn for mate in 2, 2 pawns for mate in 3, etc
-                pv.value = (score_terminal==thc::TERMINAL_BCHECKMATE ? value : 0-value);
-                break;
-            }
-            case thc::TERMINAL_WSTALEMATE:
-            case thc::TERMINAL_BSTALEMATE:
-            {
-                pv.value=0;
-                break;
-            }
-        }
-    }
-}
-
-#endif
 
 std::string sargon_pv_report_stats()
 {

@@ -25,8 +25,8 @@ int main( int argc, const char *argv[] )
     const char *test_args[] =
     {
         "Debug/zargon.exe"
-        //,"u"
-        , "p", "-v" 
+        ,"u"
+        //, "p", "-v" 
         //"g",
         //"-3"
         //"cg",
