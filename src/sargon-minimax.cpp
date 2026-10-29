@@ -1401,6 +1401,7 @@ void callback_ldar( uint8_t &out_random_number )
 //   YES->  'Yes! this is the best move
 void callback_yes_best_move()
 {
+
     // Important PV callback (1 of 2)
     sargon_pv_callback_yes_best_move();
 

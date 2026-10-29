@@ -1153,7 +1153,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     callback_start_position_register(cr);
     if( !quiet )
     {
-        std::string intro = util::sprintf("\nTest position %d is", test_nbr );
+        std::string intro = util::sprintf("\nTest position %d (%s) is", test_nbr, pt->fen );
         std::string s = cr.ToDebugStr( intro.c_str() );
         printf( "%s\n", s.c_str() );
         printf( "Expected PV=%s\n", pt->pv );
@@ -1286,7 +1286,7 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
     callback_start_position_register( cr );
     if( !quiet )
     {
-        std::string intro = util::sprintf("\nTest position %d is", i );
+        std::string intro = util::sprintf("\nTest position %d (%s) is", i, pt->fen );
         std::string s = cr.ToDebugStr( intro.c_str() );
         printf( "%s\n", s.c_str() );
         printf( "Expected PV=%s\n", pt->pv );
@@ -1355,7 +1355,7 @@ bool sargon_position_tests( bool quiet, int comprehensive )
         cr.Forsyth(pt->fen);
         if( !quiet )
         {
-            std::string intro = util::sprintf("\nTest position %d is", i+1 );
+            std::string intro = util::sprintf("\nTest position %d (%s) is", i+1, pt->fen );
             std::string s = cr.ToDebugStr( intro.c_str() );
             printf( "%s\n", s.c_str() );
             printf( "Expected PV=%s\n", pt->pv );

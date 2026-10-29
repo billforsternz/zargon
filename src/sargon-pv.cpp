@@ -55,7 +55,9 @@ void sargon_pv_clear( const thc::ChessPosition &current_position )
 
 PV sargon_pv_get()
 {
-    return provisional;
+    static PV pv;
+    calculate_pv( pv );
+    return pv;
 }
 
 static unsigned char end_of_points_color;
@@ -154,8 +156,9 @@ void sargon_pv_callback_yes_best_move()
     char brdc = static_cast<char>(z.BRDC);
     if( z.PTSCK )
         brdc = 0;
+#endif
 
-#else
+#if 0
     // Adjust points lost slightly, it should not be quite as bad as not having
     //  the material on the board at all - it might be taken, but it hasn't yet
     //  been taken!
@@ -195,16 +198,178 @@ void sargon_pv_callback_yes_best_move()
         brdc = 0;
 #endif
 
-    NODE n(level,from,to,adjusted_material,brdc);
+    NODE n(level,from,to,0,0); //adjusted_material,brdc);
     nodes.push_back(n);
     if( nodes.size() > max_len_so_far )
         max_len_so_far = (unsigned long)nodes.size();
-    if( level == 1 )
-    {
-        calculate_pv( provisional );
-        nodes.clear();
-    } 
+//    if( level == 1 )
+//    {
+//        calculate_pv( provisional );
+//        nodes.clear();
+//    } 
 }
+
+#if 1
+// Use our knowledge for the way Sargon does minimax/alpha-beta to build a PV
+// When a node is indicated as 'BEST' at level one, we can look back through
+//  previously indicated nodes at higher level and construct a PV
+static void calculate_pv( PV &pv )
+{
+    pv.variation.clear();
+
+    // The PV calculation algorithm is derived in the executable documentation within
+    //  std::string pv_algorithm_txt in src/sargon-minimax.cpp
+    // 
+    // Summarising the PV algorithm is;
+    // Collect a list of nodes representing all positive 'best move so far' decisions
+    // Define an initially empty list PV
+    // Set N = 1
+    // Scan the best so far node list once in reverse order
+    // If a scanned node has level equal to N, append it to PV and increment N
+    std::vector<NODE> nodes_pv;
+    int nbr = (int)nodes.size();
+    int target = 1;
+    int plymax = z.PLYMAX;
+    for( int i=nbr-1; i>=0; i-- )
+    {
+        NODE *p = &nodes[i];
+        if( p->level == target )
+        {
+            nodes_pv.push_back( *p );
+            //if( target == plymax ) // commented out to allow extra depth nodes in case of checks - see below *
+            //    break;
+            target++;
+        }
+    }
+    thc::ChessRules cr = pv_base_position;
+    nbr = (int)nodes_pv.size();
+    bool ok = true;
+    for( int i=0; ok && i<nbr; i++ )
+    {
+        // See above *
+        // Normally we expect plymax nodes. So plymax=3; 3 nodes at level 1,2,3; i=0,1,2.
+        // But Sargon does an extra ply if the king is in check, so allow (but don't insist on)
+        // extra node(s) if terminal node is check.
+        // Example Fen: r1bqk2r/pppp1ppp/2n5/2b4n/4Pp2/2NP1N2/PPPBB1PP/R2QK2R b KQkq - 6 7
+        // PV at plymax=5 is: Sargon 1978 -0.97 (depth 5) 7...Qf6 8.Ng1 Bxg1 9.Rxg1 Qh4+ 10.Kf1
+        // Before the next paragraph of code was added 10.Kf1 didn't show in the line and the
+        // score was -12.80 pawns, the leaf score of Qh4+, which presumably is allowed to be
+        // exaggerated because of the check and alpha-beta optimisation (make sure checks are
+        // evaluated first).
+        if( i >= plymax )
+        {
+            thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
+            bool in_check = cr.AttackedPiece(sq);
+            printf( "in_check = %s\n", in_check ? "true" : "false" );
+            if( !in_check )
+            {
+                nodes_pv.resize(i);  // Called this BUG_EXTRA_PLY_RESIZE in the git commit message
+                break;
+            }
+        }
+        NODE *p = &nodes_pv[i];
+        thc::Square src;
+        ok = sargon_export_square( p->from, src );
+        if( ok )
+        {
+            thc::Square dst;
+            ok = sargon_export_square( p->to, dst );
+            if( ok )
+            {
+                char buf[5];
+                buf[0] = thc::get_file(src);
+                buf[1] = thc::get_rank(src);
+                buf[2] = thc::get_file(dst);
+                buf[3] = thc::get_rank(dst);
+                buf[4] = '\0';
+                thc::Move mv;
+                bool legal = mv.TerseIn( &cr, buf );
+                if( !legal )
+                    break;
+                else
+                {
+                    cr.PlayMove(mv);
+                    pv.variation.push_back(mv);
+                }
+            }
+        }
+    }
+    thc::TERMINAL score_terminal;
+    cr.Evaluate( score_terminal );
+
+    // Note that nodes_pv might have been resized by in_check test above, so
+    //  recalculate nbr (fixing BUG_EXTRA_PLY_RESIZE)
+    nbr = (int)nodes_pv.size();
+    pv.depth = plymax;
+    int absolute_score = 0;
+    if( nbr > 0 )
+    {
+        NODE *nptr = &nodes_pv[nbr-1];
+        bool white_last = !cr.WhiteToPlay();
+
+        // Save things we are changing
+        uint8_t sv_color = z.COLOR;
+        uint8_t sv_to    = z.MLPTRJ->to;
+        uint8_t sv_val1  = z.MLPTRJ->val;
+        uint8_t sv_val2  = z.VALM;
+        thc::ChessPosition sv_cp;
+        sargon_export_position(sv_cp);
+
+        // Temporarily set Sargon position to end position
+        sargon_import_position(cr);
+        z.COLOR      = white_last?0:0x80;
+        z.MLPTRJ->to = nptr->to;
+
+        // Calculate points
+        POINTS();
+        int points = z.VALM;    // 1-254, unsigned smaller_is better for last side to move in leaf position
+        points -= 128;          // signed smaller_is better for last side to move in leaf position
+        if( white_last )
+            points = 0-points;                          // signed bigger_is_better for white  
+        int net_material_gain = z.MTRL - z.MV0;         // signed bigger_is_better for white  
+        int net_board_control_gain = z.BRDC - z.BC0;    // signed bigger_is_better for white
+        int base_gain = 4*LIMIT(29,net_material_gain) + LIMIT(6,net_board_control_gain);
+        int all_adjustments = points - base_gain;
+        absolute_score = 4*LIMIT(29,z.MTRL) + LIMIT(6,z.BRDC) + all_adjustments;
+
+        // Restore things we changed
+        z.COLOR       = sv_color;
+        z.MLPTRJ->to  = sv_to;
+        z.MLPTRJ->val = sv_val1; 
+        z.VALM        = sv_val2;
+        sargon_import_position(sv_cp);
+    }
+
+    // Final adjustments
+    double centipawns = absolute_score * 100.0/8.0;
+    pv.value = static_cast<int>(centipawns);
+    if( score_terminal != thc::NOT_TERMINAL )
+    {
+        switch( score_terminal )
+        {
+            case thc::TERMINAL_WCHECKMATE:  // White is checkmated
+            case thc::TERMINAL_BCHECKMATE:  // Black is checkmated
+            {
+                int nbr = (int)pv.variation.size();
+                int value = 6000;                           // mate in 1 is worth 60 pawns (say)
+                int nbr_full_moves_to_mate = (nbr+1)/2;     // nbr=1,2 =>1 3,4=>2
+                if( nbr_full_moves_to_mate == 0 )           // eg initial position is checkmate
+                    nbr_full_moves_to_mate = 1;
+                value -= (nbr_full_moves_to_mate-1)*100;    // subtract 1 pawn for mate in 2, 2 pawns for mate in 3, etc
+                pv.value = (score_terminal==thc::TERMINAL_BCHECKMATE ? value : 0-value);
+                break;
+            }
+            case thc::TERMINAL_WSTALEMATE:
+            case thc::TERMINAL_BSTALEMATE:
+            {
+                pv.value=0;
+                break;
+            }
+        }
+    }
+}
+
+#else
 
 // Use our knowledge for the way Sargon does minimax/alpha-beta to build a PV
 // When a node is indicated as 'BEST' at level one, we can look back through
@@ -336,6 +501,8 @@ static void calculate_pv( PV &pv )
         }
     }
 }
+
+#endif
 
 std::string sargon_pv_report_stats()
 {
