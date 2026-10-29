@@ -25,30 +25,103 @@ static Zargon &z = gbl_zargon;
 //  the best move found so far at a given level
 struct NODE
 {
-    uint8_t  level;
     uint8_t  from;
     uint8_t  to;
-    NODE() : level(0), from(0), to(0) {}
-    NODE( uint8_t l, uint8_t f, uint8_t t ) :
-                level(l), from(f), to(t) {}
+    NODE() : from(0), to(0) {}
+    NODE( uint8_t f, uint8_t t ) :
+                from(f), to(t) {}
 };
 
 //
 //  Build Sargon's PV (Principal Variation)
 //
 
+static NODE track_pv[ MAX_DEPTH + ALLOCATION_PADDING ][ MAX_DEPTH + ALLOCATION_PADDING ];
 static thc::ChessRules pv_base_position;
-static std::vector< NODE > nodes;
-static std::vector< NODE > nodes_pv;
-static unsigned long max_len_so_far;
-static uint8_t previous_level;
 
 void sargon_pv_clear( const thc::ChessPosition &current_position )
 {
-    previous_level = 0;
+    memset( track_pv, 0, sizeof(track_pv) );
     pv_base_position = current_position;
-    nodes.clear();
 }
+
+
+/*
+
+    New improved PV algorithm
+
+    This algorithm is much improved on our original potentially
+    unbounded vector algorithm. More in the spirit of Sargon,
+    we use a single static allocation. Although we do need a
+    two dimensional array, around 1K bytes.
+
+    Store best moves (just from,to) in a 2D array, eg store a ply 4
+    move like this (maybe PLYMAX is 3 and 4 is as deep as we go);
+
+           0      1      2      3      4
+       +------+------+------+------+------+
+    0  |      |      |      |      |      |
+       +------+------+------+------+------+
+    1  |      |      |      |      |      |
+       +------+------+------+------+------+
+    2  |      |      |      |      |      |
+       +------+------+------+------+------+
+    3  |      |      |      |      |      |
+       +------+------+------+------+------+
+    4  |      |      |      |      | mv4  |
+       +------+------+------+------+------+
+
+    Later store a ply 3 move like this;
+
+           0      1      2      3      4
+       +------+------+------+------+------+
+    0  |      |      |      |      |      |
+       +------+------+------+------+------+
+    1  |      |      |      |      |      |
+       +------+------+------+------+------+
+    2  |      |      |      |      |      |
+       +------+------+------+------+------+
+    3  |      |      |      | mv3  |      |
+       +------+------+------+------+------+
+    4  |      |      |      |      | mv4  |
+       +------+------+------+------+------+
+
+
+    But then pull up mv4, in fact the complete
+    continuation, from the row below. Each row
+    ends up containing a complete continuation;
+
+           0      1      2      3      4
+       +------+------+------+------+------+
+    0  |      |      |      |      |      |
+       +------+------+------+------+------+
+    1  |      |      |      |      |      |
+       +------+------+------+------+------+
+    2  |      |      |      |      |      |
+       +------+------+------+------+------+
+    3  |      |      |      | mv3  | mv4  |
+       +------+------+------+------+-^----+
+    4  |      |      |      |      | |mv4 |
+       +------+------+------+------+------+
+
+    When we have a ply 1 best move we pull up
+    the complete PV continuation from ply 2
+    onwards from the row below;
+
+           0      1      2      3      4
+       +------+------+------+------+------+
+    0  |      |      |      |      |      |
+       +------+------+------+------+------+
+    1  |      |  mv1 |  mv2 |  mv3 |  mv4 |
+       +------+------+-^----+-^----+-^----+
+    2  |      |      | |mv2 | |mv3 | |mv4 |
+       +------+------+------+------+------+
+    3  |      |      |      | mv3  | mv4  |
+       +------+------+------+------+------+
+    4  |      |      |      |      | mv4  |
+       +------+------+------+------+------+
+
+*/
 
 void sargon_pv_callback_yes_best_move()
 {
@@ -57,90 +130,67 @@ void sargon_pv_callback_yes_best_move()
     uint8_t level  = z.NPLY;
     uint8_t from  = p->from;
     uint8_t to    = p->to;
-    int sz = (int)nodes.size();
-    NODE n(level,from,to);
-    bool level_change = (level!=previous_level);
-    previous_level = level;
-    if( level_change )
-        nodes.push_back(n);
-    else
+    NODE n(from,to);
+    track_pv[level][level] =  n;
+
+    // Pull up the current list of continuation nodes from the array row below
+    if( track_pv[level+1][level+1].from != 0 )
     {
-        int idx = sz - 1;
-        if( idx >= 0 )
-            nodes[idx] = n;
+        NODE *src  = &track_pv[level+1][level+1];
+        NODE *last = &track_pv[level+1][z.PLYMAX+1];
+        NODE *dst  = &track_pv[level][level+1];
+        size_t sz = (uint8_t *)(last+1) - (uint8_t *)(src);
+        memcpy( dst, src, sz );
     }
-    if( sz > (int)max_len_so_far )
-        max_len_so_far = (unsigned long)sz;
-    if( level == 1 )
-    {
-        nodes_pv = nodes;   // snapshot every time we select best ply 1 move
-        nodes.clear();
-    } 
 }
 
-// Use our knowledge for the way Sargon does minimax/alpha-beta to build a PV
-// When a node is indicated as 'BEST' at level one, we can look back through
-//  previously indicated nodes at higher level and construct a PV
 PV sargon_pv_get()
 {
     PV pv;
     thc::ChessRules cr = pv_base_position;
     pv.variation.clear();
 
-    // The PV calculation algorithm is derived in the executable documentation within
-    //  std::string pv_algorithm_txt in src/sargon-minimax.cpp
-    // 
-    // Summarising the PV algorithm is;
-    // Collect a list of nodes representing all positive 'best move so far' decisions
-    // Define an initially empty list PV
-    // Set N = 1
-    // Loop over the best so far node list once in reverse order
-    //   Skip over nodes of all levels looking for the next of level N
-    //   If a scanned node has level equal to N, append it to PV and increment N
-    int nbr = (int)nodes_pv.size();
-    uint8_t target = 1;
+    uint8_t level = 1;
     uint8_t plymax = z.PLYMAX;
     uint8_t last_move_to = SQ_a1;
-    for( int i=nbr-1; i>=0; i-- )
+    for(;; )
     {
-        NODE *p = &nodes_pv[i];
-        if( p->level == target )
-        {
+        NODE *p = &track_pv[1][level];
+        if( p->from == 0 )
+            break;
 
-            // We only go above target if we are in check
-            if( target > plymax )
-            {
-                thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
-                bool in_check = cr.AttackedPiece(sq);
-                //printf( "target=%u, p->level=%u; in_check = %s\n", target, p->level, in_check ? "true" : "false" );
-                if( !in_check )
-                    break;  // Presumambly this node is not in the PV tree
-            }
-            target++;
-            thc::Square src;
-            bool ok = sargon_export_square( p->from, src );
-            if( !ok )
-                break;
-            thc::Square dst;
-            ok = sargon_export_square( p->to, dst );
-            if( !ok )
-                break;
-            char buf[5];
-            buf[0] = thc::get_file(src);
-            buf[1] = thc::get_rank(src);
-            buf[2] = thc::get_file(dst);
-            buf[3] = thc::get_rank(dst);
-            buf[4] = '\0';
-            thc::Move mv;
-            bool legal = mv.TerseIn( &cr, buf );
-            if( !legal )
-                break;
-            else
-            {
-                last_move_to = p->to;
-                cr.PlayMove(mv);
-                pv.variation.push_back(mv);
-            }
+        // We only go above z.PLYMAX if we are in check
+        if( level > z.PLYMAX )
+        {
+            thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
+            bool in_check = cr.AttackedPiece(sq);
+            if( !in_check )
+                break;  // Presumambly this >PLYMAX node is not in the PV tree
+        }
+        level++;
+        thc::Square src;
+        bool ok = sargon_export_square( p->from, src );
+        if( !ok )
+            break;
+        thc::Square dst;
+        ok = sargon_export_square( p->to, dst );
+        if( !ok )
+            break;
+        char buf[5];
+        buf[0] = thc::get_file(src);
+        buf[1] = thc::get_rank(src);
+        buf[2] = thc::get_file(dst);
+        buf[3] = thc::get_rank(dst);
+        buf[4] = '\0';
+        thc::Move mv;
+        bool legal = mv.TerseIn( &cr, buf );
+        if( !legal )
+            break;
+        else
+        {
+            last_move_to = p->to;
+            cr.PlayMove(mv);
+            pv.variation.push_back(mv);
         }
     }
     thc::TERMINAL score_terminal;
@@ -220,5 +270,5 @@ PV sargon_pv_get()
 
 std::string sargon_pv_report_stats()
 {
-    return util::sprintf( "max length of build PV vector=%lu\n", max_len_so_far );
+    return "";
 }
