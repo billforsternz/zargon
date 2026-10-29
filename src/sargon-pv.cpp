@@ -41,9 +41,11 @@ static thc::ChessRules pv_base_position;
 static std::vector< NODE > nodes;
 static std::vector< NODE > nodes_pv;
 static unsigned long max_len_so_far;
+static uint8_t previous_level;
 
 void sargon_pv_clear( const thc::ChessPosition &current_position )
 {
+    previous_level = 0;
     pv_base_position = current_position;
     nodes.clear();
 }
@@ -57,15 +59,14 @@ void sargon_pv_callback_yes_best_move()
     uint8_t to    = p->to;
     int sz = (int)nodes.size();
     NODE n(level,from,to);
-    static uint8_t previous_level;
     bool level_change = (level!=previous_level);
     previous_level = level;
-    if( 1 ) //level_change )    // TODO why doesn't this level_change idea work?
+    if( level_change )
         nodes.push_back(n);
     else
     {
         int idx = sz - 1;
-        if( idx > 0 )
+        if( idx >= 0 )
             nodes[idx] = n;
     }
     if( sz > (int)max_len_so_far )
