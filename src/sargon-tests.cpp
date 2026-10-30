@@ -679,7 +679,7 @@ static TEST tests_main[]=
 
     // CTWBFK Pos 29, page 77 - solution Qe3-a3. Quite difficult!
     { "r4r2/6kp/2pqppp1/p1R5/b2P4/4QN2/1P3PPP/2R3K1 w - - 0 1", 5, "e3a3",
-        150, "Qa3 Bb5 Rxb5 Qxa3 Rb7+ Rf7" },
+        125 /* 150 Sargon x86 */, "Qa3 Bb5 Rxb5 Qxa3 Rb7+ Rf7" },
 
     // White has Nd3xc5+ pulling victory from the jaws of defeat, it's seen 
     //  It's seen at PLYMAX=3, not seen at PLYMAX=2. It's a kind of 5 ply
