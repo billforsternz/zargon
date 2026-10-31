@@ -1225,7 +1225,7 @@ void PINFND()
 //
 // ARGUMENTS:  --  None.
 //***********************************************************
-void XCHNG( int8_t &points, int8_t &piece_val )
+int8_t XCHNG( int8_t &piece_val )
 {
     trace_func(FE_XCHNG);
 
@@ -1379,9 +1379,6 @@ void XCHNG( int8_t &points, int8_t &piece_val )
 
 */
 
-    // Initialise points won or lost
-    points = 0;
-
     bool black = IS_BLACK(z.P1);
     bool have_reversed_sides = false;
 
@@ -1401,7 +1398,10 @@ void XCHNG( int8_t &points, int8_t &piece_val )
 
     // Return if none
     if( attacker_val == 0 )
-        return;
+        return 0;
+
+    // Initialise points won or lost
+    int8_t points = 0;
 
     // Loop through attackers and defenders
     // Main algorithm is;
@@ -1431,13 +1431,13 @@ void XCHNG( int8_t &points, int8_t &piece_val )
 
             // Defender less than attacker ?
             if( defender_val < attacker_val )
-                return; // yes - return
+                return points; // yes - return
 
             // Get next attacker
             attacker_val = black ? NEXTAD( count_white, wact )
                                  : NEXTAD( count_black, bact );
             if( attacker_val == 0 )
-                return; // return if none
+                return points; // return if none
 
             //  Get next defender
             defender_val = black ? NEXTAD( count_black, bact )
@@ -1456,13 +1456,14 @@ void XCHNG( int8_t &points, int8_t &piece_val )
 
         // Return at end of list
         if( defender_val == 0 )
-            return; 
+            return points; 
 
         // Prev attacker becomes defender
         attacked_val = attacker_val;
         have_reversed_sides = !have_reversed_sides;
         black = !black;
     }
+    return points;
 }
 
 //***********************************************************
@@ -1757,9 +1758,8 @@ uint8_t POINTS()
         //  can be captured at the expense of a minor piece, then points
         //  will be 4 (so 5-3 = 2 pawns, units are half pawns) while
         //  attacked_piece_val will be 10 (Rook = 5 pawns)
-        int8_t points;
         int8_t attacked_piece_val;
-        XCHNG( points, attacked_piece_val );
+        int8_t points = XCHNG( attacked_piece_val );
 
         // If piece is nominally lost
         if( points != 0 )
