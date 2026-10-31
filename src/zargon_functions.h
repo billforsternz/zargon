@@ -34,7 +34,7 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction );
 void PINFND();
 void XCHNG( int8_t &points, int8_t &piece_val );
 inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p );
-void POINTS();
+uint8_t POINTS();
 int8_t LIMIT( int8_t limit, int8_t val );
 void MOVE();
 void UNMOVE();

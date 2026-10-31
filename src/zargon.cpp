@@ -1527,7 +1527,7 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 // ARGUMENTS:  --  None
 //***********************************************************
 
-void POINTS()
+uint8_t POINTS()
 {
     trace_func_void(FE_POINTS);
 
@@ -1905,14 +1905,7 @@ void POINTS()
     // and 0 becomes available as a magic or sentinel value.
     points += 0x80;
     callback_end_of_points(points);
-
-    // Save score value
-    z.VALM = (uint8_t)points;
-
-    // Save score value to move pointed to by current move ptr
-    // Note that this val field is never updated from this initial static
-    // evaluation to a backed up refined minimax evaluation.
-    z.MLPTRJ->val = z.VALM;
+    return (uint8_t)points;
 }
 
 //***********************************************************
@@ -2409,7 +2402,9 @@ void EVAL()
         PINFND();
 
         // Assign points to move
-        POINTS();
+        uint8_t points = POINTS();
+        z.MLPTRJ->val =  points;
+        z.VALM        =  points;
     }
 
     // Restore board array
@@ -2680,11 +2675,13 @@ void FNDMOV()
             PINFND();
 
             // Evaluate move
-            POINTS();
+            uint8_t points = POINTS();
+            z.MLPTRJ->val = points;
+            z.VALM = points;
 
             // Restore board position
             UNMOVE();
-            score_smaller_is_better = z.VALM;             // get value of move
+            score_smaller_is_better = points;             // get value of move
             tracef( "Leaf node, score_smaller_is_better=%u\n", score_smaller_is_better );
             z.MATEF = false;            // it's not mate
         }

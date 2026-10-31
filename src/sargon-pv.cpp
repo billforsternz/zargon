@@ -222,8 +222,7 @@ PV sargon_pv_get()
         z.BC0 = 0;
 
         // Calculate points
-        POINTS();
-        points = z.VALM;        // 1-254, unsigned smaller_is better for last side to move in leaf position
+        points = POINTS();      // 2-254, unsigned smaller_is better for last side to move in leaf position
         points -= 128;          // signed smaller_is better for last side to move in leaf position
         if( white_last )
             points = 0-points;   // signed bigger_is_better for white  
