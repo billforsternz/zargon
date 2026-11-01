@@ -528,18 +528,12 @@ void ADMOVE()
     // Address of next location in move list
     ML *ml = z.MLNXT;
 
-    // Check that we haven't run out of memory
-    if( ml > (ML *)&z.MLEND )
-    {
-
-        // TODO - Maybe this is probably what was intended in the original code,
-        //  certainly writing 0 to the *difference* of two pointers makes no sense
-        //  This is hopeless though, probably should panic and quit
-        printf( "PANIC - Sargon out of memory\n" );
-        fprintf( stderr, "PANIC - Sargon out of memory\n" );
-        z.MLNXT = &z.MLIST[0];
-        return;
-    }
+    // Original Sargon code checked for "out of memory" here, we
+    //  now do it once in GENMOV() as an optimisation.
+    //  Note that original Sargon code writes 0 to the *difference*
+    //  of two pointers which makes no sense, then carries on. We
+    //  panic and exit instead. But really we allocate far more space
+    //  than will ever be needed
 
     // Address of previous move
     ML *previous_move = z.MLLST;
@@ -592,14 +586,31 @@ void GENMOV()
     z.MLPTRI = &z.PLYIX[z.NPLY];        // start of move linked list
     z.MLLST  = (ML *)z.MLPTRI;          // current end of list
 
+    // Check that we haven't run out of memory
+    //  (Zargon refinement - do it once per GENMOV() not every move in ADMOVE() )
+    if( z.MLNXT > &z.MLIST[ALLOC_MLIST_BASE]  )
+    {
+
+        printf( "PANIC - Sargon out of memory\n" );
+        fprintf( stderr, "PANIC - Sargon out of memory\n" );
+        exit(0);
+    }
+
     // Loop through the board
     for( uint8_t pos=SQ_a1; pos<=SQ_h8; pos++ )
     {
         z.M1 = pos;
         uint8_t piece = z.BOARDA[pos];
 
-        // If piece not empty or border
-        if( piece!=0 && piece!=0xff )
+        // If border
+        if( piece == 0xff )
+        {
+            pos++;
+            continue;
+        }
+
+        // If piece not empty
+        if( piece!=0 ) //&& piece!=0xff )
         {
             z.P1 = piece;
 
@@ -1679,7 +1690,10 @@ uint8_t POINTS()
 
         //  Off board edge ?
         if( piece == 0xff )
+        {
+            z.M3++;
             continue;
+        }
 
         // Piece with flags
         z.P1 = piece;

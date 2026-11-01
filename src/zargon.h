@@ -475,10 +475,10 @@ char MVEMSG[5]; // = {'a','1','-','a','1'};
 //             score assigned to the move.
 //
 //***********************************************************
-#define GENEROUS_MOVE_PER_PLY_ALLOWANCE 160
-#define MORE_MOVES_THAN_POSSIBLE 400    // only slightly more than 200 are even possible
-ML      MLIST[ GENEROUS_MOVE_PER_PLY_ALLOWANCE * MAX_DEPTH + MORE_MOVES_THAN_POSSIBLE + ALLOCATION_PADDING];
-uint8_t MLEND;
+#define ALLOC_GENEROUS_MOVES_PER_PLY_ALLOWANCE 160
+#define ALLOC_MLIST_BASE (ALLOC_GENEROUS_MOVES_PER_PLY_ALLOWANCE * MAX_DEPTH)
+#define ALLOC_MLIST_TAIL 400    // only slightly more than 200 moves per ply are even possible
+ML      MLIST[ ALLOC_MLIST_BASE + ALLOC_MLIST_TAIL + ALLOCATION_PADDING ];
 };   //  end struct Zargon
 
 #endif // ZARGON_H_INCLUDED
