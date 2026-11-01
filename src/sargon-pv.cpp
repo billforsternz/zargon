@@ -234,6 +234,10 @@ PV sargon_pv_get()
             last_move_to = p->to;
             cr.PlayMove(mv);
             pv.variation.push_back(mv);
+            thc::TERMINAL score_terminal;
+            cr.Evaluate( score_terminal );
+            if( score_terminal != thc::NOT_TERMINAL )
+                break;
         }
     }
     thc::TERMINAL score_terminal;
