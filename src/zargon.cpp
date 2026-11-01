@@ -1225,7 +1225,7 @@ void PINFND()
 //
 // ARGUMENTS:  --  None.
 //***********************************************************
-int8_t XCHNG( int8_t &piece_val )
+int8_t XCHNG( int8_t piece_val )
 {
     trace_func(FE_XCHNG);
 
@@ -1388,9 +1388,8 @@ int8_t XCHNG( int8_t &piece_val )
     uint8_t count_white = *wact;
     uint8_t count_black = *bact;
 
-    int8_t attacked_val = z.pvalue[z.T3-1];
-    attacked_val = attacked_val+attacked_val;   // units of value are half pawns
-    piece_val = (uint8_t)attacked_val;  
+    // Value in half pawns of first piece in exchange sequence
+    int8_t attacked_val = piece_val;
 
     // Retrieve first attacker
     int8_t attacker_val = black ? NEXTAD( count_white, wact )
@@ -1756,9 +1755,8 @@ uint8_t POINTS()
         //  whether the piece can be safely (profitably) taken. It sets
         //  points to a positive profit if that is available, eg if a rook
         //  can be captured at the expense of a minor piece, then points
-        //  will be 4 (so 5-3 = 2 pawns, units are half pawns) while
-        //  attacked_piece_val will be 10 (Rook = 5 pawns)
-        int8_t attacked_piece_val;
+        //  will be 4 (so 5-3 = 2 pawns, units are half pawns).
+        int8_t attacked_piece_val = (int8_t) (2*z.pvalue[z.T3-1]); // units of value are half pawns
         int8_t points = XCHNG( attacked_piece_val );
 
         // If piece is nominally lost

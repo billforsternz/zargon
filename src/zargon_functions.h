@@ -32,7 +32,7 @@ bool ATTACK();
 inline void ATKSAV( uint8_t scan_count, int8_t dir );
 inline bool PNCK( uint16_t pin_count, int8_t attack_direction );
 void PINFND();
-int8_t XCHNG( int8_t &piece_val );
+int8_t XCHNG( int8_t piece_val );
 inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p );
 uint8_t POINTS();
 int8_t LIMIT( int8_t limit, int8_t val );
