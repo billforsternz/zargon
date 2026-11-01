@@ -35,7 +35,7 @@ void PINFND();
 int8_t XCHNG( int8_t piece_val );
 inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p );
 uint8_t POINTS();
-int8_t LIMIT( int8_t limit, int8_t val );
+inline int8_t LIMIT( int8_t limit, int8_t val );
 void MOVE();
 void UNMOVE();
 void SORTM();
@@ -44,8 +44,6 @@ void FNDMOV();
 void ASCEND();
 void BOOK();
 void CPTRMV();
-uint16_t BITASN( uint8_t idx );
-uint8_t ASNTBI( uint8_t file, uint8_t rank );
 bool VALMOV( uint8_t from, uint8_t to );
 void ROYALT();
 

@@ -55,8 +55,23 @@ inline bool IS_CASTLED( uint8_t piece ) { return (piece&0x10) != 0;  }
 inline void SET_CASTLED( uint8_t &piece ) { piece|=0x10;  }
 inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 
-// Sargon squares (at least all those that are explicitly mentioned in code)
-#if 1
+// Sargon squares
+//
+// Board size is 120 bytes, 12 rows of 10
+// x is padding, s is square
+//
+//  xxxxxxxxxx
+//  xxxxxxxxxx
+//  xssssssssx    <--- offset of a1, first s = 21
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx
+//  xssssssssx    <--- offset of h8, last s = 98
+//  xxxxxxxxxx
+//  xxxxxxxxxx
 enum
 {   
     SQ_a1 = 21,
@@ -76,38 +91,6 @@ enum
     SQ_a8 = 91,
     SQ_b8, SQ_c8, SQ_d8, SQ_e8, SQ_f8, SQ_g8, SQ_h8
 };
-#else
-#define SQ_a1 21
-#define SQ_b1 22
-#define SQ_d1 24
-#define SQ_e1 25
-#define SQ_f1 26
-#define SQ_g1 27
-#define SQ_h1 28
-#define SQ_a2 31
-#define SQ_b2 32
-#define SQ_c2 33
-#define SQ_d2 34
-#define SQ_e2 35
-#define SQ_a3 41
-#define SQ_f3 46
-#define SQ_a4 51
-#define SQ_d4 54
-#define SQ_e4 55
-#define SQ_a5 61
-#define SQ_d5 64
-#define SQ_e5 65
-#define SQ_h5 68
-#define SQ_a6 71
-#define SQ_a7 81
-#define SQ_d7 84
-#define SQ_e7 85
-#define SQ_a8 91
-#define SQ_b8 92
-#define SQ_d8 94
-#define SQ_e8 95
-#define SQ_h8 98
-#endif
 
 struct Zargon {
 

@@ -1943,7 +1943,7 @@ uint8_t POINTS()
 //                 Output - Limited value
 //***********************************************************
 
-int8_t LIMIT( int8_t limit, int8_t val )
+inline int8_t LIMIT( int8_t limit, int8_t val )
 {
 
     // Negative values, eg limit=6, val=-7 => -6
@@ -2977,100 +2977,13 @@ void CPTRMV()
 
     // Toggle color
     TOGGLE(z.COLOR);
-
-    // Unnecessary Z80 User interface stuff, including EXECMV (graphics move)
-    // has now been removed
-    //
 }
 
 //
 //  Omit some more Z80 user interface stuff, functions
-//  FCDMAT, TBPLCL, TBCPCL, TBPLMV and TBCPMV
+//  EXECMV, BITASN, FCDMAT, TBPLCL, TBCPCL, TBPLMV and TBCPMV,
+//  PLYRMV, ASNTBI
 //
-
-//***********************************************************
-// BOARD INDEX TO ASCII SQUARE NAME
-//***********************************************************
-// FUNCTION:   --  To translate a hexadecimal index in the
-//                 board array into an ascii description
-//                 of the square in algebraic chess notation.
-//
-// CALLED BY:  --  CPTRMV
-//
-// CALLS:      --  DIVIDE
-//
-// ARGUMENTS:  --  Board index input in register D and the
-//                 Ascii square name is output in register
-//                 pair HL.
-//***********************************************************
-
-//
-// Board size is 120 bytes, 12 rows of 10
-// x is padding, s is square
-//
-//  xxxxxxxxxx
-//  xxxxxxxxxx
-//  xssssssssx    <--- offset of a1, first s = 21
-//  xssssssssx
-//  xssssssssx
-//  xssssssssx
-//  xssssssssx
-//  xssssssssx
-//  xssssssssx
-//  xssssssssx    <--- offset of h8, last s = 98
-//  xxxxxxxxxx
-//  xxxxxxxxxx
-
-uint16_t BITASN( uint8_t idx )
-{
-    uint8_t rank = idx/10;         // rank 2-9
-    uint8_t file = idx%10;         // file 1-8
-    rank = (rank-2) + '1';         // ascii '1'-'8'
-    file = (file-1) + 'a';         // ascii 'a'-'h'
-    uint16_t temp = rank;
-    temp = (temp<<8) + file;
-    return temp;
-}
-
-//
-//  Omit some more Z80 user interface stuff, function
-//  PLYRMV
-//
-
-//***********************************************************
-// ASCII SQUARE NAME TO BOARD INDEX
-//***********************************************************
-// FUNCTION:   --  To convert an algebraic square name in
-//                 Ascii to a hexadecimal board index.
-//                 This routine also checks the input for
-//                 validity.
-//
-// CALLED BY:  --  PLYRMV
-//
-// CALLS:      --  MLTPLY
-//
-// ARGUMENTS:  --  Accepts the square name in register pair HL
-//                 and outputs the board index in register A.
-//                 Register B = 0 if ok. Register B = Register
-//                 A if invalid.
-//***********************************************************
-
-uint8_t ASNTBI( uint8_t file, uint8_t rank )
-{
-
-    // If not okay, return 0
-    bool ok = ('1'<=rank && rank<='8' && 'A'<=file && file<='H' );
-    if( !ok )
-        return 0;
-
-    // Otherwise return offset from 21-98
-    rank -= '0';            // 1 - 8
-    rank++;                 // 2 - 9
-    file -= 'A';            // 0 - 7
-    file++;                 // 1 - 8
-    uint8_t offset = rank*10 + file;    // 21-98 (SQ_a1 - SQ_h8)
-    return offset;
-}
 
 //***********************************************************
 // VALIDATE MOVE SUBROUTINE
