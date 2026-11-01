@@ -2726,7 +2726,11 @@ void FNDMOV()
         // Else if mate or stalemate
         else
         {
-            score_smaller_is_better = 128;   // stalemate score
+            score_smaller_is_better = 128;  // Stalemate score
+                                            // Note that Sargon is not robust in the
+                                            // presence of stalemate - it's evaluated
+                                            // as net gain = neutral rather than
+                                            // absolute score = neutral.
             if( z.CKFLG )   // test check flag
             {
                 score_smaller_is_better = 0xff;   // if in check, then checkmate score
