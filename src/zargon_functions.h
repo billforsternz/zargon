@@ -46,7 +46,7 @@ void BOOK();
 void CPTRMV();
 uint16_t BITASN( uint8_t idx );
 uint8_t ASNTBI( uint8_t file, uint8_t rank );
-bool VALMOV();
+bool VALMOV( uint8_t from, uint8_t to );
 void ROYALT();
 
 // PATH() is the most important function from a performance perspective

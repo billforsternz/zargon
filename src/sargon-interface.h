@@ -31,6 +31,9 @@ std::string sargon_export_best_move();
 //  played move)
 bool sargon_play_move( thc::Move &mv );
 
+// Convert to Sargon square convention
+uint8_t sargon_import_square( thc::Square sq );
+
 // Read chess position from Sargon
 void sargon_export_position( thc::ChessPosition &cp );
 

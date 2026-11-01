@@ -201,6 +201,17 @@ std::string sargon_export_move( ML *p )
     return std::string(buf);
 }
 
+// Convert to Sargon square convention
+uint8_t sargon_import_square( thc::Square sq )
+{
+    char file = thc::get_file(sq);
+    char rank = thc::get_rank(sq);
+    uint8_t   out = SQ_a1;
+    out += (file-'a');          // eg file = 'b' add 1
+    out += (rank-'1') * 10;     // eg rank = '3' add 20
+    return out;
+}
+
 // Play a move inside Sargon (i.e. update Sargon's representation with a legal
 //  played move)
 bool sargon_play_move( thc::Move &mv )
@@ -268,24 +279,10 @@ bool sargon_play_move( thc::Move &mv )
     unsigned char color = z.COLOR; // who to move?
     unsigned char kolor = z.KOLOR; // which side is Sargon?
     z.KOLOR = (color==0?0x80:0);   // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
-    std::string terse = mv.TerseOut();
-    for( int i=0; i<2; i++ )
-    {
-        uint8_t file = terse[0 + 2*i] - 0x20;    // toupper for ASNTBI()
-        uint8_t rank = terse[1 + 2*i];
-        uint8_t board_index = ASNTBI( file, rank );    // ASNTBI = ASCII square name to board index
-        ok = (board_index>0);
-        if( ok )
-        {
-            uint8_t *p = (uint8_t *)&z.MVEMSG[0];
-            *(p+i) = board_index;
-        }
-    }
-    if( ok )
-    {
-        z.NPLY = 0;
-        ok = VALMOV();
-    }
+    uint8_t from = sargon_import_square(mv.src);
+    uint8_t to   = sargon_import_square(mv.dst);
+    z.NPLY = 0;
+    ok = VALMOV( from, to );
 
     // Restore COLOR and KOLOR
     z.KOLOR = kolor;
