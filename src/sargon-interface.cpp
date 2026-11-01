@@ -216,8 +216,9 @@ uint8_t sargon_import_square( thc::Square sq )
 //  played move)
 bool sargon_play_move( thc::Move &mv )
 {
-    // This function is modelled on PLYRMV() Sargon user interface
-    //  function
+    // This function was originally modelled on PLYRMV() Sargon
+    //  user interface function. The main logic for making a
+    //  move from an external source in Sargon is in VALMOV()
 
     /*
     ;***********************************************************
