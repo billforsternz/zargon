@@ -3086,8 +3086,12 @@ uint8_t ASNTBI( uint8_t file, uint8_t rank )
 //
 // ARGUMENTS:  --  Returns flag in register A, 0 for valid
 //                 and 1 for invalid move.
+//
+// Parameters: Opponent's move as two squares
+// Returns:    bool move_is_valid
+//             Makes move internally if it is valid
 //***********************************************************
-bool VALMOV()
+bool VALMOV( uint8_t from, uint8_t to )
 {
     // Return bool ok
     bool ok=false;
@@ -3114,13 +3118,12 @@ bool VALMOV()
     // Generate opponent's moves
     GENMOV();
 
-    // Search for move, "From" position (offset 0) "To" position (offset 1)
-    uint8_t *q = (uint8_t *)&z.MVEMSG;
+    // Search for move
     for(;;)
     {
 
         // Move found ?
-        if( *q == ml->from && *(q+1) == ml->to )
+        if( from == ml->from && to == ml->to )
             break;  // yes
 
         //  Pointer to next list move
