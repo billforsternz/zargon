@@ -32,19 +32,6 @@ struct NODE
                 from(f), to(t) {}
 };
 
-//
-//  Build Sargon's PV (Principal Variation)
-//
-
-static NODE track_pv[ MAX_DEPTH + ALLOCATION_PADDING ][ MAX_DEPTH + ALLOCATION_PADDING ];
-static thc::ChessRules pv_base_position;
-
-void sargon_pv_clear( const thc::ChessPosition &current_position )
-{
-    memset( track_pv, 0, sizeof(track_pv) );
-    pv_base_position = current_position;
-}
-
 
 /*
 
@@ -53,7 +40,8 @@ void sargon_pv_clear( const thc::ChessPosition &current_position )
     This algorithm is much improved on our original potentially
     unbounded vector algorithm. More in the spirit of Sargon,
     we use a single static allocation. Although we do need a
-    two dimensional array, around 1K bytes.
+    two dimensional array, around 1K bytes. (But see refinement
+    below - maybe 500 bytes instead :)
 
     Store best moves (just from,to) in a 2D array, eg store a ply 4
     move like this (maybe PLYMAX is 3 and 4 is as deep as we go);
@@ -121,27 +109,86 @@ void sargon_pv_clear( const thc::ChessPosition &current_position )
     4  |      |      |      |      | mv4  |
        +------+------+------+------+------+
 
+Refinement, unroll into a one dimensional array to
+avoid wasting half of the memory (the bottom left
+triangle) of the two dimensional array.
+
+Let
+    N = length of maximum variation = MAX_DEPTH+1, 
+    N also = maximum depth (one more than MAX_DEPTH because we go
+             one ply deeper if check)
+    x = depth 1..N inclusive
+    y = storage offset for that depth
+         x=1 => y=0
+         x=2 => y=N
+         x=3 => y=2N-1
+         x=4 => y=3N-3
+         x=5 => y=4N-6
+         x=6 => y=5N-10 etc.
+    sz = y=f(x)+1 for x=N (we store 1 node at max depth)
+
+Offset formula is;
+    y = f(x) = (x-1)*N - (x-1)*(x-2)/2
+
+Example N = 10
+    x   y              f(x)
+    1   0              0  - 0*-1/2  = 0
+    2   10 = N         10 - 1*0/2   = 10
+    3   19 = 2N - 1    2*10 - 2*1/2 = 19
+    4   27 = 3N - 3    3*10 - 3*2/2 = 27
+    5   34 = 4N - 6    4*10 - 4*3/2 = 34
+    6   40 = 5N - 10   5*10 - 5*4/2 = 40
+    7   45 = 6N - 15   6*10 - 6*5/2 = 45
+    ...
 */
+
+//
+//  Build Sargon's PV (Principal Variation)
+//
+
+//  f(x) = (x-1)*N - (x-1)*(x-2)/2
+//  sz   = f(x)+1 for x=N (we store 1 move at depth N)
+//       = (N-1)*N - (N-1)*(N-2)/2 + 1
+//       N = MAX_DEPTH+1
+static NODE pv_history[ MAX_DEPTH*(MAX_DEPTH+1) - (MAX_DEPTH*(MAX_DEPTH-1))/2 + 1 + ALLOCATION_PADDING ];
+static thc::ChessRules pv_base_position;
+static int lookup_table[ (MAX_DEPTH+1) + ALLOCATION_PADDING];
+
+void sargon_pv_clear( const thc::ChessPosition &current_position )
+{
+    memset( pv_history, 0, sizeof(pv_history) );
+    pv_base_position = current_position;
+    int N = (int)z.PLYMAX+1;
+    for( int x=1; x<=N; x++ )
+    {
+        int offset = (x-1)*N - ((x-1)*(x-2))/2;
+        lookup_table[x] = offset;
+    }
+}
 
 void sargon_pv_callback_yes_best_move()
 {
-    // Collect the best moves' attributes
-    ML *p = z.MLPTRJ;
-    uint8_t level  = z.NPLY;
-    uint8_t from  = p->from;
-    uint8_t to    = p->to;
-    NODE n(from,to);
-    track_pv[level][level] =  n;
+    int x = (int)z.NPLY;
+    int N = (int)z.PLYMAX+1;
+    if( x<1 || x>N )
+        return;
+    int offset = //(x-1)*N - ((x-1)*(x-2))/2;
+                lookup_table[x];
+    int len    = N + 1 - x;     // len must be N for x=1, then 1
+                                //  less for each successive x
+                                //  and l for x=N. len is the nbr
+                                //  of moves stored at level x
 
-    // Pull up the current list of continuation nodes from the array row below
-    if( track_pv[level+1][level+1].from != 0 )
-    {
-        NODE *src  = &track_pv[level+1][level+1];
-        NODE *last = &track_pv[level+1][z.PLYMAX+1];
-        NODE *dst  = &track_pv[level][level+1];
-        size_t sz = (uint8_t *)(last+1) - (uint8_t *)(src);
-        memcpy( dst, src, sz );
-    }
+    // The current move is copied to the destination
+    NODE *dst_node = &pv_history[offset];
+    dst_node->from = z.MLPTRJ->from;
+    dst_node->to   = z.MLPTRJ->to;
+
+    // All moves one level down are appended after that
+    uint8_t *dst = (uint8_t *)(dst_node+1);
+    uint8_t *src = (uint8_t *)&pv_history[offset+len];
+    size_t sz = src-dst;
+    memcpy( dst, src, sz );
 }
 
 PV sargon_pv_get()
@@ -149,25 +196,21 @@ PV sargon_pv_get()
     PV pv;
     thc::ChessRules cr = pv_base_position;
     pv.variation.clear();
-
-    uint8_t level = 1;
-    uint8_t plymax = z.PLYMAX;
     uint8_t last_move_to = SQ_a1;
-    for(;; )
+    for( int i=1; i<=z.PLYMAX+1; i++ )
     {
-        NODE *p = &track_pv[1][level];
+        NODE *p = &pv_history[i-1];
         if( p->from == 0 )
             break;
 
         // We only go above z.PLYMAX if we are in check
-        if( level > z.PLYMAX )
+        if( i > z.PLYMAX )
         {
             thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
             bool in_check = cr.AttackedPiece(sq);
             if( !in_check )
                 break;  // Presumambly this >PLYMAX node is not in the PV tree
         }
-        level++;
         thc::Square src;
         bool ok = sargon_export_square( p->from, src );
         if( !ok )

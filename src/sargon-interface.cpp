@@ -205,7 +205,6 @@ std::string sargon_export_move( ML *p )
 //  played move)
 bool sargon_play_move( thc::Move &mv )
 {
-
     // This function is modelled on PLYRMV() Sargon user interface
     //  function
 
