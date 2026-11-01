@@ -23,12 +23,12 @@ static Zargon &z = gbl_zargon;
 
 // A move in Sargon's evaluation graph, in this program a move that is marked as
 //  the best move found so far at a given level
-struct NODE
+struct PV_MOVE
 {
     uint8_t  from;
     uint8_t  to;
-    NODE() : from(0), to(0) {}
-    NODE( uint8_t f, uint8_t t ) :
+    PV_MOVE() : from(0), to(0) {}
+    PV_MOVE( uint8_t f, uint8_t t ) :
                 from(f), to(t) {}
 };
 
@@ -125,7 +125,7 @@ Let
          x=4 => y=3N-3
          x=5 => y=4N-6
          x=6 => y=5N-10 etc.
-    sz = y=f(x)+1 for x=N (we store 1 node at max depth)
+    sz = y=f(x)+1 for x=N (we store 1 move at max depth)
 
 Offset formula is;
     y = f(x) = (x-1)*N - (x-1)*(x-2)/2
@@ -150,9 +150,9 @@ Example N = 10
 //  sz   = f(x)+1 for x=N (we store 1 move at depth N)
 //       = (N-1)*N - (N-1)*(N-2)/2 + 1
 //       N = MAX_DEPTH+1
-static NODE pv_history[ MAX_DEPTH*(MAX_DEPTH+1) - (MAX_DEPTH*(MAX_DEPTH-1))/2 + 1 + ALLOCATION_PADDING ];
+static PV_MOVE pv_history[ MAX_DEPTH*(MAX_DEPTH+1) - (MAX_DEPTH*(MAX_DEPTH-1))/2 + 1 + ALLOCATION_PADDING ];
 static thc::ChessRules pv_base_position;
-static int lookup_table[ (MAX_DEPTH+1) + ALLOCATION_PADDING];
+static int lookup_table[ (MAX_DEPTH+1) + ALLOCATION_PADDING ];
 
 void sargon_pv_clear( const thc::ChessPosition &current_position )
 {
@@ -179,10 +179,11 @@ void sargon_pv_callback_yes_best_move()
                                 //  and l for x=N. len is the nbr
                                 //  of moves stored at level x
 
-    // The current move is copied to the destination
-    NODE *dst_node = &pv_history[offset];
-    dst_node->from = z.MLPTRJ->from;
-    dst_node->to   = z.MLPTRJ->to;
+    // The current move is copied to the destination, then len-1
+    //  moves are copied from below
+    PV_MOVE *dst_node = &pv_history[offset];
+    dst_node->from    = z.MLPTRJ->from;
+    dst_node->to      = z.MLPTRJ->to;
 
     // All moves one level down are appended after that
     uint8_t *dst = (uint8_t *)(dst_node+1);
@@ -199,7 +200,7 @@ PV sargon_pv_get()
     uint8_t last_move_to = SQ_a1;
     for( int i=1; i<=z.PLYMAX+1; i++ )
     {
-        NODE *p = &pv_history[i-1];
+        PV_MOVE *p = &pv_history[i-1];
         if( p->from == 0 )
             break;
 
@@ -209,7 +210,7 @@ PV sargon_pv_get()
             thc::Square sq = (cr.WhiteToPlay() ? cr.wking_square : cr.bking_square);
             bool in_check = cr.AttackedPiece(sq);
             if( !in_check )
-                break;  // Presumambly this >PLYMAX node is not in the PV tree
+                break;  // Presumambly this >PLYMAX move is not in the PV tree
         }
         thc::Square src;
         bool ok = sargon_export_square( p->from, src );
