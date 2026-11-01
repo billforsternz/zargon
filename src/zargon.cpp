@@ -1789,7 +1789,7 @@ uint8_t POINTS()
             //  Devalue an unstable piece by half a Pawn value in z.MTRL calculation
             attacked_piece_val--;
 
-            // z.COLOR is still set to the side that just moved.If color of piece
+            // z.COLOR is still set to the side that just moved. If color of piece
             //  under attack matches color of side that just moved, then it can
             //  be taken next move, we set "points lost" by the side that just moved
             //  to (almost) the full value of this loss, almost as much of a negative
