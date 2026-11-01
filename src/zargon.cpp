@@ -1584,9 +1584,9 @@ uint8_t POINTS()
     differences if you like.
 
     The net material gain and net board control gain are
-    calculated via the variables MTRL (and MTRL0) and
-    BRDC (and BC0). These variables are adjusted slightly
-    from their raw values, as follows.
+    calculated via the variables MTRL (and MV0) and BRDC (and
+    BC0). These variables are adjusted slightly from their raw
+    values, as follows.
     
     Board control is adjusted by bonuses and penalties as
     follows;
@@ -1619,7 +1619,7 @@ uint8_t POINTS()
     points = 4*LIMIT(29,net_material_gain) + LIMIT(6,net_board_control_gain)
 
     but before then there are some additional adjustments (that are
-    not reflected in MTRL, MTRL0, BRDC and BC0 variables).
+    not reflected in MTRL, MV0, BRDC and BC0 variables).
     
     Most importantly there are points lost and points won material
     adjustments, these names are relative to the side that moved
@@ -3990,11 +3990,11 @@ BRDC = 14-37 = -23
 
 These variables are always oriented as White minus
 Black. They are used in the start position to
-establish MTRL0 and BC0 then discarded.
+establish MV0 and BC0 then discarded.
 
 So
-MTRL0 = -23
-BC0   = -23
+MV0 = -23
+BC0 = -23
 
 The actual final points value for the base position,
 including any other adjustments, is not needed but is
@@ -4004,6 +4004,11 @@ bug in the original Z80 Sargon because initial MLPTRJ
 pointed at 0/NULL and so a byte was written into memory at
 offset 6 to that. The simple fix is to just initialise
 MLPTRJ to point at the move storage area.
+
+Zargon now has now fixed this issue properly by getting
+POINTS() to return the position score, that score is
+not saved inappropriately and unnecessarily for the
+base position.
 
 Position after good move Nxd3
 -----------------------------

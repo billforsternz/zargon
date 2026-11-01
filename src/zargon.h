@@ -408,7 +408,7 @@ uint8_t BMOVES[12] = {
     SQ_d7,SQ_d5,0x10         // d7-d5 double move
 };
 //uint8_t LINECT = 0;
-char MVEMSG[5]; // = {'a','1','-','a','1'};
+//char MVEMSG[5]; // = {'a','1','-','a','1'};
 
 //
 // 4) MOVE ARRAY
