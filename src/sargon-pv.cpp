@@ -242,6 +242,27 @@ PV sargon_pv_get()
     if( pv.variation.size() > 0 )
     {
 
+// #define SIMPLER_CENTIPAWNS_CALCULATION
+//  Now that we understand Sargon's scoring and searching so much better
+//  we can actually use the actual score it calculated during FNDMOV()
+//  rather than recalculating it. Not only is it simpler, we could replace
+//  the poor PV implementation in Sargon-x86 with this much improved
+//  refined version too. The only problem is that the actual scores are
+//  a bit (not dramatically) different for many tests. They might be
+//  (probably are) better scores though. For example test 32 of 38 we
+//  already tweaked from 150 to 125 (which less accurately reflected the
+//  position) but if we adopted SIMPLER_CENTIPAWNS_CALCULATION we'd have
+//  to change it again to 200 which MORE accurately reflects the position
+//  I think.
+#ifdef SIMPLER_CENTIPAWNS_CALCULATION
+        points = (int)z.SCORE[1];   // unsigned bigger is better for the side that played first
+        points -= 128;              // signed bigger is better for the side that played first
+        if( !pv_base_position.WhiteToPlay() )
+            points = 0-points;      // signed bigger is better for White
+        int base_points = 4*LIMIT(29,z.MV0) + LIMIT(6,z.BC0);   // base bigger is better for White
+        points += base_points;
+#else
+
         bool white_last = !cr.WhiteToPlay();
 
         // Save things we are changing
@@ -276,6 +297,7 @@ PV sargon_pv_get()
         z.MV0         = sv_MV0;
         z.BC0         = sv_BC0;
         sargon_import_position(sv_cp);
+#endif
     }
 
     // Final adjustments
