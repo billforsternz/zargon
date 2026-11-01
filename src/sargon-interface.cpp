@@ -661,12 +661,12 @@ static void sargon_import_position_inner( const thc::ChessPosition &cp )
 void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool avoid_book )
 {
     callback_start_position_register( cp );
-    sargon_pv_clear( cp );
     if( plymax < 1 )  // constrain to sensible range
         plymax = 1;
     else if( plymax > MAX_DEPTH )
         plymax = MAX_DEPTH;
     z.PLYMAX = plymax;
+    sargon_pv_clear( cp );
     sargon_import_position( cp, avoid_book );
     z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
     CPTRMV();
