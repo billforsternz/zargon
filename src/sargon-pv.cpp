@@ -205,7 +205,6 @@ PV sargon_pv_get()
         uint8_t sv_color = z.COLOR;
         uint8_t sv_to    = z.MLPTRJ->to;
         uint8_t sv_val1  = z.MLPTRJ->val;
-        uint8_t sv_val2  = z.VALM;
         uint8_t sv_MV0   = z.MV0;
         uint8_t sv_BC0   = z.BC0;
         thc::ChessPosition sv_cp;
@@ -231,7 +230,6 @@ PV sargon_pv_get()
         z.COLOR       = sv_color;
         z.MLPTRJ->to  = sv_to;
         z.MLPTRJ->val = sv_val1; 
-        z.VALM        = sv_val2;
         z.MV0         = sv_MV0;
         z.BC0         = sv_BC0;
         sargon_import_position(sv_cp);

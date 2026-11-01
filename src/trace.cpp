@@ -220,8 +220,7 @@ bool callback_points()
     {
         int score = 0;
         unsigned int val = sargon_import_value( 1.0 * score );
-        z.VALM = val;
-        z.MLPTRJ->val = z.VALM;
+        z.MLPTRJ->val = val;
         printf( "POINTS() injected placeholder %d,%f\n", val, score*1.0 );
     }
     else if( guide && *guide=='4' && wikipedia_string_offset < strlen(guide) )
@@ -229,8 +228,7 @@ bool callback_points()
         int score = *(guide  + wikipedia_string_offset++) - '0';
         score = 0-score;
         unsigned int val = sargon_import_value( 1.0 * score );
-        z.VALM = val;
-        z.MLPTRJ->val = z.VALM;
+        z.MLPTRJ->val = val;
         if( *(guide  + wikipedia_string_offset) == '@' )
             wikipedia_string_offset += 2;   // skip over a pruned move
         if( *(guide  + wikipedia_string_offset) == '\0' )

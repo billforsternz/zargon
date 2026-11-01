@@ -39,7 +39,7 @@ int8_t LIMIT( int8_t limit, int8_t val );
 void MOVE();
 void UNMOVE();
 void SORTM();
-void EVAL();
+uint8_t EVAL();
 void FNDMOV();
 void ASCEND();
 void BOOK();

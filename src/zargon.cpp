@@ -1925,13 +1925,11 @@ uint8_t POINTS()
 //
 // CALLS:      --  None
 //
-// ARGUMENTS:  --  Input  - Value, to be limited in the B
-//                          register.
-//                        - Value to limit to in the A register
-//                 Output - Limited value in the A register.
+// ARGUMENTS:  --  Input  - Limit and value to be limited
+//                 Output - Limited value
 //***********************************************************
 
-int8_t LIMIT( int8_t limit, int8_t val)
+int8_t LIMIT( int8_t limit, int8_t val )
 {
 
     // Negative values, eg limit=6, val=-7 => -6
@@ -2247,7 +2245,7 @@ void SORTM()
     while( ml <= z.MLLST )
     {   
         z.MLPTRJ = ml;
-        EVAL();
+        ml->val = EVAL();
         if( IS_DOUBLE_MOVE(ml->flags) )
         {
             uint8_t val = ml->val;
@@ -2321,7 +2319,7 @@ void SORTM()
         // Evaluate this unsorted move
         // Example: unsorted_move = H
         z.MLPTRJ = unsorted_move;               
-        EVAL();
+        z.MLPTRJ->val = EVAL();
 
         // Search loop, find the right point in the sorted list
         ML_HEAD *sorted_rover = z.MLPTRI;  // sorted moves replace unsorted moves in ply list MLPTRI
@@ -2346,7 +2344,7 @@ void SORTM()
             // Compare value to list value (note z.VALM = z.MLPTRJ->val)
             // Example iteration 1: H < D? (NO)
             // Example iteration 2: H < J? (YES)
-            if( z.VALM < sorted_tail->val )   // is unsorted better than sorted?
+            if( z.MLPTRJ->val < sorted_tail->val )   // is unsorted better than sorted?
             {
                 break;  // Yes sorted_rover->link_ptr will point to the new unsorted
                         // element instead of the inferior old sorted element
@@ -2387,11 +2385,15 @@ void SORTM()
 //                 UNMOVE
 //
 // ARGUMENTS:  --  None
+//
+// Returns: Score as calculated by POINTS() or zero for illegal
+//          move
 //***********************************************************
 
-void EVAL()
+uint8_t EVAL()
 {
     trace_func(FE_EVAL);
+    uint8_t points = 0;
 
     // Make move on the board array
     MOVE();
@@ -2401,7 +2403,7 @@ void EVAL()
 
     // Score of zero for illegal move
     if( inchk )
-        z.VALM = 0;
+        points = 0;
     else
     {
 
@@ -2409,13 +2411,12 @@ void EVAL()
         PINFND();
 
         // Assign points to move
-        uint8_t points = POINTS();
-        z.MLPTRJ->val =  points;
-        z.VALM        =  points;
+        points = POINTS();
     }
 
     // Restore board array
     UNMOVE();
+    return points;
 }
 
 //***********************************************************
@@ -2684,7 +2685,7 @@ void FNDMOV()
             // Evaluate move
             uint8_t points = POINTS();
             z.MLPTRJ->val = points;
-            z.VALM = points;
+            //z.VALM = points;
 
             // Restore board position
             UNMOVE();
