@@ -2742,7 +2742,6 @@ void FNDMOV()
                 // Sargon mated next move is detected at NPLY=3, reduce=0
                 // Sargon mated in 2 is detected at NPLY=5, reduce=1 etc
                 tracef( "Mate detected, NPLY=%d, reduce=%d\n", z.NPLY, reduce );
-                z.PMATE= z.MOVENO;
             }
             z.MATEF = false;     // mate flag has served its purpose
         }
@@ -2819,10 +2818,6 @@ void FNDMOV()
         //   its turn to play next - but this is not really necessary
         //   or desirable in Sargon x86 / C++ ports so commented out)
         // z.PLYMAX -= 2;
-
-        // Calculate checkmate move number and return
-        if( IS_BLACK(z.KOLOR) )  // if computer's color is black decrement
-            z.PMATE--;
         return;
     }
 }

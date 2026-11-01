@@ -26,12 +26,6 @@ struct ML_HEAD
     struct ML  *link_ptr;
 };
 
-#define MLPTR 0
-#define MLFRP offsetof(ML,from)
-#define MLTOP offsetof(ML,to)
-#define MLFLG offsetof(ML,flags)
-#define MLVAL offsetof(ML,val)
-
 // Flag definitions
 // These definitions apply to pieces on the board array and to move flags
 // Always bit 7 is color (1=black) and bits 2-0 indicate piece type
@@ -62,6 +56,27 @@ inline void SET_CASTLED( uint8_t &piece ) { piece|=0x10;  }
 inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 
 // Sargon squares (at least all those that are explicitly mentioned in code)
+#if 1
+enum
+{   
+    SQ_a1 = 21,
+    SQ_b1, SQ_c1, SQ_d1, SQ_e1, SQ_f1, SQ_g1, SQ_h1,
+    SQ_a2 = 31,
+    SQ_b2, SQ_c2, SQ_d2, SQ_e2, SQ_f2, SQ_g2, SQ_h2,
+    SQ_a3 = 41,
+    SQ_b3, SQ_c3, SQ_d3, SQ_e3, SQ_f3, SQ_g3, SQ_h3,
+    SQ_a4 = 51,
+    SQ_b4, SQ_c4, SQ_d4, SQ_e4, SQ_f4, SQ_g4, SQ_h4,
+    SQ_a5 = 61,
+    SQ_b5, SQ_c5, SQ_d5, SQ_e5, SQ_f5, SQ_g5, SQ_h5,
+    SQ_a6 = 71,
+    SQ_b6, SQ_c6, SQ_d6, SQ_e6, SQ_f6, SQ_g6, SQ_h6,
+    SQ_a7 = 81,
+    SQ_b7, SQ_c7, SQ_d7, SQ_e7, SQ_f7, SQ_g7, SQ_h7,
+    SQ_a8 = 91,
+    SQ_b8, SQ_c8, SQ_d8, SQ_e8, SQ_f8, SQ_g8, SQ_h8
+};
+#else
 #define SQ_a1 21
 #define SQ_b1 22
 #define SQ_d1 24
@@ -92,6 +107,7 @@ inline void CLR_CASTLED( uint8_t &piece ) { piece&=0xef;  }
 #define SQ_d8 94
 #define SQ_e8 95
 #define SQ_h8 98
+#endif
 
 struct Zargon {
 
@@ -387,7 +403,7 @@ uint8_t COLOR   =      0;
 uint8_t P1      =      0;
 uint8_t P2      =      0;
 uint8_t P3      =      0;
-uint8_t PMATE   =      0;
+//uint8_t PMATE   =      0;
 uint8_t MOVENO  =      0;
 uint8_t PLYMAX  =      2;
 uint8_t NPLY    =      0;
@@ -408,7 +424,7 @@ uint8_t BMOVES[12] = {
     SQ_e7,SQ_e5,0x10,        // e7-e5 double move
     SQ_d7,SQ_d5,0x10         // d7-d5 double move
 };
-uint8_t LINECT = 0;
+//uint8_t LINECT = 0;
 char MVEMSG[5]; // = {'a','1','-','a','1'};
 
 //
@@ -459,7 +475,9 @@ char MVEMSG[5]; // = {'a','1','-','a','1'};
 //             score assigned to the move.
 //
 //***********************************************************
-ML      MLIST[4000];
+#define GENEROUS_MOVE_PER_PLY_ALLOWANCE 160
+#define MORE_MOVES_THAN_POSSIBLE 400    // only slightly more than 200 are even possible
+ML      MLIST[ GENEROUS_MOVE_PER_PLY_ALLOWANCE * MAX_DEPTH + MORE_MOVES_THAN_POSSIBLE + ALLOCATION_PADDING];
 uint8_t MLEND;
 };   //  end struct Zargon
 
