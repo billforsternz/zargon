@@ -25,7 +25,7 @@
 #include "zargon_functions.h"
 #include "zargon.h"
 
-// Up to 64K of emulated memory
+// No longer emulated memory, instead a type (Zargon) and an instance (gbl_zargon)
 Zargon gbl_zargon;        // Now made available as simple global
 #if 0
 static Zargon &z = gbl_zargon;    // This is good practice, but slow
@@ -1039,7 +1039,7 @@ inline void ATKSAV( uint8_t scan_count, int8_t dir )
 // CALLS:      --  None
 //
 // ARGUMENTS:  --  The direction of the attack. The
-//                 pinned piece counnt.
+//                 pinned piece count.
 //***********************************************************
 
 // Returns true if attacker is not a valid attacker
@@ -1223,7 +1223,8 @@ void PINFND()
 //
 // CALLS:      --  NEXTAD
 //
-// ARGUMENTS:  --  None.
+// Parameters: Piece value of current square in half pawns
+// Returns:    Trading profit in half pawns if piece is captured 
 //***********************************************************
 int8_t XCHNG( int8_t piece_val )
 {
@@ -1479,6 +1480,10 @@ int8_t XCHNG( int8_t piece_val )
 // ARGUMENTS:  --  Attack list addresses.
 //                 Side flag
 //                 Attack list counts
+//
+// Parameters:     Remaining count, current nibble pointer
+//                 (both passed by reference and updated)
+// Returns:        Value in half pawns
 //***********************************************************
 
 inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
@@ -1525,6 +1530,10 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 //                 LIMIT
 //
 // ARGUMENTS:  --  None
+//
+// Returns: Points score, convention is "smaller is better for
+//          the side that just moved" 1 is best score, 255 is
+//          worst score, 128 is neutral.
 //***********************************************************
 
 uint8_t POINTS()

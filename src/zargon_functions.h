@@ -48,7 +48,6 @@ uint16_t BITASN( uint8_t idx );
 uint8_t ASNTBI( uint8_t file, uint8_t rank );
 bool VALMOV();
 void ROYALT();
-void EXECMV( uint8_t &out_double_flags, uint8_t &out_from, uint8_t &out_to );
 
 // PATH() is the most important function from a performance perspective
 // Defining uint8_t PATH( int8_t dir ) as a macro instead of a function
