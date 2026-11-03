@@ -35,8 +35,10 @@ static std::string get_key();
 static std::string overwrite_before_offset( const std::string &s, size_t offset, const std::string &insert );
 static std::string overwrite_at_offset( const std::string &s, size_t offset, const std::string &insert );
 
-// Control callback() behaviour
-static bool callback_minimax_mods_active;
+// True if minimax and documentation tests
+// False if UCI or performance tests
+//  so false if maximum performance required,
+bool zargon_executable_documentation;
 
 // Get this program to document itself. Start with this intro which outlines the
 //  basic ideas of this exercise
@@ -641,7 +643,7 @@ public:
     void Run( PV &pv )
     {
         progress.clear();
-        callback_minimax_mods_active = true;
+        zargon_executable_documentation = true;
 
         // White king on a1 pawns a4,b3 Black king on h8 pawns g6,h6 we are going
         //  to use this very dumb position to probe Alpha Beta pruning etc. (we
@@ -661,7 +663,7 @@ public:
         thc::ChessPosition cp;
         cp.Forsyth(pos_probe);
         sargon_run_engine( cp, 3, pv, true );
-        callback_minimax_mods_active = false;
+        zargon_executable_documentation = false;
     }
 
     // Print introduction
@@ -1410,7 +1412,7 @@ void callback_yes_best_move()
     }
 
     // Minimax tests and documentation?
-    if( !callback_minimax_mods_active )
+    if( !zargon_executable_documentation )
         return;
 
     // For purposes of minimax tracing experiment, describe and annotate the
@@ -1433,7 +1435,7 @@ void callback_end_of_points( int8_t &points )
     }
  
     // Minimax tests and documentation?
-    if( !callback_minimax_mods_active )
+    if( !zargon_executable_documentation )
         return;
 
     // For purposes of minimax tracing experiment, we inject our own points
@@ -1463,21 +1465,10 @@ void callback_after_genmov()
 //    heavily manipulating Sargon's operations
 //
 
-// For purposes of minimax tracing experiment, we only want two possible
-//  moves in each position - achieved by suppressing King moves
-bool callback_suppress_king_moves( uint8_t piece )
-{
-    bool is_minimax_and_king = (callback_minimax_mods_active && piece==6);
-    return is_minimax_and_king;
-}
-
 // For purposes of minimax tracing experiment, describe and annotate the
 //  best move calculation, part 1
-// (Name 'Alpha beta cutoff?' -> CB_ALPHA_BETA_CUTOFF)
-void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
+void callback_test_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 {
-    if( !callback_minimax_mods_active )
-        return;
     Progress prog;
     std::string key = get_key();
 
@@ -1525,10 +1516,9 @@ void callback_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 
 // For purposes of minimax tracing experiment, describe and annotate the
 //  best move calculation, part 2
-// (Name 'No! is this the best move?' -> CB_NO_BEST_MOVE)
-void callback_no_best_move( uint8_t score, const uint8_t *p )
+void callback_is_this_best_move( uint8_t score, const uint8_t *p )
 {
-    if( !callback_minimax_mods_active )
+    if( !zargon_executable_documentation )
         return;
     Progress prog;
     uint8_t val = *p;

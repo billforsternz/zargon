@@ -176,7 +176,7 @@ void MPIECE( uint8_t piece )
     z.T1 = piece;
 
     // For minimax experiments, suppress king moves
-    if( callback_suppress_king_moves(piece) )
+    if( zargon_executable_documentation && piece==KING )
         return;
 
     /*
@@ -2782,7 +2782,8 @@ void FNDMOV()
         //tracef( "Alpha-beta cutoff if score_smaller_is_better<=ply above: %s (score_smaller_is_better=%u, ply above=%u)\n",
         //        score_smaller_is_better<=*table_bigger_is_better?"YES":"NO", score_smaller_is_better, *table_bigger_is_better );
         trace_alpha_beta( score_smaller_is_better, *table_bigger_is_better );
-        callback_alpha_beta_cutoff( score_smaller_is_better, table_bigger_is_better );
+        if( zargon_executable_documentation )
+            callback_test_alpha_beta_cutoff( score_smaller_is_better, table_bigger_is_better );
 
         // If this reply to D (for example) is better (or equal) than the best score
         //  so far for A,B and C then D is refuted. To see the best score so far
@@ -2810,7 +2811,8 @@ void FNDMOV()
 
         // Is this the best reply to date?
         bool score_greater = (z.SCORE[z.NPLY] < score_bigger_is_better);
-        callback_no_best_move( score_bigger_is_better, &z.SCORE[z.NPLY] );
+        if( zargon_executable_documentation )
+            callback_is_this_best_move( score_bigger_is_better, &z.SCORE[z.NPLY] );
         if( !score_greater )
             continue;   // continue unless score is greater
 
@@ -3133,9 +3135,6 @@ void ROYALT()
 
 /*
 
-How Sargon Works
-================
-
 Sargon calculates good chess moves using the classic minimax and
 alpha-beta algorithms.
 
@@ -3405,13 +3404,13 @@ bending in my opinion).
 
 A detail worth noting is that the alpha beta comparison is a better than
 or equal comparison rather than a better than comparison (eg is c4 e5
-is better than or equal to d4?). This is an optimisation, it's worth
+better than or equal to d4?). This is an optimisation, it's worth
 pruning c4 analysis now rather than continuing when we know c4 can
 perhaps match d4 but definitely can't beat it.
 
 It's important to understand that minimax and alpha-beta are inherently
 recursive, even though Sargon doesn't use recursive function calls to
-implement it. As previously mentioned one ply 2 section of moves hosts
+implement them. As previously mentioned one ply 2 section of moves hosts
 multiple ply 3 sections of moves, just as the ply 1 section hosts
 multiple ply 2 sections. If we were doing really deep search we might
 have a ply 8 section hosting multiple ply 9 sections (each of which, in
@@ -3436,7 +3435,9 @@ a player not an analyst, it just remembered the best move at ply
 
 However we have extended the basic Sargon code to track the
 PV (principal variation) but the algorithm is out of scope for this
-introduction.
+introduction. (The algorithm is in sargon-pv.cpp and for what it's
+worth it is now very simple and efficient, a great improvement over
+the original work in Sargon-x86).
 
 In the original Sargon code the comments talk of the Minimax comparison
 being to the score one ply above, and the Alpha-Beta comparison being
@@ -3576,12 +3577,12 @@ the value of x, or n if x is greater than n, or -n if x is less than
 -126 to 126 (because 4*30+6 = 126). More positive scores favour White.
 
 Material and board control are calculated separately. Board control is
-the number of squares controlled, material is the amount of
-material (using a 1,3,3,5,9 convention) in half pawns. Both of these
-are 'net' values. In fact two netting calculations are made for each
-variable, first a White minus Black subtraction, then a relative to
-initial position calculation, i.e. a current position minus initial
-position subtraction.
+the number of squares controlled, material is the amount of material
+(using a 1,3,3,5,9 convention) in half pawns. Both of these are 'net'
+values. In fact two netting calculations are made for each variable,
+first a White minus Black subtraction, then a relative to initial
+position calculation, i.e. a current position minus initial position
+subtraction.
 
 So the material and board control variables are effectively extra
 material gained by White and extra board control gained by White.
@@ -3603,8 +3604,8 @@ downside of simple, fixed depth search.
 
 The board control variable is also adjusted somewhat, to encourage
 castling for example. In general though the Sargon static analyser is
-pretty simple, basically a material calculation plus a few
-adjustments (as I mentioned earlier, it is not subtle).
+pretty simple, basically a material calculation plus a few adjustments
+(as I mentioned earlier, it is not subtle).
 
 The Minimax and Alpha Beta algorithms operate on unsigned 8 bit scores
 rather than signed 8 bit scores. The main reason for this is that the
@@ -3794,8 +3795,10 @@ annotation after each extract.
 2u: [0]  MLPTRJ->f3(154) h3(0) g4(0) Kb7(0) Kb5(0) Ka7(0) Ka5(0) Kb6(0) Rf7(0) Rf8(0) Rf5(0) Re6(0) Rd6(0) Rc6(0) Rb6(0) Rh7(0) Rh8(0) Rh5(0)
 
 Start considering replies to 1.Nxd3. Only a two ply search so we are
-immediately at the unsorted leaf nodes. The first one is 1...f3 and it
-establishes the initial score to beat.
+immediately at the unsorted leaf nodes. The first one is 1...f3 it
+scores 154 (smaller_is_better for Black, which when flipped equals
+102 bigger_is_better for Black). This establishes the initial
+bigger_is_better score to beat as 102 in the ply 2 table.
 
 41> Nxd3 Rd6 is the best move if score_bigger_is_better > ply score: YES (score_smaller_is_better=150, score_bigger_is_better=106, ply score=102)
 1: [0]  (a1b1) ->Nxd3(102) Ng4(110) a3(128) a4(128) b3(128) b4(128) Nf3(128) Nd7(130) Nf7(148) Nxg6(148) Nc4(156) Nc6(156)

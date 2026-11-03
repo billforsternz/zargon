@@ -27,11 +27,7 @@ struct PV_MOVE
 {
     uint8_t  from;
     uint8_t  to;
-    PV_MOVE() : from(0), to(0) {}
-    PV_MOVE( uint8_t f, uint8_t t ) :
-                from(f), to(t) {}
 };
-
 
 /*
 

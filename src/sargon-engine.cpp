@@ -1567,7 +1567,4 @@ void callback_uci_yes_best_move()
 {
     total_callbacks++;
     bestmove_callbacks++;
-
-    // sargon_pv_callback_yes_best_move() is
-    // now called by by callback_yes_best_move()
 }
