@@ -29,14 +29,14 @@ extern bool zargon_executable_documentation;
 // Individual callback functions
 void callback_ldar( uint8_t &out_random_number );
 void callback_yes_best_move();
-void callback_end_of_points( int8_t &points );
+void callback_after_points( uint8_t &points );
 void callback_after_genmov();
 void callback_test_alpha_beta_cutoff( uint8_t score_smaller_is_better, const uint8_t *p );
 void callback_is_this_best_move( uint8_t score_bigger_is_better, const uint8_t *p );
 
 // UCI needs only a small subset of the callbacks
 void callback_uci_after_genmove();
-void callback_uci_end_of_points();
+void callback_uci_after_points();
 void callback_uci_yes_best_move();
 
 #endif MAIN_H_INCLUDED

@@ -1925,7 +1925,6 @@ uint8_t POINTS()
     // assembly does unsigned comparisons more easily than signed comparisons
     // and 0 becomes available as a magic or sentinel value.
     points += 0x80;
-    callback_end_of_points(points);
     return (uint8_t)points;
 }
 
@@ -2426,6 +2425,7 @@ uint8_t EVAL()
 
         // Assign points to move
         points = POINTS();
+        callback_after_points(points);
     }
 
     // Restore board array
@@ -2577,7 +2577,8 @@ void FNDMOV()
 
     //  Evaluate board at ply 0
     TOGGLE(z.COLOR);    // POINTS() expects z.COLOR to be side just moved, not side to move
-    POINTS();
+    uint8_t points = POINTS();
+    callback_after_points(points);
     TOGGLE(z.COLOR);    // Restore z.COLOR
     z.BC0 = z.BRDC;     // Strictly speaking we didn't need to toggle color, and Sargon Z80
     z.MV0 = z.MTRL;     //  doesn't bother, because the calculation of both z.BRDC and z.MTRL
@@ -2698,6 +2699,7 @@ void FNDMOV()
 
             // Evaluate move
             uint8_t points = POINTS();
+            callback_after_points(points);
             z.MLPTRJ->val = points;
             //z.VALM = points;
 

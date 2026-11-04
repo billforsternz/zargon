@@ -47,7 +47,7 @@ static std::string logfile_name;
 static unsigned long total_callbacks;
 static unsigned long genmov_callbacks;
 static unsigned long bestmove_callbacks;
-static unsigned long end_of_points_callbacks;
+static unsigned long after_points_callbacks;
 static std::vector<thc::Move> the_game;
 static int the_level=6;
 static bool gbl_interactive=true;
@@ -611,12 +611,12 @@ static bool process( const std::string &s, bool first )
              "total callbacks=%lu\n"
              "bestmove callbacks=%lu\n"
              "genmov callbacks=%lu\n"
-             "end of points callbacks=%lu\n",
+             "after points callbacks=%lu\n",
                 cmd.c_str(),
                 total_callbacks,
                 bestmove_callbacks,
                 genmov_callbacks,
-                end_of_points_callbacks );
+                after_points_callbacks );
         log( "%s\n", sargon_pv_report_stats().c_str() );
     }
     if( gbl_interactive )
@@ -891,7 +891,7 @@ static std::string cmd_go( const std::vector<std::string> &fields )
     total_callbacks = 0;
     bestmove_callbacks = 0;
     genmov_callbacks = 0;
-    end_of_points_callbacks = 0;
+    after_points_callbacks = 0;
 
     // Work out our time and increment
     // eg cmd ="wtime 30000 btime 30000 winc 0 binc 0"
@@ -950,7 +950,7 @@ static void cmd_go_infinite()
     total_callbacks = 0;
     bestmove_callbacks = 0;
     genmov_callbacks = 0;
-    end_of_points_callbacks = 0;
+    after_points_callbacks = 0;
     while( !aborted )
     {
         aborted = run_sargon(plymax,true);  // note avoid_book = true
@@ -1286,7 +1286,7 @@ static std::string generate_progress_report()
     std::string buf_score;
     bool done=false;
     unsigned long now_time = elapsed_milliseconds();	
-    int nodes = end_of_points_callbacks;
+    int nodes = after_points_callbacks;
     unsigned long elapsed_time = now_time-base_time;
     if( elapsed_time == 0 )
         elapsed_time++;
@@ -1545,11 +1545,11 @@ void callback_uci_after_genmove()
     genmov_callbacks++;
 }
 
-// Called by callback_end_of_points()
-void callback_uci_end_of_points()
+// Called by callback_after_points()
+void callback_uci_after_points()
 {
     total_callbacks++;
-    end_of_points_callbacks++;
+    after_points_callbacks++;
 
     // Need to call the following regularly, but no need for all three
     // routines to do it, so now just do it at end of points

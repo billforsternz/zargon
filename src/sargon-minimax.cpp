@@ -1423,14 +1423,16 @@ void callback_yes_best_move()
     running_example->progress.push_back(prog);
 }
 
-// End of POINTS routine
-void callback_end_of_points( int8_t &points )
+std::vector<int> track_points;
+
+// After POINTS() called routine
+void callback_after_points( uint8_t &points )
 {
 
-    // If UCI, UCI stats and abort check
+    // If UCI, do UCI stats and check for abort
     if( !zargon_tests )
     {
-        callback_uci_end_of_points();
+        callback_uci_after_points();
         return;
     }
  
@@ -1450,7 +1452,7 @@ void callback_end_of_points( int8_t &points )
                                     running_example->lines[key].c_str() );
     running_example->progress.push_back(prog);
     unsigned int value = running_example->values[key];
-    points = (int8_t)value;
+    points = (uint8_t)value;
 }
 
 // After GENMOV() routine
