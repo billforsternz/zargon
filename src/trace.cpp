@@ -320,7 +320,7 @@ void tracef( const char *fmt, ... )
     #else
     static bool free_run=true;
     #endif
-    if( suppress_output )
+    if( suppress_output && free_run )
     {
         if( tracef_count == debug_count )
         {
