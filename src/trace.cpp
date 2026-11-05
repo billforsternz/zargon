@@ -375,19 +375,13 @@ void tracef( const char *fmt, ... )
     }
     if( !free_run )
     {
-        printf( "q,v,d,r,[+/-]n,pn (quit,verbose,debug,run,goto n,goto ply)>" );
+        printf( "q,d,r,[+/-]n,pn (quit,debug,run to end,goto n,goto ply, [append v for verbose goto])>" );
         char buf[80];
         buf[0] = '\0';
         fgets( buf, sizeof(buf)-2, stdin );
         if( buf[0]=='q' || buf[0]=='Q' )
         {
             exit(0);
-            return;
-        }
-        if( buf[0]=='v' || buf[0]=='V' )
-        {
-            suppress_output = !suppress_output; 
-            printf( "Verbose output now %s\n",  suppress_output?"off":"on" );
             return;
         }
         if( buf[0]=='r' || buf[0]=='R' )
@@ -415,6 +409,8 @@ void tracef( const char *fmt, ... )
         if( n > 0 )
         {
             free_run = true;
+            bool verbose = (len>1 && nbr[len-2]=='v');
+            suppress_output = !verbose;
             if( buf[0]=='p' || buf[0]=='P' )
                 target_ply = (uint8_t)n;
             else
