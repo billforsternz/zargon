@@ -244,17 +244,83 @@ PV sargon_pv_get()
     {
 
 // #define SIMPLER_CENTIPAWNS_CALCULATION
-//  Now that we understand Sargon's scoring and searching so much better
-//  we can actually use the actual score it calculated during FNDMOV()
-//  rather than recalculating it. Not only is it simpler, we could replace
-//  the poor PV implementation in Sargon-x86 with this much improved
-//  refined version too. The only problem is that the actual scores are
-//  a bit (not dramatically) different for many tests. They might be
-//  (probably are) better scores though. For example test 32 of 38 we
-//  already tweaked from 150 to 125 (which less accurately reflected the
-//  position) but if we adopted SIMPLER_CENTIPAWNS_CALCULATION we'd have
-//  to change it again to 200 which MORE accurately reflects the position
-//  I think.
+/*
+    Now that we understand Sargon's scoring and searching so much better
+    we can actually use the actual score it calculated during FNDMOV()
+    rather than recalculating it. Not only is it simpler, we could replace
+    the poor PV implementation in Sargon-x86 with this much improved
+    refined version too. One problem though is that the actual scores are
+    a bit (not dramatically) different for many tests.
+
+    Working an example let's look at test 32 of 38 which actually was also
+    the only one we needed to tweak from the rather poor implementation
+    we used in Sargon-X86 (we felt our way to that one - kind of a
+    poorly understood version of what we now have with C++ POINTS())
+
+    The tweak required was 150 to 125 centipawns. If we adopted
+    SIMPLER_CENTIPAWNS_CALCULATION we'd have to change it again to 200.
+    Why is that, and what makes most sense?
+
+    FEN is r4r2/6kp/2pqppp1/p1R5/b2P4/4QN2/1P3PPP/2R3K1 w - - 0 1
+    PV at PLYMAX=5 is Qa3 Bb5 Rxb5 Qxa3 Rb7+ Rf7
+
+    In the initial position
+    MV0=-2, BC0=6
+
+    In the final position after ...Rf7 (without including BC0, MV0)
+    MTRL=-13, BRDC=-6  
+
+    There's a single (but huge!) adjustment, the en-prise Black queen on
+    a3, so 17 lost half pawns (from Black's viewpoint, the last side to
+    move).
+
+    By calling POINTS() with BC0=0 and MV0=0 we get a bigger_is_better
+    score of 4*MTRL + BC + adjustment = 4*(17-13) - 6 = 10 points, or
+    10/8 pawns 125 centipawns.
+
+    The SIMPLER_CENTIPAWNS_CALCULATION (ironically a little more
+    complicated to follow) is based on what we can recover without
+    calculation; MV0=-2, BC0=6 and the best relative score with
+    adjustment at ply 1 from the score table (18 which must be
+    4*(MTRL-MV0) + (BRDC-BC0) + adjustment).
+
+    points = absolute score + adjustment
+           = base score + (relative score + adjustment)
+           = base score + (absolute score - base score + adjustment)
+           = 4*MV0+BC0 + 4*(MTRL-MV0)+(BRDC-BC0)+adjustment
+           = 4*-2 + 6 + 18
+           = 16 = 16/8 pawns = 200 centipawns
+
+    But surely
+             4*MV0+BC0 + 4*(MTRL-MV0)+(BRDC-BC0)+adjustment
+           = 4*MTRL + BC + adjustment
+
+    So why isn't the answer 125 centipawns as before? The explanation
+    is (BRDC-BC0) gets LIMIT()ed (constrained) to -6 instead of -6
+    - 6 = -12 the simplification implies. So we end up with 6 extra
+    points compared to simply 4*MTRL + BC + adjustment.
+
+    So SIMPLER_CENTIPAWNS_CALCULATION bigger_is_better score for
+    White is 10+6 = 16 points or 16/8 pawns or 200 centipawns.
+
+    Which one is better? I think 200 centipawns is a better score
+    but I think the SIMPLER_CENTIPAWNS_CALCULATION gets us a
+    better score for the wrong reasons. The MV0, BC0 variables
+    are only there to extend the dynamic range of 8 bit variables
+    for the Z80, if we rework the code they'll go away. Reducing
+    the impact of BRDC is good though, but the reason is that
+    Black's big BRDC advantage (which SIMPLER_CENTIPAWNS_CALCULATION
+    reduces, increasing White's score) is bogus because the lost
+    en-prise queen controls a lot of squares. So the improvement
+    comes from a random dynamic range factor (could well work the
+    other way in other examples, maybe?) when what is needed is to
+    not  count the board control of lost material - so a possible
+    future better POINTS() calculation.
+
+    Conclusion: Leave SIMPLER_CENTIPAWNS_CALCULATION
+    undefined for now.
+*/
+
 #ifdef SIMPLER_CENTIPAWNS_CALCULATION
         points = (int)z.SCORE[1];   // unsigned bigger is better for the side that played first
         points -= 128;              // signed bigger is better for the side that played first
