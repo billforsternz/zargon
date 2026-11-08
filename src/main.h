@@ -35,6 +35,5 @@ void callback_is_this_best_move( uint8_t score_bigger_is_better, const uint8_t *
 
 // UCI needs only a small subset of the callbacks
 void callback_uci_after_points();
-void callback_uci_yes_best_move();
 
 #endif MAIN_H_INCLUDED

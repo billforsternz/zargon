@@ -45,7 +45,6 @@ static unsigned long base_time;
 static int depth_option;    // 0=auto, other values for fixed depth play
 static std::string logfile_name;
 static unsigned long total_callbacks;
-static unsigned long bestmove_callbacks;
 static unsigned long after_points_callbacks;
 static std::vector<thc::Move> the_game;
 static int the_level=6;
@@ -612,7 +611,6 @@ static bool process( const std::string &s, bool first )
              "after points callbacks=%lu\n",
                 cmd.c_str(),
                 total_callbacks,
-                bestmove_callbacks,
                 after_points_callbacks );
         log( "%s\n", sargon_pv_report_stats().c_str() );
     }
@@ -886,7 +884,6 @@ static std::string cmd_go( const std::vector<std::string> &fields )
     stop_rsp = "";
     base_time = elapsed_milliseconds();
     total_callbacks = 0;
-    bestmove_callbacks = 0;
     after_points_callbacks = 0;
 
     // Work out our time and increment
@@ -944,7 +941,6 @@ static void cmd_go_infinite()
     bool aborted = false;
     base_time = elapsed_milliseconds();
     total_callbacks = 0;
-    bestmove_callbacks = 0;
     after_points_callbacks = 0;
     while( !aborted )
     {
@@ -1550,9 +1546,3 @@ void callback_uci_after_points()
     }
 }
 
-// Called by callback_yes_best_move()
-void callback_uci_yes_best_move()
-{
-    total_callbacks++;
-    bestmove_callbacks++;
-}

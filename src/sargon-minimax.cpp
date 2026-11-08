@@ -1349,13 +1349,6 @@ void callback_yes_best_move()
     // Important PV callback
     sargon_pv_callback_yes_best_move();
 
-    // If UCI, UCI stats and abort check
-    if( !zargon_tests )
-    {
-        callback_uci_yes_best_move();
-        return;
-    }
-
     // Minimax tests and documentation?
     if( !zargon_executable_documentation )
         return;
