@@ -1658,13 +1658,10 @@ uint8_t POINTS()
     a likely tactical blunder.
 
     Finally 128 is added to shift from a signed range to an
-    unsigned range, as discussed at length elsewhere, and the
-    points value stored with the move that created the current
-    position.
+    unsigned range, as discussed at length elsewhere.
 
     Detailed example POINTS() calculations are presented in the
     'Working examples of POINTS() calculation' section below.
-
 
 */
 
@@ -1783,7 +1780,7 @@ uint8_t POINTS()
         int8_t points = XCHNG( attacked_piece_val );
 
         // If piece is nominally lost
-        if( points != 0 )
+        if( points > 0 )
         {
 
             //  Devalue an unstable piece by half a Pawn value in z.MTRL calculation
