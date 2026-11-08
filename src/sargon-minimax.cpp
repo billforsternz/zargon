@@ -333,93 +333,38 @@ static std::string get_key()
 {
     thc::ChessPosition cp;
     sargon_export_position( cp );
-    std::string key = "??";
     int nmoves = 0; // work out how many moves have been played
-    bool a0 = (cp.squares[thc::a3] == 'P');
     bool a1 = (cp.squares[thc::a4] == 'P');
     bool a2 = (cp.squares[thc::a5] == 'P');
     if( a1 )
         nmoves += 1;
     else if( a2 )
         nmoves += 2;
-    bool b0 = (cp.squares[thc::b4] == 'P');
     bool b1 = (cp.squares[thc::b5] == 'P');
     bool b2 = (cp.squares[thc::b6] == 'P');
     if( b1 )
         nmoves += 1;
     else if( b2 )
         nmoves += 2;
-    bool g0 = (cp.squares[thc::g6] == 'p');
     bool g1 = (cp.squares[thc::g5] == 'p');
     if( g1 )
         nmoves += 1;
-    bool h0 = (cp.squares[thc::h6] == 'p');
     bool h1 = (cp.squares[thc::h5] == 'p');
     if( h1 )
         nmoves += 1;
-    if( nmoves == 0 )
+    std::string key, s;
+    int idx=1;
+    while( idx <= z.NPLY )
     {
+        ML *ml = (idx<z.NPLY ? z.PLYIX[idx].link_ptr : z.MLPTRJ );
+        std::string terse = sargon_export_move(ml);
+        s += terse[0];
+        idx++;
+    }
+    s = util::toupper(s);
+    key = s.substr(0,nmoves);
+    if( key.length() == 0 )
         key = "(root)";
-    }
-    else if( nmoves == 1 )
-    {
-        if( a1 )
-            key = "A";
-        else if( b1 )
-            key = "B";
-    }
-    else if( nmoves == 2 )
-    {
-        if( a1 && g1 )
-            key = "AG";
-        else if( a1 && h1 )
-            key = "AH";
-        else if( b1 && g1  )
-            key = "BG";
-        else if( b1 && h1 )
-            key = "BH";
-    }
-    else if( nmoves == 3 )
-    {
-        if( a2 && g1 )
-            key = "AGA";
-        else if( a2 && h1 )
-            key = "AHA";
-        else if( b2 && g1 )
-            key = "BGB";
-        else if( b2 && h1 )
-            key = "BHB";
-        else
-        {
-            // In other three move cases we can't work out the whole sequence of moves unless we know
-            //  the last move, try to rely on this as little as possible
-            ML *p = z.MLPTRJ;  // Load ptr to last move
-            unsigned char from  = p ? p->from : 0;
-            thc::Square sq_from;
-            bool ok_from = sargon_export_square(from,sq_from);
-            if( ok_from )
-            {
-                bool a_last = (thc::get_file(sq_from) == 'a');
-                bool b_last = (thc::get_file(sq_from) == 'b');
-                bool g_last = (thc::get_file(sq_from) == 'g');
-                bool h_last = (thc::get_file(sq_from) == 'h');
-                if( a1 && g1 && b1 )
-                {
-                    if ( a_last )
-                        key = "BGA";
-                    else if ( b_last )
-                        key = "AGB";
-                }
-                else if( a1 && h1 && b1 )
-                {
-                    if ( a_last )
-                        key = "BHA";
-                    else if ( b_last )
-                        key = "AHB";
-                }
-            }
-        }
-    }
     return key;
 }
 
