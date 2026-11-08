@@ -1400,13 +1400,6 @@ void callback_after_points( uint8_t &points )
     points = (uint8_t)value;
 }
 
-// After GENMOV() routine
-void callback_after_genmov()
-{
-    if( !zargon_tests )
-        callback_uci_after_genmove();
-}
-
 //
 //    Remaining Callbacks only apply when we are running our minimax tests and
 //    heavily manipulating Sargon's operations
@@ -1465,8 +1458,6 @@ void callback_test_alpha_beta_cutoff( uint8_t score, const uint8_t *p )
 //  best move calculation, part 2
 void callback_is_this_best_move( uint8_t score, const uint8_t *p )
 {
-    if( !zargon_executable_documentation )
-        return;
     Progress prog;
     uint8_t val = *p;
     bool jmp = (score <= val);

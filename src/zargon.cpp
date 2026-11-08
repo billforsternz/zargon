@@ -2587,7 +2587,6 @@ void FNDMOV()
     // Generate move list for ply 1, from start position
     z.MATEF = true;             // Assume mate unless legal move found
     GENMOV();                   // Generate list of moves
-    callback_after_genmov();
     if( z.PLYMAX > z.NPLY )
         SORTM();                // If not at max ply, score and sort (for alpha-beta) the moves
     z.MLPTRJ = (ML *)z.MLPTRI;  // Current move is first move in the move list for this ply
@@ -2664,7 +2663,6 @@ void FNDMOV()
                 // Generate moves at next ply
                 z.MATEF = true;                 // assume mate unless legal move found
                 GENMOV();                       // generate list of moves
-                callback_after_genmov();
 
                 // While we are descending we sort moves into best to worst order
                 // using the scoring function (SORTM() calls the scoring function

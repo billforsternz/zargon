@@ -45,7 +45,6 @@ static unsigned long base_time;
 static int depth_option;    // 0=auto, other values for fixed depth play
 static std::string logfile_name;
 static unsigned long total_callbacks;
-static unsigned long genmov_callbacks;
 static unsigned long bestmove_callbacks;
 static unsigned long after_points_callbacks;
 static std::vector<thc::Move> the_game;
@@ -610,12 +609,10 @@ static bool process( const std::string &s, bool first )
         log( "function process() returns, cmd=%s\n"
              "total callbacks=%lu\n"
              "bestmove callbacks=%lu\n"
-             "genmov callbacks=%lu\n"
              "after points callbacks=%lu\n",
                 cmd.c_str(),
                 total_callbacks,
                 bestmove_callbacks,
-                genmov_callbacks,
                 after_points_callbacks );
         log( "%s\n", sargon_pv_report_stats().c_str() );
     }
@@ -890,7 +887,6 @@ static std::string cmd_go( const std::vector<std::string> &fields )
     base_time = elapsed_milliseconds();
     total_callbacks = 0;
     bestmove_callbacks = 0;
-    genmov_callbacks = 0;
     after_points_callbacks = 0;
 
     // Work out our time and increment
@@ -949,7 +945,6 @@ static void cmd_go_infinite()
     base_time = elapsed_milliseconds();
     total_callbacks = 0;
     bestmove_callbacks = 0;
-    genmov_callbacks = 0;
     after_points_callbacks = 0;
     while( !aborted )
     {
@@ -1537,13 +1532,6 @@ static int log( const char *fmt, ... )
 //
 // UCI specific callback handling (minimal)
 //
-
-// Called by callback_after_genmove()
-void callback_uci_after_genmove()
-{
-    total_callbacks++;
-    genmov_callbacks++;
-}
 
 // Called by callback_after_points()
 void callback_uci_after_points()
