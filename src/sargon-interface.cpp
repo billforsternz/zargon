@@ -667,6 +667,7 @@ void sargon_run_engine( const thc::ChessPosition &cp, int plymax, PV &pv, bool a
     else if( plymax > MAX_DEPTH )
         plymax = MAX_DEPTH;
     z.PLYMAX = plymax;
+    pv.clear();
     sargon_pv_clear( cp );
     sargon_import_position( cp, avoid_book );
     z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)

@@ -408,7 +408,7 @@ static bool run_sargon( int plymax, bool avoid_book )
     if( val )
         aborted = true;
     else
-        sargon_run_engine(the_position,plymax,the_pv,avoid_book); // the_pv updated only if not aborted
+        sargon_run_engine(the_position,plymax,the_pv,avoid_book);
     return aborted;
 }
 
@@ -480,7 +480,10 @@ static bool process( const std::string &s, bool first )
     }
     else
     {
-        cmd = "";
+        if( gbl_interactive )
+            cmd = "show";
+        else
+            cmd = "";
     }
     std::string parm1 = fields.size()<=1 ? "" : fields[1];
     if( gbl_interactive )
