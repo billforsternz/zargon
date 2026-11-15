@@ -160,20 +160,23 @@ bool sargon_export_square( unsigned int sargon_square, thc::Square &sq )
 
 std::string sargon_export_best_move()
 {
-    uint8_t from = z.BESTM->from;
-    uint8_t to   = z.BESTM->to;
     char buf[5];
     buf[0] = '\0';
-    thc::Square f, t;
-    if( sargon_export_square(from,f) )
+    if( z.BESTM )
     {
-        if( sargon_export_square(to,t) )
+        uint8_t from = z.BESTM->from;
+        uint8_t to   = z.BESTM->to;
+        thc::Square f, t;
+        if( sargon_export_square(from,f) )
         {
-            buf[0] = thc::get_file(f);
-            buf[1] = thc::get_rank(f);
-            buf[2] = thc::get_file(t);
-            buf[3] = thc::get_rank(t);
-            buf[4] = '\0';
+            if( sargon_export_square(to,t) )
+            {
+                buf[0] = thc::get_file(f);
+                buf[1] = thc::get_rank(f);
+                buf[2] = thc::get_file(t);
+                buf[3] = thc::get_rank(t);
+                buf[4] = '\0';
+            }
         }
     }
     std::string ret = std::string(buf);

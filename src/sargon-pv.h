@@ -20,8 +20,7 @@ struct PV
 {
     std::vector<thc::Move> variation;
     int value;
-    int depth;
-    void clear() {variation.clear(),value=0,depth=0;}
+    void clear() {variation.clear(),value=0;}
     PV () {clear();}
 };
 

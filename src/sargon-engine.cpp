@@ -151,6 +151,15 @@ int main_uci( int argc, const char *argv[] )
 #endif
 
 #if 0
+        "uci\n",
+        "setoption name FixedDepth value 9",
+        "position fen r2q1rk1/pppnbp1p/2n1b3/3P2p1/3PpB2/4P1N1/PP1NBPPP/R2Q1RK1 b - - 0 11 moves e6d5 f4g5 e7g5 g3e4 d5e4 d2e4 f8e8 e2d3 g8g7 d1h5 h7h6 f2f4 d7f6 h5h3 f6e4 d3e4 e8e4 f4g5 d8g5 f1f3 e4g4 a1f1 a8f8 f3f6 g4e4 f1f3 e4e3 f6f7 f8f7 f3e3 c6d4 h3g3 d4f5 g3g5 h6g5 e3e2 f7e7 e2e7 f5e7 g1f2 e7d5 f2f3 d5b4 a2a3 b4d3 b2b3 d3c5 b3b4 c5d7 f3e4 g7f6 g2g3 d7e5 h2h4 e5c4 h4g5 f6g5 e4d5 c4a3 d5e6 g5g4 e6d7 a3b5 d7c8 b7b6 c8b7 g4g3 b7c6 a7a6 c6b7 g3f4 b7a6 b5d6 a6a7 f4e5 a7b8 d6b5 b8b7 e5d4 b7c6 d4c4 c6b7 c4b4 b7c6 b4c4 c6b7 c4d5 b7a6 b5d6 a6a7 b6b5 a7a6 b5b4 a6a5 b4b3 a5b4 b3b2 b4c3 b2b1q c3d2\n",
+        "go wtime 1211487 btime 63692 winc 5000 binc 1000\n",
+        "isready\n",
+        "quit\n"
+#endif
+
+#if 0
         "setoption name FixedDepth value 6",
         "position fen 8/3R2pk/4Np1p/5r2/8/1P2PK2/5PPP/8 w - - 9 41 moves f3e2 h7h8 d7d8 h8h7\n",
         "go\n"
@@ -293,30 +302,35 @@ static std::mutex timer_mtx;
 static long future_time;
 static void timer_thread()
 {
+    log( "timer thread start\n" );
     for(;;)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         {
             std::lock_guard<std::mutex> lck(timer_mtx);
             if( future_time == -1 )
-                break;
+                break;    // end the timer thread
             else if( future_time != 0 )
             {
                 long now_time = elapsed_milliseconds();	
                 long time_remaining = future_time - now_time;
+                log( "time_remaining=%ld, future_time=%ld, now_time=%ld\n", time_remaining, future_time, now_time );
                 if( time_remaining <= 0 )
                 {
                     future_time = 0;
+                    log( "TIMEOUT\n" );
                     async_queue.enqueue( "TIMEOUT" );
                 }
             }
         }
     }
+    log( "timer thread end\n" );
 }
 
 // Clear the timer
 static void timer_clear()
 {
+    log( "timer_clear()\n" );
     timer_set(0);  // set sentinel value 0
 }
 
@@ -330,24 +344,10 @@ static void timer_end()
 static void timer_set( int ms )
 {
     std::lock_guard<std::mutex> lck(timer_mtx);
+    log( "timer_set(%d)\n", ms );
 
     // Prevent generation of a stale "TIMEOUT" event
     future_time = 0;
-
-    // Remove stale "TIMEOUT" events from queue
-    std::queue<std::string> temp;
-    while( !async_queue.empty() )
-    {
-        std::string s = async_queue.dequeue();
-        if( s != "TIMEOUT" )
-            temp.push(s);
-    }
-    while( !temp.empty() )
-    {
-        std::string s = temp.front();
-        temp.pop();
-        async_queue.enqueue(s);
-    }
 
     // Check for timer_end()
     if( ms == -1 )
@@ -361,6 +361,7 @@ static void timer_set( int ms )
         if( ft==0 || ft==-1 )   // avoid special values
             ft = 1;             //  at cost of 1 or 2 millisecs of error!
         future_time = ft;
+        log( "future_time=%ld\n", future_time );
     }
 }
 
@@ -929,7 +930,7 @@ static std::string cmd_go( const std::vector<std::string> &fields )
         }
     }
     bool new_game = is_new_game();
-    thc::Move bestmove = calculate_next_move( false, new_game, ms_time, ms_inc, depth );
+    thc::Move bestmove = calculate_next_move( false, new_game, ms_time, ms_inc, depth ? depth : depth_option );
     return util::sprintf( "bestmove %s\n", bestmove.TerseOut().c_str() );
 }
 
@@ -1270,7 +1271,7 @@ static bool cmd_interactive_move( const std::string &raw_cmd )
 static std::string generate_progress_report()
 {
     int     score_cp   = the_pv.value;
-    int     depth      = the_pv.depth;
+    int     depth      = z.PLYMAX;
     thc::ChessRules ce = the_position;
     int score_overide;
     std::string buf_pv;
@@ -1392,6 +1393,11 @@ static std::string generate_progress_report()
 
             If T < T3  depth++
 
+        If calculation doesn't complete
+            depth -= 2 and retry with half the time. No more than 4 tries
+            Last try should be PLYMAX=3 which is nearly instantaneous and
+            doesn't ever timeout
+
     T1, T2, and T3 set at (say) P/2 P/15 P/100 respectively
     where P is the time available.
 
@@ -1421,27 +1427,140 @@ static thc::Move calculate_next_move(  bool interactive_mode, bool new_game, uns
     bool fixed_depth = (depth>0);
     int plymax = fixed_depth ? depth : plymax_adaptive;
     int plymax_before = plymax_adaptive;
-    if( !interactive_mode )
-        timer_set( ms_hi );
-    unsigned long base = elapsed_milliseconds();
-    bool aborted = run_sargon(plymax,false);
-    if( aborted )
-        run_sargon(3,false);    // PLYMAX=3 is close to instantaneous
-    unsigned long now = elapsed_milliseconds();
-    unsigned long elapsed = (now-base);
-    if( !interactive_mode )
-        timer_clear();
 
-    // The special case, where Sargon minimax never ran should only be book move
-    bool book_move = (the_pv.variation.size() == 0);
-
-    // Adjust ply max if appropriate
-    if( !book_move && !fixed_depth )
+    // Remove stale "TIMEOUT" events from queue
+    std::queue<std::string> temp;
+    while( !async_queue.empty() )
     {
-        if( (aborted || elapsed>ms_med) && plymax_adaptive>3 )
-            plymax_adaptive--;   // we used too much time
-        else if( elapsed<ms_lo && plymax_adaptive<MAX_DEPTH )
-            plymax_adaptive++;   // we can afford to go deeper next time
+        std::string s = async_queue.dequeue();
+        log( "flushed(%s)\n", s.c_str() );
+        if( s != "TIMEOUT" )
+            temp.push(s);
+    }
+
+    // Run the engine, possibly multiple times (but no more than 4 times)
+    bool book_move=false;
+    bool have_move=false;
+    bool aborted=false;
+    bool timeout=false;
+    int  tries=0;
+    unsigned long base = elapsed_milliseconds();
+    unsigned long elapsed = 0;
+    for(;;)
+    {
+        book_move=false;
+        have_move=false;
+        timeout=false;
+
+        // Start emergency timer        
+        if( !interactive_mode && plymax>3 )
+            timer_set( ms_hi );
+
+        // Run the engine, with timeout if plymax>3
+        log( "run_sargon(%d) IN\n",plymax );
+        aborted = run_sargon(plymax,false);
+        tries++;
+        log( "run_sargon() OUT returns %s\n", aborted?"aborted=TRUE":"aborted=FALSE" );
+        unsigned long now = elapsed_milliseconds();
+        elapsed = (now-base);
+        ms_hi = ms_hi/2;    // use less maximum time each time
+
+        // Remove stale "TIMEOUT" events from queue
+        if( aborted )
+        {
+            while( !async_queue.empty() )
+            {
+                std::string s = async_queue.dequeue();
+                log( "flushed(%s)\n", s.c_str() );
+                if( s == "TIMEOUT" )
+                    timeout = true;
+                else
+                    temp.push(s);
+            }
+        }
+
+        // Clear the timer
+        if( !interactive_mode && plymax>3 )
+        {
+            timer_clear();
+        }
+
+        // If book move, we're done, go with that
+        book_move = !aborted && z.BESTM!=0 && the_pv.variation.size()==0;
+        log( "book_move=%s\n", book_move?"true":"false" );
+        if( book_move )
+        {
+            break;
+        }
+
+        // Have a move ?
+        std::string bestmove_terse;
+        if( the_pv.variation.size() >= 1 )
+        {
+            bestmove_terse = the_pv.variation[0].TerseOut();
+            have_move = (bestmove_terse.length() >= 4);
+        }
+        log( "have_move=%s\n", have_move?"true":"false" );
+
+        // Never try more than 4 times, just report on what we have
+        if( tries >= 4 )
+        {
+            log( "tries=%d\n", tries );
+            break;
+        }
+
+        // Timed out - reduce plymax and retry
+        if( aborted && timeout )
+        {
+            if( tries >= 3 )
+            {
+                plymax = 3;     // enough is enough
+            }
+            else
+            {
+                plymax -= 2;
+                if( plymax < 3 )
+                    plymax = 3;
+            }
+            plymax_adaptive = plymax;
+            log( "try again plymax=%d\n", plymax );
+            continue;   // Try again
+        }
+
+        // Aborted but not timed out (eg force immediate move) and have move, go with what we have
+        if( aborted && !timeout && have_move )
+        {
+            log( "aborted && !timeout && have_move so go with that\n" );
+            break;  // Have move
+        }
+
+        // If have a regular move, adjust plymax and we're done
+        if( !aborted && have_move )
+        {
+            if( tries==1 && !fixed_depth )  // if normal adaptive situation
+            {
+                if( elapsed>ms_med && plymax_adaptive>3 )
+                    plymax_adaptive--;   // we used too much time
+                else if( elapsed<ms_lo && plymax_adaptive<MAX_DEPTH )
+                    plymax_adaptive++;   // we can afford to go deeper next time
+            }
+            log( "Normal end, !aborted && have_move, tries=%d, plymax_adaptive=%d\n", tries, plymax_adaptive );
+            break;  // Have move
+        }
+
+        // Any other situation, reduce plymax to minimum and retry
+        plymax = 3;
+        plymax_adaptive = plymax;
+        log( "Reduce plymax to minimum and loop\n" );
+    }
+
+    // Re-enqueue anything we flushed (except timeouts)
+    while( !temp.empty() )
+    {
+        std::string s = temp.front();
+        temp.pop();
+        log( "re-enqueue(%s)\n", s.c_str() );
+        async_queue.enqueue(s);
     }
 
     // Report on book move
@@ -1459,35 +1578,44 @@ static thc::Move calculate_next_move(  bool interactive_mode, bool new_game, uns
         return bestmove;
     }
 
-    // Debug state changes
-    if( plymax_adaptive != plymax_before )
+    // Report on regular move
+    else if( have_move )
     {
-        log( "aborted=%s, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d -> %d\n",
-                aborted?"true":"false", elapsed, ms_lo, ms_med, ms_hi, plymax, plymax_adaptive );
-    }
-    else
-    {
-        log( "aborted=%s, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d\n",
-                aborted?"true":"false", elapsed, ms_lo, ms_med, ms_hi, plymax );
+        // Debug state changes
+        if( plymax_adaptive != plymax_before )
+        {
+            log( "aborted=%s, tries=%d, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d -> %d\n",
+                    aborted?"true":"false", tries, elapsed, ms_lo, ms_med, ms_hi, plymax, plymax_adaptive );
+        }
+        else
+        {
+            log( "aborted=%s, tries=%d, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d\n",
+                    aborted?"true":"false", tries, elapsed, ms_lo, ms_med, ms_hi, plymax );
+        }
+
+        // Report 
+        std::string info;
+        info = generate_progress_report();
+        if( !gbl_interactive )
+        {
+            fprintf( stdout, info.c_str() );
+            fflush( stdout );
+        }
+        log( "rsp>%s\n", info.c_str() );
+        stop_rsp = util::sprintf( "bestmove %s\n", the_pv.variation[0].TerseOut().c_str() ); 
+        info.clear();
+        thc::Move mv = the_pv.variation[0];
+        return mv;
     }
 
-    // Report 
-    std::string info;
-    std::string s = the_pv.variation[0].TerseOut();
-    std::string bestm = sargon_export_best_move();
-    if( s.substr(0,4) != bestm )
-        log( "Unexpected event: BESTM=%s != PV[0]=%s\n%s", bestm.c_str(), s.c_str(), the_position.ToDebugStr().c_str() );
-    info = generate_progress_report();
-    if( !gbl_interactive )
+    // Else it's a sad sad situation
+    else
     {
-        fprintf( stdout, info.c_str() );
-        fflush( stdout );
+        stop_rsp = util::sprintf( "bestmove ????\n" ); 
+        thc::Move bestmove;
+        bestmove.Invalid();
+        return bestmove;
     }
-    log( "rsp>%s\n", info.c_str() );
-    stop_rsp = util::sprintf( "bestmove %s\n", the_pv.variation[0].TerseOut().c_str() ); 
-    info.clear();
-    thc::Move mv = the_pv.variation[0];
-    return mv;
 }
 
 // Simple logging facility gives us some debug capability when running under control of a GUI
@@ -1538,9 +1666,9 @@ void callback_uci_after_points()
     // Need to call the following regularly, but no need for all three
     // routines to do it, so now just do it at end of points
 
-    // Abort run_sargon() if new event in queue (and not PLYMAX==1 which is
-    //  effectively instantaneous, finds a baseline move)
-    if( !async_queue.empty() && z.PLYMAX>1 )
+    // Abort run_sargon() if new event in queue (and not if PLYMAX<=3 which is
+    //  effectively instantaneous)
+    if( !async_queue.empty() && z.PLYMAX>3 )
     {
         longjmp( jmp_buf_env, 1 );
     }
