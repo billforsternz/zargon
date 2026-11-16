@@ -1536,7 +1536,7 @@ static thc::Move calculate_next_move(  bool interactive_mode, bool new_game, uns
         if( plymax_adaptive != plymax_before )
         {
             log( "aborted=%s, tries=%d, elapsed=%lu, ms_lo=%lu, ms_med=%lu, ms_hi=%lu, plymax=%d -> %d\n",
-                    aborted?"true":"false", tries, elapsed, ms_lo, ms_med, ms_hi, plymax, plymax_adaptive );
+                    aborted?"true":"false", tries, elapsed, ms_lo, ms_med, ms_hi, plymax_before, plymax_adaptive );
         }
         else
         {
