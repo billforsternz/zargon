@@ -412,12 +412,12 @@ PV sargon_pv_get()
 
     // Change to UCI convention
     // Scores are relative to side to play in current position NOT White
-    // if( !pv_base_position.WhiteToPlay() )
-    // {
-    //     pv.value = 0 - pv.value;
-    //     if( pv.mate )
-    //         pv.mate_count = 0 - pv.mate_count;
-    // }
+    if( !pv_base_position.WhiteToPlay() )
+    {
+        pv.value = 0 - pv.value;
+        if( pv.mate )
+            pv.mate_count = 0 - pv.mate_count;
+    }
     return pv;
 }
 

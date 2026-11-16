@@ -946,15 +946,13 @@ static TEST code_explanation_example4 =
 // Code explanation example (fork winning rook beats simple capture of bishop)
 //  This example used in the worked example in 'How Sargon Works'
 static TEST code_explanation_example4b =
-//{
-//    "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
-//    2,
-//    "e5g4",
-//    -775,
-//    "Ng4 Rh7"
-//};
-    { "b6K/8/8/8/8/8/8/7k b - - 0 1", 2, "a8d5",
-        -375, "Bd5 Kg7" };
+{
+    "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
+    2,
+    "e5g4",
+    -775,
+    "Ng4 Rh7"
+};
 
 // Code explanation example (mirror of previous position)
 static TEST code_explanation_example4c =
@@ -1152,6 +1150,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     }
     thc::ChessRules cr;
     cr.Forsyth(pt->fen);
+    bool white_to_play = cr.WhiteToPlay();
     callback_start_position_register(cr);
     if( !quiet )
     {
@@ -1174,6 +1173,11 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
         cr.PlayMove(mv);
     }
     std::string sargon_move = sargon_export_best_move();
+
+    // PV value uses UCI convention, it's relative to side to move
+    //  in original position. This test users relative to White
+    //  instead
+    int calculated_value = white_to_play ? pv.value : 0 - pv.value;
     bool pass = (s_pv==std::string(pt->pv));
     if( !pass )
         printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
@@ -1184,9 +1188,9 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
             printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
         else if( *pt->pv  )
         {
-            pass = (pv.value==pt->centipawns);
+            pass = (calculated_value==pt->centipawns);
             if( !pass )
-                printf( "FAIL\n Fail reason: Expected centipawns=%d, Calculated centipawns=%d\n", pt->centipawns, pv.value );
+                printf( "FAIL\n Fail reason: Expected centipawns=%d, Calculated centipawns=%d\n", pt->centipawns, calculated_value );
         }
     }
     if( pass )
@@ -1285,6 +1289,7 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
     bool ok = true;
     thc::ChessRules cr;
     cr.Forsyth(pt->fen);
+    bool white_to_play = cr.WhiteToPlay();
     callback_start_position_register( cr );
     if( !quiet )
     {
@@ -1293,7 +1298,9 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
         printf( "%s\n", s.c_str() );
         printf( "Expected PV=%s\n", pt->pv );
     }
-    printf( "Test %d of %d: PLYMAX=%d\n", i, nbr_tests_to_run, pt->plymax_required );
+    printf( "Test %d of %d: PLYMAX=%d:", i, nbr_tests_to_run, pt->plymax_required );
+    if( 0 == strcmp(pt->fen,"2rq1r1k/3npp1p/3p1n1Q/pp1P2N1/8/2P4P/1P4P1/R4R1K w - - 0 1") )
+        printf( " (sorry this particular test is very slow) :" );
     PV pv;
     sargon_run_engine( cr, pt->plymax_required, pv, false );
     std::vector<thc::Move> &v = pv.variation;
@@ -1308,24 +1315,34 @@ static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool qu
     }
     std::string sargon_move = sargon_export_best_move();
     bool pass = (sargon_move==std::string(pt->solution));
+
+    // PV value uses UCI convention, it's relative to side to move
+    //  in original position. This test users relative to White
+    //  instead
+    int calculated_value = white_to_play ? pv.value : 0 - pv.value;
     if( !pass )
-        printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
+        printf( " FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
     else
     {
         pass = (s_pv==std::string(pt->pv));
         if( !pass )
-            printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
+            printf( " FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
         else if( *pt->pv  )
         {
-            pass = (pv.value==pt->centipawns);
+            pass = (calculated_value==pt->centipawns);
             if( !pass )
-                printf( "FAIL\n Fail reason: Expected centipawns=%d, Calculated centipawns=%d\n", pt->centipawns, pv.value );
+                printf( " FAIL\n Fail reason: Expected centipawns=%d, Calculated centipawns=%d\n", pt->centipawns, calculated_value );
         }
     }
-    if( pass )
-        printf( "PASS\nCalculated PV=%s, calculated move=%s, calculated centipawns=%d\n", s_pv.c_str(), sargon_move.c_str(), pv.value );
-    else
+    if( !pass )
         ok = false;
+    else
+    {
+        if( quiet )
+            printf( " PASS\n" );
+        else
+            printf( " PASS\nCalculated PV=%s, calculated move=%s, calculated centipawns=%d\n", s_pv.c_str(), sargon_move.c_str(), calculated_value );
+    }
     return ok;
 }
 
@@ -1353,49 +1370,8 @@ bool sargon_position_tests( bool quiet, int comprehensive )
     for( int i=0; i<nbr_tests_to_run; i++ )
     {
         TEST *pt = &tests_main[i];
-        thc::ChessRules cr;
-        cr.Forsyth(pt->fen);
-        if( !quiet )
-        {
-            std::string intro = util::sprintf("\nTest position %d (%s) is", i+1, pt->fen );
-            std::string s = cr.ToDebugStr( intro.c_str() );
-            printf( "%s\n", s.c_str() );
-            printf( "Expected PV=%s\n", pt->pv );
-        }
-        printf( "Test %d of %d: PLYMAX=%d:", i+1, nbr_tests_to_run, pt->plymax_required );
-        if( 0 == strcmp(pt->fen,"2rq1r1k/3npp1p/3p1n1Q/pp1P2N1/8/2P4P/1P4P1/R4R1K w - - 0 1") )
-            printf( " (sorry this particular test is very slow) :" );
-        PV pv;
-        sargon_run_engine( cr, pt->plymax_required, pv, false );
-        std::vector<thc::Move> &v = pv.variation;
-        std::string s_pv;
-        std::string spacer;
-        for( thc::Move mv: v )
-        {
-            s_pv += spacer;
-            spacer = " ";
-            s_pv += mv.NaturalOut(&cr);
-            cr.PlayMove(mv);
-        }
-        std::string sargon_move = sargon_export_best_move();
-        bool pass = (s_pv==std::string(pt->pv));
+        bool pass = sargon_position_test(pt,i+1,nbr_tests_to_run,quiet);
         if( !pass )
-            printf( "FAIL\n Fail reason: Expected PV=%s, Calculated PV=%s\n", pt->pv, s_pv.c_str() );
-        else
-        {
-            pass = (sargon_move==std::string(pt->solution));
-            if( !pass )
-                printf( "FAIL\n Fail reason: Expected move=%s, Calculated move=%s\n", pt->solution, sargon_move.c_str() );
-            else if( *pt->pv  )
-            {
-                pass = (pv.value==pt->centipawns);
-                if( !pass )
-                    printf( "FAIL\n Fail reason: Expected centipawns=%d, Calculated centipawns=%d\n", pt->centipawns, pv.value );
-            }
-        }
-        if( pass )
-            printf( " PASS\n" );
-        else
             ok = false;
     }
     return ok;
