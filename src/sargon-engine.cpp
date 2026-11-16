@@ -406,9 +406,14 @@ static bool run_sargon( int plymax, bool avoid_book )
     int val;
     val = setjmp(jmp_buf_env);
     if( val )
+    {
         aborted = true;
+        the_pv = sargon_pv_get();
+    }
     else
+    {
         sargon_run_engine(the_position,plymax,the_pv,avoid_book);
+    }
     return aborted;
 }
 
@@ -562,8 +567,7 @@ static bool process( const std::string &s, bool first )
         }
         else if( cmd=="go" )
         {
-            auto_play = true;
-            cmd_interactive_go( gbl_big_graphics ? nbr_lines_big : nbr_lines );
+            auto_play = cmd_interactive_go( gbl_big_graphics ? nbr_lines_big : nbr_lines );
         }
         else if( !first )
         {
@@ -574,7 +578,10 @@ static bool process( const std::string &s, bool first )
                 if( is_move )
                 {
                     if( auto_play )
-                        cmd_interactive_go( gbl_big_graphics ? nbr_lines_big : nbr_lines );
+                    {
+                        auto_play = cmd_interactive_go( gbl_big_graphics ? nbr_lines_big : nbr_lines );
+                        log( "auto_play=%s\n", auto_play?"true":"false" );
+                    }
                 }
                 else
                 {
@@ -1531,9 +1538,12 @@ static thc::Move calculate_next_move(  bool interactive_mode, bool new_game, uns
         }
 
         // Aborted but not timed out (eg force immediate move) and have move, go with what we have
-        if( aborted && !timeout && have_move )
+        if( aborted && !timeout && (have_move||gbl_interactive) )
         {
-            log( "aborted && !timeout && have_move so go with that\n" );
+            if( have_move )
+                log( "aborted && !timeout && have_move so go with that\n" );
+            else
+                log( "aborted && !timeout && no move but gbl_interactive, fail to deliver a move, that's fine in that scenario\n" );
             break;  // Have move
         }
 
