@@ -1370,7 +1370,7 @@ static thc::Move calculate_next_move(  bool interactive_mode, bool new_game, uns
     bool timer_running = false;
 
     // Run engine
-    static int plymax_adaptive = 8;
+    static int plymax_adaptive = 6;
     bool fixed_depth = (depth>0);
     int plymax = fixed_depth ? depth : plymax_adaptive;
     int plymax_before = plymax_adaptive;
