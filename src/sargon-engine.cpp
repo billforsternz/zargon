@@ -47,7 +47,7 @@ static std::string logfile_name;
 static unsigned long total_callbacks;
 static unsigned long after_points_callbacks;
 static std::vector<thc::Move> the_game;
-static int the_level=8;
+static int the_level=6;
 static bool gbl_interactive=true;
 static bool gbl_orientation;
 static bool gbl_big_graphics;
@@ -266,6 +266,19 @@ static const std::vector<std::string> test_sequence =
 int main_uci( int argc, const char *argv[] )
 {
     logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
+    if( test_sequence.size() > 0 )
+    {
+        bool first = true;
+        for( std::string s: test_sequence )
+        {
+            util::rtrim(s);
+            log( "cmd>%s\n", s.c_str() );
+            process(s,first);
+            first = false;
+        }
+        return 0;
+    }
+
     std::thread first(read_stdin);
     std::thread second(write_stdout);
     std::thread third(timer_thread);
@@ -367,19 +380,7 @@ static void read_stdin()
     while(!quit)
     {
         static char buf[8192];
-        size_t sz = test_sequence.size();
-        static int test_idx;
-        if( sz>0 && test_idx<sz )
-        {
-            std::string s = test_sequence[test_idx++];
-            util::rtrim(s);
-            async_queue.enqueue(s);
-            if( s == "quit" || s=="q" )
-                quit = true;
-        }
-        else if( sz>0 && test_idx>=sz )
-            quit = true;
-        else if( NULL == fgets(buf,sizeof(buf)-2,stdin) )
+        if( NULL == fgets(buf,sizeof(buf)-2,stdin) )
             quit = true;
         else
         {
