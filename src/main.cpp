@@ -25,13 +25,12 @@ int main( int argc, const char *argv[] )
     const char *test_args[] =
     {
         "Debug/zargon.exe"
-        //,"c","-3"
-        // ,"m"
-        //, "p", "-v" 
-        //"g",
-        //"-3"
-        //"cg",
-        //"-3"
+        //"m"
+        //"p", "-v" 
+        //"g"
+        //",-3"
+        //"cg"
+        //",-3"
     };
     argc = sizeof(test_args) / sizeof(test_args[0]);
     argv = test_args;

@@ -368,31 +368,55 @@ PV sargon_pv_get()
     }
 
     // Final adjustments
-    double centipawns = points * 100.0/8.0;
+    double centipawns = points * 100.0/8.0;     // bigger is better for White
     pv.value = static_cast<int>(centipawns);
     if( score_terminal != thc::NOT_TERMINAL )
     {
+        pv.mate = true;     // Mate (or stalemate)
         switch( score_terminal )
         {
             case thc::TERMINAL_WCHECKMATE:  // White is checkmated
             case thc::TERMINAL_BCHECKMATE:  // Black is checkmated
             {
                 int nbr = (int)pv.variation.size();
-                int value = 6000;                           // mate in 1 is worth 60 pawns (say)
                 int nbr_full_moves_to_mate = (nbr+1)/2;     // nbr=1,2 =>1 3,4=>2
                 if( nbr_full_moves_to_mate == 0 )           // eg initial position is checkmate
                     nbr_full_moves_to_mate = 1;
+                int value = 6000;                           // mate in 1 is worth 60 pawns (say)
                 value -= (nbr_full_moves_to_mate-1)*100;    // subtract 1 pawn for mate in 2, 2 pawns for mate in 3, etc
-                pv.value = (score_terminal==thc::TERMINAL_BCHECKMATE ? value : 0-value);
+
+                // Positive value and mate_count if White is mating
+                if( score_terminal == thc::TERMINAL_BCHECKMATE )
+                {
+                    pv.value      = value;
+                    pv.mate_count = nbr_full_moves_to_mate;
+                }
+
+                // Negative value and mate_count if Black is mating
+                else
+                {
+                    pv.value      = 0 - value;
+                    pv.mate_count = 0 - nbr_full_moves_to_mate;
+                }
                 break;
             }
             case thc::TERMINAL_WSTALEMATE:
             case thc::TERMINAL_BSTALEMATE:
             {
-                pv.value=0;
+                pv.value      = 0;
+                pv.mate_count = 0;
                 break;
             }
         }
+    }
+
+    // Change to UCI convention
+    // Scores are relative to side to play in current position NOT White
+    if( !pv_base_position.WhiteToPlay() )
+    {
+        pv.value = 0 - pv.value;
+        if( pv.mate )
+            pv.mate_count = 0 - pv.mate_count;
     }
     return pv;
 }

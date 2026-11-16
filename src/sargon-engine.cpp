@@ -47,7 +47,7 @@ static std::string logfile_name;
 static unsigned long total_callbacks;
 static unsigned long after_points_callbacks;
 static std::vector<thc::Move> the_game;
-static int the_level=6;
+static int the_level=8;
 static bool gbl_interactive=true;
 static bool gbl_orientation;
 static bool gbl_big_graphics;
@@ -133,13 +133,8 @@ static void timer_clear();          // Clear the timer
 static void timer_end();            // End the timer subsystem system
 static void timer_set( int ms );    // Set a timeout event, ms millisecs into the future (0 and -1 are special values)
 
-// main()
-int main_uci( int argc, const char *argv[] )
+static const std::vector<std::string> test_sequence =
 {
-    logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
-#ifdef _DEBUG
-    static const std::vector<std::string> test_sequence =
-    {
 #if 0
         "",
         "8/8/8/4k/8/8/8/KQ w - - 0 1",
@@ -160,6 +155,7 @@ int main_uci( int argc, const char *argv[] )
 #endif
 
 #if 0
+        "uci\n",
         "setoption name FixedDepth value 6",
         "position fen 8/3R2pk/4Np1p/5r2/8/1P2PK2/5PPP/8 w - - 9 41 moves f3e2 h7h8 d7d8 h8h7\n",
         "go\n"
@@ -167,6 +163,7 @@ int main_uci( int argc, const char *argv[] )
         "quit\n"
 #endif
 #if 0
+        "uci\n",
         "setoption name FixedDepth value 6",
         "position fen 8/3R2pk/4Np1p/5r2/8/1P2PK2/5PPP/8 w - - 9 41\n",
         "go\n",
@@ -180,30 +177,35 @@ int main_uci( int argc, const char *argv[] )
         "quit\n"
 #endif
 #if 0
+        "uci\n",
         "position fen 8/3R2pk/4Np1p/5r2/8/1P2PK2/5PPP/8 w - - 9 41 moves f3e2 h7h8 d7d8 h8h7\n",
         "go depth 6 wtime 55068 btime 889329 winc 1000 binc 5000\n",
         "isready\n",
         "quit\n"
 #endif
 #if 0
+        "uci\n",
         "position fen 7K/5k1P/8/8/8/8/8/8 b - - 0 1\n",
         "go depth wtime 1000 btime 1000 winc 1000 binc 5000\n",
         "isready\n",
         "quit\n"
 #endif
 #if 0
+        "uci\n",
         "position startpos moves e2e4 c7c5 b1c3 a7a6 d1h5 e7e6 g1f3 b7b5 f3e5 g7g6 h5f3 g8f6 f1e2 f8g7 e5d3 d7d6 e4e5 f6d5 c3d5 e6d5 f3d5 a8a7 e5d6 e8g8 d5c5 a7d7 a2a4 d7d6 a4b5 a6b5 c5b5 c8d7 b5c5 d7c6 e1g1 f8e8 e2f3 c6f3 g2f3 d6d5 c5c4 d5d4 c4b5 d4d5 b5a4 d5d4 a4a5 d4d5 a5d8 e8d8 f1e1 b8c6 a1a3 d5g5 g1h1 g5h5 h1g2 d8d5 e1e8 g7f8 a3a8 d5g5 g2h1 c6e5 e8f8 g8g7 f3f4 h5h2 h1h2 e5f3 h2h3 f3g1 h3h4 g1f3 h4h3 f3g1 h3h2 g1f3\n",
         "go depth 5 wtime 88428 btime 883250 winc 1000 binc 5000\n",
         "isready\n",
         "quit\n"
 #endif
 #if 0
+        "uci\n",
         "position startpos moves e2e4 c7c5 b1c3 a7a6 d1h5 e7e6 g1f3 b7b5 f3e5 g7g6 h5f3 g8f6 f1e2 f8g7 e5d3 d7d6 e4e5 f6d5 c3d5 e6d5 f3d5 a8a7 e5d6 e8g8 d5c5 a7d7 a2a4 d7d6 a4b5 a6b5 c5b5 c8d7 b5c5 d7c6 e1g1 f8e8 e2f3 c6f3 g2f3 d6d5 c5c4 d5d4 c4b5 d4d5 b5a4 d5d4 a4a5 d4d5 a5d8 e8d8 f1e1 b8c6 a1a3 d5g5 g1h1 g5h5 h1g2 d8d5 e1e8 g7f8 a3a8 d5g5 g2h1 c6e5 e8f8 g8g7 f3f4 h5h2 h1h2 e5f3 h2h3 f3g1 h3h4 g1f3\n",
         "go depth 5 wtime 55068 btime 889329 winc 1000 binc 5000\n",
         "isready\n",
         "quit\n"
 #endif
 #if 0
+        "uci\n",
         "position fen 1br4k/6pp/1q6/1r4N1/8/7P/Q5P1/7K w - - 0 1\n",
         "go wtime 3599100 btime 900000 winc 2000 binc 5000\n",
         "isready\n",
@@ -219,6 +221,7 @@ int main_uci( int argc, const char *argv[] )
         "quit\n"
 #endif
 #if 0
+        "uci\n",
         "isready\n",
         "position fen rnbqkb1r/pppppppp/5n2/8/2P5/5N2/PP1PPPPP/RNBQKB1R b KQkq c3 0 2 moves c7c6 d2d4 d7d5 b1c3 d5c4 a2a4 b8a6 e2e4 c8g4 f1c4 e7e6 c1e3 f8b4 e4e5 f6d5 d1c2 g4f5 c2d2 e8g8 e1g1 d5e3 f2e3 b4c3 b2c3 a6c7 a1e1 b7b5 a4b5 c6b5 c4d3 f5d3 d2d3 f7f5 e3e4 f5e4 d3e4 c7d5 e4d3 a8c8 d3b5 d5c3 b5a6 d8d7 f3g5 d7d4 g1h1 f8f1 e1f1 d4c4 a6e6 c4e6 g5e6 c8e8 e6c5 e8e5 c5d3 e5d5 d3b4 d5d6 h2h3 a7a5 b4c2 d6d2 c2e3 d2d4 f1c1 d4d3 e3c4 a5a4 c4b6 a4a3 b6c4 a3a2 c1a1 d3d1 a1d1 c3d1 h1h2 a2a1q c4d2 a1e5 h2g1 e5d4 g1h2 d4d2 h2g3 d2f2 g3g4 d1e3 g4g5 f2f5 g5h4 g7g5 h4h5 g5g4 h5h4 g8g7 h4g3 g4h3 g2h3\n",
         "go depth 6\n",
@@ -257,20 +260,12 @@ int main_uci( int argc, const char *argv[] )
         "position fen 7k/8/8/8/8/8/8/N5Kq w - - 0 1\n",  // an extra knight only after capturing queen
         "go\n"                                           // will go straight to depth 5, no iteration
 #endif
-    };
-    if( test_sequence.size() > 0 )
-    {
-        bool first = true;
-        for( std::string s: test_sequence )
-        {
-            util::rtrim(s);
-            log( "cmd>%s\n", s.c_str() );
-            process(s,first);
-            first = false;
-        }
-        return 0;
-    }
-#endif
+};
+
+// main()
+int main_uci( int argc, const char *argv[] )
+{
+    logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
     std::thread first(read_stdin);
     std::thread second(write_stdout);
     std::thread third(timer_thread);
@@ -372,7 +367,19 @@ static void read_stdin()
     while(!quit)
     {
         static char buf[8192];
-        if( NULL == fgets(buf,sizeof(buf)-2,stdin) )
+        size_t sz = test_sequence.size();
+        static int test_idx;
+        if( sz>0 && test_idx<sz )
+        {
+            std::string s = test_sequence[test_idx++];
+            util::rtrim(s);
+            async_queue.enqueue(s);
+            if( s == "quit" || s=="q" )
+                quit = true;
+        }
+        else if( sz>0 && test_idx>=sz )
+            quit = true;
+        else if( NULL == fgets(buf,sizeof(buf)-2,stdin) )
             quit = true;
         else
         {
@@ -1283,94 +1290,25 @@ static std::string generate_progress_report()
     int     score_cp   = the_pv.value;
     int     depth      = z.PLYMAX;
     thc::ChessRules ce = the_position;
-    int score_overide;
     std::string buf_pv;
     std::string buf_score;
-    bool done=false;
     unsigned long now_time = elapsed_milliseconds();	
     int nodes = after_points_callbacks;
     unsigned long elapsed_time = now_time-base_time;
     if( elapsed_time == 0 )
         elapsed_time++;
-    bool overide = false;
     for( unsigned int i=0; i<the_pv.variation.size(); i++ )
     {
-        bool okay;
         thc::Move move=the_pv.variation[i];
-        ce.PlayMove( move );
         buf_pv += " ";
         buf_pv += move.TerseOut();
-        thc::TERMINAL score_terminal;
-        okay = ce.Evaluate( score_terminal );
-        if( okay )
-        {
-            if( score_terminal == thc::TERMINAL_BCHECKMATE ||
-                score_terminal == thc::TERMINAL_WCHECKMATE )
-            {
-                overide = true;
-                score_overide = (i+2)/2;    // 0,1 -> 1; 2,3->2; 4,5->3 etc 
-                if( score_terminal == thc::TERMINAL_WCHECKMATE )
-                    score_overide = 0-score_overide; //negative if black is winning
-            }
-            else if( score_terminal == thc::TERMINAL_BSTALEMATE ||
-                        score_terminal == thc::TERMINAL_WSTALEMATE )
-            {
-                overide = true;
-                score_overide = 0;
-            }
-        }
-        if( !okay || overide )
-            break;
-    }    
-    if( the_position.white )
-    {
-        if( overide ) 
-        {
-            if( score_overide > 0 ) // are we mating ?
-            {
-                buf_score = util::sprintf( "mate %d", score_overide );
-                the_pv.value = 120;
-            }
-            else if( score_overide < 0 ) // are me being mated ?
-            {
-                buf_score = util::sprintf( "mate -%d", (0-score_overide) );
-                the_pv.value = -120;
-            }
-            else if( score_overide == 0 ) // is it a stalemate draw ?
-            {
-                buf_score = util::sprintf( "cp 0" );
-                the_pv.value = 0;
-            }
-        }
-        else
-        {
-            buf_score = util::sprintf( "cp %d", score_cp );
-        }
+        ce.PlayMove( move );
     }
-    else
+    buf_score = util::sprintf( "cp %d", score_cp );
+    if( the_pv.mate )
     {
-        if( overide ) 
-        {
-            if( score_overide < 0 ) // are we mating ?
-            {
-                buf_score = util::sprintf( "mate %d", 0-score_overide );
-                the_pv.value = -120;
-            }
-            else if( score_overide > 0 ) // are me being mated ?        
-            {
-                buf_score = util::sprintf( "mate -%d", score_overide );
-                the_pv.value = 120;
-            }
-            else if( score_overide == 0 ) // is it a stalemate draw ?
-            {
-                buf_score = util::sprintf( "cp 0" );
-                the_pv.value = 0;
-            }
-        }
-        else
-        {
-            buf_score = util::sprintf( "cp %d", 0-score_cp );
-        }
+        if( the_pv.mate_count != 0 )      // zero is stalemate
+            buf_score = util::sprintf( "mate %d", the_pv.mate_count );
     }
     std::string out;
     if( the_pv.variation.size() > 0 )
@@ -1385,7 +1323,6 @@ static std::string generate_progress_report()
     }
     return out;
 }
-
 
 /*
 
@@ -1433,7 +1370,7 @@ static thc::Move calculate_next_move(  bool interactive_mode, bool new_game, uns
     bool timer_running = false;
 
     // Run engine
-    static int plymax_adaptive = 6;
+    static int plymax_adaptive = 8;
     bool fixed_depth = (depth>0);
     int plymax = fixed_depth ? depth : plymax_adaptive;
     int plymax_before = plymax_adaptive;

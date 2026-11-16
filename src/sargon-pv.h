@@ -20,7 +20,9 @@ struct PV
 {
     std::vector<thc::Move> variation;
     int value;
-    void clear() {variation.clear(),value=0;}
+    bool mate;
+    int  mate_count;
+    void clear() {variation.clear(); value=0; mate=false; mate_count=0; }
     PV () {clear();}
 };
 
