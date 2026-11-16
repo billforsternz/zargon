@@ -265,7 +265,7 @@ static const std::vector<std::string> test_sequence =
 // main()
 int main_uci( int argc, const char *argv[] )
 {
-    logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
+    // logfile_name = std::string(argv[0]) + "-log.txt"; // wake this up for early logging
     if( test_sequence.size() > 0 )
     {
         bool first = true;
