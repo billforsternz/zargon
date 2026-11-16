@@ -24,7 +24,7 @@ int main( int argc, const char *argv[] )
     #ifdef _DEBUG
     const char *test_args[] =
     {
-        "Debug/zargon.exe"
+        "Debug/zargon.exe", "u"
         //"m"
         //"p", "-v" 
         //"g"

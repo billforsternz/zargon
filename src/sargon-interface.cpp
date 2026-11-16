@@ -280,8 +280,8 @@ bool sargon_play_move( thc::Move &mv )
     */
 
     bool ok=false;
-    unsigned char color = z.COLOR; // who to move?
-    unsigned char kolor = z.KOLOR; // which side is Sargon?
+    uint8_t color = z.COLOR; // who to move?
+    uint8_t kolor = z.KOLOR; // which side is Sargon?
     z.KOLOR = (color==0?0x80:0);   // VALMOV validates a move against Sargon, so Sargon must be the opposite to the side to move
     uint8_t from = sargon_import_square(mv.src);
     uint8_t to   = sargon_import_square(mv.dst);
@@ -301,16 +301,16 @@ bool sargon_play_move( thc::Move &mv )
 void sargon_export_position( thc::ChessPosition &cp )
 {
     cp.Init();
-    const unsigned char *sargon_board = &z.BOARDA[0];
-    const unsigned char *src_base = sargon_board + 28;  // square h1
+    const uint8_t *sargon_board = &z.BOARDA[0];
+    const uint8_t *src_base = sargon_board + 28;  // square h1
     char *dst_base = &cp.squares[thc::h1];
     for( int i=0; i<8; i++ )
     {
-        const unsigned char *src = src_base + i*10;
+        const uint8_t *src = src_base + i*10;
         char *dst = dst_base - i*8;
         for( int j=0; j<8; j++ )
         {
-            unsigned char b = *src--;
+            uint8_t b = *src--;
             char c = ' ';
             bool moved = (b&8 ? true : false);
             b &= 0x87;
@@ -555,7 +555,7 @@ static void sargon_import_position_inner( const thc::ChessPosition &cp )
 {
     z.COLOR  = cp.white?0:0x80;
     z.MOVENO = cp.full_move_count;
-    static unsigned char board_position[120] =
+    static uint8_t board_position[120] =
     {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -572,18 +572,18 @@ static void sargon_import_position_inner( const thc::ChessPosition &cp )
     };
 
     memset( board_position, 0xff, sizeof(board_position) );
-    unsigned char *dst_base = board_position + 28;  // square h1
+    uint8_t *dst_base = board_position + 28;  // square h1
     const char *src_base = &cp.squares[thc::h1];
     bool white_king_on_e1 = (cp.squares[thc::e1]=='K');
     bool black_king_on_e8 = (cp.squares[thc::e8]=='k');
     for( int i=0; i<8; i++ )
     {
-        unsigned char *dst = dst_base + i*10;
+        uint8_t *dst = dst_base + i*10;
         const char *src = src_base - i*8;
         for( int j=0; j<8; j++ )
         {
             char c = *src--;
-            unsigned char b = 0;
+            uint8_t b = 0;
             switch( c )
             {
                 case 'p':   b = 0x81;   break;

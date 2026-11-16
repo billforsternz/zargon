@@ -284,7 +284,7 @@ bool sargon_whole_game_tests( bool quiet, int comprehensive )
         thc::ChessRules cr;
         bool regenerate_position=true;
         int nbr_moves_played = 0;
-        unsigned char moveno=1;
+        uint8_t moveno=1;
         z.MOVENO = moveno;
         while( nbr_moves_played < 200 )
         {
@@ -418,7 +418,7 @@ bool sargon_timed_game_test( bool quiet, int nbr_iterations, bool dummy )
         }
         thc::ChessRules cr;
         sargon_import_position(cr);
-        unsigned char moveno=1;
+        uint8_t moveno=1;
         z.MOVENO = moveno;
         z.KOLOR  = 0x80; // Sargon is black
         z.PLYMAX = 2;
@@ -946,13 +946,15 @@ static TEST code_explanation_example4 =
 // Code explanation example (fork winning rook beats simple capture of bishop)
 //  This example used in the worked example in 'How Sargon Works'
 static TEST code_explanation_example4b =
-{
-    "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
-    2,
-    "e5g4",
-    -775,
-    "Ng4 Rh7"
-};
+//{
+//    "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
+//    2,
+//    "e5g4",
+//    -775,
+//    "Ng4 Rh7"
+//};
+    { "b6K/8/8/8/8/8/8/7k b - - 0 1", 2, "a8d5",
+        -375, "Bd5 Kg7" };
 
 // Code explanation example (mirror of previous position)
 static TEST code_explanation_example4c =
