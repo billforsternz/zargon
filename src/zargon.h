@@ -207,7 +207,9 @@ uint8_t     bact[8];
 //             PLISTD contains the direction from the pinned
 //             piece to the attacker.
 //***********************************************************
-uint8_t     PLISTA[10];     // pinned pieces
+uint8_t     PLISTA[10];     // pinned pieces, actual maximum
+                            //  number is 8, alloc 10 for good
+                            //  measure
 uint8_t     plistd[10];     // corresponding directions
 
 //***********************************************************

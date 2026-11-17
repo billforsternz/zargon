@@ -1089,11 +1089,13 @@ inline bool PNCK( uint16_t pin_count, int8_t attack_direction )
         // Check whether pin direction is same as attacking direction
         int8_t dir = *(int8_t *)(p+9);
         if( dir != attack_direction && (0-dir) != attack_direction  )
+        {
 
             // If it's the first find, and pin direction is not
             //  the attack direction, then the attacker is pinned
             //  and invalid
             return true;
+        }
     }
 
     // If expired (end of list), then the attacker is not pinned
