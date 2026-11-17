@@ -1288,7 +1288,7 @@ static bool cmd_interactive_move( const std::string &raw_cmd )
 // UCI compatible report
 static std::string generate_progress_report()
 {
-    int     score_cp   = the_pv.value;
+    int     score_cp   = the_pv.value_uci_convention;
     int     depth      = z.PLYMAX;
     thc::ChessRules ce = the_position;
     std::string buf_pv;
@@ -1308,8 +1308,8 @@ static std::string generate_progress_report()
     buf_score = util::sprintf( "cp %d", score_cp );
     if( the_pv.mate )
     {
-        if( the_pv.mate_count != 0 )      // zero is stalemate
-            buf_score = util::sprintf( "mate %d", the_pv.mate_count );
+        if( the_pv.mate_count_uci_convention != 0 )      // zero is stalemate
+            buf_score = util::sprintf( "mate %d", the_pv.mate_count_uci_convention );
     }
     std::string out;
     if( the_pv.variation.size() > 0 )

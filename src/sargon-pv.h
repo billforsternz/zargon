@@ -19,10 +19,12 @@
 struct PV
 {
     std::vector<thc::Move> variation;
-    int value;
+    int value;                      // centipawns, bigger is better for White
+    int value_uci_convention;       // centipawns, bigger is better for side to move
     bool mate;
-    int  mate_count;
-    void clear() {variation.clear(); value=0; mate=false; mate_count=0; }
+    int  mate_count;                // positive count if White is mating
+    int  mate_count_uci_convention; // positive count if side to move is mating
+    void clear() {variation.clear(); value=0; value_uci_convention=0; mate=false; mate_count=0; }
     PV () {clear();}
 };
 
