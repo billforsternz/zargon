@@ -14,8 +14,8 @@
 
 // Allow different types of logging in DEBUG and RELEASE (pick zero or more)
 // #define DEBUG_FUNC_LOG
-// #define DEBUG_RESTRICTED_MOVES
-// #define DEBUG_GUIDED_MOVES
+//#define DEBUG_RESTRICTED_MOVES
+//#define DEBUG_GUIDED_MOVES
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif

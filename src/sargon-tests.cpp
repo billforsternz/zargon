@@ -877,7 +877,7 @@ static TEST mate_in_1_or_2 =
     "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
     3,
     "h6f7",
-    400,
+    6000,
     "Nf7#"
 };
 
@@ -1048,7 +1048,7 @@ static TEST mate_in_2_3_or_4 =
     "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
     5,
     "b3g8",
-    400,
+    5900,
     "Qg8+ Rxg8 Nf7#"
 };
 
@@ -1098,9 +1098,9 @@ static TEST ply4_restricted_move_test =
 static const char *ply4_restricted_move_test_moves[] =
 {
     "e5f7 c1f4 d1e2",        // ply 1 moves allowed
-    "e8f7 f8g7 d8c7",
+    "e8f7 f8g7 d8c7 c8g4",
     "d3g6 f7d8 f7h8 d1e2 a2a3",
-    "f7g6 e8f7 f8g7 d8c7 b8c6",
+    "f7g6 e8f7 f8g7 d8c7 b8c6 g4d1",
     NULL
 };
 
@@ -1121,9 +1121,9 @@ static const char *knight_fork_restricted_move_test_moves[] =
 
 static TEST philidor_restricted_move_test =
 {
-    // Philidor's mate (for investigation - level 7 DOESN'T FIND MATE)
+    // Philidor's mate
     "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
-        50, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#"
+        5800, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#"
 };
 
 static const char *philidor_restricted_move_test_moves[] =
@@ -1150,7 +1150,6 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     }
     thc::ChessRules cr;
     cr.Forsyth(pt->fen);
-    bool white_to_play = cr.WhiteToPlay();
     callback_start_position_register(cr);
     if( !quiet )
     {
@@ -1173,6 +1172,9 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
         cr.PlayMove(mv);
     }
     std::string sargon_move = sargon_export_best_move();
+    printf( "Expected PV=%s Calculated PV=%s\n",  pt->pv,  s_pv.c_str() );
+    printf( "Expected move=%s Calculated move=%s\n\n", pt->solution, sargon_move.c_str() );
+    printf( "Expected centipawns=%d Calculated centipawns=%d\n\n", pt->centipawns, pv.value );
 
     bool pass = (s_pv==std::string(pt->pv));
     if( !pass )
@@ -1196,6 +1198,20 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     return ok;
 }
 
+// Normal
+//#define SELECT_SIMPLE_DOC             //ok
+//#define SELECT_MORE_EXAMPLES_RAW      //ok
+#define SELECT_MORE_EXAMPLES_ARRAY    //ok
+//#define SELECT_RANDO_1                //ok
+//#define SELECT_RANDO_2                //ok
+
+// Restricted
+// Make sure both DEBUG_RESTRICTED_MOVES and DEBUG_GUIDED_MOVES set
+//#define SELECT_RESTRICTED_1             //ok
+
+// Guided
+// #define SELECT_WIKIPEDIA             //not yet working
+
 // One off test
 bool sargon_undocumented_dev_test()
 {
@@ -1203,16 +1219,26 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
+#ifdef SELECT_SIMPLE_DOC
     ok = sargon_position_test( &code_explanation_example4b, 1, 1, false );
     return ok;
-    // ok = sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, false );
-    // ok = sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, false );
-    // ok = sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, false );
-    // ok = sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
-    // ok = sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
-    // ok = sargon_position_test( &mate_in_1_or_2, 1, 1, false );
-    // ok = sargon_position_test( &mid_level_puzzle, 1, 1, false );
-    // ok = sargon_position_test( &trivial_puzzle, 1, 1, false );
+#endif
+#ifdef SELECT_RESTRICTED_1
+    ok = ok && sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply2_restricted_move_test, ply2_restricted_move_test_moves, 1, 1, true );
+    return ok;
+#endif
+#ifdef SELECT_MORE_EXAMPLES_RAW
+    ok = ok && sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
+    ok = ok && sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
+    ok = ok && sargon_position_test( &mate_in_1_or_2, 1, 1, false );
+    ok = ok && sargon_position_test( &mid_level_puzzle, 1, 1, false );
+    ok = ok && sargon_position_test( &trivial_puzzle, 1, 1, false );
+    return ok;
+#endif
+#ifdef SELECT_MORE_EXAMPLES_ARRAY
     int nbr_passed_tests = 0;
     int nbr_tests = sizeof(atksav_bug_tests)/sizeof(atksav_bug_tests[0]);
     for( int i=0; i<nbr_tests; i++ )
@@ -1222,37 +1248,35 @@ bool sargon_undocumented_dev_test()
             nbr_passed_tests++;
     }
     ok = (nbr_tests==nbr_passed_tests);
-    //int nbr_passed_tests = 0;
-    //int nbr_tests_to_run_at_end = 1;
-    //int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);
-    //int test_nbr=0;
-    //for( int i=nbr_tests - nbr_tests_to_run_at_end; i<nbr_tests; i++ )
-    //{
-    //    ok = sargon_position_test(&tests_main[i],++test_nbr,nbr_tests_to_run_at_end);
-    //    if( ok )
-    //        nbr_passed_tests++;
-    //}
-    //ok = (nbr_tests_to_run_at_end==nbr_passed_tests);
     return ok;
-    //cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
-    //cp.Forsyth("4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1");
+#endif
+#ifdef SELECT_RANDO_1
+    cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
     sargon_run_engine( cp, 6, pv, false );
     terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );
     ok = (terse == "e5f7");
-    ok = (terse == "h6f7");
-    return true;
-    cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R W K - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
-    sargon_run_engine( cp, 5, pv, false );
-    return true;
-    ok = sargon_guided_test( &ply2_restricted_move_test, ply2_restricted_move_test_moves, 1, 1, false );
     return ok;
+#endif
 
-    #define WIKIPEDIA_ALPHA_BETA_EXAMPLE
-    #ifdef  WIKIPEDIA_ALPHA_BETA_EXAMPLE
+#ifdef SELECT_RANDO_2
+    //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
+    cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
+    callback_start_position_register( cp );
+    z.PLYMAX = 5;
+    sargon_import_position( cp, true );
+    sargon_pv_clear( cp );
+    z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
+    CPTRMV();
+    terse = sargon_export_best_move();
+    printf( "Best move = %s\n", terse.c_str() );
+    ok = (terse == "g8f8");
+    return ok;
+#endif
+
+#ifdef SELECT_WIKIPEDIA
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
     callback_start_position_register( cp );
-    //cp.Forsyth("2k1K3/8/8/8/8/1r1qN1Q1/b2Bn2R/2N2n2 w - - 0 1");            // A knight munching fest on plies one and two
     z.PLYMAX = 4;
     sargon_import_position( cp, true );
     sargon_pv_clear( cp );
@@ -1262,22 +1286,8 @@ bool sargon_undocumented_dev_test()
     printf( "Best move = %s\n", terse.c_str() );
     ok = (terse == "b1c3");
     return ok;
-    #endif
+#endif
 
-    #ifdef DIFFICULT
-    //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
-    cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
-    callback_start_position_register( cp );
-    z.PLYMAX = 5;
-    sargon_import_position( cp, true );
-    sargon_pv_clear( cp );
-    z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
-    CPTRMV();
-    std::string terse = sargon_export_best_move();
-    printf( "Best move = %s\n", terse.c_str() );
-    bool ok = (terse == "g8f8");
-    return ok;
-    #endif
 }
 
 static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool quiet )

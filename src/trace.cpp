@@ -68,7 +68,7 @@ function_in_out::function_in_out( FUNC_ENUM fe )
     else if( fe == FE_UNMOVE ) insist=true;
     else if( fe == FE_GENMOV ) { callback_genmov(); insist=true; }
     else if( fe == FE_POINTS ) { early_exit = callback_points(); }
-    else if( fe == FE_ADMOVE ) early_exit = callback_admove();
+    else if( fe == FE_ADMOVE ) { early_exit = callback_admove(); }
     #ifdef DEBUG_FUNC_LOG
     log( fe, true, insist );
     #endif

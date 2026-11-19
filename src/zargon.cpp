@@ -1551,7 +1551,7 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 
 uint8_t POINTS()
 {
-    trace_func_void(FE_POINTS);
+    trace_func(FE_POINTS);
 
 /*
     How this Works
