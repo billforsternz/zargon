@@ -1199,18 +1199,19 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 }
 
 // Normal
-//#define SELECT_SIMPLE_DOC             //ok
+#define SELECT_SIMPLE_DOC             //ok
 //#define SELECT_MORE_EXAMPLES_RAW      //ok
-#define SELECT_MORE_EXAMPLES_ARRAY    //ok
+//#define SELECT_MORE_EXAMPLES_ARRAY    //ok
 //#define SELECT_RANDO_1                //ok
 //#define SELECT_RANDO_2                //ok
 
 // Restricted
 // Make sure both DEBUG_RESTRICTED_MOVES and DEBUG_GUIDED_MOVES set
-//#define SELECT_RESTRICTED_1             //ok
+//#define SELECT_RESTRICTED_1           //ok
 
 // Guided
-// #define SELECT_WIKIPEDIA             //not yet working
+// Make sure both DEBUG_RESTRICTED_MOVES and DEBUG_GUIDED_MOVES set
+//#define SELECT_WIKIPEDIA             //ok
 
 // One off test
 bool sargon_undocumented_dev_test()
@@ -1352,6 +1353,7 @@ bool sargon_position_tests( bool quiet, int comprehensive )
     bool ok = true;
 
     // A little test of some of our internal machinery
+    #ifndef DEBUG_GUIDED_MOVES
     thc::ChessPosition cp, cp2;
     std::string en_passant_fen1 = "r4rk1/pb1pq1pp/5p2/2ppP3/5P2/2Q5/PPP3PP/2KR1B1R w - c6 0 15";
     cp.Forsyth( en_passant_fen1.c_str() );   // en passant provides a good workout on import and export
@@ -1362,6 +1364,7 @@ bool sargon_position_tests( bool quiet, int comprehensive )
     std::string en_passant_fen2 = cp2.ForsythPublish();
     if( en_passant_fen2 != en_passant_fen1 )
         printf( "Unexpected internal event, expected en_passant_fen2=%s  to equal en_passant_fen1=%s\n", en_passant_fen2.c_str(), en_passant_fen1.c_str() );
+    #endif
 
     printf( "* Known position tests\n" );
     int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);

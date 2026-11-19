@@ -523,7 +523,7 @@ void CASTLE()
 
 void ADMOVE()
 {
-    trace_func_void(FE_ADMOVE);
+    trace_func_return_void(FE_ADMOVE);
 
     // Address of next location in move list
     ML *ml = z.MLNXT;
@@ -1551,7 +1551,7 @@ inline uint8_t NEXTAD( uint8_t& count, uint8_t* &p )
 
 uint8_t POINTS()
 {
-    trace_func(FE_POINTS);
+    trace_func_return_uint8_t(FE_POINTS);
 
 /*
     How this Works

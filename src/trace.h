@@ -14,8 +14,8 @@
 
 // Allow different types of logging in DEBUG and RELEASE (pick zero or more)
 // #define DEBUG_FUNC_LOG
-//#define DEBUG_RESTRICTED_MOVES
-//#define DEBUG_GUIDED_MOVES
+// #define DEBUG_RESTRICTED_MOVES
+// #define DEBUG_GUIDED_MOVES
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif
@@ -94,7 +94,8 @@ class function_in_out
 {
     FUNC_ENUM saved_fe;
 public:
-    bool early_exit;
+    bool    early_exit;
+    uint8_t ret_val;
     function_in_out( FUNC_ENUM fe );
     ~function_in_out();
     void log( FUNC_ENUM fe, bool in, bool insist );
@@ -103,11 +104,13 @@ public:
 //  Optionally include Zargon function callbacks for
 //   guided tests and logging
 #ifdef DEBUG_FUNC_CALLBACKS
-#define trace_func(fe)      function_in_out temp_fio(fe)
-#define trace_func_void(fe) function_in_out temp_fio(fe);  if(temp_fio.early_exit) return
+#define trace_func(fe)                function_in_out temp_fio(fe)
+#define trace_func_return_void(fe)    function_in_out temp_fio(fe);  if(temp_fio.early_exit) return
+#define trace_func_return_uint8_t(fe) function_in_out temp_fio(fe);  if(temp_fio.early_exit) return temp_fio.ret_val
 #else
 #define trace_func(fe)
-#define trace_func_void(fe)
+#define trace_func_return_void(fe)
+#define trace_func_return_uint8_t(fe)
 #endif
 
 // For guided tests

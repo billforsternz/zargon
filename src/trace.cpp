@@ -52,9 +52,9 @@ const char *lookup[] =
 };
 
 // For guided tests using function callbacks
-void callback_genmov();
-bool callback_points();
-bool callback_admove();
+void    callback_genmov();
+uint8_t callback_points( bool &early_exit );
+void    callback_admove( bool &early_exit );
 
 // Misc debug and trace using Sargon functions
 function_in_out::function_in_out( FUNC_ENUM fe )
@@ -67,8 +67,8 @@ function_in_out::function_in_out( FUNC_ENUM fe )
     else if( fe == FE_MOVE )   insist=true;
     else if( fe == FE_UNMOVE ) insist=true;
     else if( fe == FE_GENMOV ) { callback_genmov(); insist=true; }
-    else if( fe == FE_POINTS ) { early_exit = callback_points(); }
-    else if( fe == FE_ADMOVE ) { early_exit = callback_admove(); }
+    else if( fe == FE_POINTS ) { ret_val = callback_points(early_exit); }
+    else if( fe == FE_ADMOVE ) { callback_admove(early_exit); }
     #ifdef DEBUG_FUNC_LOG
     log( fe, true, insist );
     #endif
@@ -178,8 +178,9 @@ void callback_genmov()
     if( restricted_moves.size() != 0 )
         return;        
     bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
+    uint8_t nply= z.NPLY+1;
     const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
-    if( guide && *guide == ('0'+z.NPLY) )
+    if( guide && *guide == ('0'+nply) )
     {
         const char *t = guide+2;
         int nbr_pruned=0;
@@ -190,7 +191,7 @@ void callback_genmov()
         }
         admove_count = 0;
         admove_limit = (int)strlen(guide+2) - nbr_pruned;     // eg "74@5" -> 3. '5' is pruned but the move must be generated
-        if( z.NPLY < 4 )
+        if( nply < 4 )
             wikipedia_string_nbr++;
         printf( "GENMOV() %d moves please!\n", admove_limit );
     }
@@ -203,12 +204,15 @@ void callback_genmov()
     }
 }
 
-bool callback_points()
+uint8_t callback_points( bool &early_exit )
 {
+    early_exit = false;
     if( z.NPLY == 0 )   // single call to POINTS() at ply 0
-        return false;   // Normal processing
+        return 0;   // Normal processing
     if( restricted_moves.size() != 0 )
-        return false;   // Normal processing     
+        return 0;   // Normal processing     
+    early_exit = true;
+    uint8_t ret_val=0;
     static int nbr_calls;
     thc::ChessPosition cp;
     sargon_export_position(cp);
@@ -220,7 +224,7 @@ bool callback_points()
     {
         int score = 0;
         unsigned int val = sargon_import_value( 1.0 * score );
-        z.MLPTRJ->val = val;
+        ret_val = (uint8_t)val;
         printf( "POINTS() injected placeholder %d,%f\n", val, score*1.0 );
     }
     else if( guide && *guide=='4' && wikipedia_string_offset < strlen(guide) )
@@ -228,7 +232,7 @@ bool callback_points()
         int score = *(guide  + wikipedia_string_offset++) - '0';
         score = 0-score;
         unsigned int val = sargon_import_value( 1.0 * score );
-        z.MLPTRJ->val = val;
+        ret_val = (uint8_t)val;
         if( *(guide  + wikipedia_string_offset) == '@' )
             wikipedia_string_offset += 2;   // skip over a pruned move
         if( *(guide  + wikipedia_string_offset) == '\0' )
@@ -245,12 +249,12 @@ bool callback_points()
             printf( "*wikipedia_tree[wikipedia_string_nbr]=%s wikipedia_string_offset=%d\n", wikipedia_tree[wikipedia_string_nbr], wikipedia_string_offset );
         exit(0);
     }
-    return true;
+    return ret_val;
 }
 
-bool callback_admove()
+void callback_admove( bool &early_exit )
 {
-    bool early_exit=true;
+    early_exit=true;
 
     // Wikipedia example (or other) guide
     #ifdef DEBUG_GUIDED_MOVES
@@ -279,21 +283,20 @@ bool callback_admove()
                 if( terse == "****" )
                 {
                     early_exit = false;
-                    return early_exit;
+                    return;
                 }
                 thc::Square src = thc::make_square( terse[0], terse[1] );
                 thc::Square dst = thc::make_square( terse[2], terse[3] );
                 if( from==src && to==dst )
                 {
                     early_exit = false;
-                    return early_exit;
+                    return;
                 }
             }
         }
         ply++;
     }
     #endif
-    return early_exit;
 }
 
 static bool restart_test;

@@ -24,12 +24,12 @@ int main( int argc, const char *argv[] )
     #ifdef _DEBUG
     const char *test_args[] =
     {
-        "Debug/zargon.exe", "p", "-v"
-        //"m"
-        //"p", "-v" 
-        //"g"
-        //",-3"
-        //"cg"
+        "Debug/zargon.exe"
+        ,"u"
+        //,"p", "-v"
+        //,"m"
+        //,"p", "-v" 
+        //,"g"
         //",-3"
     };
     argc = sizeof(test_args) / sizeof(test_args[0]);
