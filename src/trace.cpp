@@ -655,7 +655,6 @@ uint8_t callback_points( bool &early_exit )
     }
     return ret_val;
 }
-#endif
 
 // If hooked up potentially alter ADMOVE(), by restricting generated moves
 //  for DEBUG_WIKIPEDIA_EXAMPLE
@@ -664,12 +663,11 @@ void callback_admove( bool &early_exit )
     early_exit=true;
 
     // Wikipedia example limit number of moves
-    #ifdef DEBUG_WIKIPEDIA_EXAMPLE
     if( admove_count < admove_limit )
     {
         admove_count++;
         early_exit = false;
     }
-    #endif
 }
+#endif
 

@@ -15,8 +15,8 @@
 // Most testing doesn't need special conditional compilation, but
 //  we do have the following (pick zero or more)
 // #define DEBUG_FUNC_LOG               // Log Sargon function entry and exit
-// #define DEBUG_GUIDED_EXAMPLES        // Guided examples with limited number of moves
-// #define DEBUG_WIKIPEDIA_EXAMPLE         // Wikipedia alpha-beta example
+//#define DEBUG_GUIDED_EXAMPLES        // Guided examples with limited number of moves
+//#define DEBUG_WIKIPEDIA_EXAMPLE         // Wikipedia alpha-beta example
 
 // All of the special testing conditionals require function callbacks
 #ifdef DEBUG_FUNC_LOG
