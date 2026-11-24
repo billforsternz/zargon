@@ -12,15 +12,17 @@
 //#define SCENARIO_BASIC_DEBUGGING
 //#define SCENARIO_SINGLE_STEPPING
 
-// Allow different types of logging in DEBUG and RELEASE (pick zero or more)
-// #define DEBUG_FUNC_LOG
-#define DEBUG_GUIDED_EXAMPLE
-#define DEBUG_WIKIPEDIA_EXAMPLE
+// Allow different types of testing in DEBUG and RELEASE (pick zero or more)
+// #define DEBUG_FUNC_LOG               // log Sargon function entry and exit
+// #define DEBUG_GUIDED_EXAMPLE         // guided examples with limited number of moves
+// #define DEBUG_WIKIPEDIA_EXAMPLE      // Wikipedia alpha-beta example
+
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif
 #ifdef DEBUG_WIKIPEDIA_EXAMPLE
-    #define DEBUG_FUNC_CALLBACKS
+    #define DEBUG_FUNC_CALLBACKS    // Wikipedia example needs this ...
+    #define DEBUG_GUIDED_EXAMPLE    //  ... and this
 #endif
 #ifdef DEBUG_GUIDED_EXAMPLE
     #define DEBUG_FUNC_CALLBACKS

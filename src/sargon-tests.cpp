@@ -1200,7 +1200,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 }
 
 // Normal
-//#define SELECT_SIMPLE_DOC             //ok
+#define SELECT_SIMPLE_DOC             //ok
 //#define SELECT_MORE_EXAMPLES_RAW      //ok
 //#define SELECT_MORE_EXAMPLES_ARRAY    //ok
 //#define SELECT_RANDO_1                //ok
@@ -1213,7 +1213,7 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 
 // Wikipedia (was guided)
 // Make sure both DEBUG_GUIDED_EXAMPLE and DEBUG_WIKIPEDIA_EXAMPLE set
-#define SELECT_WIKIPEDIA             //ok
+//#define SELECT_WIKIPEDIA             //ok
 
 // One off test
 bool sargon_undocumented_dev_test()

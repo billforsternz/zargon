@@ -168,8 +168,10 @@ void callback_guide_moves_clear()
     guide_moves.clear();
 }
 
+// If hooked up potentially alter GENMOV(), to make WIKIPEDIA example operate
 void callback_genmov()
 {
+#ifdef DEBUG_WIKIPEDIA_EXAMPLE
     static int nbr_calls;
     thc::ChessPosition cp;
     sargon_export_position(cp);
@@ -202,8 +204,17 @@ void callback_genmov()
             printf( "*guide=%c z.NPLY=%d\n", *guide, z.NPLY );
         exit(0);
     }
+#endif
 }
 
+// If hooked up potentially alter POINTS(), to make WIKIPEDIA example operate
+#ifndef DEBUG_WIKIPEDIA_EXAMPLE
+uint8_t callback_points( bool &early_exit )
+{
+    early_exit = false;
+    return 0;
+}
+#else
 uint8_t callback_points( bool &early_exit )
 {
     early_exit = false;
@@ -251,12 +262,15 @@ uint8_t callback_points( bool &early_exit )
     }
     return ret_val;
 }
+#endif
 
+// If hooked up potentially alter ADMOVE(), by restricting generated moves
+//  eg for DEBUG_GUIDED_EXAMPLE moves or DEBUG_WIKIPEDIA_EXAMPLE
 void callback_admove( bool &early_exit )
 {
     early_exit=true;
 
-    // Wikipedia example (or other) guide
+    // Wikipedia example limit number of moves
     #ifdef DEBUG_WIKIPEDIA_EXAMPLE
     if( admove_count < admove_limit )
     {
