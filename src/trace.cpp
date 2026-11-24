@@ -151,21 +151,21 @@ static int wikipedia_string_offset = 2;
 static int admove_count = 0;
 static int admove_limit = 2;
 
-static std::vector<std::string> restricted_moves;
+static std::vector<std::string> guide_moves;
 
 void callback_start_position_register( const thc::ChessPosition &cp )
 {
     start_position = cp;
 }
 
-void callback_restricted_moves_register( std::string guide )
+void callback_guide_moves_register( std::string guide )
 {
-    restricted_moves.push_back(guide);
+    guide_moves.push_back(guide);
 }
 
-void callback_restricted_moves_clear()
+void callback_guide_moves_clear()
 {
-    restricted_moves.clear();
+    guide_moves.clear();
 }
 
 void callback_genmov()
@@ -175,7 +175,7 @@ void callback_genmov()
     sargon_export_position(cp);
     std::string s = cp.ToDebugStr();
     printf( "GENMOV() call %d, NPLY=%d%s\n", ++nbr_calls, z.NPLY, s.c_str() );
-    if( restricted_moves.size() != 0 )
+    if( guide_moves.size() != 0 )
         return;        
     bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
     uint8_t nply= z.NPLY+1;
@@ -209,7 +209,7 @@ uint8_t callback_points( bool &early_exit )
     early_exit = false;
     if( z.NPLY == 0 )   // single call to POINTS() at ply 0
         return 0;   // Normal processing
-    if( restricted_moves.size() != 0 )
+    if( guide_moves.size() != 0 )
         return 0;   // Normal processing     
     early_exit = true;
     uint8_t ret_val=0;
@@ -257,7 +257,7 @@ void callback_admove( bool &early_exit )
     early_exit=true;
 
     // Wikipedia example (or other) guide
-    #ifdef DEBUG_GUIDED_MOVES
+    #ifdef DEBUG_WIKIPEDIA_EXAMPLE
     if( admove_count < admove_limit )
     {
         admove_count++;
@@ -265,14 +265,14 @@ void callback_admove( bool &early_exit )
     }
     #endif
 
-    // Restricted move guide, early exit UNLESS we find pending move in
-    //  restricted move list
-    #ifdef DEBUG_RESTRICTED_MOVES
+    // Guided move, early exit UNLESS we find pending move in
+    //  guided move list
+    #ifdef DEBUG_GUIDED_EXAMPLE
     thc::Square from, to;
     sargon_export_square(z.M1,from);
     sargon_export_square(z.M2,to);
     int ply = 1;
-    for( const std::string s: restricted_moves )
+    for( const std::string s: guide_moves )
     {
         if( ply == z.NPLY )
         {

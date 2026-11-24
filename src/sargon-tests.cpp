@@ -1054,7 +1054,7 @@ static TEST mate_in_2_3_or_4 =
 
 // Knight can capture P,R,Q or B (original order)
 //                    Q,R,B,P    (after SORTM())
-static TEST ply2_restricted_move_test =
+static TEST ply2_guided_move_test =
 {
     "5K1k/8/4q3/1r6/3N4/5b2/2p5/8 w - - 0 1",
     2,
@@ -1063,21 +1063,21 @@ static TEST ply2_restricted_move_test =
     "Nxe6 Kh7"
 };
 
-static const char *ply2_restricted_move_test_moves[] =
+static const char *ply2_guided_move_test_moves[] =
 {
     "d4c2 d4b5 d4e6 d4f3",  // ply 1 moves allowed
     "h8h7",                 // ply 2 moves allowed      
     NULL
 };
 
-static TEST ply5_restricted_move_test =
+static TEST ply5_guided_move_test =
 {
     // CTWBFK Pos 26, page 23 - solution Rc8xc4
     "2r1r1k1/p3q1pp/bp1pp3/8/2B5/4P3/PP2QPPP/2R2RK1 b - - 0 1", 5, "c8c4",
         -200, "Rxc4 Rxc4 d5 b3 dxc4"
 };
 
-static const char *ply5_restricted_move_test_moves[] =
+static const char *ply5_guided_move_test_moves[] =
 {
     "a6c4 c8c4",        // ply 1 moves allowed
     "c1c4 e2c4",
@@ -1088,14 +1088,14 @@ static const char *ply5_restricted_move_test_moves[] =
 };
 
 // Note, don't define castling rights in restricted move tests, it causes havoc
-static TEST ply4_restricted_move_test =
+static TEST ply4_guided_move_test =
 {
     "rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w - - 0 8",
     4, "e5f7",
     300, "Nxf7 Bg4 Nxd8 Bxd1"
 };
 
-static const char *ply4_restricted_move_test_moves[] =
+static const char *ply4_guided_move_test_moves[] =
 {
     "e5f7 c1f4 d1e2",        // ply 1 moves allowed
     "e8f7 f8g7 d8c7 c8g4",
@@ -1104,14 +1104,14 @@ static const char *ply4_restricted_move_test_moves[] =
     NULL
 };
 
-static TEST knight_fork_restricted_move_test =
+static TEST knight_fork_guided_move_test =
 {
     "7k/8/5r2/2r5/8/6PP/3N2PK/8 w - - 0 1",
     3, "d2e4",
     -200, "Ne4 Rcc6 Nxf6"
 };
 
-static const char *knight_fork_restricted_move_test_moves[] =
+static const char *knight_fork_guided_move_test_moves[] =
 {
     "d2b3 d2b1 d2e4",        // ply 1 moves allowed
     "c5c8 f6f8 h8g8 c5c6",
@@ -1119,14 +1119,14 @@ static const char *knight_fork_restricted_move_test_moves[] =
     NULL
 };
 
-static TEST philidor_restricted_move_test =
+static TEST philidor_guided_move_test =
 {
     // Philidor's mate
-    "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",
+    "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",   // why doesn't this work with MAXPLY=7 ?
         5800, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#"
 };
 
-static const char *philidor_restricted_move_test_moves[] =
+static const char *philidor_guided_move_test_moves[] =
 {
     "f7h6 f7d6", 
     "g8h8 g8f8 g8f7",
@@ -1135,18 +1135,19 @@ static const char *philidor_restricted_move_test_moves[] =
     "b3a2 a2b3 f7b3 b3g8 b3f7 h6f7 h6g4 d6e4",
     "****",
     "b3a2 a2b3 f7b3 b3g8 b3f7 a2g8 a2f7 ",
+    "****",
     NULL
 };
 
 bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int nbr_tests_to_run, bool quiet )
 {
     bool ok = true;
-    callback_restricted_moves_clear();
-    const char *restricted_moves = *guide++;
-    while( restricted_moves )
+    callback_guide_moves_clear();
+    const char *guide_moves = *guide++;
+    while( guide_moves )
     {
-        callback_restricted_moves_register( restricted_moves );
-        restricted_moves = *guide++;
+        callback_guide_moves_register( guide_moves );
+        guide_moves = *guide++;
     }
     thc::ChessRules cr;
     cr.Forsyth(pt->fen);
@@ -1199,19 +1200,20 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 }
 
 // Normal
-#define SELECT_SIMPLE_DOC             //ok
+//#define SELECT_SIMPLE_DOC             //ok
 //#define SELECT_MORE_EXAMPLES_RAW      //ok
 //#define SELECT_MORE_EXAMPLES_ARRAY    //ok
 //#define SELECT_RANDO_1                //ok
 //#define SELECT_RANDO_2                //ok
 
-// Restricted
-// Make sure both DEBUG_RESTRICTED_MOVES and DEBUG_GUIDED_MOVES set
-//#define SELECT_RESTRICTED_1           //ok
+// Guided (was restricted)
+// Make sure DEBUG_GUIDED_EXAMPLE set
+//#define SELECTED_GUIDED_0             //ok (just one)
+//#define SELECTED_GUIDED_1           //ok
 
-// Guided
-// Make sure both DEBUG_RESTRICTED_MOVES and DEBUG_GUIDED_MOVES set
-//#define SELECT_WIKIPEDIA             //ok
+// Wikipedia (was guided)
+// Make sure both DEBUG_GUIDED_EXAMPLE and DEBUG_WIKIPEDIA_EXAMPLE set
+#define SELECT_WIKIPEDIA             //ok
 
 // One off test
 bool sargon_undocumented_dev_test()
@@ -1224,15 +1226,19 @@ bool sargon_undocumented_dev_test()
     ok = sargon_position_test( &code_explanation_example4b, 1, 1, false );
     return ok;
 #endif
-#ifdef SELECT_RESTRICTED_1
-    ok = ok && sargon_guided_test( &philidor_restricted_move_test, philidor_restricted_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &ply4_restricted_move_test, ply4_restricted_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &knight_fork_restricted_move_test, knight_fork_restricted_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &ply2_restricted_move_test, ply2_restricted_move_test_moves, 1, 1, true );
+#ifdef SELECTED_GUIDED_0
+    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, false );
+    return ok;
+#endif
+#ifdef SELECTED_GUIDED_1
+    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply4_guided_move_test, ply4_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &knight_fork_guided_move_test, knight_fork_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply2_guided_move_test, ply2_guided_move_test_moves, 1, 1, true );
     return ok;
 #endif
 #ifdef SELECT_MORE_EXAMPLES_RAW
-    ok = ok && sargon_position_test( &philidor_restricted_move_test, 1, 1, false );
+    ok = ok && sargon_position_test( &philidor_guided_move_test, 1, 1, false );
     ok = ok && sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
     ok = ok && sargon_position_test( &mate_in_1_or_2, 1, 1, false );
     ok = ok && sargon_position_test( &mid_level_puzzle, 1, 1, false );

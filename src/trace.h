@@ -14,15 +14,15 @@
 
 // Allow different types of logging in DEBUG and RELEASE (pick zero or more)
 // #define DEBUG_FUNC_LOG
-// #define DEBUG_RESTRICTED_MOVES
-// #define DEBUG_GUIDED_MOVES
+#define DEBUG_GUIDED_EXAMPLE
+#define DEBUG_WIKIPEDIA_EXAMPLE
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif
-#ifdef DEBUG_GUIDED_MOVES
+#ifdef DEBUG_WIKIPEDIA_EXAMPLE
     #define DEBUG_FUNC_CALLBACKS
 #endif
-#ifdef DEBUG_RESTRICTED_MOVES
+#ifdef DEBUG_GUIDED_EXAMPLE
     #define DEBUG_FUNC_CALLBACKS
 #endif
 
@@ -114,8 +114,8 @@ public:
 #endif
 
 // For guided tests
-void callback_restricted_moves_register( std::string guide );
-void callback_restricted_moves_clear();
+void callback_guide_moves_register( std::string guide );
+void callback_guide_moves_clear();
 
 // Misc diagnostics
 void callback_start_position_register( const thc::ChessPosition &cp );
