@@ -265,7 +265,7 @@ uint8_t callback_points( bool &early_exit )
 #endif
 
 // If hooked up potentially alter ADMOVE(), by restricting generated moves
-//  eg for DEBUG_GUIDED_EXAMPLE moves or DEBUG_WIKIPEDIA_EXAMPLE
+//  eg for DEBUG_GUIDED_EXAMPLES moves or DEBUG_WIKIPEDIA_EXAMPLE
 void callback_admove( bool &early_exit )
 {
     early_exit=true;
@@ -281,7 +281,7 @@ void callback_admove( bool &early_exit )
 
     // Guided move, early exit UNLESS we find pending move in
     //  guided move list
-    #ifdef DEBUG_GUIDED_EXAMPLE
+    #ifdef DEBUG_GUIDED_EXAMPLES
     thc::Square from, to;
     sargon_export_square(z.M1,from);
     sargon_export_square(z.M2,to);

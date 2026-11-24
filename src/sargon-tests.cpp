@@ -1200,20 +1200,20 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
 }
 
 // Normal
-#define SELECT_SIMPLE_DOC             //ok
+//#define SELECT_SIMPLE_DOC             //ok
 //#define SELECT_MORE_EXAMPLES_RAW      //ok
 //#define SELECT_MORE_EXAMPLES_ARRAY    //ok
 //#define SELECT_RANDO_1                //ok
 //#define SELECT_RANDO_2                //ok
 
 // Guided (was restricted)
-// Make sure DEBUG_GUIDED_EXAMPLE set
+// Make sure DEBUG_GUIDED_EXAMPLES set
 //#define SELECTED_GUIDED_0             //ok (just one)
-//#define SELECTED_GUIDED_1           //ok
+//#define SELECTED_GUIDED_1             //ok
 
 // Wikipedia (was guided)
-// Make sure both DEBUG_GUIDED_EXAMPLE and DEBUG_WIKIPEDIA_EXAMPLE set
-//#define SELECT_WIKIPEDIA             //ok
+// Make sure both DEBUG_WIKIPEDIA_EXAMPLE set
+#define SELECT_WIKIPEDIA                //ok
 
 // One off test
 bool sargon_undocumented_dev_test()

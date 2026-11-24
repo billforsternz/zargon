@@ -12,19 +12,19 @@
 //#define SCENARIO_BASIC_DEBUGGING
 //#define SCENARIO_SINGLE_STEPPING
 
-// Allow different types of testing in DEBUG and RELEASE (pick zero or more)
-// #define DEBUG_FUNC_LOG               // log Sargon function entry and exit
-// #define DEBUG_GUIDED_EXAMPLE         // guided examples with limited number of moves
-// #define DEBUG_WIKIPEDIA_EXAMPLE      // Wikipedia alpha-beta example
+// Most testing doesn't need special conditional compilation, but
+//  we do have the following (pick zero or more)
+// #define DEBUG_FUNC_LOG               // Log Sargon function entry and exit
+// #define DEBUG_GUIDED_EXAMPLES        // Guided examples with limited number of moves
+#define DEBUG_WIKIPEDIA_EXAMPLE         // Wikipedia alpha-beta example
 
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif
 #ifdef DEBUG_WIKIPEDIA_EXAMPLE
-    #define DEBUG_FUNC_CALLBACKS    // Wikipedia example needs this ...
-    #define DEBUG_GUIDED_EXAMPLE    //  ... and this
+    #define DEBUG_FUNC_CALLBACKS
 #endif
-#ifdef DEBUG_GUIDED_EXAMPLE
+#ifdef DEBUG_GUIDED_EXAMPLES
     #define DEBUG_FUNC_CALLBACKS
 #endif
 
