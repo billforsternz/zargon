@@ -35,10 +35,14 @@ bool sargon_timed_game_test( bool quiet, int comprehensive, bool dummy=false );
 extern void sargon_minimax_main();
 extern bool sargon_minimax_regression_test( bool quiet);
 struct TEST;
+static bool sargon_position_test_array( TEST *pt, int nbr_tests_to_run, bool quiet );
 static bool sargon_position_test( TEST *pt, int i=0, int nbr_tests_to_run=1, bool quiet=false );
 
 // Timing calibration game
 static std::string timing_calibration_game("e4 e5 Nf3 Nc6 Bb5 Qf6 Nc3 a6 Nd5 Qd6 Bc4 Nf6 O-O b5 Bb3 Nxe4 Re1 Nf6 d4 Nxd5 dxe5 Qg6 Nh4 Qe6 Bxd5 Qe7 Nf5 Qb4 c3 Qc5 Be3 g6 Bxc5 gxf5 e6 Bxc5 exf7+ Kf8 Qh5 Kg7 Qg5+ Kf8 Qh6#");
+
+// Number of elements in array
+#define nbrof(x) (sizeof(x)/sizeof(x[0]))
 
 // main()
 int main_tests( int argc, const char *argv[] )
@@ -864,203 +868,222 @@ static TEST mate_tests[]=
         -5700, "Bg5+ Kg4 Qxg2+ Rxg2 Rxg2+ Kh5 g6#" }
 };
 
-static TEST atksav_bug_tests[]
+// Primary test positions in Zargon development
+//=============================================
+
+static TEST extra_tests1[]=
 {
+
+
+    // Code explanation example (fork winning rook beats simple capture of bishop)
+    //  This example used in the worked example in 'How Sargon Works'
+    {
+        "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
+        2,
+        "e5g4",
+        -775,
+        "Ng4 Rh7"
+    },
+
+    // philidor_guided_move_test, without guides
+    {
+        // Philidor's mate
+        "4r1k1/5Npp/8/8/8/1Q6/8/7K w - - 0 1", 6, "f7h6",   // why doesn't this work with MAXPLY=7 ?
+            5800, "Nh6+ Kh8 Qg8+ Rxg8 Nf7#"
+    },
+
+    // With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
+    //  (But fixed now right?)
+    {
+        "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
+        5,
+        "b3g8",
+        5900,
+        "Qg8+ Rxg8 Nf7#"
+    },
+
+    // With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
+    //  (not any more after weighting mates in fewer moves higher)
+    {
+        "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
+        3,
+        "h6f7",
+        6000,
+        "Nf7#"
+    },
+
+    // Just a random puzzle
+    {
+        "7k/2p1q2p/3p2pP/8/4bQ2/1BP5/1P4P1/6K1 w - - 0 1",
+        5,
+        "b3e6",
+        375,
+        "Be6 c5 Qxe4 Qf8 Qe3"
+    },
+
+    // Trivial puzzle
+    {
+        "4k3/r7/8/3p4/2pr4/6PP/6PK/2B5 w - - 0 1",
+        2,
+        "c1e3",
+        -175,
+        "Be3 c3"
+    },
+
+    // 2 ATKSAV_BUG tests
     { "3r3k/6n1/8/8/6B1/3q4/7K/B2nR3 w - - 0 1", 1, "e1d1", -625, "Rxd1" },
-    { "3Rn2B/K7/4q3/1B6/8/8/1n6/k3r3 w - - 0 1", 1, "d8e8", -625, "Rxe8" }
+    { "3Rn2B/K7/4q3/1B6/8/8/1n6/k3r3 w - - 0 1", 1, "d8e8", -625, "Rxe8" },
+
+
+    // Nxf7 Kxf7 tactic
+    {
+        "rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8",
+        6,
+        "e5f7",
+        225,
+        "Nxf7 Bg4 f3 Bxf3 Bb5+ Nc6"
+    },
+
+    // We are quickly being mated
+    {
+        "r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21",
+        5,
+        "g8f8",
+        1225,
+        "Kf8 Qf5+ Qf6 Qxf6+ Ke8"
+    },
+ 
 };
 
-// With ply 2, this test finds the mate in 1, but with ply 3 it goes with the mate in 2
-//  (not any more after weighting mates in fewer moves higher)
-static TEST mate_in_1_or_2 =
+// Secondary test positions in Zargon development
+//===============================================
+
+static TEST extra_tests2[]=
 {
-    "r6k/7p/5n1N/8/8/8/8/R5RK w - - 2 1",
-    3,
-    "h6f7",
-    6000,
-    "Nf7#"
-};
+    // Code explanation example
+    {
+        "8/8/8/k7/8/K5N1/8/7q w - - 0 1",
+        1,
+        "g3h1",
+        325,
+        "Nxh1"
+    },
 
+    // Code explanation example
+    {
+        "8/8/8/k7/8/K5N1/8/5r1q w - - 0 1",
+        1,
+        "g3h1",
+        -500,
+        "Nxh1"
+    },
 
-// Just a random puzzle
-static TEST mid_level_puzzle =
-{
-    "7k/2p1q2p/3p2pP/8/4bQ2/1BP5/1P4P1/6K1 w - - 0 1",
-    5,
-    "b3e6",
-    375,
-    "Be6 c5 Qxe4 Qf8 Qe3"
-};
+    // Code explanation example
+    {
+        "6k1/6pp/2r1q3/4B3/3pn3/1Q6/6PP/5RK1 w - - 1 1",
+        3,
+        "e5d6",
+        50,
+        "Bd6 Rxd6 Qb8+ Rd8"
+    },
 
+    // Code explanation example
+    {
+        "Q7/p4rkp/8/2p1q1N1/P1P5/8/8/7K w - - 0 1",
+        3,
+        "a8h8",
+        75,
+        "Qh8+ Kxh8 Nxf7+ Kg7"
+    },
 
-// Trivial puzzle
-static TEST trivial_puzzle =
-{
-    "4k3/r7/8/3p4/2pr4/6PP/6PK/2B5 w - - 0 1",
-    2,
-    "c1e3",
-    -175,
-    "Be3 c3"
-};
+    // Code explanation example (mirror of previous position)
+    {
+        "k7/pp6/3B4/5P1P/4n1P1/K4RPR/8/8 b - - 0 1",
+        2,
+        "e4g5",
+        775,
+        "Ng5 Rh2"
+    },
 
-// Code explanation example
-static TEST code_explanation_example =
-{
-    "8/8/8/k7/8/K5N1/8/7q w - - 0 1",
-    1,
-    "g3h1",
-    325,
-    "Nxh1"
-};
+    // Code explanation example (e4 e5 Nf3 Nc6)
+    {
+        "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1",
+        6,
+        "b1c3",
+        -12,
+        "Nc3 Nf6 Bb5 Bd6 O-O O-O"
+    },
 
-// Code explanation example
-static TEST code_explanation_example2 =
-{
-    "8/8/8/k7/8/K5N1/8/5r1q w - - 0 1",
-    1,
-    "g3h1",
-    -500,
-    "Nxh1"
-};
+    // Code explanation example (Sam Loyd, mate in 3)
+    {
+        "r7/6p1/6pk/4Q1N1/6pK/5N2/8/1b6 w - - 0 1",
+        5,
+        "e5b8",
+        5800,
+        "Qb8 Rxb8 Ne5 Rb5 Nef7#"
+    },
 
-// Code explanation example
-static TEST code_explanation_example3 =
-{
-    "6k1/6pp/2r1q3/4B3/3pn3/1Q6/6PP/5RK1 w - - 1 1",
-    3,
-    "e5d6",
-    50,
-    "Bd6 Rxd6 Qb8+ Rd8"
-};
+    // Code explanation example (smothered mate in 1)
+    {
+        "6rk/6pp/8/4N3/6r1/3q4/8/7K w - - 0 1",
+        1,
+        "e5f7",
+        6000,
+        "Nf7#"
+    },
 
-// Code explanation example
-static TEST code_explanation_example4 =
-{
-    "Q7/p4rkp/8/2p1q1N1/P1P5/8/8/7K w - - 0 1",
-    3,
-    "a8h8",
-    75,
-    "Qh8+ Kxh8 Nxf7+ Kg7"
-};
+    // Code explanation example (simple capture/exchange)
+    {
+        "4k3/1p6/2r5/4N3/8/8/8/4K3 w - - 0 1",
+        3,
+        "e5c6",
+        -87,
+        "Nxc6 bxc6 Kd2"
+    },
 
-// Code explanation example (fork winning rook beats simple capture of bishop)
-//  This example used in the worked example in 'How Sargon Works'
-static TEST code_explanation_example4b =
-{
-    "8/8/k4rpr/4N1p1/5p1p/3b4/PP6/K7 w - - 0 1",
-    2,
-    "e5g4",
-    -775,
-    "Ng4 Rh7"
-};
+    // Analyse ordering of pieces in wact[], bact[]
+    {
+        // "6kb/4r3/4r3/4P3/4Q3/4R3/4R3/7K b - - 0 1",
+        //"6kb/3nr3/4r3/4P3/4QK2/4R3/4R3/8 b - - 0 1",
+        //"6kb/3nr3/4r3/3KP3/4Q3/4R3/4R3/8 b - - 0 1",
+        //"6kb/3nr3/4r3/4PK2/4Q3/4R3/4R3/8 b - - 0 1",
+        //"4r1kb/3nr3/3K4/4P3/4Q3/4R3/4R3/8 b - - 0 1",
+        //"6kb/3nr3/4r3/4PK2/4Q3/4Q3/4R3/4R3 b - - 0 1",     // reproduces ATKSAV_BUG2
+        //"4r2k/4r3/8/4b3/8/3NR3/4R3/7K w - - 0 1", //temp NxB with extra rook attackers and defenders
+        "7k/8/8/4b3/8/3N4/8/7K w - - 0 1", //temp, simply NxB
+        1,
+        "d3e5",
+        375,
+        "Nxe5"
+    },
 
-// Code explanation example (mirror of previous position)
-static TEST code_explanation_example4c =
-{
-    "k7/pp6/3B4/5P1P/4n1P1/K4RPR/8/8 b - - 0 1",
-    2,
-    "e4g5",
-    775,
-    "Ng5 Rh2"
-};
+    // Code explanation example
+    {
+        "7k/8/8/Q2r4/3r4/8/8/B6K w - - 0 1",
+        1,
+        "a5d5",
+        825,
+        "Qxd5"
+    },
 
-// Code explanation example (e4 e5 Nf3 Nc6)
-static TEST code_explanation_example4d =
-{
-    "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1",
-    6,
-    "f1b5",
-    50,
-    "Bb5 a6 Ba4 Nf6 O-O Be7"
-};
+    // Code explanation example
+    {
+        "3r3k/6p1/8/8/8/3q4/7K/B2nRR2 w - - 0 1",
+        1,
+        "e1d1",
+        -225,
+        "Rxd1"
+    },
 
-// Code explanation example (Sam Loyd, mate in 3)
-static TEST code_explanation_example4e =
-{
-    "r7/6p1/6pk/4Q1N1/6pK/5N2/8/1b6 w - - 0 1",
-    5,
-    "e5b8",
-    5800,
-    "Qb8 Rxb8 Ne5 Rb5 Nef7#"
-};
-
-// Code explanation example (smothered mate in 1)
-static TEST code_explanation_example4f =
-{
-    "6rk/6pp/8/4N3/6r1/3q4/8/7K w - - 0 1",
-    1,
-    "e5f7",
-    6000,
-    "Nf7#"
-};
-
-// Code explanation example (simple capture/exchange)
-static TEST code_explanation_example4g =
-{
-    "4k3/1p6/2r5/4N3/8/8/8/4K3 w - - 0 1",
-    3,
-    "e5c6",
-    -125,
-    "Nxc6 bxc6"
-};
-
-// Analyse ordering of pieces in wact[], bact[]
-static TEST code_explanation_example4h =
-{
-    // "6kb/4r3/4r3/4P3/4Q3/4R3/4R3/7K b - - 0 1",
-    //"6kb/3nr3/4r3/4P3/4QK2/4R3/4R3/8 b - - 0 1",
-    //"6kb/3nr3/4r3/3KP3/4Q3/4R3/4R3/8 b - - 0 1",
-    //"6kb/3nr3/4r3/4PK2/4Q3/4R3/4R3/8 b - - 0 1",
-    //"4r1kb/3nr3/3K4/4P3/4Q3/4R3/4R3/8 b - - 0 1",
-    //"6kb/3nr3/4r3/4PK2/4Q3/4Q3/4R3/4R3 b - - 0 1",     // reproduces ATKSAV_BUG2
-    //"4r2k/4r3/8/4b3/8/3NR3/4R3/7K w - - 0 1", //temp NxB with extra rook attackers and defenders
-    "7k/8/8/4b3/8/3N4/8/7K w - - 0 1", //temp, simply NxB
-    1,
-    "e6e5",
-    850,
-    "Rxe5+ Qxe5"
-};
-
-// Code explanation example
-static TEST code_explanation_example5 =
-{
-    "7k/8/8/Q2r4/3r4/8/8/B6K w - - 0 1",
-    1,
-    "a5d5",
-    825,
-    "Qxd5"
-};
-
-// Code explanation example
-static TEST code_explanation_example6 =
-{
-    "3r3k/6p1/8/8/8/3q4/7K/B2nRR2 w - - 0 1",
-    1,
-    "f1f7",
-    -525,
-    "Rf7"
-};
-
-// With ply 4, this test finds the mate in 2, but with ply 5 it goes with the mate in 3
-//  (But fixed now right?)
-static TEST mate_in_2_3_or_4 =
-{
-    "r6k/6pp/7N/8/3q4/1Q2B3/6PK/8 w - - 2 1",
-    5,
-    "b3g8",
-    5900,
-    "Qg8+ Rxg8 Nf7#"
-};
-
-// Knight can capture P,R,Q or B (original order)
-//                    Q,R,B,P    (after SORTM())
-static TEST ply2_guided_move_test =
-{
-    "5K1k/8/4q3/1r6/3N4/5b2/2p5/8 w - - 0 1",
-    2,
-    "d4e6",
-    -675,
-    "Nxe6 Kh7"
+    // Knight can capture P,R,Q or B (original order)
+    //                    Q,R,B,P    (after SORTM())
+    {
+        "5K1k/8/4q3/1r6/3N4/5b2/2p5/8 w - - 0 1",
+        2,
+        "d4e6",
+        -1475,
+        "Nxe6 c1=Q"
+    }
 };
 
 static const char *ply2_guided_move_test_moves[] =
@@ -1199,13 +1222,6 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     return ok;
 }
 
-// Normal
-#define SELECT_SIMPLE_DOC             //ok
-//#define SELECT_MORE_EXAMPLES_RAW      //ok
-//#define SELECT_MORE_EXAMPLES_ARRAY    //ok
-//#define SELECT_RANDO_1                //ok
-//#define SELECT_RANDO_2                //ok
-
 // Guided (was restricted)
 // Make sure DEBUG_GUIDED_EXAMPLES set
 //#define SELECTED_GUIDED_0             //ok (just one)
@@ -1222,64 +1238,12 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-#ifdef SELECT_SIMPLE_DOC
-    ok = sargon_position_test( &code_explanation_example4b, 1, 1, false );
-    return ok;
-#endif
-#ifdef SELECTED_GUIDED_0
-    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, false );
-    return ok;
-#endif
-#ifdef SELECTED_GUIDED_1
-    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &ply4_guided_move_test, ply4_guided_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &knight_fork_guided_move_test, knight_fork_guided_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &ply2_guided_move_test, ply2_guided_move_test_moves, 1, 1, true );
-    return ok;
-#endif
-#ifdef SELECT_MORE_EXAMPLES_RAW
-    ok = ok && sargon_position_test( &philidor_guided_move_test, 1, 1, false );
-    ok = ok && sargon_position_test( &mate_in_2_3_or_4, 1, 1, false );
-    ok = ok && sargon_position_test( &mate_in_1_or_2, 1, 1, false );
-    ok = ok && sargon_position_test( &mid_level_puzzle, 1, 1, false );
-    ok = ok && sargon_position_test( &trivial_puzzle, 1, 1, false );
-    return ok;
-#endif
-#ifdef SELECT_MORE_EXAMPLES_ARRAY
-    int nbr_passed_tests = 0;
-    int nbr_tests = sizeof(atksav_bug_tests)/sizeof(atksav_bug_tests[0]);
-    for( int i=0; i<nbr_tests; i++ )
-    {
-        ok = sargon_position_test(&atksav_bug_tests[i],i+1,nbr_tests);
-        if( ok )
-            nbr_passed_tests++;
-    }
-    ok = (nbr_tests==nbr_passed_tests);
-    return ok;
-#endif
-#ifdef SELECT_RANDO_1
-    cp.Forsyth("rnbqkb1r/1p2pp1p/p4np1/2p1N3/8/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 8");   //Bxf7 tactic
-    sargon_run_engine( cp, 6, pv, false );
-    terse = sargon_export_best_move();
-    printf( "Best move = %s\n", terse.c_str() );
-    ok = (terse == "e5f7");
-    return ok;
-#endif
-
-#ifdef SELECT_RANDO_2
-    //cp.Forsyth("1r5k/1BR3pp/1R6/5p2/3P4/2P5/P4PPP/6K1 w - - 1 33");
-    cp.Forsyth("r1b3kr/pp1R3p/3q2n1/3B4/8/3Q2P1/PP2PP2/R1B1K3 b Q - 0 21");
-    callback_start_position_register( cp );
-    z.PLYMAX = 5;
-    sargon_import_position( cp, true );
-    sargon_pv_clear( cp );
-    z.KOLOR = z.COLOR;  // Set KOLOR (Sargon's colour) to COLOR (side to move)
-    CPTRMV();
-    terse = sargon_export_best_move();
-    printf( "Best move = %s\n", terse.c_str() );
-    ok = (terse == "g8f8");
-    return ok;
-#endif
+    printf( "Mate tests\n" );
+    ok = ok && sargon_position_test_array( mate_tests, nbrof(mate_tests), true );
+    printf( "Primary test positions in Zargon development\n" );
+    ok = ok && sargon_position_test_array( extra_tests1, nbrof(extra_tests1), true );
+    printf( "Secondary test positions in Zargon development\n" );
+    ok = ok && sargon_position_test_array( extra_tests2, nbrof(extra_tests2), true );
 
 #ifdef SELECT_WIKIPEDIA
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
@@ -1291,10 +1255,20 @@ bool sargon_undocumented_dev_test()
     CPTRMV();
     terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );
-    ok = (terse == "b1c3");
-    return ok;
+    ok = ok && (terse == "b1c3");
 #endif
 
+#ifdef SELECTED_GUIDED_0
+    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, false );
+#endif
+#ifdef SELECTED_GUIDED_1
+    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply4_guided_move_test, ply4_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &knight_fork_guided_move_test, knight_fork_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply2_guided_move_test, ply2_guided_move_test_moves, 1, 1, true );
+#endif
+
+    return ok;
 }
 
 static bool sargon_position_test( TEST *pt, int i, int nbr_tests_to_run, bool quiet )
@@ -1371,14 +1345,20 @@ bool sargon_position_tests( bool quiet, int comprehensive )
         printf( "Unexpected internal event, expected en_passant_fen2=%s  to equal en_passant_fen1=%s\n", en_passant_fen2.c_str(), en_passant_fen1.c_str() );
 
     printf( "* Known position tests\n" );
-    int nbr_tests = sizeof(tests_main)/sizeof(tests_main[0]);
+    int nbr_tests = nbrof(tests_main);
     int nbr_tests_to_run = nbr_tests;
     if( comprehensive < 3 )
-        nbr_tests_to_run = comprehensive==2 ? nbr_tests-1 : 10;
+        nbr_tests_to_run = comprehensive==2 ? nbr_tests-1 : 10;     // 1=>10, 2=>all but slow last, 3=>all
+    ok = sargon_position_test_array( tests_main, nbr_tests_to_run, quiet );
+    return ok;
+}
+
+static bool sargon_position_test_array( TEST *pt, int nbr_tests_to_run, bool quiet )
+{
+    bool ok = true;
     for( int i=0; i<nbr_tests_to_run; i++ )
     {
-        TEST *pt = &tests_main[i];
-        bool pass = sargon_position_test(pt,i+1,nbr_tests_to_run,quiet);
+        bool pass = sargon_position_test(pt++,i+1,nbr_tests_to_run,quiet);
         if( !pass )
             ok = false;
     }
