@@ -16,8 +16,9 @@
 //  we do have the following (pick zero or more)
 // #define DEBUG_FUNC_LOG               // Log Sargon function entry and exit
 // #define DEBUG_GUIDED_EXAMPLES        // Guided examples with limited number of moves
-#define DEBUG_WIKIPEDIA_EXAMPLE         // Wikipedia alpha-beta example
+// #define DEBUG_WIKIPEDIA_EXAMPLE         // Wikipedia alpha-beta example
 
+// All of the special testing conditionals require function callbacks
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif
@@ -89,9 +90,8 @@ void logf( const char *fmt, ... );
 #define logf(format, ...) (void)0
 #endif
 
-struct ML;
-std::string show_ply_chains( bool show_score=false );
-
+// Use an automatic (stack) instance of this to capture entry and exit from Sargon
+//  functions (using constructor and destructor respectively)
 class function_in_out
 {
     FUNC_ENUM saved_fe;
@@ -122,5 +122,8 @@ void callback_guide_moves_clear();
 // Misc diagnostics
 void callback_start_position_register( const thc::ChessPosition &cp );
 bool callback_restart_test();
+
+// Very useful tracing function!
+std::string show_ply_chains( bool show_score=false );
 
 #endif  // TRACE_H_INCLUDED

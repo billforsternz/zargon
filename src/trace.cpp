@@ -18,6 +18,7 @@ static std::string show_node();
 static Zargon &z = gbl_zargon;
 
 // Sargon function names
+#ifdef DEBUG_FUNC_CALLBACKS
 const char *lookup[] =
 {
     "null",
@@ -94,59 +95,7 @@ void function_in_out::log( FUNC_ENUM fe, bool in, bool insist )
         logf( "%s() %s", lookup[fe], in?"IN":"OUT"  );
     }
 }
-
-//
-// Alpha-Beta pruning example
-// 
-// From https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
-//
-//  ### indicates pruned branches
-// 
-//                             SCORE                                        MOVE ORDER
-// 
-// 0 MAX->                       6                                                
-//                             _/|\_                                           _/|\_
-//                         ___/  |  \___                                   ___/  |  \___    
-//                    ____/      |      \____                         ____/      |      \____
-//                   /           |           \                       /           |           \
-// 1 MIN->          3			 6		      5                     0			 1		      2            
-//                 / \           |\          /#                    / \           |\          /#
-//                /   \          | \        / #                   /   \          | \        / #
-// 2 MAX->       5     3         6  7      5  8                  3     4        14 15     23 24            
-//              / \     \       / \  \     |  ##                / \     \       / \  \     |  ##
-//             /   \     \     /   \  \    |  # #              /   \     \     /   \  \    |  # #
-// 3 MIN->    5     4     3   6     6  7   5  8  6            5     6    12  16    17 21  25  x  x         
-//           /|    /|#    |   |    /#  |   |  ##  #          /|    /|#    |   |    /#  |   |  ##  #
-//          / |   / | #   |   |   / #  |   |  # #  #        / |   / | #   |   |   / #  |   |  # #  #
-// 4       5  6  7  4  5  3   6  6  9  7   5  9  8  6      7  8  9 10 11 13  18 19 20 22  26  x  x  x      
-
-
-const char *wikipedia_tree[] =
-{
-    "1 365",     // 0,1,2
-    "2 53",      // 3,4
-    "3 54",      // 5,6    
-    "4 56",      // 7,8 
-    "4 74@5",    // 9,10,11  
-    "3 3",       // 12   
-    "4 3",       // 13   
-    "2 67",      // 14,15  
-    "3 66",      // 16,17  
-    "4 6",       // 18   
-    "4 6@9",     // 19,20   
-    "3 7",       // 21   
-    "4 7",       // 22   
-    "2 58",      // 23,24  
-    "3 5",       // 25   
-    "4 5",       // 26   
-    "@ 86",      //        
-    "@ 98",      //         
-    "@ 6"        //       
-};
-
-static int wikipedia_nbr_strings = sizeof(wikipedia_tree)/sizeof(wikipedia_tree[0]);
-static int wikipedia_string_nbr    = 0;
-static int wikipedia_string_offset = 2;
+#endif
 
 static int admove_count = 0;
 static int admove_limit = 2;
@@ -168,120 +117,15 @@ void callback_guide_moves_clear()
     guide_moves.clear();
 }
 
-// If hooked up potentially alter GENMOV(), to make WIKIPEDIA example operate
-void callback_genmov()
-{
-#ifdef DEBUG_WIKIPEDIA_EXAMPLE
-    static int nbr_calls;
-    thc::ChessPosition cp;
-    sargon_export_position(cp);
-    std::string s = cp.ToDebugStr();
-    printf( "GENMOV() call %d, NPLY=%d%s\n", ++nbr_calls, z.NPLY, s.c_str() );
-    if( guide_moves.size() != 0 )
-        return;        
-    bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
-    uint8_t nply= z.NPLY+1;
-    const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
-    if( guide && *guide == ('0'+nply) )
-    {
-        const char *t = guide+2;
-        int nbr_pruned=0;
-        while( *t )
-        {
-            if( *t++ == '@' )
-                nbr_pruned++;
-        }
-        admove_count = 0;
-        admove_limit = (int)strlen(guide+2) - nbr_pruned;     // eg "74@5" -> 3. '5' is pruned but the move must be generated
-        if( nply < 4 )
-            wikipedia_string_nbr++;
-        printf( "GENMOV() %d moves please!\n", admove_limit );
-    }
-    else
-    {
-        printf( "ERROR: GENMOV() tree wikipedia_string_nbr=%d\n",  wikipedia_string_nbr );
-        if( guide )
-            printf( "*guide=%c z.NPLY=%d\n", *guide, z.NPLY );
-        exit(0);
-    }
-#endif
-}
-
-// If hooked up potentially alter POINTS(), to make WIKIPEDIA example operate
-#ifndef DEBUG_WIKIPEDIA_EXAMPLE
-uint8_t callback_points( bool &early_exit )
-{
-    early_exit = false;
-    return 0;
-}
-#else
-uint8_t callback_points( bool &early_exit )
-{
-    early_exit = false;
-    if( z.NPLY == 0 )   // single call to POINTS() at ply 0
-        return 0;   // Normal processing
-    if( guide_moves.size() != 0 )
-        return 0;   // Normal processing     
-    early_exit = true;
-    uint8_t ret_val=0;
-    static int nbr_calls;
-    thc::ChessPosition cp;
-    sargon_export_position(cp);
-    std::string s = cp.ToDebugStr();
-    printf( "POINTS() call %d, NPLY=%d%s\n", ++nbr_calls, z.NPLY, s.c_str() );
-    bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
-    const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
-    if( z.NPLY < 4 )
-    {
-        int score = 0;
-        unsigned int val = sargon_import_value( 1.0 * score );
-        ret_val = (uint8_t)val;
-        printf( "POINTS() injected placeholder %d,%f\n", val, score*1.0 );
-    }
-    else if( guide && *guide=='4' && wikipedia_string_offset < strlen(guide) )
-    {
-        int score = *(guide  + wikipedia_string_offset++) - '0';
-        score = 0-score;
-        unsigned int val = sargon_import_value( 1.0 * score );
-        ret_val = (uint8_t)val;
-        if( *(guide  + wikipedia_string_offset) == '@' )
-            wikipedia_string_offset += 2;   // skip over a pruned move
-        if( *(guide  + wikipedia_string_offset) == '\0' )
-        {
-            wikipedia_string_offset=2;
-            wikipedia_string_nbr++;
-        }
-        printf( "POINTS() injected %d,%f\n", val, score*1.0 );
-    }
-    else
-    {
-        printf( "ERROR: POINTS() tree wikipedia_string_nbr=%d\n",  wikipedia_string_nbr );
-        if( wikipedia_string_nbr < wikipedia_nbr_strings )
-            printf( "*wikipedia_tree[wikipedia_string_nbr]=%s wikipedia_string_offset=%d\n", wikipedia_tree[wikipedia_string_nbr], wikipedia_string_offset );
-        exit(0);
-    }
-    return ret_val;
-}
-#endif
-
 // If hooked up potentially alter ADMOVE(), by restricting generated moves
-//  eg for DEBUG_GUIDED_EXAMPLES moves or DEBUG_WIKIPEDIA_EXAMPLE
+//  for DEBUG_GUIDED_EXAMPLES
+#ifdef DEBUG_GUIDED_EXAMPLES
 void callback_admove( bool &early_exit )
 {
     early_exit=true;
 
-    // Wikipedia example limit number of moves
-    #ifdef DEBUG_WIKIPEDIA_EXAMPLE
-    if( admove_count < admove_limit )
-    {
-        admove_count++;
-        early_exit = false;
-    }
-    #endif
-
     // Guided move, early exit UNLESS we find pending move in
     //  guided move list
-    #ifdef DEBUG_GUIDED_EXAMPLES
     thc::Square from, to;
     sargon_export_square(z.M1,from);
     sargon_export_square(z.M2,to);
@@ -310,8 +154,8 @@ void callback_admove( bool &early_exit )
         }
         ply++;
     }
-    #endif
 }
+#endif
 
 static bool restart_test;
 static unsigned long tracef_count = 1;
@@ -657,5 +501,175 @@ std::string show_ply_chains( bool show_score )
         }
     }
     return s;
+}
+
+//
+// Wikipedia Alpha-Beta pruning example
+// ====================================
+//
+// We now have analysed Alpha-Beta to death and it doesn't confuse me as it once did
+// So consider getting rid of this for simplicity's sake. For the moment I am reluctant
+// to delete all the work involved!
+// 
+// From https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
+//
+//  ### indicates pruned branches
+// 
+//                             SCORE                                        MOVE ORDER
+// 
+// 0 MAX->                       6                                                
+//                             _/|\_                                           _/|\_
+//                         ___/  |  \___                                   ___/  |  \___    
+//                    ____/      |      \____                         ____/      |      \____
+//                   /           |           \                       /           |           \
+// 1 MIN->          3			 6		      5                     0			 1		      2            
+//                 / \           |\          /#                    / \           |\          /#
+//                /   \          | \        / #                   /   \          | \        / #
+// 2 MAX->       5     3         6  7      5  8                  3     4        14 15     23 24            
+//              / \     \       / \  \     |  ##                / \     \       / \  \     |  ##
+//             /   \     \     /   \  \    |  # #              /   \     \     /   \  \    |  # #
+// 3 MIN->    5     4     3   6     6  7   5  8  6            5     6    12  16    17 21  25  x  x         
+//           /|    /|#    |   |    /#  |   |  ##  #          /|    /|#    |   |    /#  |   |  ##  #
+//          / |   / | #   |   |   / #  |   |  # #  #        / |   / | #   |   |   / #  |   |  # #  #
+// 4       5  6  7  4  5  3   6  6  9  7   5  9  8  6      7  8  9 10 11 13  18 19 20 22  26  x  x  x      
+
+
+const char *wikipedia_tree[] =
+{
+    "1 365",     // 0,1,2
+    "2 53",      // 3,4
+    "3 54",      // 5,6    
+    "4 56",      // 7,8 
+    "4 74@5",    // 9,10,11  
+    "3 3",       // 12   
+    "4 3",       // 13   
+    "2 67",      // 14,15  
+    "3 66",      // 16,17  
+    "4 6",       // 18   
+    "4 6@9",     // 19,20   
+    "3 7",       // 21   
+    "4 7",       // 22   
+    "2 58",      // 23,24  
+    "3 5",       // 25   
+    "4 5",       // 26   
+    "@ 86",      //        
+    "@ 98",      //         
+    "@ 6"        //       
+};
+
+static int wikipedia_nbr_strings = sizeof(wikipedia_tree)/sizeof(wikipedia_tree[0]);
+static int wikipedia_string_nbr    = 0;
+static int wikipedia_string_offset = 2;
+
+// If hooked up potentially alter GENMOV(), to make WIKIPEDIA example operate
+void callback_genmov()
+{
+#ifdef DEBUG_WIKIPEDIA_EXAMPLE
+    static int nbr_calls;
+    thc::ChessPosition cp;
+    sargon_export_position(cp);
+    std::string s = cp.ToDebugStr();
+    printf( "GENMOV() call %d, NPLY=%d%s\n", ++nbr_calls, z.NPLY, s.c_str() );
+    if( guide_moves.size() != 0 )
+        return;        
+    bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
+    uint8_t nply= z.NPLY+1;
+    const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
+    if( guide && *guide == ('0'+nply) )
+    {
+        const char *t = guide+2;
+        int nbr_pruned=0;
+        while( *t )
+        {
+            if( *t++ == '@' )
+                nbr_pruned++;
+        }
+        admove_count = 0;
+        admove_limit = (int)strlen(guide+2) - nbr_pruned;     // eg "74@5" -> 3. '5' is pruned but the move must be generated
+        if( nply < 4 )
+            wikipedia_string_nbr++;
+        printf( "GENMOV() %d moves please!\n", admove_limit );
+    }
+    else
+    {
+        printf( "ERROR: GENMOV() tree wikipedia_string_nbr=%d\n",  wikipedia_string_nbr );
+        if( guide )
+            printf( "*guide=%c z.NPLY=%d\n", *guide, z.NPLY );
+        exit(0);
+    }
+#endif
+}
+
+// If hooked up potentially alter POINTS(), to make WIKIPEDIA example operate
+#ifndef DEBUG_WIKIPEDIA_EXAMPLE
+uint8_t callback_points( bool &early_exit )
+{
+    early_exit = false;
+    return 0;
+}
+#else
+uint8_t callback_points( bool &early_exit )
+{
+    early_exit = false;
+    if( z.NPLY == 0 )   // single call to POINTS() at ply 0
+        return 0;   // Normal processing
+    if( guide_moves.size() != 0 )
+        return 0;   // Normal processing     
+    early_exit = true;
+    uint8_t ret_val=0;
+    static int nbr_calls;
+    thc::ChessPosition cp;
+    sargon_export_position(cp);
+    std::string s = cp.ToDebugStr();
+    printf( "POINTS() call %d, NPLY=%d%s\n", ++nbr_calls, z.NPLY, s.c_str() );
+    bool in_range = wikipedia_string_nbr < wikipedia_nbr_strings;
+    const char *guide = in_range ? wikipedia_tree[wikipedia_string_nbr] : 0;
+    if( z.NPLY < 4 )
+    {
+        int score = 0;
+        unsigned int val = sargon_import_value( 1.0 * score );
+        ret_val = (uint8_t)val;
+        printf( "POINTS() injected placeholder %d,%f\n", val, score*1.0 );
+    }
+    else if( guide && *guide=='4' && wikipedia_string_offset < strlen(guide) )
+    {
+        int score = *(guide  + wikipedia_string_offset++) - '0';
+        score = 0-score;
+        unsigned int val = sargon_import_value( 1.0 * score );
+        ret_val = (uint8_t)val;
+        if( *(guide  + wikipedia_string_offset) == '@' )
+            wikipedia_string_offset += 2;   // skip over a pruned move
+        if( *(guide  + wikipedia_string_offset) == '\0' )
+        {
+            wikipedia_string_offset=2;
+            wikipedia_string_nbr++;
+        }
+        printf( "POINTS() injected %d,%f\n", val, score*1.0 );
+    }
+    else
+    {
+        printf( "ERROR: POINTS() tree wikipedia_string_nbr=%d\n",  wikipedia_string_nbr );
+        if( wikipedia_string_nbr < wikipedia_nbr_strings )
+            printf( "*wikipedia_tree[wikipedia_string_nbr]=%s wikipedia_string_offset=%d\n", wikipedia_tree[wikipedia_string_nbr], wikipedia_string_offset );
+        exit(0);
+    }
+    return ret_val;
+}
+#endif
+
+// If hooked up potentially alter ADMOVE(), by restricting generated moves
+//  for DEBUG_WIKIPEDIA_EXAMPLE
+void callback_admove( bool &early_exit )
+{
+    early_exit=true;
+
+    // Wikipedia example limit number of moves
+    #ifdef DEBUG_WIKIPEDIA_EXAMPLE
+    if( admove_count < admove_limit )
+    {
+        admove_count++;
+        early_exit = false;
+    }
+    #endif
 }
 
