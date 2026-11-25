@@ -1076,6 +1076,9 @@ static TEST extra_tests2[]=
     }
 };
 
+// Guided (allow a subset of moves) tests
+//=======================================
+
 // Knight can capture P,R,Q or B (original order)
 //                    Q,R,B,P    (after SORTM())
 static TEST ply2_guided_move_test =
@@ -1223,15 +1226,6 @@ bool sargon_guided_test( const TEST *pt, const char **guide, int test_nbr, int n
     return ok;
 }
 
-// Select developer tests
-#define REGULAR_TESTS           // Unaltered Sargon core
-#ifdef DEBUG_WIKIPEDIA_EXAMPLE  // Alter scoring and move generation
-    #undef REGULAR_TESTS
-#endif
-#ifdef DEBUG_GUIDED_EXAMPLES    // Alter move generation
-    #undef REGULAR_TESTS
-#endif
-
 // Undocumented (developer) tests
 bool sargon_undocumented_dev_test()
 {
@@ -1239,7 +1233,7 @@ bool sargon_undocumented_dev_test()
     thc::ChessPosition cp;
     PV pv;
     std::string terse;
-    #ifdef REGULAR_TESTS
+    #ifdef DEBUG_NORMAL_EXECUTION
     printf( "Mate tests\n" );
     ok = ok && sargon_position_test_array( mate_tests, nbrof(mate_tests), true );
     printf( "Primary test positions in Zargon development\n" );
@@ -1248,7 +1242,14 @@ bool sargon_undocumented_dev_test()
     ok = ok && sargon_position_test_array( extra_tests2, nbrof(extra_tests2), true );
     #endif
 
-#ifdef DEBUG_WIKIPEDIA_EXAMPLE
+    #ifdef DEBUG_GUIDED_EXECUTION
+    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply4_guided_move_test, ply4_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &knight_fork_guided_move_test, knight_fork_guided_move_test_moves, 1, 1, true );
+    ok = ok && sargon_guided_test( &ply2_guided_move_test, ply2_guided_move_test_moves, 1, 1, true );
+    #endif
+
+    #ifdef DEBUG_WIKIPEDIA_EXECUTION
     cp.Forsyth("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR W - - 0 2");    // Note no castling to prevent double moves, move number is 2 not 1 to avoid book moves
     callback_start_position_register( cp );
     z.PLYMAX = 4;
@@ -1259,13 +1260,6 @@ bool sargon_undocumented_dev_test()
     terse = sargon_export_best_move();
     printf( "Best move = %s\n", terse.c_str() );
     ok = ok && (terse == "b1c3");
-#endif
-
-#ifdef DEBUG_GUIDED_EXAMPLES
-    ok = ok && sargon_guided_test( &philidor_guided_move_test, philidor_guided_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &ply4_guided_move_test, ply4_guided_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &knight_fork_guided_move_test, knight_fork_guided_move_test_moves, 1, 1, true );
-    ok = ok && sargon_guided_test( &ply2_guided_move_test, ply2_guided_move_test_moves, 1, 1, true );
 #endif
     return ok;
 }

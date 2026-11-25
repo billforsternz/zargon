@@ -13,19 +13,29 @@
 //#define SCENARIO_SINGLE_STEPPING
 
 // Most testing doesn't need special conditional compilation, but
-//  we do have the following (pick zero or more)
-// #define DEBUG_FUNC_LOG               // Log Sargon function entry and exit
-//#define DEBUG_GUIDED_EXAMPLES        // Guided examples with limited number of moves
-//#define DEBUG_WIKIPEDIA_EXAMPLE         // Wikipedia alpha-beta example
+//  we do have the following (pick zero or more, but only one of
+//  DEBUG_GUIDED_EXECUTION and DEBUG_WIKIPEDIA_EXECUTION)
+//#define DEBUG_FUNC_LOG                // Log Sargon function entry and exit
+//#define DEBUG_GUIDED_EXECUTION        // Guided examples with limited number of moves
+//#define DEBUG_WIKIPEDIA_EXECUTION     // Wikipedia alpha-beta example
+
+// Determine whether execution is altered
+#define DEBUG_NORMAL_EXECUTION          // Unaltered Sargon core
+#ifdef DEBUG_WIKIPEDIA_EXECUTION        // Alter scoring and move generation
+    #undef DEBUG_NORMAL_EXECUTION
+#endif
+#ifdef DEBUG_GUIDED_EXECUTION           // Alter move generation
+    #undef DEBUG_NORMAL_EXECUTION
+#endif
 
 // All of the special testing conditionals require function callbacks
 #ifdef DEBUG_FUNC_LOG
     #define DEBUG_FUNC_CALLBACKS
 #endif
-#ifdef DEBUG_WIKIPEDIA_EXAMPLE
+#ifdef DEBUG_WIKIPEDIA_EXECUTION
     #define DEBUG_FUNC_CALLBACKS
 #endif
-#ifdef DEBUG_GUIDED_EXAMPLES
+#ifdef DEBUG_GUIDED_EXECUTION
     #define DEBUG_FUNC_CALLBACKS
 #endif
 
@@ -92,6 +102,7 @@ void logf( const char *fmt, ... );
 
 // Use an automatic (stack) instance of this to capture entry and exit from Sargon
 //  functions (using constructor and destructor respectively)
+#ifdef DEBUG_FUNC_CALLBACKS
 class function_in_out
 {
     FUNC_ENUM saved_fe;
@@ -102,6 +113,7 @@ public:
     ~function_in_out();
     void log( FUNC_ENUM fe, bool in, bool insist );
 };
+#endif
 
 //  Optionally include Zargon function callbacks for
 //   guided tests and logging

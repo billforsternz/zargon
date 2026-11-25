@@ -117,46 +117,6 @@ void callback_guide_moves_clear()
     guide_moves.clear();
 }
 
-// If hooked up potentially alter ADMOVE(), by restricting generated moves
-//  for DEBUG_GUIDED_EXAMPLES
-#ifdef DEBUG_GUIDED_EXAMPLES
-void callback_admove( bool &early_exit )
-{
-    early_exit=true;
-
-    // Guided move, early exit UNLESS we find pending move in
-    //  guided move list
-    thc::Square from, to;
-    sargon_export_square(z.M1,from);
-    sargon_export_square(z.M2,to);
-    int ply = 1;
-    for( const std::string s: guide_moves )
-    {
-        if( ply == z.NPLY )
-        {
-            size_t len = s.length();
-            for( size_t offset=0; offset+4 <= len; offset+=5 )
-            {
-                std::string terse = s.substr(offset,4);
-                if( terse == "****" )
-                {
-                    early_exit = false;
-                    return;
-                }
-                thc::Square src = thc::make_square( terse[0], terse[1] );
-                thc::Square dst = thc::make_square( terse[2], terse[3] );
-                if( from==src && to==dst )
-                {
-                    early_exit = false;
-                    return;
-                }
-            }
-        }
-        ply++;
-    }
-}
-#endif
-
 static bool restart_test;
 static unsigned long tracef_count = 1;
 bool callback_restart_test()
@@ -503,6 +463,87 @@ std::string show_ply_chains( bool show_score )
     return s;
 }
 
+#ifdef DEBUG_FUNC_CALLBACKS
+//
+// Stub execution modifiers
+// ========================
+//
+
+// Only DEBUG_WIKIPEDIA_EXECUTION needs to alter GENMOV() execution
+#ifndef DEBUG_WIKIPEDIA_EXECUTION
+void callback_genmov()
+{
+}
+#endif
+
+// Only DEBUG_WIKIPEDIA_EXECUTION needs to alter POINTS() execution
+#ifndef DEBUG_WIKIPEDIA_EXECUTION
+uint8_t callback_points( bool &early_exit )
+{
+    early_exit=false;
+    return 0;
+}
+#endif
+
+// Both DEBUG_WIKIPEDIA_EXECUTION and DEBUG_GUIDED_EXECUTION alter ADMOVE()
+#ifdef DEBUG_NORMAL_EXECUTION
+void callback_admove( bool &early_exit )
+{
+    early_exit=false;
+}
+#endif
+#endif
+
+
+#ifdef DEBUG_GUIDED_EXECUTION
+//
+// Guided Execution
+// ================
+//
+// For a while we used guided (allow a subset of moves to reduce
+// noise) tests to help us understand Sargon internals. I'm reluctant
+// to throw these tests away.
+
+// For DEBUG_GUIDED_EXECUTION alter ADMOVE(), by restricting generated moves
+void callback_admove( bool &early_exit )
+{
+    early_exit=true;
+
+    // Guided move, early exit UNLESS we find pending move in
+    //  guided move list
+    thc::Square from, to;
+    sargon_export_square(z.M1,from);
+    sargon_export_square(z.M2,to);
+    int ply = 1;
+    for( const std::string s: guide_moves )
+    {
+        if( ply == z.NPLY )
+        {
+            size_t len = s.length();
+            for( size_t offset=0; offset+4 <= len; offset+=5 )
+            {
+                std::string terse = s.substr(offset,4);
+                if( terse == "****" )
+                {
+                    early_exit = false;
+                    return;
+                }
+                thc::Square src = thc::make_square( terse[0], terse[1] );
+                thc::Square dst = thc::make_square( terse[2], terse[3] );
+                if( from==src && to==dst )
+                {
+                    early_exit = false;
+                    return;
+                }
+            }
+        }
+        ply++;
+    }
+}
+#endif
+
+
+#ifdef DEBUG_WIKIPEDIA_EXECUTION
 //
 // Wikipedia Alpha-Beta pruning example
 // ====================================
@@ -561,10 +602,9 @@ static int wikipedia_nbr_strings = sizeof(wikipedia_tree)/sizeof(wikipedia_tree[
 static int wikipedia_string_nbr    = 0;
 static int wikipedia_string_offset = 2;
 
-// If hooked up potentially alter GENMOV(), to make WIKIPEDIA example operate
+// For DEBUG_WIKIPEDIA_EXECUTION alter GENMOV(), to make WIKIPEDIA example operate
 void callback_genmov()
 {
-#ifdef DEBUG_WIKIPEDIA_EXAMPLE
     static int nbr_calls;
     thc::ChessPosition cp;
     sargon_export_position(cp);
@@ -597,17 +637,9 @@ void callback_genmov()
             printf( "*guide=%c z.NPLY=%d\n", *guide, z.NPLY );
         exit(0);
     }
-#endif
 }
 
-// If hooked up potentially alter POINTS(), to make WIKIPEDIA example operate
-#ifndef DEBUG_WIKIPEDIA_EXAMPLE
-uint8_t callback_points( bool &early_exit )
-{
-    early_exit = false;
-    return 0;
-}
-#else
+// For DEBUG_WIKIPEDIA_EXECUTION alter POINTS(), to make WIKIPEDIA example operate
 uint8_t callback_points( bool &early_exit )
 {
     early_exit = false;
@@ -656,8 +688,7 @@ uint8_t callback_points( bool &early_exit )
     return ret_val;
 }
 
-// If hooked up potentially alter ADMOVE(), by restricting generated moves
-//  for DEBUG_WIKIPEDIA_EXAMPLE
+// For DEBUG_WIKIPEDIA_EXECUTION alter ADMOVE(), to make WIKIPEDIA example operate
 void callback_admove( bool &early_exit )
 {
     early_exit=true;
